@@ -16,13 +16,21 @@ exif = Image.Exif()
 exif[0x010F] = "Apple"
 exif[0x8825] = {1: "N", 2: (48.0, 46.0, 0.0), 3: "E", 4: (9.0, 10.0, 0.0)}
 puffer = io.BytesIO()
-Image.new("RGB", (1200, 900), "#3c8c3c").save(puffer, "JPEG", exif=exif.tobytes())
+Image.new("RGB", (1200, 600), "#3c8c3c").save(puffer, "JPEG", exif=exif.tobytes())
 sys.stdout.buffer.write(puffer.getvalue())
 `;
 const EXIF = 'import sys; from PIL import Image; b = Image.open(sys.argv[1]); print(len(b.getexif()), b.size)';
 
 const WILLI = '<img class="figur" src="bilder/willi.png" alt="Willi">';
 const GRAFIK = '<img src="bilder/wachstum.png" alt="Samen, Keimling, Pflanze, Blume">';
+const LINIE = '<div class="schreiblinie nicht-loesung"></div>';
+
+/**
+ * Die Vorlage hat ihr Bild nur noch im Fuß (`.wachstum`, dort klein gehalten). Die Tests brauchen ein freies Bild in
+ * einer Aufgabe, so breit wie die Spalte: Es kommt in eigener Zeile vor die Schreiblinie von Aufgabe 3.
+ */
+const mitGrafik = async (datei: string) =>
+	writeFile(datei, (await readFile(datei, 'utf8')).replace(LINIE, `${GRAFIK}\n      ${LINIE}`));
 
 /** Wartet, bis eine Arbeit am Server (Hochladen, Umwandeln) in der Datei angekommen ist. */
 const bisDarin = (datei: string, text: string) =>
@@ -118,7 +126,10 @@ test.describe('Editor: Bilder', () => {
 		const nachher = await readFile(datei, 'utf8');
 		const zeilen = geaendert(vorher, nachher);
 		expect(zeilen).toHaveLength(1);
-		expect(zeilen[0]).toMatch(/<img class="figur"[^>]*style="--figur:70px"[^>]*alt="Wilma"/);
+		// Wie bei der freien Figur trägt die Leitfigur nach dem Tausch ihre Kennung (`tauscheFigur`, 199-11).
+		expect(zeilen[0]).toContain(
+			'<img data-figur="wilma" class="figur" style="--figur:70px" src="bilder/wilma.png" alt="Wilma">',
+		);
 		await expect(material(page).locator('img.figur')).toHaveAttribute('alt', 'Wilma');
 
 		await druecke(zurueck(page));
@@ -132,8 +143,9 @@ test.describe('Editor: Bilder', () => {
 		page,
 	}) => {
 		const { dok, id, material: datei } = await uhrzeit();
+		await mitGrafik(datei);
 		await oeffne(page, id, dok);
-		const grafik = material(page).locator('img[src="bilder/wachstum.png"]');
+		const grafik = material(page).locator('img[src="bilder/wachstum.png"]').first();
 		await druecke(grafik);
 		await expect(page.locator('[data-auswahl="bild"]')).toBeVisible();
 
@@ -165,9 +177,10 @@ test.describe('Editor: Bilder', () => {
 
 	test('199-10: kein „Bild entfernen“ im Bildpanel, ⌫ löscht das Bild weiter', async ({ druecke, page }) => {
 		const { dok, id, material: datei } = await uhrzeit();
+		await mitGrafik(datei);
 		const vorher = await readFile(datei, 'utf8');
 		await oeffne(page, id, dok);
-		await druecke(material(page).locator('img[src="bilder/wachstum.png"]'));
+		await druecke(material(page).locator('img[src="bilder/wachstum.png"]').first());
 		const werkzeug = page.locator('[data-bildwerkzeug="bild"]');
 		await expect(werkzeug).toBeVisible();
 		await expect(werkzeug.getByRole('button', { name: 'Bild entfernen' })).toHaveCount(0);
@@ -176,7 +189,10 @@ test.describe('Editor: Bilder', () => {
 		await expect(werkzeug.locator('[data-zeile]').first()).toContainText('Austauschen');
 		await page.keyboard.press('Backspace');
 		await gespeichert(page, datei);
-		expect(await readFile(datei, 'utf8')).not.toContain(GRAFIK);
+		// Nur das freie Bild ist weg, das kleine im Fuß bleibt.
+		const ohne = await readFile(datei, 'utf8');
+		expect(ohne).not.toContain(`${GRAFIK}\n`);
+		expect(ohne).toContain(`<div class="wachstum">${GRAFIK}`);
 		await druecke(zurueck(page));
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toBe(vorher);
@@ -187,9 +203,10 @@ test.describe('Editor: Bilder', () => {
 		page,
 	}) => {
 		const { dok, id, material: datei, ordner } = await uhrzeit();
+		await mitGrafik(datei);
 		const vorher = await readFile(datei, 'utf8');
 		await oeffne(page, id, dok);
-		await druecke(material(page).locator('img[src="bilder/wachstum.png"]'));
+		await druecke(material(page).locator('img[src="bilder/wachstum.png"]').first());
 		await druecke(page.getByRole('button', { name: 'Foto hochladen' }));
 		await expect(page.getByText('Bitte keine Fotos, auf denen Kinder zu erkennen sind.')).toBeVisible();
 		const foto = {
@@ -204,10 +221,10 @@ test.describe('Editor: Bilder', () => {
 		await gespeichert(page, datei);
 
 		const nachher = await readFile(datei, 'utf8');
-		expect(geaendert(vorher, nachher)).toEqual(['    <img src="bilder/foto.jpg" alt="">']);
+		expect(geaendert(vorher, nachher)).toEqual(['      <img src="bilder/foto.jpg" alt="">']);
 		const gespeichertesFoto = path.join(ordner, 'bilder', 'foto.jpg');
 		expect(execFileSync('python3', ['-c', EXIF, gespeichertesFoto], { encoding: 'utf8' }).trim()).toBe(
-			'0 (1200, 900)',
+			'0 (1200, 600)',
 		);
 		await expect(page.locator('[data-auswahl="bild"]')).toBeVisible();
 		await expect(page.locator('[data-bild-beschreibung]')).toBeVisible();
@@ -226,10 +243,9 @@ test.describe('Editor: Bilder', () => {
 	test('setzt ein Bild an die Stelle eines Platzhalters', async ({ druecke, page }) => {
 		const { dok, id, material: datei } = await uhrzeit();
 		const roh = await readFile(datei, 'utf8');
-		const linie = '<div class="schreiblinie nicht-loesung"></div>';
 		await writeFile(
 			datei,
-			roh.replace(linie, `<div class="platzhalter" style="--h:120px">Pflanze wächst</div>${linie}`),
+			roh.replace(LINIE, `<div class="platzhalter" style="--h:120px">Pflanze wächst</div>${LINIE}`),
 		);
 		await oeffne(page, id, dok);
 		await druecke(material(page).locator('.platzhalter'));
@@ -241,7 +257,7 @@ test.describe('Editor: Bilder', () => {
 		await gespeichert(page, datei);
 		// 120 px hoch bei 1776 × 896 Pixeln ergibt 238 px Breite.
 		expect(await readFile(datei, 'utf8')).toContain(
-			`<img src="bilder/wachstum.png" alt="Samen, Keimling, Pflanze, Blume" style="width:238px">${linie}`,
+			`<img src="bilder/wachstum.png" alt="Samen, Keimling, Pflanze, Blume" style="width:238px">${LINIE}`,
 		);
 		await expect(page.locator('[data-auswahl="bild"]')).toBeVisible();
 	});
