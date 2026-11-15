@@ -13,6 +13,8 @@ export interface PalettenEintrag {
 	suchwoerter?: readonly string[];
 	/** Steht schon bei leerer Eingabe in der Liste. */
 	start?: boolean;
+	/** Steht da, tut aber gerade nichts; `notiz` sagt warum (200-N01). */
+	gesperrt?: boolean;
 	aus: () => unknown;
 }
 
@@ -57,7 +59,7 @@ const istFolge = (wort: string, text: string) => {
 	return true;
 };
 
-const stufe = (wort: string, text: string) => {
+const stufe = (wort: string, text: string, folge = true) => {
 	if (text.split(WORTGRENZE).includes(wort)) {
 		return GANZ;
 	}
@@ -69,13 +71,14 @@ const stufe = (wort: string, text: string) => {
 		return text.split(WORTGRENZE).some((w) => w.startsWith(wort)) ? WORTANFANG : TEILWORT;
 	}
 	// Ein einzelner Buchstabe steckt in fast allem.
-	return wort.length > 1 && istFolge(wort, text) ? FOLGE : 0;
+	return folge && wort.length > 1 && istFolge(wort, text) ? FOLGE : 0;
 };
 
 /** Je Stufe zwei Werte: `titel` vor `suchwoerter`. */
 const wertVon = (wort: string, titel: string, woerter: readonly string[]) => {
 	const imTitel = stufe(wort, titel);
-	const inWoertern = Math.max(0, ...woerter.map((w) => stufe(wort, w)));
+	// Verstreute Buchstaben zählen nur im Titel: In Fach, Ordnern und Art stecken sie fast immer (188-38).
+	const inWoertern = Math.max(0, ...woerter.map((w) => stufe(wort, w, false)));
 	return Math.max(imTitel * 2 + 1, inWoertern * 2);
 };
 

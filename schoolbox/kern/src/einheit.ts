@@ -12,8 +12,6 @@ export const EINHEIT_PLAN = 'einheit.json';
 export const EINHEIT_THEMA = 'thema.css';
 export const EINHEIT_ZEICHEN = { thema: 200, ziel: 200, frei: 1500, idee: 300, titel: 120, autor: 60 };
 export const EINHEIT_MAX_DOKUMENTE = 24;
-/** Auftrag „Als Text bearbeiten“ im Assistenten (140). */
-export const EINHEIT_AUFTRAG_ZEICHEN = 6000;
 /** Kasten „Verbrauch“ vor dem Start (140); Werte aus dem Messlauf in 139. */
 export const EINHEIT_VERBRAUCH =
 	'Zuerst zeigt Claude dir den Plan: die Geschichte und alle Materialien. Das dauert einige Minuten. Nach deiner Freigabe baut Claude jedes Material, prüft es und sieht es sich an; je nach Umfang dauert das eine bis drei Stunden und verbraucht sehr viel von deinem Limit. Du kannst weiterarbeiten; die Materialien erscheinen im Ordner, sobald sie fertig sind.';
@@ -21,7 +19,7 @@ const SLUG = new RegExp(ID_MUSTER);
 const MAX_SLUG = 60;
 
 export const EINHEIT_DAUER = ['1 Woche', '2 Wochen', '3–4 Wochen'] as const;
-export const EINHEIT_MENGE = ['claude', 'etwa 6', 'etwa 12', 'etwa 16'] as const;
+/** `keine` gibt es nur noch in alten Anfragen und Einheiten (190, Urteil 3); der Assistent bietet sie nicht an. */
 export const EINHEIT_LEITFIGUR = ['willi', 'wilma', 'beide', 'keine'] as const;
 /** Ein eigenes Thema von Claude oder schlicht. */
 export const EINHEIT_AUSSEHEN = ['eigen', 'schlicht'] as const;
@@ -35,10 +33,8 @@ export interface EinheitAngaben {
 	vorwissen: string;
 	dauer: string;
 	stundenJeWoche: number;
-	menge: (typeof EINHEIT_MENGE)[number];
 	bestandteile: string[];
 	nochEtwas: string;
-	rahmen: boolean;
 	idee: string;
 	leitfigur: (typeof EINHEIT_LEITFIGUR)[number];
 	aussehen: (typeof EINHEIT_AUSSEHEN)[number];
@@ -113,10 +109,8 @@ export const pruefeEinheitAngaben = (roh: unknown): EinheitAngaben => {
 		vorwissen: text(b.vorwissen, EINHEIT_ZEICHEN.frei, 'Vorwissen'),
 		dauer: text(b.dauer, 60, 'Dauer') || '2 Wochen',
 		stundenJeWoche: stunden,
-		menge: eins(b.menge, EINHEIT_MENGE, 'Die Zahl der Materialien', 'claude'),
 		bestandteile: liste(b.bestandteile, 60, 20, 'Bestandteile'),
 		nochEtwas: text(b.nochEtwas, EINHEIT_ZEICHEN.frei, 'Noch etwas'),
-		rahmen: b.rahmen === undefined ? true : ja(b.rahmen),
 		idee: text(b.idee, EINHEIT_ZEICHEN.idee, 'Idee'),
 		leitfigur: eins(b.leitfigur, EINHEIT_LEITFIGUR, 'Die Leitfigur', 'beide'),
 		aussehen: eins(b.aussehen, EINHEIT_AUSSEHEN, 'Das Aussehen', 'eigen'),
@@ -142,13 +136,13 @@ const aussehenSatz = (wert: EinheitAngaben['aussehen']) =>
 
 export const einheitAuftragAus = (a: EinheitAngaben): string => {
 	const saetze = [
-		`Erstelle eine Unterrichtseinheit „${a.titel}“ für ${FACH_NAME[a.fach]}, ${KLASSE_NAME(a.klasse)}, zum Thema „${a.thema}“.`,
-		`Dauer: ${a.dauer}, ${a.stundenJeWoche} Stunden je Woche. Zahl der Materialien: ${a.menge === 'claude' ? 'entscheide du' : a.menge}.`,
+		`Erstelle eine Unterrichtseinheit „${a.titel}“ für ${FACH_NAME[a.fach]}, ${KLASSE_NAME(a.klasse)}${a.titel === a.thema ? '' : `, zum Thema „${a.thema}“`}.`,
+		`Dauer: ${a.dauer}, ${a.stundenJeWoche} Stunden je Woche. Zahl der Materialien: entscheide du.`,
 		a.ziele.length ? `Ich-kann-Ziele: ${a.ziele.join(' · ')}` : 'Formuliere die Ich-kann-Ziele selbst.',
 		a.vorwissen ? `Vorwissen der Klasse: ${a.vorwissen}` : '',
 		a.bestandteile.length ? `Bestandteile: ${a.bestandteile.join(', ')}.` : '',
 		a.nochEtwas ? `Außerdem als Bestandteil: ${a.nochEtwas}` : '',
-		a.rahmen ? `Mit Rahmengeschichte${a.idee ? `, Idee: ${a.idee}` : ''}.` : 'Ohne Rahmengeschichte.',
+		`Mit Rahmengeschichte${a.idee ? `, Idee: ${a.idee}` : ''}.`,
 		a.leitfigur === 'keine' ? 'Ohne Leitfigur.' : `Leitfigur: ${FIGUR[a.leitfigur]}.`,
 		aussehenSatz(a.aussehen),
 		a.bilder
@@ -280,6 +274,8 @@ export interface EinheitStand {
 	status: EinheitStatus;
 	grund: string | null;
 	start: string;
+	/** Beginn des laufenden Schritts (Plan oder Bau): Die Laufzeit im Band zählt ab hier, wie beim Blatt (190-N04). */
+	laufSeit?: string;
 	ende: string | null;
 	sitzung: string | null;
 	plan: EinheitPlan | null;

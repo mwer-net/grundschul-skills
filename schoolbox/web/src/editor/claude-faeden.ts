@@ -169,24 +169,52 @@ export const ohneGespraech = (f: Faden, v: VorschlagAmBlatt | undefined) => ({
 	gesendet: null,
 });
 
+/** Ein abgebrochener Lauf antwortet nicht: Sein Auftrag kommt ins Feld zurück (200-18). */
 export const antwortVon = (auftrag: KiAuftrag, vorschlag: Vorschlag | undefined) => {
 	if (auftrag.status === 'abgebrochen') {
-		return 'Abgebrochen.';
+		return undefined;
 	}
 	return auftrag.ergebnis === 'antwort' ? auftrag.antwort : vorschlag?.antwort;
+};
+
+/** Nach „Abbrechen“: Die Nachricht des Auftrags fällt aus dem Verlauf, der getippte Text steht wieder im Feld. */
+export const nachAbbruch = (f: Faden): Partial<Faden> => {
+	const letzte = f.verlauf.at(-1);
+	const ohne = letzte?.rolle === 'lehrkraft' ? f.verlauf.slice(0, -1) : f.verlauf;
+	return {
+		verlauf: ohne,
+		entwurf: f.gesendet && !f.entwurf.trim() ? f.gesendet : f.entwurf,
+		zitat: f.zitat ?? letzte?.zitat ?? null,
+	};
 };
 
 export const nachricht = (
 	rolle: ChatNachricht['rolle'],
 	text: string,
 	auftragId: string | null = null,
-): ChatNachricht => ({ rolle, text, kontext: null, zeit: new Date().toISOString(), auftragId });
+	zitat: string | null = null,
+): ChatNachricht => ({
+	rolle,
+	text,
+	kontext: null,
+	zeit: new Date().toISOString(),
+	auftragId,
+	...(zitat ? { zitat } : {}),
+});
 
+/**
+ * `unterwegs`: abgeschickt, der Server kennt den Auftrag noch nicht (200-01). Das gilt schon als Lauf, sonst ginge
+ * derselbe Auftrag ein zweites Mal hinaus.
+ */
 export const standVon = (
 	f: Faden,
 	auftrag: KiAuftrag | undefined,
 	vorschlag: VorschlagAmBlatt | undefined,
+	unterwegs = false,
 ): FadenStand => {
+	if (unterwegs) {
+		return 'laeuft';
+	}
 	if (auftrag?.status === 'laeuft' || auftrag?.status === 'wartet') {
 		return auftrag.status;
 	}
@@ -198,6 +226,45 @@ export const standVon = (
 		return 'frage';
 	}
 	return f.ungelesen ? 'antwort' : 'ruhig';
+};
+
+/**
+ * Die Zeile der Prüfung unter einem Vorschlag; `null`, wenn sie nichts meldet (200-12). Derselbe Wortlaut wie in der
+ * Entwurfsleiste des neuen Blatts.
+ */
+export const pruefungText = (v: Pick<Vorschlag, 'fehler' | 'meldungen'>) => {
+	if (v.fehler > 0) {
+		return `${v.fehler} Fehler in der Prüfung: bitte nachbessern lassen`;
+	}
+	const n = v.meldungen.length;
+	if (n === 0) {
+		return null;
+	}
+	return n === 1 ? '1 Hinweis der Prüfung' : `${n} Hinweise der Prüfung`;
+};
+
+/** Steht an diesem Faden etwas aus? Nur dann zeigt das Element eine Pille und zählt zur Grenze (200-04). */
+export const stehtAus = (stand: FadenStand) => stand !== 'ruhig';
+
+export const uhr = (sekunden: number) => `${Math.floor(sekunden / 60)}:${String(sekunden % 60).padStart(2, '0')}`;
+
+/**
+ * Ein Wortlaut für Pille, Statusleiste und Laufzeile (200-08). Ohne `bezug` (die Laufzeile, deren Kopf ihn nennt)
+ * und ohne `sekunden` (Beginn unbekannt) wird es kürzer.
+ */
+export const standText = (stand: FadenStand, bezug: string | null, sekunden: number | null) => {
+	if (stand === 'laeuft') {
+		const wer = bezug ? `Claude arbeitet an ${bezug}` : 'Claude arbeitet';
+		return sekunden === null ? wer : `${wer} · ${uhr(sekunden)}`;
+	}
+	const texte: Record<Exclude<FadenStand, 'laeuft'>, string> = {
+		wartet: 'Wartet auf Claude',
+		frage: 'Claude fragt',
+		vorschlag: 'Vorschlag bereit',
+		antwort: 'Claude hat geantwortet',
+		ruhig: '',
+	};
+	return texte[stand];
 };
 
 /** Was weder Gespräch noch Auftrag noch Vorschlag hat, ist vorbei; die offene Blase bleibt. */
@@ -239,7 +306,20 @@ export const ergaenzeFaeden = (
 		const da = neu.find((f) => f.auftragId === a.id) ?? von(schluessel) ?? von(a.grundlage);
 		if (!da) {
 			const referenz = a.referenz ?? null;
-			neu.push(neuerFaden({ key: schluessel, schluessel, referenz, ganz: !referenz, auftragId: a.id }));
+			// Nach dem Neuladen: Die Bitte des laufenden Auftrags steht wieder im Verlauf (200, Urteil c).
+			const verlauf = a.bitte ? [nachricht('lehrkraft', a.bitte, null, a.zitat ?? null)] : [];
+			neu.push(
+				neuerFaden({
+					key: schluessel,
+					schluessel,
+					referenz,
+					ganz: !referenz,
+					auftragId: a.id,
+					verlauf,
+					// Wie ohne Neuladen: Nach „Abbrechen“ steht getippter Text wieder im Feld (200-N02, 200-18).
+					gesendet: a.bitte && a.getippt ? a.bitte : null,
+				}),
+			);
 		} else if (da.auftragId !== a.id && !laeuftNoch(da.auftragId ? auftraege[da.auftragId] : undefined)) {
 			neu[neu.indexOf(da)] = { ...da, auftragId: a.id };
 		}

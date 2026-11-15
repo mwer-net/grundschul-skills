@@ -30,7 +30,8 @@ export const LimitZeile = ({
 	return (
 		<div
 			role="status"
-			className={klassen('flex flex-none items-center justify-between gap-2 text-xs', className)}
+			// Von Anfang an Platz für zwei Zeilen: „Noch einmal versuchen“ lässt nichts springen (190-24).
+			className={klassen('flex min-h-10 flex-none items-center justify-between gap-2 text-sm', className)}
 			data-ki-limit={hinweis.art}
 		>
 			<p>

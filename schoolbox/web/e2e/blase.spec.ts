@@ -256,11 +256,26 @@ test.describe('Blase am Element (134)', () => {
 		await expect.poll(() => quelleAufPlatte(mappe, dok)).not.toContain('data-von-claude');
 	});
 
+	test('Enter im Vergleich übernimmt, ⌘Z nimmt es zurück (200-02)', async ({ page }) => {
+		const { dok, mappe } = await offenesBlatt(page);
+		await schreibe(page, 'Mach es schöner');
+		await karte(page).getByRole('button', { name: 'Groß vergleichen' }).click();
+		await expect(page.getByRole('dialog').getByRole('button', { name: 'Übernehmen' })).toBeFocused();
+		await page.keyboard.press('Enter');
+		await expect.poll(() => quelleAufPlatte(mappe, dok)).toContain('von Claude');
+		// 200-10: Blase zu, keine Pille, kein „Claude hat das Material geändert.“; 193-12: „Rückgängig“ in der Meldung.
+		await expect(blase(page)).toHaveCount(0);
+		await expect(pille(page)).toHaveCount(0);
+		await expect(page.getByText('Claude hat das Material geändert.')).toHaveCount(0);
+		await page.getByRole('status').getByRole('button', { name: 'Rückgängig' }).click();
+		await expect.poll(() => quelleAufPlatte(mappe, dok)).not.toContain('von Claude');
+	});
+
 	test('„Groß vergleichen“ zeigt beide Fassungen, dort lässt sich annehmen', async ({ page }) => {
 		const { dok, mappe } = await offenesBlatt(page);
 		await schreibe(page, 'Mach es schöner');
 		await karte(page).getByRole('button', { name: 'Groß vergleichen' }).click();
-		await page.getByRole('button', { name: 'Annehmen' }).click();
+		await page.getByRole('dialog').getByRole('button', { name: 'Übernehmen' }).click();
 		await expect.poll(() => quelleAufPlatte(mappe, dok)).toContain('von Claude');
 		await expect(material(page).locator('h1').first()).toContainText('von Claude');
 	});
@@ -272,7 +287,7 @@ test.describe('Blase am Element (134)', () => {
 		await expect(feld(page)).toHaveAttribute('placeholder', 'Nachbessern …');
 		await fall('haenger');
 		await schreibe(page, 'Noch kürzer');
-		await expect(lauf(page)).toContainText('Claude ändert Seite 1');
+		await expect(lauf(page)).toContainText('Claude arbeitet');
 		await feld(page).fill('Zweite Nachricht');
 		await feld(page).press('Enter');
 		await expect(feld(page)).toHaveValue('Zweite Nachricht');
@@ -326,7 +341,7 @@ test.describe('Blase am Element (134)', () => {
 		await expect(lauf(page)).toBeVisible();
 		await page.reload();
 		await expect(pille(page, 'laeuft')).toContainText('Claude arbeitet an');
-		await expect(page.locator('[data-claude-stand="arbeitet"]')).toBeVisible();
+		await expect(page.locator('[data-claude-stand="laeuft"]')).toBeVisible();
 		await page.locator('[data-claude-stand]').click();
 		await expect(lauf(page)).toBeVisible();
 		await lauf(page).getByRole('button', { name: 'Abbrechen' }).click();
@@ -424,31 +439,57 @@ test.describe('Gespräch in der Blase (087)', () => {
 		await expect(feld(page)).toHaveAttribute('placeholder', 'Was soll sich ändern?');
 	});
 
-	test('× beendet das Gespräch: Verlauf leer, neue Id, Ordner weg, der Vorschlag bleibt', async ({ page }) => {
-		const { auftraege, enden } = beobachte(page);
+	test('× mit offenem Vorschlag schließt nur: Pille und Gespräch bleiben (200-05)', async ({ page }) => {
+		const { enden } = beobachte(page);
 		await offenesBlatt(page);
 		await schreibe(page, 'Mach es schöner');
 		await expect(karte(page)).toBeVisible();
-		const ordner = gespraechOrdner((await letzterAufruf()).cwd);
-		expect(existsSync(ordner)).toBe(true);
-		expect(await chatSchluessel(page)).toEqual([]);
-
-		await blase(page).getByRole('button', { name: 'Gespräch beenden' }).click();
+		await expect(blase(page).getByRole('button', { name: 'Einklappen' })).toHaveCount(0);
+		await blase(page).getByRole('button', { name: 'Schließen' }).click();
 		await expect(blase(page)).toHaveCount(0);
-		await expect.poll(() => enden).toEqual([auftraege[0]?.gespraechId]);
-		await expect.poll(() => existsSync(ordner)).toBe(false);
 		await expect(pille(page, 'vorschlag')).toBeVisible();
-
+		expect(enden).toEqual([]);
 		await page.keyboard.press('ControlOrMeta+j');
 		await expect(karte(page)).toBeVisible();
-		await expect(nachrichten(page)).toHaveCount(0);
 		expect(await chatSchluessel(page)).toEqual([]);
+	});
 
-		await schreibe(page, 'Noch etwas');
-		await expect(nachrichten(page).first()).toHaveText(/Noch etwas/);
-		await expect.poll(() => auftraege.length).toBe(2);
-		expect(auftraege[1]?.gespraechId).not.toBe(auftraege[0]?.gespraechId);
-		expect((await letzterAufruf()).args).not.toContain('--resume');
+	test('Ohne Ausstehendes zeigt das Element nach dem Schließen nichts, ein getippter Text bleibt (200-04)', async ({
+		page,
+	}) => {
+		await offenesBlatt(page);
+		await page.keyboard.press('ControlOrMeta+j');
+		await feld(page).fill('Noch nicht gesendet');
+		await page.keyboard.press('Escape');
+		await expect(blase(page)).toHaveCount(0);
+		await expect(pille(page)).toHaveCount(0);
+		await page.keyboard.press('ControlOrMeta+j');
+		await expect(feld(page)).toHaveValue('Noch nicht gesendet');
+		await expect(feld(page)).toBeFocused();
+	});
+
+	test('Zweimal schnell Enter schickt einen Auftrag; Abbrechen gibt ihn ins Feld zurück (200-01, 200-18)', async ({
+		page,
+	}) => {
+		const { auftraege } = beobachte(page);
+		await offenesBlatt(page);
+		await fall('haenger');
+		await page.keyboard.press('ControlOrMeta+j');
+		await feld(page).fill('Länger');
+		await feld(page).press('Enter');
+		await feld(page).fill('Gleich noch einmal');
+		await feld(page).press('Enter');
+		await expect(lauf(page)).toBeVisible();
+		await expect(blase(page).locator('[data-chat-nachricht="lehrkraft"]')).toHaveCount(1);
+		await expect(feld(page)).toHaveValue('Gleich noch einmal');
+		await expect.poll(() => auftraege.length).toBe(1);
+		await expect(blase(page).getByRole('button', { name: 'Abbrechen' })).toHaveCount(1);
+		await feld(page).fill('');
+		await lauf(page).getByRole('button', { name: 'Abbrechen' }).click();
+		await expect(feld(page)).toHaveValue('Länger');
+		await expect(feld(page)).toBeFocused();
+		await expect(nachrichten(page)).toHaveCount(0);
+		await fall('gut');
 	});
 
 	test('Esc klappt ein, das Gespräch bleibt; Esc im Menü schließt nur das Menü', async ({ page }) => {
@@ -480,12 +521,12 @@ test.describe('Gespräch in der Blase (087)', () => {
 		expect(enden).toEqual([]);
 	});
 
-	test('— und ⌘J klappen ein, die Pille klappt auf: dieselbe Id, der Verlauf bleibt', async ({ page }) => {
+	test('× und ⌘J klappen ein, die Pille klappt auf: dieselbe Id, der Verlauf bleibt', async ({ page }) => {
 		const { auftraege, enden } = beobachte(page);
 		await offenesBlatt(page);
 		await schreibe(page, 'FRAGE: Wie viele?');
 		await expect(nachrichten(page)).toHaveCount(2);
-		await blase(page).getByRole('button', { name: 'Einklappen' }).click();
+		await blase(page).getByRole('button', { name: 'Schließen' }).click();
 		await expect(blase(page)).toHaveCount(0);
 		await pille(page).click();
 		await expect(nachrichten(page)).toHaveCount(2);
@@ -653,14 +694,14 @@ test.describe('Blase am Limit (086)', () => {
 test.describe('Mehrere Gespräche (135)', () => {
 	test.afterEach(() => fall('gut'));
 
-	test('Ein zweites Element wartet und startet nach dem ersten; Pillen je Stand, ✦ in den Ebenen', async ({
+	test('Ein zweites Element wartet und startet nach dem ersten; Pillen je Stand', async ({
 		page,
 	}) => {
 		const { dok, mappe } = await offenesBlatt(page);
 		await fall('haenger');
 		await aufgabe(page, 0).locator('.nr').click();
 		await schreibe(page, 'Länger');
-		await expect(lauf(page)).toContainText('Claude ändert Aufgabe 1');
+		await expect(lauf(page)).toContainText('Claude arbeitet');
 
 		// Eine andere Auswahl klappt die Blase ein, das Gespräch läuft als Pille weiter. Über die Ebenen, denn die
 		// Blase verdeckt Aufgabe 2 auf kleinen Bildschirmen.
@@ -671,13 +712,11 @@ test.describe('Mehrere Gespräche (135)', () => {
 		await page.keyboard.press('ControlOrMeta+j');
 		await expect(bezug(page)).toHaveText('Aufgabe 2');
 		await schreibe(page, 'Kürzer');
-		await expect(lauf(page)).toContainText('Wartet auf Claude: Aufgabe 2');
+		await expect(lauf(page)).toContainText('Wartet auf Claude');
 		await expect(blase(page).locator('[data-claude-warteschlange]')).toHaveText(
 			'Claude ist noch bei Aufgabe 1. Dein Auftrag zu Aufgabe 2 startet direkt danach.',
 		);
-		await expect(page.locator('[data-claude-stand="arbeitet"]')).toBeVisible();
-		await oeffneSchublade(page, 'ebenen');
-		await expect(page.locator('[data-ebenen-claude]')).toHaveCount(2);
+		await expect(page.locator('[data-claude-stand="laeuft"]')).toBeVisible();
 
 		// Das erste bricht ab, das zweite kommt dran und endet mit einem Vorschlag.
 		await fall('gut');
@@ -685,12 +724,13 @@ test.describe('Mehrere Gespräche (135)', () => {
 		await expect(bezug(page)).toHaveText('Aufgabe 1');
 		await expect(pille(page, 'wartet')).toContainText('Wartet auf Claude');
 		await lauf(page).getByRole('button', { name: 'Abbrechen' }).click();
-		await expect(nachrichten(page).last()).toHaveText('Abgebrochen.');
+		// 200-18: Der Auftrag kommt ins Feld zurück, kein „Abgebrochen.“ im Verlauf.
+		await expect(feld(page)).toHaveValue('Länger');
+		await expect(nachrichten(page)).toHaveCount(0);
 		await expect(pille(page, 'vorschlag')).toHaveText('Vorschlag bereit', { timeout: 15_000 });
-		await expect(page.locator('[data-ebenen-claude]')).toHaveCount(1);
 
-		// Die offene Blase an Aufgabe 1 liegt über Aufgabe 2 und ihrer Pille; erst einklappen.
-		await blase(page).getByRole('button', { name: 'Einklappen' }).click();
+		// Die offene Blase an Aufgabe 1 liegt über Aufgabe 2 und ihrer Pille; erst schließen.
+		await blase(page).getByRole('button', { name: 'Schließen' }).click();
 		await pille(page, 'vorschlag').click();
 		await expect(bezug(page)).toHaveText('Aufgabe 2');
 		await karte(page).locator('[data-claude-uebernehmen]').click();

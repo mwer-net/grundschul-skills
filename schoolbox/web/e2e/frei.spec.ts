@@ -206,7 +206,7 @@ const nimmAn = async (page: Page, datei: string) => {
 	await expect(chat(page).locator('[data-ki-vorschlag]')).toBeVisible();
 	await chat(page).getByRole('button', { name: 'Groß vergleichen' }).click();
 	await expect(page.frameLocator('[data-vorschlag-rahmen]').locator('figure[data-frei] svg')).toBeAttached();
-	await page.getByRole('dialog').getByRole('button', { name: 'Annehmen' }).click();
+	await page.getByRole('dialog').getByRole('button', { name: 'Übernehmen' }).click();
 	await expect(material(page).locator('[data-frei]')).toBeVisible();
 	await gespeichert(page, datei);
 };

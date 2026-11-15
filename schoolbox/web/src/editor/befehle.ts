@@ -163,6 +163,8 @@ export interface Befehl {
 	gesperrt?: (k: Kontext) => boolean;
 	/** Sagt, warum ein Kürzel gerade nichts tut, statt still zu bleiben. */
 	warumNicht?: (k: Kontext) => string | null;
+	/** Nicht verfügbar, steht aber gesperrt mit `warumNicht` in der Palette, statt zu fehlen (200-N01). */
+	gesperrtZeigen?: (k: Kontext) => boolean;
 	/** Einträge mit gleichem Wert stehen im Menü in einem Untermenü. */
 	untermenue?: string;
 	aktiv?: (k: Kontext) => boolean;
@@ -177,6 +179,8 @@ export interface Befehl {
 const gewaehlt = (k: Kontext) => k.pfad.at(-1);
 const istSeite = (k: Kontext) => gewaehlt(k)?.baustein.art === 'seite';
 /** 47: Bei Mehrfachauswahl gibt es Claude nicht. */
+/** Der Server nimmt eine Referenz je Auftrag; für mehrere Elemente gibt es die Seite. */
+export const CLAUDE_MEHRERE = 'Claude ändert immer ein Element. Für mehrere: die Seite wählen.';
 const mehrfach = (k: Kontext) => (k.gestaltung?.nrn.length ?? 0) > 1;
 const einzigeSeite = (k: Kontext) => istSeite(k) && (k.werte?.seiten ?? 0) <= 1;
 /** „Folie“ in Präsentationen, sonst „Seite“ (192-12). */
@@ -572,13 +576,15 @@ const REGISTER: Befehl[] = [
 		id: 'auswahl.claude',
 		titel: 'Mit Claude ändern …',
 		gruppe: 'ordnen',
-		symbol: 'sprechblase',
+		symbol: 'funken',
 		suchwoerter: ['ki', 'chat', 'frage'],
-		orte: ['menue', 'palette', 'gestaltung'],
+		// 200-14: In der Palette steht nur `ansicht.claude`, mit und ohne Auswahl.
+		orte: ['menue', 'gestaltung'],
 		sichtbarUnter: 'leiste',
-		verfuegbar: (k) => k.kiVerfuegbar && k.frei && Boolean(gewaehlt(k)) && !mehrfach(k),
-		gesperrt: (k) => k.claudeGrund !== null,
-		warumNicht: (k) => k.claudeGrund,
+		// Bei Mehrfachauswahl gesperrt mit Grund statt stumm weg (Urteil 200, Mehrere Elemente).
+		verfuegbar: (k) => k.kiVerfuegbar && k.frei && Boolean(gewaehlt(k)),
+		gesperrt: (k) => mehrfach(k) || k.claudeGrund !== null,
+		warumNicht: (k) => (mehrfach(k) ? CLAUDE_MEHRERE : k.claudeGrund),
 		aus: (k) => k.tu.claudeZurAuswahl(),
 	},
 	{
@@ -847,9 +853,9 @@ const REGISTER: Befehl[] = [
 	},
 	{
 		id: 'ansicht.claude',
-		titel: 'Claude',
+		titel: 'Mit Claude ändern …',
 		gruppe: 'ansicht',
-		symbol: 'sprechblase',
+		symbol: 'funken',
 		kuerzel: [
 			{ code: 'KeyJ', befehl: true },
 			{ code: 'KeyJ', befehl: true, umschalt: true },
@@ -859,8 +865,10 @@ const REGISTER: Befehl[] = [
 		suchwoerter: ['ki', 'chat', 'frage', 'fragen', 'blase'],
 		orte: ['taste', 'palette'],
 		sichtbarUnter: 'leiste',
-		verfuegbar: (k) => !mehrfach(k),
-		warumNicht: () => 'Claude ändert immer ein Element. Wähle eines davon.',
+		// Wie `auswahl.claude`: An Gesperrtem nicht, die Taste sagt den Grund aus 198-03.
+		verfuegbar: (k) => !mehrfach(k) && !k.gesperrt,
+		warumNicht: (k) => (k.gesperrt ? GESPERRT_GRUND : CLAUDE_MEHRERE),
+		gesperrtZeigen: (k) => mehrfach(k) && !k.gesperrt,
 		aus: (k) => k.tu.claude(),
 	},
 	{
@@ -1213,6 +1221,8 @@ const alsEintrag = (b: Befehl, k: Kontext, fuehreAus: (id: string) => unknown): 
 		...(erstes ? { kuerzel: kuerzelText(erstes) } : {}),
 		...(b.gefahr ? { gefahr: true } : {}),
 		...(b.gesperrt?.(k) ? { aus: true } : {}),
+		// Gesperrt mit Grund: derselbe Satz wie bei der Taste, in ⋯ und Rechtsklick gleich (200-N01).
+		...(b.gesperrt?.(k) && b.warumNicht?.(k) ? { beschreibung: b.warumNicht(k) ?? '' } : {}),
 		...(b.aktiv ? { aktiv: b.aktiv(k) } : {}),
 		waehle: () => {
 			fuehreAus(b.id);

@@ -5,7 +5,7 @@
  * Ohne Node-Abhängigkeiten, damit auch die Oberfläche sie nutzen kann.
  */
 import type { EinheitAngaben } from './einheit';
-import { EINHEIT_AUSSEHEN, EINHEIT_DAUER, EINHEIT_LEITFIGUR, EINHEIT_MENGE, EINHEIT_ZEICHEN } from './einheit';
+import { EINHEIT_AUSSEHEN, EINHEIT_DAUER, EINHEIT_LEITFIGUR, EINHEIT_ZEICHEN } from './einheit';
 import { SchoolboxFehler } from './fehler';
 import { ART_NAME, FACH_NAME } from './namen';
 import type { Art, Fach, Format, Klasse } from './werte';
@@ -25,7 +25,7 @@ export const WEG_WAHL: readonly (Wert<Weg> & { hinweis: string })[] = [
 		wert: 'claude',
 		name: 'Claude erstellt einen Entwurf',
 		hinweis:
-			'Du beantwortest ein paar Fragen. Daraus entsteht der Auftrag, und Claude baut das erste Blatt. Dauert einige Minuten.',
+			'Du beantwortest ein paar Fragen. Claude zeigt dir zuerst den Aufgabenplan; nach deiner Freigabe baut es das Blatt.',
 	},
 	{
 		wert: 'leer',
@@ -135,15 +135,14 @@ export const FREITEXT = {
 	ziel: { name: 'Ich-kann-Ziel', platz: 'Wenn leer, formuliert Claude das Ziel aus dem Thema.', zeichen: 200 },
 	funktionText: { name: 'Anders …', platz: 'z. B. Wiederholung nach den Ferien', zeichen: 80 },
 	umfangText: { name: 'Anders …', platz: 'z. B. zwei Schulstunden', zeichen: 80 },
-	bausteineText: { name: 'Noch etwas aufs Blatt …', platz: 'z. B. ein Rätsel zum Schluss', zeichen: 300 },
 	sonst: { name: 'Sonst noch etwas für Claude?', platz: 'z. B. Bitte keine Digitaluhren.', zeichen: 1000 },
 	titel: { name: 'Titel', platz: '', zeichen: 120 },
 } as const;
 export type FreitextFeld = keyof typeof FREITEXT;
 
 /**
- * Höchstlänge des Auftrags aus dem Assistenten. Der Server hängt ihn an `vorlagen/ki/neu-entwurf.md`, beides zusammen
- * bleibt unter `KI_GRENZEN.auftragZeichen` (ein Test wacht darüber). Alle Freitexte voll passen hinein.
+ * Höchstlänge des Auftrags aus dem Assistenten, alle Freitexte voll. Der Server hängt ihn an
+ * `vorlagen/ki/neu-entwurf.md`, beides zusammen bleibt unter `KI_GRENZEN.auftragZeichen` (ein Test wacht darüber).
  */
 export const AUFTRAG_ZEICHEN = 3000;
 
@@ -167,19 +166,15 @@ export const EINHEIT_BESTANDTEILE = [
 	{ name: 'Lösungen', empfohlen: true },
 ] as const;
 
-export const EINHEIT_MENGE_NAME: Record<(typeof EINHEIT_MENGE)[number], string> = {
-	'claude': 'Claude entscheidet',
-	'etwa 6': 'etwa 6',
-	'etwa 12': 'etwa 12',
-	'etwa 16': 'etwa 16',
-};
-
 export const EINHEIT_LEITFIGUR_NAME: Record<(typeof EINHEIT_LEITFIGUR)[number], string> = {
 	willi: 'Willi',
 	wilma: 'Wilma',
 	beide: 'Beide',
 	keine: 'Keine',
 };
+
+/** Die Wahl im Assistenten: Die Vorlage der Einheit braucht eine Figur (190, Urteil 3). */
+export const EINHEIT_LEITFIGUR_WAHL: readonly (typeof EINHEIT_LEITFIGUR)[number][] = ['willi', 'wilma', 'beide'];
 
 /** Ein eigenes Thema von Claude oder schlicht, als Segment wie die Leitfigur. */
 export const EINHEIT_AUSSEHEN_WAHL: readonly { wert: (typeof EINHEIT_AUSSEHEN)[number]; name: string }[] = [
@@ -194,12 +189,9 @@ export interface EinheitWahl {
 	/** „Anders …“ bei der Dauer; geht vor `dauer`. */
 	dauerText: string;
 	stunden: number;
-	menge: (typeof EINHEIT_MENGE)[number];
 	/** `null`: die Empfehlung. */
 	bestandteile: string[] | null;
 	nochEtwas: string;
-	/** `null`: die Empfehlung (an). */
-	rahmen: boolean | null;
 	idee: string;
 	leitfigur: (typeof EINHEIT_LEITFIGUR)[number];
 	aussehen: (typeof EINHEIT_AUSSEHEN)[number];
@@ -214,10 +206,8 @@ export const leereEinheit = (): EinheitWahl => ({
 	dauer: '2 Wochen',
 	dauerText: '',
 	stunden: 4,
-	menge: 'claude',
 	bestandteile: null,
 	nochEtwas: '',
-	rahmen: null,
 	idee: '',
 	leitfigur: 'beide',
 	aussehen: 'eigen',
@@ -235,15 +225,12 @@ export const EINHEIT_FELDER = {
 	dauerText: { name: 'Anders …', platz: 'z. B. 5 Wochen, je 2 Stunden', zeichen: 60 },
 	nochEtwas: { name: 'Noch etwas …', platz: 'z. B. ein Elternbrief', zeichen: EINHEIT_ZEICHEN.frei },
 	autor: { name: 'Name auf dem Deckblatt', platz: 'z. B. dein Name bei Eduki', zeichen: EINHEIT_ZEICHEN.autor },
-	idee: { name: 'Idee', platz: 'z. B. Detektive lösen Fälle rund um die Uhr', zeichen: EINHEIT_ZEICHEN.idee },
+	idee: { name: 'Idee für die Geschichte', platz: 'z. B. Detektive lösen Fälle rund um die Uhr', zeichen: EINHEIT_ZEICHEN.idee },
 	ziel: { name: 'Ich-kann-Ziel', platz: 'z. B. Ich kann volle Stunden ablesen.', zeichen: EINHEIT_ZEICHEN.ziel },
 } as const;
 
 export const einheitBestandteile = (e: EinheitWahl): string[] =>
 	e.bestandteile ?? EINHEIT_BESTANDTEILE.filter((b) => b.empfohlen).map((b) => b.name);
-
-/** Eine Einheit ist eine Geschichte (`unterrichtsplanung/references/reihe-als-geschichte.md`): in jeder Klasse an. */
-export const einheitRahmen = (e: EinheitWahl) => e.rahmen ?? true;
 
 export interface Antworten {
 	weg: Weg;
@@ -265,7 +252,6 @@ export interface Antworten {
 	bausteine: Partial<Record<BausteinName, boolean>>;
 	umfang: Umfang | null;
 	umfangText: string;
-	bausteineText: string;
 	lerngruppe: Lerngruppe[];
 	sonst: string;
 	titel: string;
@@ -289,7 +275,6 @@ export const leereAntworten = (vorbelegt: { fach: Fach; klasse: Klasse }): Antwo
 	bausteine: {},
 	umfang: null,
 	umfangText: '',
-	bausteineText: '',
 	lerngruppe: [],
 	sonst: '',
 	titel: '',
@@ -393,8 +378,8 @@ export const bausteinSchalter = (a: Pick<Antworten, 'art' | 'bausteine'>): Baust
 /** `null`: Die Art fragt nicht nach dem Umfang. */
 export const umfangEmpfehlung = (art: Art): Umfang | null => ART_ANGABEN[art].umfang ?? null;
 
-/** Ohne Schalter und Umfang fällt der Schritt weg, und mit ihm sein Freitext. */
-const bausteineGefragt = (art: Art) => angeboteneBausteine(art).length > 0 || umfangEmpfehlung(art) !== null;
+/** Ohne Schalter fällt der Schritt weg; die Arbeitszeit steht im Schritt „Thema und Ziel“ (190-38). */
+const bausteineGefragt = (art: Art) => angeboteneBausteine(art).length > 0;
 
 /** Prüfungen dienen der Überprüfung, alles andere zuerst dem Üben (A1 S. 6). */
 export const funktionEmpfehlung = (art: Art): Funktion =>
@@ -415,7 +400,6 @@ export const SCHRITT_IDS = [
 	'bausteine',
 	'klasse',
 	'titel',
-	'pruefen',
 ] as const;
 
 export type AssistentSchrittId = (typeof SCHRITT_IDS)[number];
@@ -452,6 +436,26 @@ const artName = (a: Antworten) =>
 		: (ART_WAHL.find((w) => w.art === a.art)?.name ?? ART_NAME[a.art]);
 
 const klasseText = (klasse: Klasse) => (klasse === 'gemischt' ? 'jahrgangsgemischt' : `Klasse ${klasse}`);
+
+/** Thema und Titel stehen im selben Schritt (190-37); der Titel folgt dem Thema, bis man ihn selbst ändert. */
+const themaFehlt = (a: Antworten) => {
+	if (!voll(a.thema)) {
+		return 'Bitte schreib, worum es geht.';
+	}
+	return voll(a.titel) ? null : 'Bitte gib einen Titel ein.';
+};
+
+/** Die Arbeitszeit in der Schrittleiste (190-38); leer, wo die Art sie nicht fragt. */
+const umfangName = (a: Antworten) => {
+	if (umfangEmpfehlung(a.art) === null) {
+		return '';
+	}
+	if (voll(a.umfangText)) {
+		return `Anders: ${a.umfangText.trim()}`;
+	}
+	const umfang = a.umfang ?? umfangEmpfehlung(a.art);
+	return umfang === 'claude' ? '' : (UMFAENGE.find((u) => u.wert === umfang)?.name ?? '');
+};
 
 const angaben = (zahl: number) => {
 	if (zahl === 0) {
@@ -512,8 +516,9 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 		hilfe: () => 'Ein paar Wörter reichen. Claude ergänzt, was fehlt, und nennt es danach.',
 		wege: ['claude'],
 		einheit: 'ohne',
-		antwort: (a) => (voll(a.thema) ? `${a.thema.trim()} · ${funktionName(a)}` : ''),
-		fehlt: (a) => (voll(a.thema) ? null : 'Bitte schreib, worum es geht.'),
+		antwort: (a) =>
+			voll(a.thema) ? [a.thema.trim(), funktionName(a), umfangName(a)].filter(voll).join(' · ') : '',
+		fehlt: themaFehlt,
 	},
 	{
 		id: 'eThema',
@@ -523,7 +528,7 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 		wege: ['claude'],
 		einheit: 'nur',
 		antwort: (a) => (voll(a.thema) ? a.thema.trim() : ''),
-		fehlt: (a) => (voll(a.thema) ? null : 'Bitte schreib, worum es geht.'),
+		fehlt: themaFehlt,
 	},
 	{
 		id: 'eUmfang',
@@ -532,8 +537,7 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 		hilfe: () => 'Daraus plant Claude, wie viele Materialien es braucht.',
 		wege: ['claude'],
 		einheit: 'nur',
-		antwort: (a) =>
-			`${voll(a.eh.dauerText) ? a.eh.dauerText.trim() : a.eh.dauer} · ${EINHEIT_MENGE_NAME[a.eh.menge]}`,
+		antwort: (a) => `${voll(a.eh.dauerText) ? a.eh.dauerText.trim() : a.eh.dauer} · ${a.eh.stunden} Std. je Woche`,
 	},
 	{
 		id: 'eBestandteile',
@@ -548,14 +552,14 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 	},
 	{
 		id: 'eRahmen',
-		name: 'Rahmen und Aussehen',
-		frage: () => 'Rahmen und Aussehen',
+		name: 'Geschichte und Aussehen',
+		frage: () => 'Geschichte und Aussehen',
 		hilfe: () => 'Eine Geschichte und ein Aussehen halten die Materialien zusammen.',
 		wege: ['claude'],
 		einheit: 'nur',
 		antwort: (a) =>
 			[
-				einheitRahmen(a.eh) ? 'mit Rahmen' : 'ohne Rahmen',
+				EINHEIT_LEITFIGUR_NAME[a.eh.leitfigur],
 				EINHEIT_AUSSEHEN_WAHL.find((w) => w.wert === a.eh.aussehen)?.name,
 			].join(' · '),
 	},
@@ -589,15 +593,6 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 		wege: ['leer'],
 		einheit: 'ohne',
 		antwort: (a) => a.titel.trim(),
-		fehlt: (a) => (voll(a.titel) ? null : 'Bitte gib einen Titel ein.'),
-	},
-	{
-		id: 'pruefen',
-		name: 'Auftrag prüfen',
-		frage: () => 'So geht der Auftrag an Claude',
-		hilfe: () => 'Lies kurz drüber. Ein Klick auf eine Angabe links springt zur Frage.',
-		wege: ['claude'],
-		antwort: () => '',
 		fehlt: (a) => (voll(a.titel) ? null : 'Bitte gib einen Titel ein.'),
 	},
 ];
@@ -679,17 +674,20 @@ const ersterSatz = (a: Antworten): Teil[] => {
 	];
 };
 
+/** Kein zweites Satzzeichen hinter einem Freitext, der schon mit einem endet (190-21). */
+const punkt = (text: string) => (/[.!?…]$/.test(text.trim()) ? '' : '.');
+
 const themaSatz = (a: Antworten): Teil[] => {
 	const funktion = FUNKTIONEN.find((f) => f.wert === (a.funktion ?? funktionEmpfehlung(a.art)));
 	return [
 		fest('Thema: '),
 		frei(a.thema),
-		fest('. '),
+		fest(`${punkt(a.thema)} `),
 		...(voll(a.ziel)
-			? [fest('Ich-kann-Ziel: '), frei(a.ziel), fest('.')]
+			? [fest('Ich-kann-Ziel: '), frei(a.ziel), fest(punkt(a.ziel))]
 			: [fest('Formuliere das Ich-kann-Ziel selbst.')]),
 		...(voll(a.funktionText)
-			? [fest(' Funktion in der Reihe: '), frei(a.funktionText), fest('.')]
+			? [fest(' Funktion in der Reihe: '), frei(a.funktionText), fest(punkt(a.funktionText))]
 			: [fest(' Das Material dient '), antwort(funktion?.satz ?? ''), fest('.')]),
 	];
 };
@@ -700,12 +698,8 @@ const bausteinSatz = (a: Antworten): Teil[][] => {
 		ZUSATZ_BAUSTEINE.find((b) => b.wert === s.wert)?.[als] ?? s.name;
 	const an = schalter.filter((s) => s.an).map((s) => text(s, 'satz'));
 	const aus = schalter.filter((s) => !s.an).map((s) => text(s, 'ohne'));
-	const zusatz: Teil[][] =
-		bausteineGefragt(a.art) && voll(a.bausteineText)
-			? [[fest('Zusätzlich aufs Blatt: '), frei(a.bausteineText), fest('.')]]
-			: [];
 	if (an.length === 0 && aus.length === 0) {
-		return zusatz;
+		return [];
 	}
 	const satz: Teil[] =
 		an.length === 0
@@ -716,7 +710,7 @@ const bausteinSatz = (a: Antworten): Teil[][] => {
 					...(aus.length > 0 ? [fest(', ohne '), antwort(aufzaehlung(aus))] : []),
 					fest('.'),
 				];
-	return [satz, ...zusatz];
+	return [satz];
 };
 
 /** Der Auftrag aus A1 S. 9, Satz für Satz. Fett in der Vorschau ist, was aus den Fragen kommt. */
@@ -753,10 +747,8 @@ export const einheitAngabenAus = (a: Antworten): EinheitAngaben => {
 		vorwissen: a.eh.vorwissen.trim(),
 		dauer: voll(a.eh.dauerText) ? a.eh.dauerText.trim() : a.eh.dauer,
 		stundenJeWoche: a.eh.stunden,
-		menge: a.eh.menge,
 		bestandteile: einheitBestandteile(a.eh),
 		nochEtwas: a.eh.nochEtwas.trim(),
-		rahmen: einheitRahmen(a.eh),
 		idee: a.eh.idee.trim(),
 		leitfigur: a.eh.leitfigur,
 		aussehen: a.eh.aussehen,
@@ -776,6 +768,8 @@ export const einheitAngabenAus = (a: Antworten): EinheitAngaben => {
 // ——— Prüfen (Server) ———
 
 const AUFTRAG_FELDER = Object.keys(leereAntworten({ fach: 'deutsch', klasse: 1 }));
+/** Felder, die es nicht mehr gibt: In gespeicherten Antworten zählen sie nicht (190-43). */
+const ALTE_FELDER = ['bausteineText'];
 
 const fehler = (text: string) => new SchoolboxFehler(text);
 
@@ -827,7 +821,7 @@ export const pruefeAntworten = (roh: unknown, vorbelegt: { fach: Fach; klasse: K
 		throw fehler('Die Antworten fehlen.');
 	}
 	const r = roh as Record<string, unknown>;
-	const fremd = Object.keys(r).find((k) => !AUFTRAG_FELDER.includes(k));
+	const fremd = Object.keys(r).find((k) => !AUFTRAG_FELDER.includes(k) && !ALTE_FELDER.includes(k));
 	if (fremd !== undefined) {
 		throw fehler(`Die Antwort „${fremd}“ gibt es nicht.`);
 	}
@@ -881,7 +875,6 @@ export const pruefeAntworten = (roh: unknown, vorbelegt: { fach: Fach; klasse: K
 		bausteine: schalter,
 		umfang: pruefeUmfang(r.umfang),
 		umfangText: pruefeText(r, 'umfangText'),
-		bausteineText: pruefeText(r, 'bausteineText'),
 		lerngruppe: [...new Set(lerngruppe.map((l: unknown) => eins('lerngruppe', l, gruppen)))],
 		sonst: pruefeText(r, 'sonst'),
 		titel: pruefeText(r, 'titel'),
@@ -891,13 +884,3 @@ export const pruefeAntworten = (roh: unknown, vorbelegt: { fach: Fach; klasse: K
 	};
 };
 
-/** Der Auftrag, den die Lehrkraft unter „Als Text bearbeiten“ geändert hat. */
-export const pruefeAuftragText = (roh: unknown): string => {
-	if (typeof roh !== 'string' || roh.trim() === '') {
-		throw fehler('Der Auftrag ist leer.');
-	}
-	if (roh.length > AUFTRAG_ZEICHEN) {
-		throw fehler(`Der Auftrag darf höchstens ${AUFTRAG_ZEICHEN} Zeichen haben.`);
-	}
-	return roh.trim();
-};

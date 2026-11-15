@@ -47,7 +47,7 @@ const nimmGestaltungAn = async (page: Page) => {
 	await expect(chat(page).locator('[data-ki-vorschlag]')).toBeVisible();
 	await chat(page).getByRole('button', { name: 'Groß vergleichen' }).click();
 	await expect(page.frameLocator('[data-vorschlag-rahmen]').locator('img.figur-frei')).toBeAttached();
-	await page.getByRole('dialog').getByRole('button', { name: 'Annehmen' }).click();
+	await page.getByRole('dialog').getByRole('button', { name: 'Übernehmen' }).click();
 	await expect(wilma(page)).toBeVisible();
 	// Was der Editor beim Laden ergänzt (Pfad des Sterns, SVG der Blase), schreibt erst der nächste Schritt (104).
 	await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible();

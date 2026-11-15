@@ -14,12 +14,16 @@ interface Eigenschaften {
 	abmelden: () => void;
 	/** 136: Freitext öffnet den Assistenten mit dem Text als Thema; ohne Claude fehlt die Zeile. */
 	anlegen?: ((thema: string) => void) | undefined;
+	/** Der Assistent bei „Start“ im offenen Ordner (190-05). */
+	materialAnlegen: () => void;
 }
+
+const MATERIAL_ANLEGEN = 'Material anlegen';
 
 const ORDNER_ZU_BEGINN = 5;
 
 /** Palette außerhalb des Editors: Ordner und Dokumente aus derselben Quelle wie die Ablage, dazu die Wege im Kopf. */
-export const Seitenpalette = ({ abmelden, anlegen, neuerOrdner, schliessen }: Eigenschaften) => {
+export const Seitenpalette = ({ abmelden, anlegen, materialAnlegen, neuerOrdner, schliessen }: Eigenschaften) => {
 	const { stand } = useAblage();
 	const navigate = useNavigate();
 	const seite = useSeitenbefehle();
@@ -27,6 +31,15 @@ export const Seitenpalette = ({ abmelden, anlegen, neuerOrdner, schliessen }: Ei
 	const eintraege = useMemo(() => {
 		const liste: PalettenEintrag[] = [
 			...seite,
+			{
+				id: 'seite:material-anlegen',
+				titel: MATERIAL_ANLEGEN,
+				gruppe: 'Aktionen',
+				symbol: 'plus',
+				start: true,
+				suchwoerter: ['neu', 'erstellen', 'blatt'],
+				aus: materialAnlegen,
+			},
 			{
 				id: 'seite:neuer-ordner',
 				titel: 'Neuer Ordner',
@@ -91,14 +104,20 @@ export const Seitenpalette = ({ abmelden, anlegen, neuerOrdner, schliessen }: Ei
 			});
 		}
 		return liste;
-	}, [abmelden, navigate, neuerOrdner, seite, stand]);
+	}, [abmelden, materialAnlegen, navigate, neuerOrdner, seite, stand]);
 
 	return (
 		<Palette
 			platzhalter="Ordner, Material oder Befehl suchen"
 			eintraege={eintraege}
 			schliessen={schliessen}
-			freitext={anlegen && { titel: (text) => `Material anlegen: „${text}“`, aus: anlegen }}
+			freitext={
+				anlegen && {
+					titel: (text) => `${MATERIAL_ANLEGEN}: „${text}“`,
+					aus: anlegen,
+					ausser: (text) => MATERIAL_ANLEGEN.toLowerCase().startsWith(text.trim().toLowerCase()),
+				}
+			}
 		/>
 	);
 };

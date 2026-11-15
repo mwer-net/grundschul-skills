@@ -12,7 +12,6 @@ import {
 	EINHEIT_BESTANDTEILE,
 	einheitAngabenAus,
 	einheitBestandteile,
-	einheitRahmen,
 	formatOptionen,
 	formatWahl,
 	FREITEXT,
@@ -21,7 +20,6 @@ import {
 	leereEinheit,
 	LERNGRUPPE,
 	pruefeAntworten,
-	pruefeAuftragText,
 	schritteFuer,
 	titelVorschlag,
 	WEGE,
@@ -43,7 +41,8 @@ const ids = (a: Antworten) => schritteFuer(a).map((s) => s.id);
 
 describe('Assistent: Schritte (131)', () => {
 	it('Schrittfolge je Art in beiden Wegen', () => {
-		const voll = ['start', 'art', 'format', 'fuerWen', 'thema', 'bausteine', 'klasse', 'pruefen'];
+		// „Auftrag prüfen“ entfällt (190-37): Die Kontrolle ist der Aufgabenplan.
+		const voll = ['start', 'art', 'format', 'fuerWen', 'thema', 'bausteine', 'klasse'];
 		const ohne = (...weg: string[]) => voll.filter((s) => !weg.includes(s));
 		const erwartet: Record<string, Record<string, string[]>> = {
 			claude: {
@@ -83,7 +82,11 @@ describe('Assistent: Schritte (131)', () => {
 	it('Pflicht: Thema mit Claude, Titel beim leeren Blatt; „Deine Klasse“ ist optional', () => {
 		const schritt = (a: Antworten, id: string) => schritteFuer(a).find((s) => s.id === id);
 		assert.match(schritt(mit({}), 'thema')?.fehlt?.(mit({})) ?? '', /worum es geht/);
-		assert.equal(schritt(mit({ thema: 'Uhr' }), 'thema')?.fehlt?.(mit({ thema: 'Uhr' })), null);
+		const thema = mit({ thema: 'Uhr', titel: 'Uhr' });
+		assert.equal(schritt(thema, 'thema')?.fehlt?.(thema), null);
+		// Der Titel steht im Schritt „Thema und Ziel“ (190-37).
+		const ohneTitel = mit({ thema: 'Uhr', titel: ' ' });
+		assert.match(schritt(ohneTitel, 'thema')?.fehlt?.(ohneTitel) ?? '', /Titel/);
 		const leer = mit({ weg: 'leer' });
 		assert.match(schritt(leer, 'titel')?.fehlt?.(leer) ?? '', /Titel/);
 		assert.equal(schritt(mit({}), 'klasse')?.optional, true);
@@ -97,11 +100,13 @@ describe('Assistent: Schritte (131)', () => {
 			art: 'Arbeitsblatt',
 			format: 'A4 hoch',
 			fuerWen: 'Klasse 2 · Mathematik',
-			thema: 'Uhrzeit · Übung',
+			thema: 'Uhrzeit · Übung · 20 min',
 			bausteine: 'Selbsteinschätzung, Niveaus',
 			klasse: '2 Angaben',
-			pruefen: '',
 		});
+		// Die Arbeitszeit steht beim Thema (190-38); „Claude entscheidet“ nennt die Leiste nicht.
+		const lesen = mit({ art: 'lernspiel', thema: 'Uhrzeit' });
+		assert.equal(schritteFuer(lesen).find((s) => s.id === 'thema')?.antwort(lesen), 'Uhrzeit · Übung');
 		assert.equal(
 			schritteFuer(mit({ formatText: 'A5 quer' }))[2]?.antwort(mit({ formatText: 'A5 quer' })),
 			'Anders: A5 quer',
@@ -181,10 +186,18 @@ describe('Assistent: Freitext (131)', () => {
 		assert.doesNotMatch(text({ weg: 'leer', formatText: 'A5 quer' }), /A5 quer/);
 		assert.doesNotMatch(text({ art: 'praesentation', formatText: 'A5 quer' }), /A5 quer/);
 		assert.doesNotMatch(text({ art: 'arbeitsblatt', artText: 'Rätselheft' }), /Rätselheft/);
-		assert.doesNotMatch(text({ art: 'karten', bausteineText: 'Rätsel', umfangText: 'drei' }), /Rätsel|drei/);
+		assert.doesNotMatch(text({ art: 'karten', umfangText: 'drei' }), /drei/);
 		assert.match(text({ funktionText: 'Wiederholung' }), /Funktion in der Reihe: „Wiederholung“/);
 		assert.match(text({ umfangText: 'drei Seiten' }), /Arbeitszeit je Kind: „drei Seiten“/);
-		assert.match(text({ bausteineText: 'ein Rätsel' }), /Zusätzlich aufs Blatt: „ein Rätsel“/);
+		// Kein zweiter Punkt hinter einem Freitext, der schon mit einem Satzzeichen endet (190-21).
+		assert.match(text({ thema: 'Wie spät ist es?', ziel: 'Ich kann die Uhr lesen.' }), /„Wie spät ist es\?“ Ich-kann/);
+		assert.doesNotMatch(text({ thema: 'Uhr.', ziel: 'Ich kann die Uhr lesen.' }), /“\./);
+	});
+
+	it('ein alter gespeicherter „Noch etwas aufs Blatt“ zählt nicht (190-43)', () => {
+		const a = pruefeAntworten({ thema: 'Uhr', bausteineText: 'ein Rätsel' }, { fach: 'deutsch', klasse: 1 });
+		assert.equal('bausteineText' in a, false);
+		assert.doesNotMatch(auftragAus(a), /Rätsel|Zusätzlich/);
 	});
 
 	it('steht in der Vorschau als eigener Teil', () => {
@@ -270,9 +283,6 @@ describe('Assistent: Auftrag (131)', () => {
 			() => pruefeAntworten({ sonst: 'x'.repeat(FREITEXT.sonst.zeichen + 1) }, mit({})),
 			/höchstens 1000 Zeichen/,
 		);
-		assert.throws(() => pruefeAuftragText('x'.repeat(AUFTRAG_ZEICHEN + 1)), /höchstens/);
-		assert.throws(() => pruefeAuftragText('  '), /leer/);
-		assert.equal(pruefeAuftragText('  Mach ein Blatt. '), 'Mach ein Blatt.');
 	});
 });
 
@@ -344,27 +354,28 @@ describe('Assistent: Unterrichtseinheit (140)', () => {
 			'eRahmen',
 			'bausteine',
 			'klasse',
-			'pruefen',
 		]);
 		assert.ok(!ids(einheit({ weg: 'leer' })).some((id) => id.startsWith('e')));
 		assert.ok(!ids(mit({ weg: 'claude' })).some((id) => id.startsWith('e')));
 	});
 
-	it('Empfehlungen: fünf Bestandteile vorgewählt, Rahmengeschichte in jeder Klasse', () => {
+	it('Empfehlungen: fünf Bestandteile vorgewählt, Rahmengeschichte immer (190-39)', () => {
 		assert.deepEqual(
 			einheitBestandteile(leereEinheit()),
 			EINHEIT_BESTANDTEILE.filter((b) => b.empfohlen).map((b) => b.name),
 		);
 		assert.equal(einheitBestandteile(leereEinheit()).length, 5);
-		assert.equal(einheitRahmen(leereEinheit()), true);
-		assert.equal(einheitRahmen({ ...leereEinheit(), rahmen: false }), false);
+		const text = einheitAuftragAus(pruefeEinheitAngaben(einheitAngabenAus(einheit({ titel: 'Uhrzeit' }))));
+		assert.match(text, /Mit Rahmengeschichte/);
+		assert.match(text, /Zahl der Materialien: entscheide du\./);
+		// Titel gleich Thema: kein doppeltes „zum Thema“ (190-21).
+		assert.doesNotMatch(text, /zum Thema/);
 	});
 
 	it('nur mit Thema und sonst Empfehlungen: Angaben gehen durch die Prüfung des Servers', () => {
 		const angaben = pruefeEinheitAngaben(einheitAngabenAus(einheit({ titel: 'Uhrzeit' })));
 		assert.equal(angaben.thema, 'Uhrzeit');
 		assert.equal(angaben.dauer, '2 Wochen');
-		assert.equal(angaben.rahmen, true);
 		assert.equal(angaben.bilder, true);
 	});
 

@@ -4,22 +4,13 @@ import {
 	EINHEIT_BESTANDTEILE,
 	EINHEIT_FELDER,
 	EINHEIT_LEITFIGUR_NAME,
-	EINHEIT_MENGE_NAME,
-	einheitAngabenAus,
+	EINHEIT_LEITFIGUR_WAHL,
 	einheitBestandteile,
-	einheitRahmen,
 	FREITEXT,
 	ZIEL_ANFAENGE,
 } from '@schoolbox/kern/src/assistent';
-import {
-	EINHEIT_AUFTRAG_ZEICHEN,
-	EINHEIT_AUSSEHEN,
-	EINHEIT_DAUER,
-	EINHEIT_LEITFIGUR,
-	EINHEIT_MENGE,
-	EINHEIT_VERBRAUCH,
-	einheitAuftragAus,
-} from '@schoolbox/kern/src/einheit';
+import type { EINHEIT_LEITFIGUR } from '@schoolbox/kern/src/einheit';
+import { EINHEIT_AUSSEHEN, EINHEIT_DAUER, EINHEIT_VERBRAUCH } from '@schoolbox/kern/src/einheit';
 import type { ReactNode } from 'react';
 
 import { Chip } from '../bausteine/Chip';
@@ -27,12 +18,10 @@ import { FELD_KLASSEN, klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Schalter } from '../bausteine/Schalter';
 import { Segment } from '../bausteine/Segment';
+import { Stepper } from '../bausteine/Stepper';
 import { Symbol } from '../bausteine/Symbol';
-import type { limitHinweis } from '../editor/ki';
-import { LimitZeile } from '../editor/LimitZeile';
-import type { Ordnerangabe } from './anlegen-hilfe';
-import type { AuftragText } from './AnlegenSchritte';
-import { Empfohlen, Etikett, OrdnerFeld, TitelFeld } from './AnlegenSchritte';
+import type { KiLimit } from '../editor/ki';
+import { Empfohlen, Etikett, TitelFeld, Zaehler } from './AnlegenSchritte';
 
 /** Die Schritte der Unterrichtseinheit im Assistenten (140, Entwurf E1). Daten aus `assistent.ts` und `einheit.ts`. */
 
@@ -54,7 +43,7 @@ const EinheitFeld = ({
 	fokus?: boolean;
 }) => {
 	const f = EINHEIT_FELDER[feld];
-	return mehrzeilig ? (
+	const eingabe = mehrzeilig ? (
 		<textarea
 			className={klassen(FELD_KLASSEN, 'h-auto w-full py-1.5')}
 			rows={3}
@@ -74,8 +63,15 @@ const EinheitFeld = ({
 			value={wert}
 			autoFocus={fokus}
 			data-einheit-feld={feld}
+			data-anders-feld={feld === 'dauerText' ? '' : undefined}
 			onChange={(e) => setze(e.target.value)}
 		/>
+	);
+	return (
+		<>
+			{eingabe}
+			<Zaehler wert={wert} max={f.zeichen} />
+		</>
 	);
 };
 
@@ -89,10 +85,14 @@ export const SchrittEThema = ({
 	a,
 	setze,
 	setzeEh,
+	setzeTitel,
+	titelVorschlagen,
 }: {
 	a: Antworten;
 	setze: (teil: Partial<Antworten>) => void;
 	setzeEh: SetzeEh;
+	setzeTitel: (titel: string) => void;
+	titelVorschlagen: boolean;
 }) => {
 	const ziele = a.eh.ziele.length > 0 ? a.eh.ziele : [''];
 	const setzeZiel = (i: number, text: string) => setzeEh({ ziele: ziele.map((z, j) => (j === i ? text : z)) });
@@ -108,7 +108,13 @@ export const SchrittEThema = ({
 					data-fokus
 					onChange={(e) => setze({ thema: e.target.value })}
 				/>
+				<Zaehler wert={a.thema} max={FREITEXT.thema.zeichen} />
 			</label>
+			{/* Der Titel steht beim Thema und folgt ihm, bis man ihn selbst ändert (190-37). */}
+			<div className="mb-4">
+				<TitelFeld titel={a.titel} setzeTitel={setzeTitel} vorschlag={titelVorschlagen} fokus={false} />
+				<p className="mt-1 text-sm text-leise">Der Titel wird der Name des neuen Ordners.</p>
+			</div>
 			<div className="mb-4" data-einheit-ziele>
 				<Etikett zusatz="optional, mehrere">Ich-kann-Ziele</Etikett>
 				<div className="flex flex-col gap-1.5">
@@ -132,10 +138,10 @@ export const SchrittEThema = ({
 						</Knopf>
 					)}
 					{ZIEL_ANFAENGE.map((anfang) => (
-						<button
+						<Knopf
 							key={anfang}
-							type="button"
-							className="inline-flex h-knopf-klein items-center rounded-md border border-dashed border-rand-feld px-2 text-sm text-leise hover:bg-flaeche-2"
+							art="leise"
+							groesse="klein"
 							onClick={() => {
 								const leer = ziele.findIndex((z) => z.trim() === '');
 								setzeEh({
@@ -144,8 +150,9 @@ export const SchrittEThema = ({
 								});
 							}}
 						>
-							{`+ ${anfang.trim()} …`}
-						</button>
+							<Symbol name="plus" />
+							{`${anfang.trim()} …`}
+						</Knopf>
 					))}
 				</div>
 			</div>
@@ -201,39 +208,18 @@ export const SchrittEUmfang = ({
 				</div>
 			)}
 		</div>
+		{/* Die Zahl der Materialien zeigt der Plan; „Ändern …“ nimmt weniger oder mehr (190-39). */}
 		<Zeile>
 			<span className="font-medium">Stunden je Woche</span>
-			<Knopf
-				art="zweit"
-				groesse="klein"
-				aria-label="Eine Stunde weniger"
-				disabled={a.eh.stunden <= 1}
-				onClick={() => setzeEh({ stunden: a.eh.stunden - 1 })}
-			>
-				<Symbol name="minus" />
-			</Knopf>
-			<span className="w-6 text-center tabular-nums" data-einheit-stunden>
-				{a.eh.stunden}
-			</span>
-			<Knopf
-				art="zweit"
-				groesse="klein"
-				aria-label="Eine Stunde mehr"
-				disabled={a.eh.stunden >= 10}
-				onClick={() => setzeEh({ stunden: a.eh.stunden + 1 })}
-			>
-				<Symbol name="plus" />
-			</Knopf>
-		</Zeile>
-		<div>
-			<Etikett>Zahl der Materialien</Etikett>
-			<Segment<(typeof EINHEIT_MENGE)[number]>
-				beschriftung="Zahl der Materialien"
-				werte={EINHEIT_MENGE.map((m) => ({ wert: m, titel: EINHEIT_MENGE_NAME[m] }))}
-				wert={a.eh.menge}
-				waehle={(menge) => setzeEh({ menge })}
+			<Stepper
+				name="Stunden je Woche"
+				id="einheit-stunden"
+				wert={a.eh.stunden}
+				min={1}
+				max={10}
+				setze={(stunden) => setzeEh({ stunden })}
 			/>
-		</div>
+		</Zeile>
 	</>
 );
 
@@ -311,152 +297,70 @@ export const SchrittEBestandteile = ({ a, setzeEh }: { a: Antworten; setzeEh: Se
 	);
 };
 
-export const SchrittERahmen = ({ a, setzeEh }: { a: Antworten; setzeEh: SetzeEh }) => {
-	const rahmen = einheitRahmen(a.eh);
-	return (
-		<>
-			<div className="mb-4 rounded-lg border border-rand px-3 py-2">
-				<div className="flex items-center gap-3">
-					<span className="min-w-0 flex-1">
-						<span className="block font-medium">Rahmengeschichte</span>
-						<span className="block text-sm text-leise">
-							Eine Geschichte verbindet die Materialien, z. B. Fälle für Detektive.
-						</span>
-					</span>
-					{(a.klasse === 1 || a.klasse === 2) && <Empfohlen />}
-					<Schalter name="Rahmengeschichte" an={rahmen} setze={(an) => setzeEh({ rahmen: an })} />
-				</div>
-				{rahmen && (
-					<div className="mt-2">
-						<EinheitFeld feld="idee" wert={a.eh.idee} setze={(t) => setzeEh({ idee: t })} />
-					</div>
-				)}
-			</div>
-			<Zeile>
-				<span className="font-medium">Leitfigur</span>
-				<Segment<(typeof EINHEIT_LEITFIGUR)[number]>
-					beschriftung="Leitfigur"
-					werte={EINHEIT_LEITFIGUR.map((l) => ({ wert: l, titel: EINHEIT_LEITFIGUR_NAME[l] }))}
-					wert={a.eh.leitfigur}
-					waehle={(leitfigur) => setzeEh({ leitfigur })}
-				/>
-			</Zeile>
-			<Zeile data-einheit-aussehen={a.eh.aussehen}>
-				<span className="font-medium">Aussehen</span>
-				<Segment<(typeof EINHEIT_AUSSEHEN)[number]>
-					beschriftung="Aussehen"
-					werte={EINHEIT_AUSSEHEN_WAHL.map((w) => ({ wert: w.wert, titel: w.name }))}
-					wert={a.eh.aussehen}
-					waehle={(aussehen) => setzeEh({ aussehen })}
-				/>
-			</Zeile>
-			<div className="mt-4 flex items-center gap-3 rounded-lg border border-rand px-3 py-2">
-				<Symbol name="bild" className="size-5 flex-none text-leise" />
-				<span className="min-w-0 flex-1">
-					<span className="block font-medium">Neue Bilder mit Canva</span>
-					<span className="block text-sm text-leise">
-						Szenen und Motive passend zur Geschichte. Verbraucht dein Canva-Kontingent; Mail und Dateien
-						bleiben gesperrt.
-					</span>
+/** Eine Einheit erzählt immer eine Geschichte (Vorlage seit 140); der Schalter dafür entfällt (190-39). */
+export const SchrittERahmen = ({ a, setzeEh }: { a: Antworten; setzeEh: SetzeEh }) => (
+	<>
+		<label className="mb-4 block">
+			<Etikett zusatz="optional">{EINHEIT_FELDER.idee.name}</Etikett>
+			<EinheitFeld feld="idee" wert={a.eh.idee} setze={(t) => setzeEh({ idee: t })} />
+		</label>
+		<Zeile>
+			<span className="font-medium">Leitfigur</span>
+			<Segment<(typeof EINHEIT_LEITFIGUR)[number]>
+				beschriftung="Leitfigur"
+				werte={EINHEIT_LEITFIGUR_WAHL.map((l) => ({ wert: l, titel: EINHEIT_LEITFIGUR_NAME[l] }))}
+				wert={a.eh.leitfigur}
+				waehle={(leitfigur) => setzeEh({ leitfigur })}
+			/>
+		</Zeile>
+		<Zeile data-einheit-aussehen={a.eh.aussehen}>
+			<span className="font-medium">Aussehen</span>
+			<Segment<(typeof EINHEIT_AUSSEHEN)[number]>
+				beschriftung="Aussehen"
+				werte={EINHEIT_AUSSEHEN_WAHL.map((w) => ({ wert: w.wert, titel: w.name }))}
+				wert={a.eh.aussehen}
+				waehle={(aussehen) => setzeEh({ aussehen })}
+			/>
+		</Zeile>
+		<div className="mt-4 flex items-center gap-3 rounded-lg border border-rand px-3 py-2">
+			<Symbol name="bild" className="size-5 flex-none text-leise" />
+			<span className="min-w-0 flex-1">
+				<span className="block font-medium">Neue Bilder mit Canva</span>
+				<span className="block text-sm text-leise">
+					Szenen und Motive passend zur Geschichte. Verbraucht dein Canva-Kontingent; Mail und Dateien
+					bleiben gesperrt.
 				</span>
-				<Empfohlen />
-				<Schalter name="Neue Bilder mit Canva" an={a.eh.bilder} setze={(an) => setzeEh({ bilder: an })} />
-			</div>
-		</>
-	);
+			</span>
+			<Empfohlen />
+			<Schalter name="Neue Bilder mit Canva" an={a.eh.bilder} setze={(an) => setzeEh({ bilder: an })} />
+		</div>
+	</>
+);
+
+/** Der Satz zum 5-Stunden-Fenster, sobald es zu `warnAb` genutzt ist (190-12). Vorher stand er nach dem Start. */
+export const fensterWarnung = (limit: KiLimit | null, warnAb: number) => {
+	const fenster = limit?.fenster.fuenfStunden.auslastung ?? null;
+	return fenster !== null && fenster >= warnAb
+		? `Dein 5-Stunden-Fenster ist schon zu ${Math.round(fenster * 100)} % genutzt. Die Einheit kann daran scheitern; „Weiterbauen“ geht danach.`
+		: null;
 };
 
-/** „Auftrag prüfen“ der Einheit: Auftrag, Titel und Ort des neuen Ordners, Verbrauch (E1, 140). */
-export const SchrittPruefenEinheit = ({
-	a,
-	gesperrt,
-	hinweis,
-	laeuftSchon,
-	ordner,
-	pruefeLimit,
-	setzeText,
-	setzeTitel,
-	text,
-	titelVorschlagen,
-}: {
-	a: Antworten;
-	ordner: Ordnerangabe;
-	text: AuftragText | null;
-	setzeText: (text: AuftragText | null) => void;
-	setzeTitel: (titel: string) => void;
-	titelVorschlagen: boolean;
-	hinweis: ReturnType<typeof limitHinweis>;
-	gesperrt: boolean;
-	laeuftSchon: string | null;
-	pruefeLimit: () => Promise<void>;
-}) => {
-	const ausAntworten = einheitAuftragAus(einheitAngabenAus(a));
-	return (
-		<>
-			<div className="rounded-lg border border-brand-200 bg-brand-50/50 p-3" data-auftrag>
-				<div className="mb-2 flex items-center gap-2 text-xs font-semibold tracking-wide text-leise uppercase">
-					<Symbol name="funken" className="size-3.5 text-brand-500" />
-					Auftrag
-					<span className="flex-1" />
-					{text === null ? (
-						<Knopf
-							art="leise"
-							groesse="klein"
-							className="normal-case"
-							onClick={() => setzeText({ wert: ausAntworten, basis: ausAntworten })}
-						>
-							<Symbol name="stift" />
-							Als Text bearbeiten
-						</Knopf>
-					) : (
-						<Knopf art="leise" groesse="klein" className="normal-case" onClick={() => setzeText(null)}>
-							<Symbol name="zurueckholen" />
-							Zurücksetzen
-						</Knopf>
-					)}
-				</div>
-				{text === null ? (
-					<div className="flex flex-col gap-1 text-sm">
-						{ausAntworten.split('\n').map((satz) => (
-							<p key={satz}>{satz}</p>
-						))}
-					</div>
-				) : (
-					<textarea
-						className={klassen(FELD_KLASSEN, 'h-auto w-full py-1.5')}
-						aria-label="Auftrag"
-						rows={8}
-						maxLength={EINHEIT_AUFTRAG_ZEICHEN}
-						value={text.wert}
-						autoFocus
-						onChange={(e) => setzeText({ ...text, wert: e.target.value })}
-					/>
-				)}
-			</div>
-			<div className="mt-3 flex items-end gap-3">
-				<TitelFeld titel={a.titel} setzeTitel={setzeTitel} vorschlag={titelVorschlagen} />
-				<OrdnerFeld name={ordner.name} />
-			</div>
-			<p className="mt-1 text-sm text-leise">Der Titel wird der Name des neuen Ordners.</p>
-			<div className="mt-3 rounded-md bg-warnung-hell px-3 py-2 text-sm text-warnung" data-einheit-verbrauch>
-				<p className="flex items-center gap-2 font-medium">
-					<Symbol name="uhr" />
-					{EINHEIT_VERBRAUCH}
-				</p>
-				{laeuftSchon !== null && (
-					<p className="mt-1" data-einheit-laeuft-schon>
-						{`Claude baut gerade „${laeuftSchon}“. Es geht nur eine Einheit zur Zeit.`}
-					</p>
-				)}
-			</div>
-			{hinweis && (
-				<LimitZeile
-					key={hinweis.art}
-					className={klassen('mt-2 rounded-md px-3 py-1.5', gesperrt ? 'bg-red-50' : 'bg-warnung-hell')}
-					hinweis={hinweis}
-					pruefeLimit={pruefeLimit}
-				/>
-			)}
-		</>
-	);
-};
+/** Im letzten Schritt der Einheit: Dauer, Verbrauch und warum es gerade nicht geht (vorher „Auftrag prüfen“, 190-37). */
+export const EinheitVerbrauch = ({ laeuftSchon, warnung }: { laeuftSchon: string | null; warnung: string | null }) => (
+	<div className="mt-3 rounded-md bg-warnung-hell px-3 py-2 text-sm text-warnung" data-einheit-verbrauch>
+		<p className="flex items-center gap-2 font-medium">
+			<Symbol name="uhr" />
+			{EINHEIT_VERBRAUCH}
+		</p>
+		{warnung && (
+			<p className="mt-1" data-einheit-fenster>
+				{warnung}
+			</p>
+		)}
+		{laeuftSchon !== null && (
+			<p className="mt-1" data-einheit-laeuft-schon>
+				{`Claude baut gerade „${laeuftSchon}“. Es geht nur eine Einheit zur Zeit.`}
+			</p>
+		)}
+	</div>
+);

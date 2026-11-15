@@ -291,9 +291,16 @@ export const ordnerApi = (kontext: Kontext) => {
 				throw new HttpFehler(404, 'Diesen Ordner gibt es nicht mehr.');
 			}
 			const u = await umgebung(materialDir);
-			if (namenIn(baum, ordnerId, u).some((n) => gleich(n, name))) {
+			const namen = namenIn(baum, ordnerId, u);
+			// Ein Titel, den die Lehrkraft nicht selbst geschrieben hat, weicht aus wie im Finder: „… 2“ (190-04).
+			let frei = name;
+			for (let n = 2; b.vorschlag === true && namen.some((x) => gleich(x, frei)); n++) {
+				frei = `${name} ${n}`;
+			}
+			if (namen.some((x) => gleich(x, frei))) {
 				throw new HttpFehler(409, `In diesem Ordner gibt es „${name}“ schon. Wähle bitte einen anderen Titel.`);
 			}
+			angaben.titel = frei;
 			const behaelter =
 				ziel?.behaelter && existsSync(path.join(mappenDir(materialDir, ziel.behaelter), 'mappe.json'))
 					? ziel.behaelter
@@ -304,7 +311,7 @@ export const ordnerApi = (kontext: Kontext) => {
 					throw new HttpFehler(400, 'Bitte wähle Fach und Klasse aus.');
 				}
 				mappe = (
-					await neueMappe(materialDir, { titel: name, fach: b.fach as Fach, klasse: b.klasse as Klasse })
+					await neueMappe(materialDir, { titel: frei, fach: b.fach as Fach, klasse: b.klasse as Klasse })
 				).mappe.id;
 			}
 			const { id } = await neuesDokument(materialDir, mappe, angaben);

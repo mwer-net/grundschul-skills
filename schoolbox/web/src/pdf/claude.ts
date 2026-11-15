@@ -27,3 +27,19 @@ export const bitteAnClaude = (mappe: { id: string; titel: string }, meldungen: P
 		...teile,
 	].join('\n\n');
 };
+
+/**
+ * 191-U2: Die Bitte für die Blase im Editor. Claude sieht dort schon das Blatt, also nur die Meldungen im Wortlaut der
+ * Prüfung. `seite`: die eine betroffene Seite, sonst `null` (ganzes Material).
+ */
+export const bitteImEditor = (meldungen: PdfMeldung[]) => {
+	const seiten = new Set(meldungen.map((m) => m.seite));
+	const [eine] = seiten;
+	return {
+		text: [
+			'Bitte repariere, was die Prüfung beim PDF meldet:',
+			...meldungen.map((m) => `- ${m.seite > 0 ? `Seite ${m.seite}: ` : ''}${m.text}`),
+		].join('\n'),
+		seite: seiten.size === 1 && eine !== undefined && eine > 0 ? eine : null,
+	};
+};

@@ -28,9 +28,10 @@ const warte = async (bedingung: () => Promise<boolean> | boolean, ms = 20_000) =
 const ANGABEN = { thema: 'Uhrzeit', fach: 'mathematik', klasse: 2, bilder: false, aussehen: 'eigen' };
 
 describe('Plan und Thema der Einheit (139)', () => {
-	it('Angaben: Rahmen in Klasse 1–2 voreingestellt, Unbekanntes abgelehnt', () => {
-		const a = pruefeEinheitAngaben(ANGABEN);
-		assert.equal(a.rahmen, true);
+	it('Angaben: Titel aus dem Thema, Unbekanntes abgelehnt, alte Felder still übergangen', () => {
+		const a = pruefeEinheitAngaben({ ...ANGABEN, rahmen: false, menge: 'etwa 6', leitfigur: 'keine' });
+		assert.equal(a.leitfigur, 'keine');
+		assert.equal('rahmen' in a || 'menge' in a, false);
 		assert.equal(a.titel, 'Uhrzeit');
 		assert.throws(() => pruefeEinheitAngaben({ ...ANGABEN, aussehen: 'neon' }));
 		assert.throws(() => pruefeEinheitAngaben({ ...ANGABEN, thema: '' }));
@@ -214,14 +215,43 @@ describe('Lauf einer Einheit (139)', () => {
 		assert.deepEqual(Object.keys((await bis(id, 'fertig')).importiert).sort(), ['fall-1', 'fall-2']);
 	});
 
-	it('Verwerfen legt den Ordner in den Papierkorb und räumt den Arbeitsordner ab', async () => {
+	it('Verwerfen legt den Ordner in den Papierkorb; „Rückgängig“ holt Ordner und Stand zurück (190-30)', async () => {
 		await fall('einheit-haenger');
 		const { id, ordner } = await starte();
 		await warte(async () => Object.keys((await stand(id)).importiert).length === 1);
-		assert.equal((await api(`/einheiten/${id}/verwerfen`, { method: 'POST' })).status, 200);
-		assert.equal(server.kontext.ordner.baum().ordner.find((o) => o.id === ordner)?.geloescht !== null, true);
-		assert.ok(!(await readdir(einheitenWurzel(server.materialDir))).includes(`einheit-${id}`));
+		const weg = await api(`/einheiten/${id}/verwerfen`, { method: 'POST' });
+		assert.equal(weg.status, 200);
+		assert.deepEqual(await weg.json(), { ok: true, rueckgaengig: true });
+		const geloescht = () => server.kontext.ordner.baum().ordner.find((o) => o.id === ordner)?.geloescht ?? null;
+		assert.notEqual(geloescht(), null);
 		assert.equal((await api(`/einheiten/${id}`)).status, 404);
+		assert.equal((await api(`/einheiten/${id}/zurueckholen`, { method: 'POST' })).status, 200);
+		assert.equal(geloescht(), null);
+		const s = await stand(id);
+		assert.equal(s.status, 'unvollstaendig');
+		assert.deepEqual(Object.keys(s.importiert), ['fall-1']);
+		assert.equal((await api(`/einheiten/${id}/zurueckholen`, { method: 'POST' })).status, 404);
+		assert.equal((await api(`/einheiten/${id}/verwerfen`, { method: 'POST' })).status, 200);
+		assert.ok((await readdir(einheitenWurzel(server.materialDir))).includes(`einheit-${id}`));
+	});
+
+	it('Fertig: Das Band lässt sich schließen, danach liefert der Server den Stand nicht mehr (190-42)', async () => {
+		await fall('einheit');
+		const { id } = await starte();
+		await bis(id, 'fertig');
+		assert.equal((await api(`/einheiten/${id}/schliessen`, { method: 'POST' })).status, 200);
+		assert.equal((await api(`/einheiten/${id}`)).status, 404);
+	});
+
+	it('Doppelklick auf „So bauen“: ein Bau, die zweite Freigabe bekommt 409 (190-32)', async () => {
+		await fall('einheit');
+		const antwort = await api('/einheiten', { method: 'POST', body: JSON.stringify({ angaben: ANGABEN }) });
+		const { id } = (await antwort.json()) as { id: string };
+		await bis(id, 'plan');
+		const frei = () => api(`/einheiten/${id}/freigeben`, { method: 'POST', body: '{}' });
+		const status = (await Promise.all([frei(), frei()])).map((r) => r.status).sort();
+		assert.deepEqual(status, [200, 409]);
+		await bis(id, 'fertig');
 	});
 
 	it('Plan ändern: Claude zeigt ihn neu, gebaut wird erst nach der Freigabe; das Werkzeug „bauen“ ist erlaubt', async () => {
