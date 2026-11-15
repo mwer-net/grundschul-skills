@@ -2,6 +2,8 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { Locator, Page } from '@playwright/test';
+import type { KatalogEintrag } from '@schoolbox/kern/src/katalog';
+import { gehtImBlatt, istAngeboten } from '@schoolbox/kern/src/katalog';
 
 import {
 	dateiname,
@@ -114,7 +116,12 @@ test.describe('Mein Material', () => {
 
 		await suche.fill('dinosaurier');
 		await expect(page.getByRole('heading', { name: 'Dazu habe ich nichts gefunden' })).toBeVisible();
+		// 189-06: Das geleerte Feld führt an den Ausgangsort zurück.
 		await suche.fill('');
+		await expect(page).not.toHaveURL(/\/suche/);
+		// 189-30: Die Filter stehen nur auf der Suchseite, also mit Suchwort; „klasse“ trifft alle vier Materialien.
+		await suche.fill('klasse');
+		await expect(treffer).toHaveCount(4);
 
 		const filter = async (knopf: string, eintrag: string) => {
 			await druecke(page.getByRole('button', { name: knopf, exact: true }));
@@ -461,8 +468,11 @@ test.describe('Entwürfe', () => {
 		const { dok, id } = await uhrzeitMitEntwuerfen();
 		await page.goto(`/m/${id}/${dok}/entwuerfe/A`);
 		await expect(page.getByRole('heading', { level: 1 })).toContainText('Entwurf A');
+		await blattGeladen(page);
 		await page.keyboard.press('ArrowRight');
 		await expect(page).toHaveURL(new RegExp('/entwuerfe/B$'));
+		await expect(page.getByRole('heading', { level: 1 })).toContainText('Entwurf B');
+		await blattGeladen(page);
 		await page.keyboard.press('ArrowLeft');
 		await expect(page).toHaveURL(new RegExp('/entwuerfe/A$'));
 		// Vor A gibt es nichts: Die Seite bleibt.
@@ -551,8 +561,8 @@ test.describe('Bedienung', () => {
 		expect(await zuKlein()).toEqual([]);
 		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 		await page.goto(`/m/${herbstId}/${dokumente[1]}`);
+		// 191-41: Ohne Lösung gibt es eine Datei, der Knopf lädt sofort; das Blatt ragt über, also warnt er erst.
 		await druecke(page.getByRole('button', { name: 'PDF', exact: true }));
-		await druecke(page.getByRole('menuitem', { name: 'Arbeitsblatt', exact: true }));
 		await expect(page.getByRole('dialog')).toBeVisible();
 		expect(await zuKlein()).toEqual([]);
 		// Nichts ragt seitlich über den Bildschirm hinaus
@@ -799,10 +809,17 @@ test.describe('Linke Leiste (067)', () => {
 
 		await page.getByRole('button', { name: 'Alle', exact: true }).click();
 		expect(await panel.evaluate((p) => p.scrollHeight <= p.clientHeight)).toBe(true);
-		const anzahlen = await page.locator('[data-bereich-anzahl]').allTextContents();
+		// 195-24: Die Zahl steht nicht mehr sichtbar da, nur noch im Attribut.
+		const anzahlen = await page
+			.locator('[data-bereich-anzahl]')
+			.evaluateAll((bereiche) => bereiche.map((b) => b.getAttribute('data-bereich-anzahl')));
 		const summe = anzahlen.reduce((s, a) => s + Number(a), 0);
-		const { eintraege } = (await (await page.request.get('/api/katalog')).json()) as { eintraege: unknown[] };
-		expect(summe).toBe(eintraege.length);
+		const { eintraege } = (await (await page.request.get('/api/katalog')).json()) as {
+			eintraege: KatalogEintrag[];
+		};
+		// 203-02, 203-N01: Was im Blatt (Arbeitsblatt, Klasse 2) nicht zeichnet, bietet die Schublade nicht an.
+		const angebot = eintraege.filter((e) => istAngeboten(e) && gehtImBlatt(e, { art: 'arbeitsblatt', klasse: 2 }));
+		expect(summe).toBe(angebot.length);
 		await expect(page.locator('[data-panel="inspektor"]')).toBeVisible();
 	});
 
@@ -877,7 +894,15 @@ test.describe('Leisten im Blatt (071)', () => {
 			if (!eigene || !rahmen || !flaeche) {
 				throw new Error('nicht zu sehen');
 			}
-			expect(uberlappt(eigene, rahmen)).toBe(false);
+			// Der Rahmen steht 4,5 px um den Baustein; die Leiste darf eng (2 px) am Baustein stehen, wenn 6 px
+			// fremden Inhalt anschneiden würden (`leistenlage.ts`). Geprüft wird der Baustein selbst.
+			const baustein = {
+				x: rahmen.x + 4.5,
+				y: rahmen.y + 4.5,
+				width: rahmen.width - 9,
+				height: rahmen.height - 9,
+			};
+			expect(uberlappt(eigene, baustein)).toBe(false);
 			expect(eigene.x).toBeGreaterThanOrEqual(flaeche.x);
 			expect(eigene.x + eigene.width).toBeLessThanOrEqual(flaeche.x + flaeche.width);
 			expect(eigene.y).toBeGreaterThanOrEqual(flaeche.y);
@@ -1052,7 +1077,7 @@ test.describe('Inspektor (072)', () => {
 		await oeffneBlatt(page);
 		const knoepfe = page.locator('[data-palette]').getByRole('button');
 		await expect(knoepfe).toHaveCount(4);
-		await expect(knoepfe.first()).toHaveAttribute('aria-label', 'Orange und Türkis');
+		await expect(knoepfe.first()).toHaveAttribute('aria-label', 'Sonnig: Orange und Türkis');
 		await expect(knoepfe.first().locator('span')).toHaveAttribute('style', /linear-gradient/);
 		await druecke(knoepfe.nth(2));
 		await expect(blatt(page).locator('body')).toHaveClass(/palette-wiese/);

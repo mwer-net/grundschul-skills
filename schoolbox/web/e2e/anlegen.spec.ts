@@ -29,6 +29,19 @@ const oeffneAssistent = async (page: Page) => {
 	await expect(dialog(page).locator('[data-hauptaktion]')).toBeEnabled();
 };
 
+/**
+ * Ohne Anhaltspunkt (Ordnername, Material im Ordner, „wie zuletzt“) ist nichts vorgewählt (S-14): Klasse und Fach
+ * wählen, dann zurück ins erste Feld des Schritts, damit ⏎ weitergeht.
+ */
+const waehleKlasseFach = async (page: Page, klasse: string, fach: string) => {
+	await dialog(page)
+		.getByRole('group', { name: 'Klasse' })
+		.getByRole('button', { name: klasse, exact: true })
+		.click();
+	await dialog(page).getByRole('group', { name: 'Fach' }).getByRole('button', { name: fach, exact: true }).click();
+	await dialog(page).locator('[data-fokus], [data-hauptaktion]').first().focus();
+};
+
 const imEditor = async (page: Page) => {
 	await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
 	const [, , mappe = '', dok = ''] = new URL(page.url()).pathname.split('/');
@@ -55,6 +68,10 @@ test.describe('Anlegen ohne Claude', () => {
 		await expect(dialog(page).locator('[data-anlegen-fehler]')).toContainText('Titel');
 		await page.getByRole('textbox', { name: 'Titel' }).fill('Mein Blatt');
 		await page.keyboard.press('Enter');
+		// S-14: Der Ordnername sagt nichts über Klasse und Fach, also hält das Anlegen an.
+		await expect(dialog(page).getByRole('alert')).toContainText('Bitte wähle Klasse und Fach.');
+		await waehleKlasseFach(page, '2', 'Mathematik');
+		await page.keyboard.press('Enter');
 		await expect(page).toHaveURL(/bearbeiten\?neu=1/);
 		await expect(page.locator('[data-bibliothek]')).toBeVisible();
 
@@ -69,14 +86,16 @@ test.describe('Anlegen ohne Claude', () => {
 
 	test('Leeres Blatt in fünf Handgriffen, der Titel ist vorbelegt', async ({ page }) => {
 		await page.goto('/');
-		await neuerOrdner(page, `Fünf Griffe ${Date.now()}`);
+		// S-14: Klasse und Fach kommen aus dem Ordnernamen.
+		await neuerOrdner(page, `Klasse 2 Mathe ${Date.now()}`);
 		await oeffneAssistent(page);
 		await dialog(page).locator('[data-wahl="leer"]').click();
 		await dialog(page).locator('[data-wahl="arbeitsblatt"]').click();
 		await page.keyboard.press('Enter');
 		await expect(page.getByRole('textbox', { name: 'Titel' })).toHaveValue('Neues Arbeitsblatt');
 		await page.keyboard.press('Enter');
-		const { dir } = await imEditor(page);
+		const { dir, mappe } = await imEditor(page);
+		expect(mappe).toMatch(/-ma-kl2$/);
 		expect(await metaVon(dir)).toMatchObject({
 			titel: 'Neues Arbeitsblatt',
 			art: 'arbeitsblatt',
@@ -117,7 +136,7 @@ test.describe('Anlegen ohne Claude', () => {
 	test('Jede Art führt zu einem bearbeitbaren Dokument', async ({ page }) => {
 		test.setTimeout(180_000);
 		await page.goto('/');
-		await neuerOrdner(page, `Alle Arten ${Date.now()}`);
+		await neuerOrdner(page, `Alle Arten Klasse 3 Deutsch ${Date.now()}`);
 		await expect(page).toHaveURL(/\/o\//);
 		const ordner = page.url();
 		for (const art of [
@@ -149,7 +168,7 @@ test.describe('Anlegen ohne Claude', () => {
 
 	test('Mini-Book beim Lesetext öffnet mit dem Mini-Book-Gerüst', async ({ page }) => {
 		await page.goto('/');
-		await neuerOrdner(page, `Mini ${Date.now()}`);
+		await neuerOrdner(page, `Mini Klasse 2 Deutsch ${Date.now()}`);
 		await oeffneAssistent(page);
 		await page.keyboard.press('2');
 		await page.keyboard.press('Enter');
@@ -166,11 +185,12 @@ test.describe('Assistent (132)', () => {
 	test('Schritte fallen je Art weg, die Zählung passt sich an', async ({ page }) => {
 		await page.goto('/');
 		await oeffneAssistent(page);
-		await expect(dialog(page)).toContainText('Schritt 1 von 8');
+		// 190: Der Schritt „Auftrag prüfen“ ist weg, also sieben statt acht.
+		await expect(dialog(page)).toContainText('Schritt 1 von 7');
 		await page.keyboard.press('Enter');
 		await dialog(page).locator('[data-wahl="praesentation"]').click();
 		await expect(schritt(page, 'fuerWen')).toBeVisible();
-		await expect(dialog(page)).toContainText('Schritt 3 von 7');
+		await expect(dialog(page)).toContainText('Schritt 3 von 6');
 		await expect(leiste(page, 'format')).toHaveCount(0);
 		await expect(leiste(page, 'bausteine')).toHaveCount(1);
 
@@ -178,7 +198,7 @@ test.describe('Assistent (132)', () => {
 		await dialog(page).locator('[data-wahl="lernplakat"]').click();
 		await expect(schritt(page, 'format')).toBeVisible();
 		await expect(leiste(page, 'bausteine')).toHaveCount(0);
-		await expect(dialog(page)).toContainText('Schritt 3 von 7');
+		await expect(dialog(page)).toContainText('Schritt 3 von 6');
 	});
 
 	test('Freitext bei Art und Format steht in der Leiste; Zurückspringen behält „Anders …“', async ({ page }) => {
@@ -194,6 +214,8 @@ test.describe('Assistent (132)', () => {
 		await page.keyboard.type('A5 quer');
 		await page.keyboard.press('Enter');
 		await expect(leiste(page, 'format')).toContainText('Anders: A5 quer');
+		await expect(schritt(page, 'fuerWen')).toBeVisible();
+		await waehleKlasseFach(page, '3', 'Deutsch');
 		await page.keyboard.press('Enter');
 		await page.keyboard.type('Tiere im Winter');
 		// Der Titel steht beim Thema und folgt ihm (190-37).
@@ -215,7 +237,7 @@ test.describe('Assistent (132)', () => {
 		await oeffneAssistent(page);
 		await page.keyboard.press('Enter');
 		await dialog(page).locator('[data-wahl="arbeitsblatt"]').click();
-		await page.keyboard.press('Enter');
+		await expect(schritt(page, 'format')).toBeVisible();
 		await dialog(page).locator('[data-wahl="anders"]').click();
 		await page.keyboard.press('Enter');
 		await expect(dialog(page)).toContainText('Bitte schreib, was du meinst, oder wähle eine Angabe.');
@@ -232,6 +254,8 @@ test.describe('Assistent (132)', () => {
 		await page.keyboard.press('Enter');
 		await dialog(page).locator('[data-wahl="arbeitsblatt"]').click();
 		await page.keyboard.press('Enter');
+		await expect(schritt(page, 'fuerWen')).toBeVisible();
+		await waehleKlasseFach(page, '2', 'Sachunterricht');
 		await page.keyboard.press('Enter');
 		await expect(schritt(page, 'thema')).toBeVisible();
 		await page.keyboard.type('Igel im Herbst');
@@ -259,7 +283,7 @@ test.describe('Assistent (132)', () => {
 
 	test('„Doch lieber leeres Blatt“ behält Art, Format und Titel', async ({ page }) => {
 		await page.goto('/');
-		await neuerOrdner(page, `Wechsel ${Date.now()}`);
+		await neuerOrdner(page, `Wechsel Klasse 1 Deutsch ${Date.now()}`);
 		await oeffneAssistent(page);
 		await page.keyboard.press('Enter');
 		await dialog(page).locator('[data-wahl="arbeitsblatt"]').click();
