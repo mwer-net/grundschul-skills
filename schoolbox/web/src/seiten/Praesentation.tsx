@@ -84,7 +84,7 @@ const Startseite = ({ folien, phase, starten, titel, zurueck, zurueckGehen }: St
 					Zurück
 				</KnopfLink>
 				<h1 className="mt-2 text-2xl">{titel}</h1>
-				{folien !== null && (
+				{folien !== null && phase.art !== 'ohne-folien' && (
 					<p className="mt-1 text-leise">{`Präsentation · ${anzahl(folien, 'Folie', 'Folien')}`}</p>
 				)}
 				<Knopf
@@ -154,6 +154,13 @@ const praesentationTitel = (titel: string | null, geladen: boolean) => {
 	return geladen ? NICHT_GEFUNDEN : 'Präsentation';
 };
 
+/**
+ * Nur Folien lassen sich präsentieren, wie „Präsentieren“ nur bei Folien steht; ein Blatt aus einem Lesezeichen liefe
+ * sonst als eine riesige Folie (192-09). Solange das Format nicht bekannt ist, gilt der Ladestand.
+ */
+const phaseFuer = (format: string | undefined, geladen: Phase): Phase =>
+	format !== undefined && format !== 'folie' ? { art: 'ohne-folien' } : geladen;
+
 /** „3 / 12“ in der Steuerleiste; vor der ersten Meldung leer. */
 const folienText = (stand: FolienStand | null) => (stand ? `${stand.folie} / ${stand.folien}` : '');
 
@@ -182,7 +189,8 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 	const ausAnwendung = ort.key !== 'default';
 	const buehne = useRef<HTMLDivElement>(null);
 	const iframe = useRef<HTMLIFrameElement>(null);
-	const [phase, setPhase] = useState<Phase>({ art: 'laedt', fertig: 0, gesamt: 0 });
+	const [geladenPhase, setPhase] = useState<Phase>({ art: 'laedt', fertig: 0, gesamt: 0 });
+	const phase = phaseFuer(dokument?.meta.format, geladenPhase);
 	const [laeuft, setLaeuft] = useState(false);
 	const [stand, setStand] = useState<FolienStand | null>(null);
 	const [vollbild, setVollbild] = useState(false);
