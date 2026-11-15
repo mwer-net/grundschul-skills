@@ -271,8 +271,13 @@ export const useKiAuftrag = (
 					if (neu.limitErreicht) {
 						setAbgelehnt((n) => n + 1);
 					}
-					// Erst der Vorschlag, dann das Ende: Wer das Ende sieht, soll auch den Vorschlag sehen.
-					await ladeVorschlag();
+					// Erst der Vorschlag, dann das Ende: Wer das Ende sieht, soll auch den Vorschlag sehen. Hat ein anderer
+					// Tab vor dem ersten Bau abgebrochen, liegt das Blatt schon im Papierkorb (190-41): kein Fehler.
+					await ladeVorschlag().catch((grund: unknown) => {
+						if (neu.status !== 'abgebrochen') {
+							throw grund;
+						}
+					});
 					setAuftrag(neu);
 					nachLauf();
 				} else {

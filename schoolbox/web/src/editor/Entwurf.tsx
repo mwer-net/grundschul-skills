@@ -216,8 +216,9 @@ const OhneBlattKarte = ({
 				<Symbol name={frage ? 'funken' : 'achtung'} className="size-4 flex-none" />
 				{frage ? 'Claude fragt nach' : 'Claude hat kein Blatt gebaut'}
 			</p>
-			{/* Mit Limit-Hinweis sagt die Zeile, was los ist; derselbe Satz zweimal entfällt (190-09). */}
-			{!(hinweis && !frage) && (
+			{/* Ist das Limit gesperrt, sagt die Zeile, was los ist; derselbe Satz zweimal entfällt (190-09). Ein Hinweis
+			    auf Guthaben oder Auslastung nennt den Grund nicht, dann bleibt er stehen (190-26). */}
+			{!(gesperrt && !frage) && (
 				<p className="mt-1 whitespace-pre-line" data-entwurf-grund>
 					{phase.text}
 				</p>

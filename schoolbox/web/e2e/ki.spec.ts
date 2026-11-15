@@ -143,14 +143,16 @@ test.describe('Neues Blatt im Editor (133)', () => {
 		// 195-02: Alle fünf bleiben an ihrem Platz, die nicht bereiten ausgegraut und ohne Wirkung.
 		await expect(page.locator('[data-schublade-knopf]')).toHaveCount(5);
 		await expect(page.locator('[data-schublade-knopf="bausteine"]')).toHaveAttribute('aria-disabled', 'true');
-		await page.locator('[data-schublade-knopf="bausteine"]').click();
+		// `aria-disabled` gilt Playwright als gesperrt; der Klick soll trotzdem ankommen und nichts öffnen.
+		await page.locator('[data-schublade-knopf="bausteine"]').click({ force: true });
 		await expect(page.locator('[data-panel-links="bausteine"]')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Versionen' })).toBeEnabled();
 
 		await page.reload();
 		await expect(entwurfKarte(page)).toHaveAttribute('data-entwurf-karte', 'laeuft');
 		await page.goto(`/m/${mappe}`);
-		await expect(page.locator('[data-claude-baut]')).toContainText('Claude baut');
+		// 190-N03: Bis zur Freigabe des Plans heißt es „Claude plant“, wie auf der Karte im Editor.
+		await expect(page.locator('[data-claude-baut]')).toContainText('Claude plant');
 		await page.goto(adresse);
 		await expect(entwurfKarte(page)).toBeVisible();
 
@@ -266,14 +268,16 @@ test.describe('Neues Blatt im Editor (133)', () => {
 		await expect(entwurfKarte(page)).toBeHidden();
 	});
 
-	test('Limit: Grund und Stand des Limits, „Nochmal“ gesperrt, „Selbst füllen“ schließt für immer', async ({
+	test('Limit: Grund und Stand des Limits, „Nochmal“ entfällt, „Selbst füllen“ schließt für immer', async ({
 		page,
 	}) => {
 		await fall('limit-gesperrt');
 		await neuesBlatt(page);
 		await expect(entwurfKarte(page)).toHaveAttribute('data-entwurf-karte', 'fehler');
 		await expect(entwurfKarte(page).locator('[data-ki-limit="gesperrt"]')).toContainText('Wieder möglich ab');
-		await expect(entwurfKarte(page).getByRole('button', { name: 'Nochmal' })).toBeDisabled();
+		// 190-09: Solange gesperrt ist, entfällt „Nochmal“; „Noch einmal versuchen“ fragt das Konto neu.
+		await expect(entwurfKarte(page).getByRole('button', { name: 'Nochmal' })).toHaveCount(0);
+		await expect(entwurfKarte(page).getByRole('button', { name: 'Noch einmal versuchen' })).toBeVisible();
 		const vergessen = page.waitForResponse((r) => r.url().endsWith('/ki/entwurf/vergessen'));
 		await entwurfKarte(page).getByRole('button', { name: 'Selbst füllen' }).click();
 		await expect(entwurfKarte(page)).toBeHidden();
