@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { Baustein } from '@schoolbox/kern/src/bausteine';
+import { bausteinNach } from '@schoolbox/kern/src/bausteine';
+import { nameDerGestaltung } from '@schoolbox/kern/src/gestaltung-arten';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
 import { seitenVon } from '@schoolbox/kern/src/struktur';
 
@@ -281,9 +284,19 @@ describe('Ebenen mit Gestaltung (101)', () => {
 			titelDerGestaltung(angaben('formtext', { 'data-form': 'sprechblase' }, 'Zähl genau!')),
 			'Sprechblase „Zähl genau!“',
 		);
-		assert.equal(titelDerGestaltung(angaben('schmuck', {}, 'Die Formen-Detektive')), 'Die Formen-Detektive');
-		assert.equal(titelDerGestaltung(angaben('schmuck', {}, 'x'.repeat(60))).length, 40);
-		assert.equal(titelDerGestaltung(angaben('streuung', { 'data-streuung': 'punkte' }, '', 21)), 'Punkte (21)');
+		// 198-06: die Art vorn wie bei der Sprechblase, der Wortlaut dahinter.
+		assert.equal(
+			titelDerGestaltung(angaben('schmuck', {}, 'Die Formen-Detektive', 0, 'Titel')),
+			'Titel „Die Formen-Detektive“',
+		);
+		assert.equal(
+			titelDerGestaltung(angaben('schmuck', {}, 'x'.repeat(60), 0, 'Titel')),
+			`Titel „${'x'.repeat(39)}…“`,
+		);
+		// 198-06: Den Namen der Streuung nach ihrer Art gibt `nameDerGestaltung`, wie `nameVon` im Editor.
+		const streuung: Record<string, string> = { 'data-streuung': 'punkte' };
+		const streuName = nameDerGestaltung(bausteinNach('streuung') as Baustein, (a) => streuung[a] ?? null);
+		assert.equal(titelDerGestaltung(angaben('streuung', streuung, '', 21, streuName ?? 'Name')), 'Punkte (21)');
 		assert.equal(titelDerGestaltung(angaben('gruppe', {}, '', 2, 'Gruppe')), 'Gruppe (2)');
 		assert.equal(titelDerGestaltung(angaben('figurfrei', { 'data-figur': 'wilma' }, '', 0, 'Wilma')), 'Wilma');
 	});
