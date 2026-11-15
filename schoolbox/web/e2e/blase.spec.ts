@@ -492,13 +492,14 @@ test.describe('Gespräch in der Blase (087)', () => {
 		await fall('gut');
 	});
 
+	// 200-04: Nur ein Gespräch, in dem etwas aussteht (hier die Rückfrage), bleibt nach dem Einklappen als Pille.
 	test('Esc klappt ein, das Gespräch bleibt; Esc im Menü schließt nur das Menü', async ({ page }) => {
 		const { auftraege, enden } = beobachte(page);
 		await offenesBlatt(page);
 		await page.keyboard.press('ControlOrMeta+j');
 		await expect(feld(page)).toBeFocused();
 		await expect(blase(page).locator('[data-chat-tasten]')).toHaveCount(0);
-		await schreibe(page, 'FRAGE: Wie viele?');
+		await schreibe(page, 'RUECKFRAGE: Wie viele?');
 		await expect(nachrichten(page)).toHaveCount(2);
 		await blase(page).getByRole('button', { name: 'Claude: weitere Aktionen' }).click();
 		await expect(page.getByRole('menu')).toBeFocused();
@@ -524,11 +525,11 @@ test.describe('Gespräch in der Blase (087)', () => {
 	test('× und ⌘J klappen ein, die Pille klappt auf: dieselbe Id, der Verlauf bleibt', async ({ page }) => {
 		const { auftraege, enden } = beobachte(page);
 		await offenesBlatt(page);
-		await schreibe(page, 'FRAGE: Wie viele?');
+		await schreibe(page, 'RUECKFRAGE: Wie viele?');
 		await expect(nachrichten(page)).toHaveCount(2);
 		await blase(page).getByRole('button', { name: 'Schließen' }).click();
 		await expect(blase(page)).toHaveCount(0);
-		await pille(page).click();
+		await pille(page, 'frage').click();
 		await expect(nachrichten(page)).toHaveCount(2);
 		await feld(page).focus();
 		await page.keyboard.press('ControlOrMeta+j');
@@ -717,8 +718,9 @@ test.describe('Mehrere Gespräche (135)', () => {
 		await expect(page.locator('[data-claude-stand="laeuft"]')).toBeVisible();
 
 		// Das erste bricht ab, das zweite kommt dran und endet mit einem Vorschlag.
+		// 200-03: Die Pille von Aufgabe 1 schneidet die Leiste von Aufgabe 2 und ist verborgen; die Statusleiste öffnet.
 		await fall('gut');
-		await pille(page, 'laeuft').click();
+		await page.locator('[data-claude-stand="laeuft"]').click();
 		await expect(bezug(page)).toHaveText('Aufgabe 1');
 		await expect(pille(page, 'wartet')).toContainText('Wartet auf Claude');
 		await lauf(page).getByRole('button', { name: 'Abbrechen' }).click();
@@ -757,10 +759,11 @@ test.describe('Mehrere Gespräche (135)', () => {
 		await offenesBlatt(page);
 		const anzahl = await material(page).locator('.aufgabe').count();
 		await aufgabe(page, 1).locator('.nr').click();
-		await schreibe(page, 'FRAGE: Wie viele?');
+		// 200-04: Die offene Rückfrage hält das Gespräch nach dem Einklappen am Leben.
+		await schreibe(page, 'RUECKFRAGE: Wie viele?');
 		await expect(nachrichten(page)).toHaveCount(2);
 		await page.keyboard.press('Escape');
-		await expect(pille(page)).toHaveCount(1);
+		await expect(pille(page, 'frage')).toHaveCount(1);
 		await expect.poll(() => fokusIm(page)).toBe('IFRAME');
 		await page.keyboard.press('Backspace');
 		await expect(material(page).locator('.aufgabe')).toHaveCount(anzahl - 1);
