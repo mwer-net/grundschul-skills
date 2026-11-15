@@ -125,7 +125,9 @@ test.describe('Inventur Editor', () => {
 			/Ausschneiden/,
 			/Zu „Meine Bausteine“ legen/,
 			/Mit Claude ändern/,
-			/^Neuer Baustein/,
+			// 204-N03: „Neuer Baustein davor“ steht direkt unter „Neuer Baustein“.
+			/^Neuer Baustein(?! davor)/,
+			/^Neuer Baustein davor/,
 		]) {
 			await expect(page.getByRole('menuitem', { name })).toBeVisible();
 		}
@@ -222,7 +224,6 @@ test.describe('Inventur außerhalb des Editors', () => {
 			/^Teilen/,
 			/^Umbenennen/,
 			/^Duplizieren/,
-			/^Ausschneiden/,
 			/^Kopieren/,
 			/Bewegen nach/,
 			/Informationen/,
@@ -230,6 +231,8 @@ test.describe('Inventur außerhalb des Editors', () => {
 		]) {
 			await expect(page.getByRole('menuitem', { name })).toBeVisible();
 		}
+		// 188-32: „Ausschneiden“ steht in keinem Menü mehr, es bleibt ⌘X.
+		await expect(page.getByRole('menuitem', { name: /^Ausschneiden/ })).toHaveCount(0);
 		await page.keyboard.press('Escape');
 	});
 
