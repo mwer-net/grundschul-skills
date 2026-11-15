@@ -84,6 +84,12 @@ const anweisungen = (html: string) => [...html.matchAll(/<span class="text">([^<
 const nummern = (html: string) => [...html.matchAll(/<span class="nr( stern)?">([^<]*)</g)].map((m) => m[2]);
 const ANFANG = ['Lies ab. Sch', 'Zeichne die ', 'Willi sagt: ', 'Sternchenauf'];
 
+/** Der Rand einer Seite, die der Fluss angelegt hat (206, Regel 12): Ende der Seite davor, Anfang, Kopien. */
+const ohneFluss = (html: string) =>
+	html.replace(
+		/<\/section>\n<section class="seite" data-weiter="auto">\n( {2}<style>.*<\/style>\n)?( {2}<span class="loesung-marke">Lösung<\/span>\n)?/g,
+		'',
+	);
 const zurueck = (page: Page) => page.getByRole('button', { name: 'Rückgängig (⌘Z)' });
 const hinweis = (page: Page) => page.locator('div[role="status"][aria-live]');
 
@@ -146,7 +152,8 @@ test.describe('Editor: Struktur', () => {
 		await gespeichert(page, datei);
 		const kopiert = await readFile(datei, 'utf8');
 		expect(kopiert.split('data-l="halb 5"').length - 1).toBe(2);
-		expect(kopiert.split('\n').length).toBe(vorher.split('\n').length + 1);
+		// Mit fünf Uhren wird die Reihe höher: Der Fluss (206) legt eine Folgeseite an. Ohne deren Rand ist es eine Zeile mehr.
+		expect(ohneFluss(kopiert).split('\n').length).toBe(vorher.split('\n').length + 1);
 
 		await druecke(page.getByRole('button', { name: 'Löschen' }));
 		await expect(hinweis(page)).toContainText('Eintrag 3 gelöscht.');
@@ -159,6 +166,8 @@ test.describe('Editor: Struktur', () => {
 	});
 
 	test('ändert Spalten von 1 bis 6 und den Abstand nie unter die Grenze', async ({ druecke, page }) => {
+		// Sechs Schritte, jeder mit Fluss und Speichern: unter Last über 30 s.
+		test.slow();
 		const { dok, id, material: datei } = await uhrzeit();
 		const vorher = await readFile(datei, 'utf8');
 		await oeffne(page, id, dok);
@@ -194,8 +203,12 @@ test.describe('Editor: Struktur', () => {
 		await expect(regler).toHaveValue('16');
 		await regler.press('ArrowLeft');
 		await expect(regler).toHaveValue('16');
+		// Mit der Tastatur schreibt der Regler erst nach einer Pause (0,8 s), bis dahin gleicht die Datei dem Editor.
+		// Danach misst der Fluss (206) und nimmt die Folgeseite wieder weg; gespeichert ist nach rund 3 s.
+		await expect
+			.poll(() => readFile(datei, 'utf8'), { timeout: 10_000 })
+			.toContain('<body style="--abstand:16px" class="kl2');
 		await gespeichert(page, datei);
-		expect(await readFile(datei, 'utf8')).toContain('<body style="--abstand:16px" class="kl2');
 		const abstand = await material(page)
 			.locator('body')
 			.evaluate((b) => getComputedStyle(b).getPropertyValue('--abstand').trim());
@@ -218,7 +231,7 @@ test.describe('Editor: Struktur', () => {
 		await expect(leiste.locator('[data-seite-zeile]')).toHaveCount(1);
 		await druecke(leiste.getByRole('button', { name: 'Seite hinzufügen' }));
 		await expect(leiste.locator('[data-seite-zeile]')).toHaveCount(2);
-		await expect(page.locator('[data-auswahl="seite"] h2')).toHaveText('Seite 2');
+		await expect(page.getByRole('toolbar', { name: 'Leiste für Seite 2' })).toBeVisible();
 		await expect(leiste.getByRole('button', { name: 'Seite 2' })).toHaveAttribute('aria-current', 'true');
 		await gespeichert(page, datei);
 		const zweiSeiten = await readFile(datei, 'utf8');
@@ -248,7 +261,7 @@ test.describe('Editor: Struktur', () => {
 		expect(nummern(geordnet)).toEqual(['1', '2', '3', '★']);
 		expect(anweisungen(geordnet)[0]).toBe('Zeichne die ');
 		expect(geordnet.indexOf('<span class="nr">1</span>')).toBeLessThan(geordnet.indexOf('<h1>Wie spät ist es?'));
-		await expect(page.locator('[data-auswahl="seite"] h2')).toHaveText('Seite 1');
+		await expect(page.getByRole('toolbar', { name: 'Leiste für Seite 1' })).toBeVisible();
 
 		await druecke(zurueck(page));
 		await gespeichert(page, datei);
@@ -299,7 +312,7 @@ test.describe('Mini-Book (036)', () => {
 		await expect(leiste.locator('[data-feste-seiten]')).toHaveText('Ein Mini-Book hat immer acht Seiten.');
 
 		await druecke(leiste.getByRole('button', { name: 'Seite 3' }));
-		await expect(page.locator('[data-auswahl="seite"] h2')).toHaveText('Seite 3');
+		await expect(page.getByRole('toolbar', { name: 'Leiste für Seite 3' })).toBeVisible();
 		const werkzeug = page.locator('[data-bausteinleiste]');
 		await expect(werkzeug.getByRole('button', { name: 'Löschen' })).toHaveCount(0);
 		await expect(werkzeug.getByRole('button', { name: 'Duplizieren' })).toHaveCount(0);
