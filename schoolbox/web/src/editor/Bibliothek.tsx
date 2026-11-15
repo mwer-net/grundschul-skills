@@ -14,7 +14,6 @@ import { Knopf } from '../bausteine/Knopf';
 import {
 	ABSCHNITT_TITEL,
 	KACHELNAME,
-	KACHELNAME_ZWEIZEILIG,
 	Schublade,
 	Schubladenabschnitt,
 	SCHUBLADENKACHEL,
@@ -55,12 +54,16 @@ const Sichtbarkeitsmarke = ({ e, element }: { e: Einblendung; element: Element }
 	const ich = useRef<HTMLSpanElement>(null);
 	const [mass, setMass] = useState({ breite: 110, hoehe: 24 });
 	const sicht = useSichtfeld(e.doc);
+	// Ohne Abhängigkeiten: misst nach jedem Bild; gleiche Maße lassen den Zustand, wie er ist.
 	useLayoutEffect(() => {
-		const k = ich.current;
-		if (k) {
-			const { offsetHeight: hoehe, offsetWidth: breite } = k;
-			setMass((alt) => (alt.breite === breite && alt.hoehe === hoehe ? alt : { breite, hoehe }));
-		}
+		const miss = () => {
+			const k = ich.current;
+			if (k) {
+				const { offsetHeight: hoehe, offsetWidth: breite } = k;
+				setMass((alt) => (alt.breite === breite && alt.hoehe === hoehe ? alt : { breite, hoehe }));
+			}
+		};
+		miss();
 	});
 	const r = element.getBoundingClientRect();
 	const box = {
@@ -116,6 +119,12 @@ const NUR_RAHMEN = '.namenszeile, .kopf, .fuss';
 const SCHNELL_BREITE = 320;
 const SCHNELL_HOEHE = 340;
 
+/** Die Listen der Schnellauswahl; im Slash-Menü dessen eigene. */
+const schnellListen = (slash: SlashMenue | null, einfuegen: Einfuegen, suche: string) =>
+	slash
+		? { liste: slash.liste(suche), zuletztListe: slash.zuletzt }
+		: { liste: einfuegen.fuerBlatt(suche), zuletztListe: einfuegen.zuletzt };
+
 /** Linie in den Lücken, Aufforderung auf leeren Seiten, Schnellauswahl und Slash-Menü (044, 071). */
 export const Einfuegemarken = ({
 	aktiv,
@@ -151,8 +160,7 @@ export const Einfuegemarken = ({
 	);
 	// 203-13: ohne Suchwort was zum Blatt passt, Aufgaben vorne; mit Suchwort alles im Angebot, Passendes zuerst.
 	const imSlash = Boolean(schnell?.slash && slash);
-	const liste = imSlash && slash ? slash.liste(suche) : einfuegen.fuerBlatt(suche);
-	const zuletztListe = imSlash && slash ? slash.zuletzt : einfuegen.zuletzt;
+	const { liste, zuletztListe } = schnellListen(imSlash ? slash : null, einfuegen, suche);
 	// 194-10: ↑ und ↓ über „Zuletzt benutzt“ und „Alle“ hinweg; die erste Zeile ist vorgewählt.
 	const zuletztDa = !suche.trim() && zuletztListe.length > 0;
 	const alle = zuletztDa ? [...zuletztListe, ...liste] : liste;
@@ -574,6 +582,22 @@ const Kachelname = ({ meldeGekuerzt, name }: { name: string; meldeGekuerzt: (gek
  * Gezogen wird von der ganzen Kachel, mit der Maus ab `MAUS_WEG`, mit dem Finger nach `HALTEN_MS`, damit Wischen die
  * Liste rollt. Aussehen wie `AblageKachel`, abgelegt wird aber mit Lücke im Blatt (094, `zug-von-aussen.ts`).
  */
+/** Eigene zeigen sich aus der Sammlung (195), ein Eintrag mit nur `klasse` hat nichts zu zeigen. */
+const kachelBild = (eintrag: Posten) => {
+	if (eintrag.eigen) {
+		return (
+			<KartenVorschau adresse={`/ansicht/_sammlung/${encodeURIComponent(eintrag.eigen)}`} name={eintrag.name} />
+		);
+	}
+	return eintrag.klasse ? (
+		<span className="flex h-20 w-full items-center justify-center" data-kachel-symbol>
+			<Symbol name={BEREICH_SYMBOL[eintrag.kategorie]} className="size-7 text-dezent" />
+		</span>
+	) : (
+		<KartenVorschau adresse={`/ansicht/_katalog/${eintrag.id}`} name={eintrag.name} />
+	);
+};
+
 const BausteinKachel = ({
 	bereich,
 	doc,
@@ -628,9 +652,9 @@ const BausteinKachel = ({
 			y,
 			id,
 			cmd,
-			zeige: (sichtbar) => {
-				setAmZeiger(sichtbar);
-				if (!sichtbar) {
+			zeige: (amZug) => {
+				setAmZeiger(amZug);
+				if (!amZug) {
 					abbrechen.current = null;
 				}
 			},
@@ -705,19 +729,7 @@ const BausteinKachel = ({
 						}
 					}}
 				>
-					{/* Eigene zeigen sich aus der Sammlung (195), ein Eintrag mit nur `klasse` hat nichts zu zeigen. */}
-					{eintrag.eigen ? (
-						<KartenVorschau
-							adresse={`/ansicht/_sammlung/${encodeURIComponent(eintrag.eigen)}`}
-							name={eintrag.name}
-						/>
-					) : eintrag.klasse ? (
-						<span className="flex h-20 w-full items-center justify-center" data-kachel-symbol>
-							<Symbol name={BEREICH_SYMBOL[eintrag.kategorie]} className="size-7 text-dezent" />
-						</span>
-					) : (
-						<KartenVorschau adresse={`/ansicht/_katalog/${eintrag.id}`} name={eintrag.name} />
-					)}
+					{kachelBild(eintrag)}
 					<Kachelname name={eintrag.name} meldeGekuerzt={setNameGekuerzt} />
 					{bereich && (
 						<span className={KACHELNAME} data-treffer-bereich>

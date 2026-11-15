@@ -61,7 +61,7 @@ import {
 } from '@schoolbox/kern/src/abbildungen';
 import type { AbschnittName } from '@schoolbox/kern/src/abschnitte';
 import { cmZuPx, grenzenInCm, inCm, liesZahl, pxZuCm, rasteEin, zahlMitKomma } from '@schoolbox/kern/src/masse';
-import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { meldung, sende, sendeDatei } from '../api';
@@ -75,11 +75,11 @@ import { Schalter as Umschalter } from '../bausteine/Schalter';
 import { STEPPER_EINHEIT, STEPPER_RAHMEN, STEPPER_STUFE, STEPPER_WERT } from '../bausteine/Stepper';
 import { Symbol } from '../bausteine/Symbol';
 import { Tooltip } from '../bausteine/Tooltip';
-import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug';
 import { Zeile } from '../bausteine/Zeile';
 import type { AbbildungSteuerung } from './abbildung';
 import { leistenFelder } from './abbildung-felder';
-import { aufgabenZeilen } from './Aufgabenzeilen';
+import { fertigMitEnter, useZeilenZug, wertVon } from './abbildungspanel-hilfe';
+import { aufgabenZeilen } from './aufgabenzeilen-wahl';
 import { bereiteVor } from './bild';
 import { SammlungDialog } from './Bildpanel';
 import { elementZu } from './darstellung';
@@ -91,17 +91,6 @@ export interface FeldEigenschaften<F extends Feld> {
 	feld: F;
 	abb: AbbildungSteuerung;
 }
-
-export const wertVon = (feld: Feld, abb: AbbildungSteuerung) => (abb.werte ? feldWert(feld, abb.werte) : null);
-
-/** 196-09: Enter übernimmt (wie Verlassen) und lässt den Fokus im Feld. */
-export const fertigMitEnter = (e: KeyboardEvent<HTMLInputElement>) => {
-	if (e.key === 'Enter') {
-		const feld = e.currentTarget;
-		feld.blur();
-		feld.focus();
-	}
-};
 
 /** Text einer Eingabe, der dem Wert folgt, außer während darin getippt wird (sonst sprängen Leerfelder zurück). */
 const useEingabe = (wert: string) => {
@@ -167,7 +156,7 @@ export const Rahmen = ({
 	daneben = false,
 	feld,
 	id,
-	meldung,
+	meldung: eigeneMeldung,
 }: {
 	feld: Feld;
 	abb: AbbildungSteuerung;
@@ -178,7 +167,7 @@ export const Rahmen = ({
 	daneben?: boolean;
 	children: ReactNode;
 }) => {
-	const fehler = abb.fehler[feld.attribut] ? (meldung ?? abb.fehler[feld.attribut]) : undefined;
+	const fehler = abb.fehler[feld.attribut] ? (eigeneMeldung ?? abb.fehler[feld.attribut]) : undefined;
 	return (
 		<div data-feld={feld.attribut}>
 			<Zeile titel={feld.name} fuer={id} hilfe={feld.hilfe} darunter={!daneben}>
@@ -193,6 +182,14 @@ export const Rahmen = ({
 			)}
 		</div>
 	);
+};
+
+/** Breite der Zahl-Eingabe: mit „automatisch“ breit, in cm etwas breiter als in px. */
+const zahlBreite = (automatisch: boolean, cm: boolean) => {
+	if (automatisch) {
+		return 'w-28';
+	}
+	return cm ? 'w-10' : 'w-9';
 };
 
 /**
@@ -293,13 +290,20 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 			abb.aendere(feld, vorher.current, { uebernehmen: vorher.current !== wert });
 		}
 	};
+	/** Der Entwurf beim Tippen: leer heißt automatisch oder der alte Wert, eine Zahl wird gespeichert, sonst der Text. */
+	const entwurfVon = (roh: string, n: number) => {
+		if (roh === '') {
+			return feld.automatisch ? null : vorher.current;
+		}
+		return Number.isFinite(n) ? speichern(n) : roh;
+	};
 	// Die Grenzen in cm statt px; eine Meldung der Zeichnung (197-N02) bleibt, wie sie ist.
-	const meldung =
+	const cmMeldung =
 		cm && /^Bitte eine/.test(abb.fehler[feld.attribut] ?? '')
 			? `Bitte eine Zahl von ${zahlMitKomma(grenzen.min)} bis ${zahlMitKomma(grenzen.max)} cm.`
 			: undefined;
 	return (
-		<Rahmen daneben feld={feld} abb={abb} id={id} meldung={meldung}>
+		<Rahmen daneben feld={feld} abb={abb} id={id} meldung={cmMeldung}>
 			<div className={klassen(STEPPER_RAHMEN, 'has-[[aria-invalid=true]]:border-fehler')}>
 				<button
 					type="button"
@@ -326,7 +330,7 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 						}
 						className={klassen(
 							'min-w-0 bg-transparent outline-none placeholder:text-leise',
-							feld.automatisch ? 'w-28' : cm ? 'w-10' : 'w-9',
+							zahlBreite(Boolean(feld.automatisch), cm),
 							feld.einheit ? 'text-right' : 'text-center',
 						)}
 						aria-invalid={Boolean(abb.fehler[feld.attribut])}
@@ -342,19 +346,9 @@ const Zahl = ({ abb, feld }: FeldEigenschaften<ZahlFeld>) => {
 							const roh = e.target.value.trim();
 							const n = liesZahl(roh);
 							// Nur den Entwurf ändern; gezeichnet wird er erst, wenn das Feld passt (197-02).
-							abb.aendere(
-								feld,
-								roh === ''
-									? feld.automatisch
-										? null
-										: vorher.current
-									: Number.isFinite(n)
-										? speichern(n)
-										: roh,
-								{
-									uebernehmen: false,
-								},
-							);
+							abb.aendere(feld, entwurfVon(roh, n), {
+								uebernehmen: false,
+							});
 						}}
 						onBlur={() => {
 							fertig();
@@ -601,6 +595,14 @@ const ZahlenJeZeile = ({ abb, feld, liste }: FeldEigenschaften<ZahlenFeld> & { l
 	);
 };
 
+/** S-05 (UX 186): Eine Zahl des Paars als Text: ohne Zahl `null`, sonst die Zahl oder, was keine ist, wie getippt. */
+const paarTeilText = (n: number | null, roh: string | undefined) => {
+	if (n === null) {
+		return null;
+	}
+	return Number.isFinite(n) ? String(n) : (roh ?? null);
+};
+
 /** 197-11: Zwei Zahlen in einem Attribut (Malwinkel „3x7“, Start „2,3“, Striche „10 1“). */
 const Paar = ({ abb, feld }: FeldEigenschaften<PaarFeld>) => {
 	const id = useId();
@@ -610,15 +612,15 @@ const Paar = ({ abb, feld }: FeldEigenschaften<PaarFeld>) => {
 	/** S-05 (UX 186): Was keine Zahl ist („A1“), bleibt im Feld stehen und ist rot; gespeichert wird es nicht. */
 	const zeige = (i: 0 | 1) => {
 		const n = i === 0 ? a : b;
-		return n === null ? '' : Number.isFinite(n) ? zahlMitKomma(n) : (roh[i] ?? '');
+		if (n === null) {
+			return '';
+		}
+		return Number.isFinite(n) ? zahlMitKomma(n) : (roh[i] ?? '');
 	};
 	const setze = (i: 0 | 1, getippt: string) => {
 		const n = liesZahl(getippt);
-		const jetzt: [string | null, string | null] = [
-			a === null ? null : Number.isFinite(a) ? String(a) : (roh[0] ?? null),
-			b === null ? null : Number.isFinite(b) ? String(b) : (roh[1] ?? null),
-		];
-		jetzt[i] = getippt.trim() === '' ? null : Number.isFinite(n) ? String(n) : getippt.trim();
+		const jetzt: [string | null, string | null] = [paarTeilText(a, roh[0]), paarTeilText(b, roh[1])];
+		jetzt[i] = getippt.trim() === '' ? null : paarTeilText(n, getippt.trim());
 		if (feld.leer && jetzt[0] === null && jetzt[1] === null) {
 			abb.aendere(feld, null);
 			return;
@@ -689,8 +691,13 @@ const Zeitspanne = ({ abb, feld }: FeldEigenschaften<ZeitspanneFeld>) => {
 							className={`${EINGABE} pr-4`}
 							disabled={!abb.aktiv || (i === 1 && !zeiten[0])}
 							value={z?.h ?? ''}
-							onChange={(e) =>
-								setze(i === 0 ? 0 : 1, e.target.value === '' ? null : Number(e.target.value), z?.m ?? 0)}
+							onChange={(e) => {
+								setze(
+									i === 0 ? 0 : 1,
+									e.target.value === '' ? null : Number(e.target.value),
+									z?.m ?? 0,
+								);
+							}}
 						>
 							<option value="">–</option>
 							{(z && !STUNDEN.includes(z.h) ? [z.h, ...STUNDEN] : STUNDEN).map((h) => (
@@ -902,10 +909,7 @@ export const Text = ({ abb, feld }: FeldEigenschaften<TextFeld>) => {
 			{/* S-06: Die Schreibweise der Lücken steht am Feld, nicht nur im ⓘ. */}
 			{feld.einfuegen?.zeichen === '[' && (
 				<p className="mt-1 text-xs text-leise" data-luecken-hinweis>
-					Wort markieren und „
-{feld.einfuegen.name}
-“ drücken, oder [Wort] tippen. [[Wort]] steht schon
-					eingetragen da.
+					{`Wort markieren und „${feld.einfuegen.name}“ drücken, oder [Wort] tippen. [[Wort]] steht schon eingetragen da.`}
 				</p>
 			)}
 		</Rahmen>
@@ -1334,73 +1338,6 @@ const spaltenKlasse = (u: UnterFeld) => {
 		return 'flex-none';
 	}
 	return u.breit ? 'min-w-0 flex-[1.5]' : 'min-w-0 flex-1';
-};
-
-/** Griff zum Umsortieren: Der Zug sagt nur, wohin; geschrieben wird erst beim Loslassen, ein Schritt im Verlauf. */
-export const useZeilenZug = (verschiebe: (von: number, nach: number) => void) => {
-	const behaelter = useRef<HTMLDivElement>(null);
-	const [zug, setZug] = useState<{ von: number; nach: number } | null>(null);
-	const zielBei = (y: number) => {
-		const zeilen = [...(behaelter.current?.querySelectorAll(':scope > [data-zeile]') ?? [])];
-		const i = zeilen.findIndex((z) => {
-			const r = z.getBoundingClientRect();
-			return y < r.top + r.height / 2;
-		});
-		return i < 0 ? zeilen.length : i;
-	};
-	const greife = (von: number, e: ReactPointerEvent<HTMLButtonElement>) => {
-		if (e.button !== 0) {
-			return;
-		}
-		e.preventDefault();
-		const griff = e.currentTarget;
-		const start = e.clientY;
-		let y = start;
-		let laeuft = false;
-		const rolle = behaelter.current?.closest('.overflow-y-auto') ?? null;
-		const hoereAuf = folgeZeiger({
-			bewegen: (m) => {
-				y = m.clientY;
-				if (!laeuft && Math.abs(y - start) >= 4) {
-					laeuft = true;
-					// Stünde der Fokus im Blatt, käme Esc dort an und wählte das Elternteil, statt den Zug abzubrechen.
-					// `blur()` am Rahmen gibt ihn in Safari nicht frei, der Griff nimmt ihn.
-					griff.focus({ preventScroll: true });
-					setZug({ von, nach: zielBei(y) });
-				}
-			},
-			los: (m) => {
-				hoereAuf();
-				setZug(null);
-				if (laeuft) {
-					schluckeKlick();
-					verschiebe(von, zielBei(m.clientY));
-				}
-			},
-			abbruch: () => {
-				hoereAuf();
-				setZug(null);
-			},
-			taste: (k) => {
-				if (k.key === 'Escape') {
-					k.preventDefault();
-					k.stopPropagation();
-					hoereAuf();
-					setZug(null);
-				}
-			},
-			bild: () => {
-				if (laeuft) {
-					if (rolle) {
-						rolleAmRand(rolle, y);
-					}
-					setZug({ von, nach: zielBei(y) });
-				}
-			},
-			sperrtRollen: () => laeuft,
-		});
-	};
-	return { behaelter, zug, greife };
 };
 
 /** Was nicht in die Zeile passt: Art, Schalter, Entfernen. ↑ ↓ nur am Finger, die Maus nimmt den Griff. */

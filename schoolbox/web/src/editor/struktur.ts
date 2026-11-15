@@ -245,10 +245,10 @@ export const useStruktur = (o: Optionen) => {
 			springen: boolean,
 		) => {
 			const f = aktuell.current.folge;
-			const vorher = f && f.quelle === alt ? f : f ? null : { quelle: alt, nr: gewaehlt, springen: false };
-			if (!vorher) {
+			if (f && f.quelle !== alt) {
 				return;
 			}
+			const vorher = f ?? { quelle: alt, nr: gewaehlt, springen: false };
 			const nr = vorher.nr === null ? null : nummer(vorher.nr);
 			if (!f && nr === vorher.nr && !springen) {
 				return;

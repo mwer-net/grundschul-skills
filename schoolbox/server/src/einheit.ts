@@ -624,8 +624,6 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 	/** Was „Rückgängig“ nach dem Verwerfen braucht (190-30); nur bis zum Neustart. */
 	const verworfen = new Map<string, { status: EinheitStand['status']; grund: string | null; umkehr: Aktion[] }>();
 
-	const starte = (roh: { angaben: unknown; ordner: unknown }) => exklusiv(() => starteJetzt(roh));
-
 	const starteJetzt = async (roh: { angaben: unknown; ordner: unknown }) => {
 		if (!(await kontext.ki.angemeldet())) {
 			throw new HttpFehler(503, 'Claude ist auf dem Server nicht verfügbar.');
@@ -690,6 +688,8 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		return { id, ordner, mappe };
 	};
 
+	const starte = (roh: { angaben: unknown; ordner: unknown }) => exklusiv(() => starteJetzt(roh));
+
 	const verlange = async (id: string) => {
 		const s = aktiv?.stand.id === id ? aktiv.stand : await lese(pruefeEinheitId(id));
 		if (!s || s.status === 'verworfen') {
@@ -701,8 +701,6 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 	/** Die Sitzung kennt Auftrag und Plan schon; ohne sie trägt der Prompt den Stand. */
 	const sitzungVon = (s: EinheitStand) =>
 		s.sitzung && existsSync(path.join(projekte(), projektName(arbeitDir(s.id)))) ? s.sitzung : null;
-
-	const weiter = (id: string) => exklusiv(() => weiterJetzt(id));
 
 	const weiterJetzt = async (id: string) => {
 		const s = await verlange(id);
@@ -729,8 +727,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		return s;
 	};
 
-	/** Die Lehrkraft gibt den Plan frei, oder sie will ihn anders: dann zeigt Claude ihn neu. */
-	const freigeben = (id: string, aenderung: unknown) => exklusiv(() => freigebenJetzt(id, aenderung));
+	const weiter = (id: string) => exklusiv(() => weiterJetzt(id));
 
 	const freigebenJetzt = async (id: string, aenderung: unknown) => {
 		const s = await verlange(id);
@@ -754,6 +751,9 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		await beginne(s, `${kopf}${BAU}`, sitzung, 'bau');
 		return s;
 	};
+
+	/** Die Lehrkraft gibt den Plan frei, oder sie will ihn anders: dann zeigt Claude ihn neu. */
+	const freigeben = (id: string, aenderung: unknown) => exklusiv(() => freigebenJetzt(id, aenderung));
 
 	const abbrechen = async (id: string) => {
 		const s = await verlange(id);

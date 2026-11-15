@@ -5,9 +5,17 @@ import type { Werte } from './abbildungen';
  * Zahlenraum der Klasse. Stellentafel, Punktfeld, Rechenstrich und Diagramm haben keinen (Zahlen hängen zusammen).
  */
 
+/** Zahlenraum je Klasse 1–4. */
+const ZAHLENRAUM = new Map([
+	[1, 20],
+	[2, 100],
+	[3, 1000],
+	[4, 1_000_000],
+]);
+
 /** Zahlenraum je Klasse; ohne Klasse bis 100. */
 export const zahlenraumDerKlasse = (klasse: number | undefined) =>
-	klasse === 1 ? 20 : klasse === 2 ? 100 : klasse === 3 ? 1000 : klasse === 4 ? 1_000_000 : 100;
+	(klasse === undefined ? undefined : ZAHLENRAUM.get(klasse)) ?? 100;
 
 const zwischen = (von: number, bis: number, zufall: () => number) =>
 	bis < von ? von : von + Math.floor(zufall() * (bis - von + 1));
@@ -40,17 +48,16 @@ export const KERN_NEUE_ZAHLEN: Record<string, Erzeuger> = {
 			return null;
 		}
 		const art = w.art ?? 'augen';
-		return art === 'augen'
-			? { augen: String(zwischen(1, 6, zufall)) }
-			: art === 'zahl'
-				? { inhalt: String(zwischen(1, 6, zufall)) }
-				: null;
+		if (art === 'augen') {
+			return { augen: String(zwischen(1, 6, zufall)) };
+		}
+		return art === 'zahl' ? { inhalt: String(zwischen(1, 6, zufall)) } : null;
 	},
 };
+
+export const neueZahlenImKern = (tag: string, w: Werte, klasse: number | undefined, zufall = Math.random) =>
+	KERN_NEUE_ZAHLEN[tag]?.(w, zahlenraumDerKlasse(klasse), zufall) ?? null;
 
 /** Gibt es für diese Werte neue Zahlen aus dem Kern? Sonst fehlt der Knopf (197-N03). */
 export const hatNeueZahlenImKern = (tag: string, w: Werte | null) =>
 	Boolean(KERN_NEUE_ZAHLEN[tag]) && (w === null || neueZahlenImKern(tag, w, undefined, () => 0) !== null);
-
-export const neueZahlenImKern = (tag: string, w: Werte, klasse: number | undefined, zufall = Math.random) =>
-	KERN_NEUE_ZAHLEN[tag]?.(w, zahlenraumDerKlasse(klasse), zufall) ?? null;

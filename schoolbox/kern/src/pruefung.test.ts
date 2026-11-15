@@ -406,14 +406,13 @@ describe('pruefung.js: was die Fassung selbst so setzt (207)', { skip: browserSk
 		const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-207-'));
 		try {
 			const datei = path.join(tmp, 'malkreuz.html');
+			const seite =
+				'<section class="seite"><x-malkreuz a="34" b="6"></x-malkreuz><x-zahlenhaus dach="2000000" zerlegungen="1000000 1000000"></x-zahlenhaus>' +
+				'<x-zahlenstrahl von="0" bis="200" schritt="10" zahlen="0 100 200"></x-zahlenstrahl>' +
+				'<x-zahlenhaus dach="7" zerlegungen="3 4,5"></x-zahlenhaus></section>';
 			await writeFile(
 				datei,
-				BLATT.replace(
-					/<section class="seite"><p data-zeilennummern[\s\S]*?<\/section>/,
-					'<section class="seite"><x-malkreuz a="34" b="6"></x-malkreuz><x-zahlenhaus dach="2000000" zerlegungen="1000000 1000000"></x-zahlenhaus>' +
-					'<x-zahlenstrahl von="0" bis="200" schritt="10" zahlen="0 100 200"></x-zahlenstrahl>' +
-					'<x-zahlenhaus dach="7" zerlegungen="3 4,5"></x-zahlenhaus></section>',
-				),
+				BLATT.replace(/<section class="seite"><p data-zeilennummern[\s\S]*?<\/section>/, seite),
 			);
 			const meldungen = (await pruefe(datei)).filter((m) => m.seite === 1);
 			const warnung = meldungen.filter((m) => m.code === 'zahlenraum');

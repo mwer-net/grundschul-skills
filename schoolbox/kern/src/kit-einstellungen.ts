@@ -279,6 +279,12 @@ const klassenWahl = (werte: readonly string[]): Regel => ({
 	setze: (z, k, wert) => setzeAttribut(z, k, 'class', klassenOhne(k, werte, String(wert))),
 });
 
+/**
+ * 196-24: Die Attribute im Start-Tag, wie sie dastehen (` class="text" data-zeilennummern="5"`). „Als Liste“ nimmt sie
+ * vom Absatz an den Eintrag mit und zurück: an und wieder aus ergibt dieselbe Quelle.
+ */
+const oeffnerVon = (z: Zerlegung, k: Knoten) => z.quelle.slice(k.start + 1 + k.tag.length, k.oeffnerEnde - 1);
+
 const REGELN: Readonly<Record<string, Regel>> = {
 	'tabelle.kopfspalte': klasseAnAus('kopfspalte'),
 	'tabelle.ohne-linien-innen': klasseAnAus('ohne-linien-innen'),
@@ -446,12 +452,6 @@ const REGELN: Readonly<Record<string, Regel>> = {
 		},
 	},
 };
-
-/**
- * 196-24: Die Attribute im Start-Tag, wie sie dastehen (` class="text" data-zeilennummern="5"`). „Als Liste“ nimmt sie
- * vom Absatz an den Eintrag mit und zurück: an und wieder aus ergibt dieselbe Quelle.
- */
-const oeffnerVon = (z: Zerlegung, k: Knoten) => z.quelle.slice(k.start + 1 + k.tag.length, k.oeffnerEnde - 1);
 
 const knotenVon = (z: Zerlegung, nr: number) => {
 	const k = z.knoten[nr];

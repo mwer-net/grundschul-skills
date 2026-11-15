@@ -557,9 +557,22 @@ export const nimmPoseAuf = async (
  * 199-03: Was „Entfernen“ aus `figuren.json` genommen hat, damit Rückgängig es wieder einsetzt: die ganze Figur mit
  * ihrer Stelle in der Liste oder die Posen mit ihrer Stelle in der Figur, dazu die Referenz, die die Figur dabei verlor.
  */
-export type FigurRueckweg =
-	| { art: 'figur'; index: number; eintrag: GespeicherteFigur } |
-	{ art: 'pose'; figur: string; posen: { index: number; pose: GespeichertePose }[]; canva?: string };
+export type FigurRueckweg = FigurZurueck | PosenZurueck;
+
+/** Die ganze Figur mit ihrer Stelle in der Liste. */
+interface FigurZurueck {
+	art: 'figur';
+	index: number;
+	eintrag: GespeicherteFigur;
+}
+
+/** Die Posen mit ihrer Stelle in der Figur, dazu die Referenz, die die Figur dabei verlor. */
+interface PosenZurueck {
+	art: 'pose';
+	figur: string;
+	posen: { index: number; pose: GespeichertePose }[];
+	canva?: string;
+}
 
 /**
  * Streicht eine Pose aus `figuren.json`; die Grundpose nimmt die ganze Figur mit. Trug die Pose die Referenz der Figur
