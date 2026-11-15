@@ -22,6 +22,8 @@ const ABSCHNITTE = [
 
 test.describe('Hilfe', () => {
 	test('ist aus der Kopfzeile erreichbar, mit allen Abschnitten und Bildschirmfotos', async ({ druecke, page }) => {
+		// 16 Fotos, jedes lädt erst im Bild (`loading="lazy"`); unter Last braucht das mehr als 30 s.
+		test.setTimeout(60_000);
 		await page.goto('/');
 		await druecke(page.getByRole('link', { name: 'Hilfe' }));
 		await expect(page).toHaveURL(/\/hilfe$/);
