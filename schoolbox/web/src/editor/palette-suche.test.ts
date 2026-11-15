@@ -21,7 +21,7 @@ describe('Suche der Palette', () => {
 		assert.deepEqual(titel(suchePalette('LÖSCHEN', [eintrag('Loeschen weg', ['löschen'])])), ['Loeschen weg']);
 	});
 
-	it('wertet Anfang vor Wortanfang vor Teilwort vor Buchstabenfolge', () => {
+	it('wertet Anfang vor Wortanfang vor Teilwort; verstreute Buchstaben treffen nicht (S-07)', () => {
 		const liste = [
 			eintrag('Schöne Lupe'),
 			eintrag('Kaspar'),
@@ -29,7 +29,7 @@ describe('Suche der Palette', () => {
 			eintrag('Sonnige Paare'),
 			eintrag('Spalten'),
 		];
-		assert.deepEqual(titel(suchePalette('spa', liste)), ['Spalten', 'Rand spalten', 'Kaspar', 'Sonnige Paare']);
+		assert.deepEqual(titel(suchePalette('spa', liste)), ['Spalten', 'Rand spalten', 'Kaspar']);
 	});
 
 	it('wertet ein ganzes Wort vor einem Anfang (193-24)', () => {
@@ -50,7 +50,7 @@ describe('Suche der Palette', () => {
 		assert.deepEqual(titel(suchePalette('entfernen', [eintrag('Löschen', ['entfernen', 'weg'])])), ['Löschen']);
 	});
 
-	it('sucht Buchstabenfolgen nur im Ernstfall: ein Buchstabe reicht dafür nicht', () => {
+	it('ein Buchstabe trifft nur, wo er steht', () => {
 		assert.equal(bewerte('x', eintrag('Text')), 5);
 		assert.equal(bewerte('t', eintrag('Blatt')), 5);
 		assert.equal(bewerte('q', eintrag('Blatt')), 0);
@@ -78,10 +78,17 @@ describe('Suche der Palette', () => {
 		assert.equal(start[2]?.gruppe, 'Test');
 	});
 
-	it('verstreute Buchstaben zählen nur im Titel, nicht in den Suchwörtern (188-38)', () => {
-		assert.ok(bewerte('mtk', eintrag('Mathematik')) > 0);
-		assert.equal(bewerte('mtk', eintrag('Uhrzeit', ['Mathematik', 'Klasse 2'])), 0);
-		assert.ok(bewerte('mathe', eintrag('Uhrzeit', ['Mathematik'])) > 0);
+	it('Tippfehler erst ab fünf Buchstaben, und nur am Wortanfang (S-07)', () => {
+		assert.equal(bewerte('mtk', eintrag('Mathematik')), 0);
+		assert.equal(bewerte('igel', eintrag('Richtig oder falsch')), 0);
+		assert.equal(bewerte('igel', eintrag('Zwanzigerfeld')), 0);
+		const langerOrdner = eintrag('Projektwoche Wetter und Jahreszeiten mit einem sehr langen Ordnernamen, der kaum passt');
+		for (const anfrage of ['neue seite', 'teilen', 'präsentieren', 'tasten', 'Uhrzeit']) {
+			assert.equal(bewerte(anfrage, langerOrdner), 0, anfrage);
+		}
+		assert.ok(bewerte('splaten', eintrag('Spalten')) > 0);
+		assert.ok(bewerte('mathematk', eintrag('Uhrzeit', ['Mathematik'])) > 0);
+		assert.equal(bewerte('spl', eintrag('Spalten')), 0);
 	});
 
 	it('gruppiert in der Reihenfolge des besten Treffers', () => {

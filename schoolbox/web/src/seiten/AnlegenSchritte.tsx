@@ -166,18 +166,19 @@ const FreiFeld = ({
 	</>
 );
 
-/** Woher Klasse und Fach vorbelegt sind, klein neben „Klasse“. */
-const herkunftVon = (ordner: Ordnerangabe) => {
-	switch (ordner.vorbelegt.quelle) {
-		case 'behaelter':
-			return `legt der Ordner „${ordner.name}“ fest`;
-		case 'ordner':
-			return `aus dem Ordner „${ordner.vorbelegt.ordnerName ?? ordner.name}“ übernommen`;
-		case 'zuletzt':
-			return 'zuletzt benutzt';
-		default:
-			return undefined;
+/** Klein neben „Klasse“ und „Fach“: woher der Wert kam, oder dass die Wahl noch fehlt (S-14). */
+const zusatzVon = (ordner: Ordnerangabe, feld: 'klasse' | 'fach') => {
+	if (ordner.vorbelegt.quelle === 'behaelter') {
+		return feld === 'klasse' ? `legt der Ordner „${ordner.name}“ fest` : undefined;
 	}
+	if (ordner.offen?.[feld]) {
+		return (
+			<span className={ordner.mahnen ? 'text-fehler' : undefined} data-klasse-fach-fehlt={feld}>
+				bitte wählen
+			</span>
+		);
+	}
+	return ordner.gewaehlt?.[feld] ? undefined : ordner.vorbelegt.herkunft[feld];
 };
 
 const KlasseUndFach = ({
@@ -190,11 +191,10 @@ const KlasseUndFach = ({
 	setze: (teil: Partial<Antworten>) => void;
 }) => {
 	const fest = ordner.vorbelegt.quelle === 'behaelter';
-	const herkunft = herkunftVon(ordner);
 	return (
 		<>
 			<div className="mb-4">
-				<Etikett zusatz={herkunft}>Klasse</Etikett>
+				<Etikett zusatz={zusatzVon(ordner, 'klasse')}>Klasse</Etikett>
 				<Segment
 					beschriftung="Klasse"
 					aus={fest}
@@ -202,18 +202,18 @@ const KlasseUndFach = ({
 						wert: String(k),
 						titel: k === 'gemischt' ? 'jahrgangsgemischt' : String(k),
 					}))}
-					wert={String(a.klasse)}
+					wert={ordner.offen?.klasse ? '' : String(a.klasse)}
 					waehle={(k) => setze({ klasse: KLASSEN.find((x) => String(x) === k) ?? a.klasse })}
 				/>
 			</div>
 			<div role="group" aria-label="Fach">
-				<Etikett>Fach</Etikett>
+				<Etikett zusatz={zusatzVon(ordner, 'fach')}>Fach</Etikett>
 				<div className="flex flex-wrap gap-1.5">
 					{FAECHER.map((f) => (
 						<Chip
 							key={f}
 							titel={FACH_NAME[f]}
-							aktiv={f === a.fach}
+							aktiv={!ordner.offen?.fach && f === a.fach}
 							waehle={() => {
 								if (!fest) {
 									setze({ fach: f });
@@ -810,15 +810,18 @@ export const Schrittleiste = ({
 	aktuell,
 	besucht,
 	gehe,
+	klasseFachOffen = false,
 }: {
 	a: Antworten;
 	aktuell: AssistentSchrittId;
 	besucht: ReadonlySet<AssistentSchrittId>;
 	gehe: (id: AssistentSchrittId) => void;
+	/** Klasse oder Fach fehlt: „Für wen“ zeigt keinen Platzhalter als Antwort (S-14). */
+	klasseFachOffen?: boolean;
 }) => (
 	<nav aria-label="Schritte" className="flex flex-col gap-0.5 border-r border-rand pr-3 max-md:hidden">
 		{schritteFuer(a).map((s, i) => {
-			const fertig = besucht.has(s.id) && s.id !== aktuell;
+			const fertig = besucht.has(s.id) && s.id !== aktuell && !(s.id === 'fuerWen' && klasseFachOffen);
 			const antwort = fertig ? s.antwort(a) : leereAntwort(s);
 			return (
 				<button

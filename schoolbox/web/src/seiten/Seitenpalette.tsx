@@ -1,12 +1,15 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { Palette } from '../editor/Palette';
 import type { PalettenEintrag } from '../editor/palette-suche';
+import { bewerte } from '../editor/palette-suche';
 import { useSeitenbefehle } from '../lib/seitenbefehle';
-import { ART_NAME, FACH_NAME, klasseName } from '../lib/text';
+import { materialEintraege } from '../lib/material-eintraege';
+import { BEFEHLE } from '../ordner/befehle';
 import { useAblage } from '../ordner/kontext';
-import { ortName, pfadVon, WURZEL_NAME } from '../ordner/objekte';
+import { pfadVon, WURZEL_NAME } from '../ordner/objekte';
+import { auswahlFuerPalette } from '../ordner/palette-auswahl';
 
 interface Eigenschaften {
 	schliessen: () => void;
@@ -22,14 +25,33 @@ const MATERIAL_ANLEGEN = 'Material anlegen';
 
 const ORDNER_ZU_BEGINN = 5;
 
+/** `bewerte` für ein ganzes Wort oder einen Anfang im Titel oder in den Suchwörtern. */
+const GANZ_WORT = 8;
+
+/**
+ * Diese Befehle der Ablage („löschen“, „umbenennen“) sind nie das Thema eines neuen Materials (S-02). „Teilen“ fehlt
+ * mit Absicht: Es ist auch ein Thema in Mathematik.
+ */
+const NIE_THEMA = new Set(['papierkorb', 'umbenennen', 'duplizieren', 'kopieren', 'ausschneiden', 'einfuegen', 'bewegenNach']);
+const istBefehlswort = (text: string) =>
+	BEFEHLE.some(
+		(b) =>
+			NIE_THEMA.has(b.id) &&
+			typeof b.titel === 'string' &&
+			bewerte(text, { titel: b.titel, suchwoerter: b.suchwoerter ?? [] }) >= GANZ_WORT,
+	);
+
 /** Palette außerhalb des Editors: Ordner und Dokumente aus derselben Quelle wie die Ablage, dazu die Wege im Kopf. */
 export const Seitenpalette = ({ abmelden, anlegen, materialAnlegen, neuerOrdner, schliessen }: Eigenschaften) => {
 	const { stand } = useAblage();
 	const navigate = useNavigate();
 	const seite = useSeitenbefehle();
+	// Die Auswahl der Ablage beim Öffnen: Ihre Befehle stehen oben, wie im Rechtsklick (S-02).
+	const [auswahl] = useState(auswahlFuerPalette);
 
 	const eintraege = useMemo(() => {
 		const liste: PalettenEintrag[] = [
+			...auswahl,
 			...seite,
 			{
 				id: 'seite:material-anlegen',
@@ -89,22 +111,9 @@ export const Seitenpalette = ({ abmelden, anlegen, materialAnlegen, neuerOrdner,
 				aus: () => void navigate(`/o/${o.id}`),
 			});
 		});
-		for (const d of stand?.dokumente ?? []) {
-			const ort = stand ? ortName(stand, d.ordner) : '';
-			// Gesucht wird in den Ordnernamen ohne „Mein Material“, sonst passte „Material“ auf alles (188-38).
-			const ordnerNamen = stand ? pfadVon(stand, d.ordner).map((o) => o.name) : [];
-			liste.push({
-				id: `dokument:${d.mappe}/${d.id}`,
-				titel: d.meta.titel,
-				gruppe: 'Material',
-				symbol: 'blatt',
-				notiz: ort,
-				suchwoerter: [FACH_NAME[d.fach], klasseName(d.klasse), ...ordnerNamen, ART_NAME[d.meta.art] ?? d.meta.art],
-				aus: () => void navigate(`/m/${d.mappe}/${d.id}`),
-			});
-		}
+		liste.push(...materialEintraege(stand, (pfad) => void navigate(pfad), 'Material'));
 		return liste;
-	}, [abmelden, materialAnlegen, navigate, neuerOrdner, seite, stand]);
+	}, [abmelden, auswahl, materialAnlegen, navigate, neuerOrdner, seite, stand]);
 
 	return (
 		<Palette
@@ -115,7 +124,8 @@ export const Seitenpalette = ({ abmelden, anlegen, materialAnlegen, neuerOrdner,
 				anlegen && {
 					titel: (text) => `${MATERIAL_ANLEGEN}: „${text}“`,
 					aus: anlegen,
-					ausser: (text) => MATERIAL_ANLEGEN.toLowerCase().startsWith(text.trim().toLowerCase()),
+					ausser: (text) =>
+						MATERIAL_ANLEGEN.toLowerCase().startsWith(text.trim().toLowerCase()) || istBefehlswort(text),
 				}
 			}
 		/>

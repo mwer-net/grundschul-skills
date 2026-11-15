@@ -44,22 +44,43 @@ const GANZ = 5;
 const ANFANG = 4;
 const WORTANFANG = 3;
 const TEILWORT = 2;
-const FOLGE = 1;
+const TIPPFEHLER = 1;
 
 const WORTGRENZE = /[\s\-/(·:]+/;
 
-const istFolge = (wort: string, text: string) => {
-	let stelle = 0;
-	for (const zeichen of wort) {
-		stelle = text.indexOf(zeichen, stelle) + 1;
-		if (stelle === 0) {
-			return false;
-		}
+/** Tippfehler gelten erst ab so vielen Buchstaben: Kürzere Wörter träfen sonst fast alles (S-07). */
+const TIPPFEHLER_AB = 5;
+
+/** Höchstens ein Tippfehler: ein Zeichen falsch, fehlt, zu viel oder zwei vertauscht. */
+const einFehler = (a: string, b: string) => {
+	if (Math.abs(a.length - b.length) > 1) {
+		return false;
 	}
-	return true;
+	let i = 0;
+	while (i < a.length && i < b.length && a[i] === b[i]) {
+		i += 1;
+	}
+	const rest = (x: number, y: number) => a.slice(x) === b.slice(y);
+	return (
+		rest(i + 1, i + 1) ||
+		rest(i + 1, i) ||
+		rest(i, i + 1) ||
+		(a[i] === b[i + 1] && a[i + 1] === b[i] && rest(i + 2, i + 2))
+	);
 };
 
-const stufe = (wort: string, text: string, folge = true) => {
+/** Ein Wort des Texts beginnt mit dem Suchwort, bis auf einen Tippfehler: „Loesung“ für „Lösung“, „Spalten“ für „Splaten“. */
+const fastWortanfang = (wort: string, text: string) =>
+	wort.length >= TIPPFEHLER_AB &&
+	text
+		.split(WORTGRENZE)
+		.some((w) => [-1, 0, 1].some((d) => w.length >= wort.length + d && einFehler(wort, w.slice(0, wort.length + d))));
+
+/**
+ * Nur Treffer, die man nachvollziehen kann: ganzes Wort, Anfang, Wortanfang, Teilwort, ab fünf Buchstaben ein
+ * Tippfehler an einem Wortanfang. Verstreute Buchstaben trafen in langen Namen fast alles (S-07).
+ */
+const stufe = (wort: string, text: string) => {
 	if (text.split(WORTGRENZE).includes(wort)) {
 		return GANZ;
 	}
@@ -70,15 +91,13 @@ const stufe = (wort: string, text: string, folge = true) => {
 	if (stelle > 0) {
 		return text.split(WORTGRENZE).some((w) => w.startsWith(wort)) ? WORTANFANG : TEILWORT;
 	}
-	// Ein einzelner Buchstabe steckt in fast allem.
-	return folge && wort.length > 1 && istFolge(wort, text) ? FOLGE : 0;
+	return fastWortanfang(wort, text) ? TIPPFEHLER : 0;
 };
 
 /** Je Stufe zwei Werte: `titel` vor `suchwoerter`. */
 const wertVon = (wort: string, titel: string, woerter: readonly string[]) => {
 	const imTitel = stufe(wort, titel);
-	// Verstreute Buchstaben zählen nur im Titel: In Fach, Ordnern und Art stecken sie fast immer (188-38).
-	const inWoertern = Math.max(0, ...woerter.map((w) => stufe(wort, w, false)));
+	const inWoertern = Math.max(0, ...woerter.map((w) => stufe(wort, w)));
 	return Math.max(imTitel * 2 + 1, inWoertern * 2);
 };
 
@@ -99,6 +118,7 @@ export const bewerte = (
 	let summe = 0;
 	for (const wort of woerter) {
 		const wert = wertVon(wort, titel, andere);
+		// 1 heißt: nicht im Titel (0 · 2 + 1) und nicht in den Suchwörtern.
 		if (wert <= 1) {
 			return 0;
 		}
