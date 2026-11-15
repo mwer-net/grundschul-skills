@@ -147,7 +147,11 @@ const ABSCHNITTE: Abschnitt[] = [
 		),
 		bilder: [
 			{ datei: 'anlegen-start-mac.jpg', alt: 'Die erste Frage: mit Claude oder leeres Blatt', geraet: 'Mac' },
-			{ datei: 'anlegen-format-mac.jpg', alt: 'Das Format, die Empfehlung ist vorgewählt', geraet: 'Mac' },
+			{
+				datei: 'anlegen-fuer-wen-mac.jpg',
+				alt: 'Für wen: Die Klasse legt der Ordner fest, das Fach ist vorgewählt',
+				geraet: 'Mac',
+			},
 			{ datei: 'anlegen-plan-mac.jpg', alt: 'Der Aufgabenplan von Claude vor dem Bauen', geraet: 'Mac' },
 		],
 	},
@@ -261,7 +265,7 @@ const ABSCHNITTE: Abschnitt[] = [
 			</>
 		),
 		bilder: [
-			{ datei: 'praesentation-ipad.jpg', alt: 'Eine Folie im Präsentationsmodus', geraet: 'iPad' },
+			{ datei: 'praesentation-ipad.jpg', alt: 'Eine Folie im Präsentationsmodus, abgestimmt mit Strichen', geraet: 'iPad' },
 			{ datei: 'ohne-internet-ipad.jpg', alt: 'Das Menü „PDF“ einer Präsentation', geraet: 'iPad' },
 		],
 	},
