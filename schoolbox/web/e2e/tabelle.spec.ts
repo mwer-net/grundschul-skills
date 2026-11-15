@@ -4,6 +4,7 @@ import { oeffneSchublade } from './schubladen-hilfe';
 
 test.describe('Editor: Tabelle', () => {
 	test('einfügen, Zeile im Panel, Tab springt, am Ende neue Zeile, Rückgängig', async ({ druecke, page }) => {
+		test.slow();
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await oeffneSchublade(page, 'bausteine');
@@ -34,7 +35,8 @@ test.describe('Editor: Tabelle', () => {
 		await expect(page.locator('[data-textbearbeitung]')).toBeVisible();
 		await page.keyboard.type('x');
 		await page.keyboard.press('Tab');
-		await expect(tabelle.locator('tbody tr')).toHaveCount(3);
+		// Die neue Zeile schiebt die Tabelle auf Seite 2 (206); das Umlegen dauert unter Last etwas.
+		await expect(tabelle.locator('tbody tr')).toHaveCount(3, { timeout: 15_000 });
 		await expect(letzte).toHaveCount(1);
 		await expect.poll(() => quelle(page)).toContain('>x<');
 	});

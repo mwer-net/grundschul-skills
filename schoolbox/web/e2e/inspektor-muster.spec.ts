@@ -182,11 +182,11 @@ test.describe('Muster des Inspektors (182)', () => {
 		expect(await mehr.count()).toBeGreaterThan(1);
 		const rechts = await mehr.evaluateAll((alle) => alle.map((k) => Math.round(k.getBoundingClientRect().right)));
 		expect(new Set(rechts).size).toBe(1);
-		// „px“ steht zwischen − und +, nicht dahinter.
+		// Die Einheit steht zwischen − und +, nicht dahinter; seit U3 (197) zeigt die Breite cm, gespeichert bleibt px.
 		const breite = darstellung.locator('[data-feld="breite"]');
 		const plus = await breite.getByRole('button', { name: /: mehr$/ }).boundingBox();
-		const px = await breite.getByText('px', { exact: true }).boundingBox();
-		expect((px?.x ?? 0) + (px?.width ?? 0)).toBeLessThanOrEqual(plus?.x ?? 0);
+		const cm = await breite.getByText('cm', { exact: true }).boundingBox();
+		expect((cm?.x ?? 0) + (cm?.width ?? 0)).toBeLessThanOrEqual(plus?.x ?? 0);
 	});
 
 	test('Keine Sätze: Anker, Gruppe, leerer Bildrahmen, Seitenfläche, Beschriften', async ({ druecke, page }) => {

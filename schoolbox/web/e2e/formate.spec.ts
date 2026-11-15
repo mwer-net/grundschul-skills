@@ -192,14 +192,14 @@ test.describe('Aufgabenformate (049)', () => {
 			['x-schreibrahmen', 'Schreibrahmen'],
 		] as const) {
 			await druecke(material(page).locator('.aufgabe').first().locator('.nr'));
-			await imMehr(page, 'Neuer Baustein');
+			await imMehr(page, /^Neuer Baustein( \/)?$/);
 			const fenster = page.locator('[data-schnellauswahl]');
 			await fenster.getByRole('searchbox').fill(suche);
 			await fenster.locator(`[data-katalog-eintrag="${art}"]`).click();
 			await expect.poll(() => quelle(page)).toContain(`<${art} `);
 			const neu = material(page).locator(art).first();
 			// Das Beschriften-Blatt zeigt ohne Lösung nur das Bild, darum zählen gezeichnete Kinder, nicht der Text.
-			await expect.poll(() => neu.evaluate((e) => e.children.length)).toBeGreaterThan(0);
+			await expect.poll(() => neu.evaluate((e) => e.children.length), { message: art }).toBeGreaterThan(0);
 			await expect(neu.locator('.fehler, [data-fehler]')).toHaveCount(0);
 		}
 	});
@@ -450,7 +450,8 @@ test.describe('Sprach-Werkzeuge (052, 083)', () => {
 		await aktivIn(silben(page), 'Farbe');
 		await expect(vokale(page)).toBeVisible();
 		await expect(page.getByLabel('Darstellung', { exact: true }), 'Das Segment ersetzt das Feld').toHaveCount(0);
-		await expect(page.locator('[data-abschnitt="weitere"]')).toBeVisible();
+		// 197-15: „Aufgabe“ steht jetzt unter „Inhalt“; „Weitere“ gibt es bei den Silben nicht mehr.
+		await expect(page.locator('[data-abschnitt="inhalt"] [data-feld="aufgabe"]')).toBeVisible();
 		await druecke(silbenKnopf(page, 'Bögen'));
 		await aktivIn(silben(page), 'Bögen');
 		await expect(pfad(page), 'Ein Wechsel lässt die Silben gewählt').toHaveText('Silben');

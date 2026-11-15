@@ -157,17 +157,20 @@ export const Rahmen = ({
 	feld,
 	id,
 	meldung: eigeneMeldung,
+	ohneMeldung = false,
 }: {
 	feld: Feld;
 	abb: AbbildungSteuerung;
 	id: string;
+	/** Steht das Feld in einem anderen, zeigt dieses die Meldung (S-03: eine Meldung je Eingabe). */
+	ohneMeldung?: boolean;
 	/** Eigener Wortlaut der Meldung am Feld, z. B. in cm statt px. */
 	meldung?: string | undefined;
 	/** Kurze Werte stehen rechts neben dem Namen; Listen und Raster brauchen die ganze Breite. */
 	daneben?: boolean;
 	children: ReactNode;
 }) => {
-	const fehler = abb.fehler[feld.attribut] ? (eigeneMeldung ?? abb.fehler[feld.attribut]) : undefined;
+	const fehler = !ohneMeldung && abb.fehler[feld.attribut] ? (eigeneMeldung ?? abb.fehler[feld.attribut]) : undefined;
 	return (
 		<div data-feld={feld.attribut}>
 			<Zeile titel={feld.name} fuer={id} hilfe={feld.hilfe} darunter={!daneben}>
@@ -825,7 +828,7 @@ const Ziffern = ({ abb, feld }: FeldEigenschaften<ZiffernFeld>) => {
 	);
 };
 
-export const Text = ({ abb, feld }: FeldEigenschaften<TextFeld>) => {
+export const Text = ({ abb, feld, ohneMeldung }: FeldEigenschaften<TextFeld> & { ohneMeldung?: boolean }) => {
 	const id = useId();
 	const roh = wertVon(feld, abb)?.wert ?? null;
 	// 197-17: Listen mit `;` stehen im Panel zeilenweise.
@@ -867,7 +870,7 @@ export const Text = ({ abb, feld }: FeldEigenschaften<TextFeld>) => {
 		'onBlur': () => abb.aendere(feld, text.trim() === '' ? null : imBlatt(text.trim())),
 	};
 	return (
-		<Rahmen feld={feld} abb={abb} id={id}>
+		<Rahmen feld={feld} abb={abb} id={id} ohneMeldung={ohneMeldung}>
 			{feld.zeilen && feld.zeilen > 1 ? (
 				<textarea
 					{...gemeinsam}
@@ -2063,6 +2066,7 @@ const NotenEingabe = ({ abb, feld }: FeldEigenschaften<NotenFeld>) => {
 						name: 'Als Text',
 						beispiel: feld.tonhoehe ? String.raw`c'4 d'4 e'4 f'4 | g'2 g'2` : '4 8 8 4 r4',
 					}}
+					ohneMeldung
 				/>
 			</div>
 		</Rahmen>

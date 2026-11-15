@@ -51,9 +51,18 @@ export const aendere = async (page: Page, neu: string) => {
 	await expect.poll(() => quelle(page)).toBe(neu);
 };
 
+/**
+ * Gespeichert ist der Stand, den der Editor zuletzt hat: Der Fluss (206) kann nach einer Änderung noch eine Seite
+ * anhängen, und das Speichern wartet darauf. Klappt es nicht, zeigt der Fehler den Unterschied.
+ */
 export const gespeichert = async (page: Page, datei: string) => {
-	const stand = await quelle(page);
-	await expect.poll(() => readFile(datei, 'utf8'), { timeout: 10_000 }).toBe(stand);
+	try {
+		await expect
+			.poll(async () => (await readFile(datei, 'utf8')) === (await quelle(page)), { timeout: 10_000 })
+			.toBe(true);
+	} catch {
+		expect(await readFile(datei, 'utf8')).toBe(await quelle(page));
+	}
 	await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible();
 };
 
