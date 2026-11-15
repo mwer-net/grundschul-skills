@@ -42,7 +42,9 @@ test.describe('Kontextmenü (070)', () => {
 		await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
 
 		await page.keyboard.press('Escape');
-		await expect(page.locator('[data-auswahl="seite"]')).toBeVisible();
+		// Esc wählt die Seite; für sie zeigt der Inspektor den Reiter „Blatt“ (196-23).
+		await expect(page.locator('[data-bausteinleiste="seite"]')).toBeVisible();
+		await expect(page.locator('[data-inspektor="blatt"]')).toBeVisible();
 		await page.keyboard.press('ControlOrMeta+z');
 		await expect.poll(() => quelle(page)).toBe(vorher);
 	});
