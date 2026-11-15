@@ -24,6 +24,7 @@ import { ProfilSchalter } from '../bausteine/ProfilSchalter';
 import { Segment } from '../bausteine/Segment';
 import { Symbol } from '../bausteine/Symbol';
 import { SymbolKnopf } from '../bausteine/SymbolKnopf';
+import { meldeDaneben } from '../bausteine/ueberlagerung';
 import { useAbbildung } from '../editor/abbildung';
 import { useAblage } from '../editor/ablage';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
@@ -947,6 +948,10 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 				// Zoom-Tasten nie an den Browser: Sonst zoomt bei offenem Menü die ganze Oberfläche (56).
 				if (istZoomTaste(e)) {
 					e.preventDefault();
+				}
+				// Esc im Blatt erreicht ein offenes Popover nicht: Es schließt wie beim Klick daneben.
+				if (e.key === 'Escape' && !e.defaultPrevented && e.view !== window) {
+					meldeDaneben();
 				}
 				return;
 			}
