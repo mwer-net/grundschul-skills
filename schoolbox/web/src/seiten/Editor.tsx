@@ -824,7 +824,8 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					window.setTimeout(() => {
 						const ort = document.querySelector('[data-bildwerkzeug]');
 						ort?.scrollIntoView({ block: 'start' });
-						ort?.querySelector<HTMLElement>('label, button')?.focus();
+						// Der erste Knopf: Die Überschrift der Zeile davor ist ein `label`, das keinen Fokus nimmt.
+						ort?.querySelector<HTMLElement>('button:not(:disabled)')?.focus();
 					});
 				},
 				// 194-08: Erst die Leiste am Element, sonst der Inspektor.
