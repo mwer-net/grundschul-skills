@@ -53,7 +53,12 @@ test.describe('Editor: Text', () => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const blase = material(page).locator('.blase');
-		const knoepfe = page.locator('[data-textknoepfe]');
+		// 204-N01: In der Sitzung fallen Claude, Pfeile und ⋯ weg; die rechte Kante der Leiste bleibt stehen.
+		const leiste = page.locator('[data-bausteinleiste]');
+		const rechts = async () => {
+			const box = await leiste.boundingBox();
+			return (box?.x ?? 0) + (box?.width ?? 0);
+		};
 		await druecke(blase);
 		const fertigKnopf = page.getByRole('button', { name: 'Fertig' });
 		if (await fertigKnopf.isVisible()) {
@@ -61,11 +66,11 @@ test.describe('Editor: Text', () => {
 		}
 		await expect(page.locator('[data-textbearbeitung]')).toHaveCount(0);
 		const vorher = await quelle(page);
-		const ort = await knoepfe.boundingBox();
+		const ort = await rechts();
 
 		await druecke(page.getByRole('button', { name: 'Hervorheben' }));
 		await expect(page.locator('[data-textbearbeitung]')).toBeVisible();
-		expect((await knoepfe.boundingBox())?.x).toBe(ort?.x);
+		expect(Math.abs((await rechts()) - ort)).toBeLessThanOrEqual(1);
 		await fertig(page);
 		await expect.poll(() => quelle(page)).toContain('<mark>');
 		expect(await blase.locator('mark').textContent()).toBe(await blase.textContent());
@@ -84,7 +89,8 @@ test.describe('Editor: Text', () => {
 		const h1 = material(page).locator('h1');
 		await beginne(page, druecke, h1);
 		await alles(h1);
-		await page.keyboard.type('Wie spät ist es heute?');
+		// Kürzer als vorher: Eine zweite Zeile in der Überschrift schöbe die Sternchenaufgabe auf eine Folgeseite (206).
+		await page.keyboard.type('Welche Uhrzeit?');
 		await expect(page.locator('[data-speicherstand="gespeichert"]')).toBeVisible();
 
 		await druecke(material(page).locator('.ziel'));
@@ -92,7 +98,7 @@ test.describe('Editor: Text', () => {
 		await expect(page.locator('[data-textbearbeitung]')).toHaveCount(0);
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toBe(
-			vorher.replace('<h1>Wie spät ist es?</h1>', '<h1>Wie spät ist es heute?</h1>'),
+			vorher.replace('<h1>Wie spät ist es?</h1>', '<h1>Welche Uhrzeit?</h1>'),
 		);
 
 		await druecke(page.getByRole('button', { name: 'Rückgängig (⌘Z)' }));
@@ -139,7 +145,9 @@ test.describe('Editor: Text', () => {
 		await oeffne(page, id, dok);
 		const h1 = material(page).locator('h1');
 		await beginne(page, druecke, h1);
-		await expect(page.getByRole('button', { name: 'Fett' })).toBeDisabled();
+		// 204-07: Wo die Schrift schon fett ist, fehlt „B“.
+		await expect(page.getByRole('button', { name: 'Unterstrichen' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Fett' })).toHaveCount(0);
 		await fertig(page);
 
 		const blase = material(page).locator('.blase');
@@ -158,7 +166,8 @@ test.describe('Editor: Text', () => {
 		// Anweisungen sind schon fett: Dort gibt es nur Unterstreichen.
 		const anweisung = material(page).locator('.anw .text').first();
 		await beginne(page, druecke, anweisung);
-		await expect(page.getByRole('button', { name: 'Fett' })).toBeDisabled();
+		await expect(page.getByRole('button', { name: 'Unterstrichen' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Fett' })).toHaveCount(0);
 		await waehleText(anweisung, 'Lies', 'markieren');
 		await druecke(page.getByRole('button', { name: 'Unterstrichen' }));
 		await fertig(page);
@@ -238,9 +247,10 @@ test.describe('Editor: Text', () => {
 		await page.keyboard.type('Er ');
 		await fertig(page);
 		await gespeichert(page, datei);
-		expect(await readFile(datei, 'utf8')).toContain(
-			'  <p>Der Igel </p>\n  <p>Er schläft im Winter.</p>\n</section>',
-		);
+		// Der neue Absatz schiebt den Fuß auf eine Folgeseite, und der Fuß nimmt den Block davor mit (206, Regel 8).
+		const html = await readFile(datei, 'utf8');
+		expect(html).toMatch(/\n {2}<p>Der Igel <\/p>\n[\s\S]*\n {2}<p>Er schläft im Winter\.<\/p>\n/);
+		expect(html).not.toContain('Der Igel schläft');
 	});
 
 	test('Antwortlinien und Abbildungen im Text bleiben geschützt', async ({ druecke, page }) => {
