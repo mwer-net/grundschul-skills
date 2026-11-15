@@ -28,6 +28,8 @@ export const MELDUNG_CODES = [
 	'pruefskript',
 	/** Eine Abbildung ließ sich nicht zeichnen; der Grund steht im Text (023). */
 	'abbildung',
+	/** Eine Abbildung ist gezeichnet, geht aber über den Zahlenraum der Klasse (207). Erlaubt, nur zu prüfen. */
+	'zahlenraum',
 	/** Das Blatt hat Abbildungen mit echten Maßen (023). */
 	'masstab',
 	/** Nur im Editor: Antwortlinien ohne Lösung (019). */
@@ -192,6 +194,10 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 	'abbildung': (_n, text) => ({
 		satz: text.replace(/^Abbildung „(.*?)“: /, '$1: '),
 		tipp: 'Die Abbildung antippen und die Angaben rechts ändern. Oder im Chat Claude darum bitten.',
+	}),
+	'zahlenraum': (_n, text) => ({
+		satz: text.replace(/^Abbildung „(.*?)“: /, '$1: '),
+		tipp: 'Für starke Kinder passt das. Sonst die Abbildung antippen und kleinere Zahlen wählen.',
 	}),
 	'masstab': () => ({
 		satz: 'Dieses Blatt hat echte Maße. Bitte in Originalgröße drucken (100 %, nicht „An Seite anpassen“).',

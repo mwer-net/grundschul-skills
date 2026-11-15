@@ -143,6 +143,11 @@
       const name = e.dataset.name || (window.abbildungsName ? window.abbildungsName(e.localName) : e.localName);
       melde("FEHLER", nr, "abbildung", `Abbildung „${name}“: ${e.getAttribute("data-fehler")}`, [ziel(e)]);
     });
+    // 0b. Gezeichnet, aber über dem Zahlenraum der Klasse (warne in abbildungen.js, 207): erlaubt, nur zu prüfen
+    [...S.querySelectorAll("[data-warnung]")].filter((e) => !ausgeblendet(e) && !e.hasAttribute("data-fehler")).forEach((e) => {
+      const name = e.dataset.name || (window.abbildungsName ? window.abbildungsName(e.localName) : e.localName);
+      melde("WARNUNG", nr, "zahlenraum", `Abbildung „${name}“: ${e.getAttribute("data-warnung")}`, [ziel(e)]);
+    });
     if (S.querySelector("[data-masstab]") && !M.some((m) => m.code === "masstab"))
       melde("HINWEIS", nr, "masstab", "In Originalgröße drucken (100 %, nicht „An Seite anpassen“) → --druckhinweis beim Anlegen setzen", [ziel(S.querySelector("[data-masstab]"))]);
 
@@ -150,7 +155,8 @@
     const GESTALTUNG = ".ebene,[data-lage]";
 
     // 1. Seitenrand und Seitenende
-    const raus = alle.filter((e) => !e.closest(`.karten,.loesung-marke,.fuss-zeile,[data-rand-ok],${GESTALTUNG}`)).filter((e) => {
+    // Zeilennummern (data-zeilennummern) setzt abbildungen.js mit Absicht in den Rand und kleiner als den Text (194-35).
+    const raus = alle.filter((e) => !e.closest(`.karten,.loesung-marke,.fuss-zeile,.zeilennummer,[data-rand-ok],${GESTALTUNG}`)).filter((e) => {
       const r = e.getBoundingClientRect();
       return r.left < innen.l || r.top < innen.t || r.right > innen.r || r.bottom > innen.b;
     });
@@ -229,7 +235,7 @@
     const walker = document.createTreeWalker(S, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) {
       const t = walker.currentNode, p = t.parentElement;
-      if (!t.textContent.trim() || !p || p.closest("svg,.nr,.namenszeile,.platzhalter,.loesung-marke,.fuss-zeile,.seite.lk,[data-klein-ok]") || !sichtbar(p)) continue;
+      if (!t.textContent.trim() || !p || p.closest("svg,.nr,.namenszeile,.platzhalter,.loesung-marke,.fuss-zeile,.zeilennummer,.seite.lk,[data-klein-ok]") || !sichtbar(p)) continue;
       const text = `„${t.textContent.trim().slice(0, 30)}“ (${getComputedStyle(p).fontSize})`;
       if (parseFloat(getComputedStyle(p).fontSize) < min - 0.5 && !klein.has(text)) klein.set(text, p);
     }
@@ -295,9 +301,12 @@
       const fussEl = S.querySelector(":scope > .fuss"), fussHoehe = fussEl ? Math.round(fussEl.getBoundingClientRect().height) : 0;
       if (fussHoehe > FUSS_MAX) melde("WARNUNG", nr, "rahmen-gross", `Fuß ist ${fussHoehe} px hoch (höchstens ${FUSS_MAX}) → Baustein .fuss aus der Vorlage unverändert übernehmen, Text kürzen`, [ziel(fussEl)]);
     }
-    for (let i = 1; i < auf.length; i++) {
-      const gap = auf[i].getBoundingClientRect().top - auf[i - 1].getBoundingClientRect().bottom;
-      if (gap < 20) melde("WARNUNG", nr, "abstand-knapp", `Nur ${Math.round(gap)} px zwischen Aufgabe ${i} und ${i + 1}`, [ziel(auf[i - 1]), ziel(auf[i])]);
+    // Nur Aufgaben, die in dieser Fassung stehen: „Nur Lösung“ auf dem Arbeitsblatt hat keinen Kasten (193-28).
+    const gezeigt = auf.map((a, i) => [a, i + 1]).filter(([a]) => a.getClientRects().length > 0);
+    for (let i = 1; i < gezeigt.length; i++) {
+      const [vorige, v] = gezeigt[i - 1], [a, n] = gezeigt[i];
+      const gap = a.getBoundingClientRect().top - vorige.getBoundingClientRect().bottom;
+      if (gap < 20) melde("WARNUNG", nr, "abstand-knapp", `Nur ${Math.round(gap)} px zwischen Aufgabe ${v} und ${n}`, [ziel(vorige), ziel(a)]);
     }
 
     // 8. Ungenutzter Platz (Folien dürfen leer sein: eine Aussage je Folie)
@@ -305,9 +314,12 @@
     const inhalt = [...S.children].filter((e) => e !== fuss && !e.classList.contains("ebene") && !e.classList.contains("fuss-zeile") && sichtbar(e));
     const unten = Math.max(P.top + randOben, ...inhalt.map((e) => e.getBoundingClientRect().bottom));
     const rest = Math.round((fuss ? fuss.getBoundingClientRect().top - 16 : innen.b) - unten);
-    if (zeitziel && auf.length && rest > FREI_MAX && !S.querySelector(".karten") && !folie && !B.classList.contains("minibuch"))
+    // Folgt eine automatische Seite (data-weiter="auto", Schoolbox 206), passte der nächste Block nicht mehr hierher.
+    const folgtAuto = !!S.nextElementSibling?.matches('.seite[data-weiter="auto"]');
+    const freiZaehlt = !folgtAuto && !S.querySelector(".karten") && !folie && !B.classList.contains("minibuch");
+    if (zeitziel && auf.length && rest > FREI_MAX && freiZaehlt)
       melde("WARNUNG", nr, "platz-frei", `${rest} px frei unten → Item, Reihe oder Aufgabe ergänzen (Menge nach Arbeitszeit)`, [ziel(S)]);
-    else if (rest > 150 && !S.querySelector(".karten") && !folie && !B.classList.contains("minibuch"))
+    else if (rest > 150 && freiZaehlt)
       melde("HINWEIS", nr, "platz-frei", `${rest} px frei unten → Item, Reihe oder Aufgabe ergänzen`, [ziel(S)]);
     if (folie && mitNotizen && !S.querySelector(".notiz")) melde("HINWEIS", nr, "notiz-fehlt", "Folie ohne Notiz für die Lehrkraft", [ziel(S)]);
 

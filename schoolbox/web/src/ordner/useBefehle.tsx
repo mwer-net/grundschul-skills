@@ -20,7 +20,8 @@ import { TeilenDialog } from '../teilen/TeilenDialog';
 import type { AuswahlStand, Richtung } from './auswahl';
 import { alles, bewege as bewegeAuswahl, findeNachName, KEINE } from './auswahl';
 import type { Lage } from './befehle';
-import { befehlZuTaste, lageArt, menueVon } from './befehle';
+import { befehlZuTaste, lageArt, menueVon, paletteVon } from './befehle';
+import { useAuswahlFuerPalette } from './palette-auswahl';
 import { BewegenDialog, InfoDialog, TastenDialog, UebersichtDialog } from './dialoge';
 import type { Merkzettel } from './kontext';
 import { useAblage } from './kontext';
@@ -506,6 +507,14 @@ export const useBefehle = (o: Optionen) => {
 		const lage = lageFuer(ziel, quelle, ort === undefined ? ordnerDerAuswahl : ort);
 		return menueVon(lage, quellen, ziel.length > 1 ? `${ziel.length} Objekte` : undefined);
 	};
+
+	/** ⌘K: die Befehle an der Auswahl aus derselben Quelle wie das Menü (S-02). */
+	useAuswahlFuerPalette(() => {
+		const [erstes] = gewaehlteObjekte;
+		const lage = lageFuer(gewaehlteObjekte, 'inhalt', erstes?.istOrdner ? erstes.ordner.id : ortHier);
+		const name = gewaehlteObjekte.length > 1 ? `${gewaehlteObjekte.length} Objekte` : (erstes?.name ?? '');
+		return paletteVon(lage, quellen, name);
+	});
 
 	/** Das ⋯ der Leiste: ohne das, was die Leiste schon als Knopf zeigt (188-31). */
 	const menueOhne = (ziel: Objekt[], ohne: readonly string[]): MenueEintrag[] => {

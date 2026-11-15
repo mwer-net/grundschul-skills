@@ -92,6 +92,8 @@ test.describe('Inspektor: Bausteine und Abbildungen (196, 197)', () => {
 			await page.getByRole('button', { name: 'Neue Zahlen' }).first().click();
 			await expect.poll(() => quelle(page)).not.toBe(vorher);
 			await expect(material(page).locator('x-schriftlich')).not.toHaveAttribute('data-fehler', /.+/);
+			// 207: Über dem Zahlenraum zeichnet das Blatt mit Warnung; „Neue Zahlen“ bleibt trotzdem darin.
+			await expect(material(page).locator('x-schriftlich')).not.toHaveAttribute('data-warnung', /.+/);
 		}
 	});
 

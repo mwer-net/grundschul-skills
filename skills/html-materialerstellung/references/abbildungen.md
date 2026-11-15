@@ -320,7 +320,7 @@ Erweiterungen der Grundelemente: `x-zwanzigerfeld` `art` (`fuenfer`, `zehner`, `
 
 ## Rechenformate
 
-Muster: `assets/muster/rechenformate.html`. Die Lösung wird immer berechnet. Das Element prüft den Zahlenraum der Klasse (kl1 20, kl2 100, kl3 1 000, kl4 1 000 000) und ob sich jedes offene Feld eindeutig ergibt; sonst FEHLER. `offen` listet leere Felder; ohne Angabe gilt der Standard des Elements.
+Muster: `assets/muster/rechenformate.html`. Die Lösung wird immer berechnet. Ob sich jedes offene Feld eindeutig ergibt, prüft das Element; sonst FEHLER. Der Zahlenraum der Klasse (kl1 20, kl2 100, kl3 1 000, kl4 1 000 000) ist der Normalfall; darüber wird gezeichnet, die Prüfung meldet eine WARNUNG. Nur für starke Kinder bewusst überschreiten. Unter 0, über 1 000 000 oder keine ganze Zahl: FEHLER. `offen` listet leere Felder; ohne Angabe gilt der Standard des Elements.
 
 ### `x-zahlenmauer`: Zahlenmauer
 
@@ -376,7 +376,7 @@ Muster: `assets/muster/rechenformate.html`. Die Lösung wird immer berechnet. Da
 
 `mitte` Rechenschritt; `zahlen` innerer Ring, 6 bis 10; `offen` `aussen` oder `innen`; `groesse` in px.
 
-### `x-rechenreihe`
+### `x-rechenreihe`: Rechenpäckchen
 
 ```html
 <x-rechenreihe rechenart="+" zahlenraum="20" anzahl="8" uebergang="mit"></x-rechenreihe>
@@ -387,7 +387,7 @@ Muster: `assets/muster/rechenformate.html`. Die Lösung wird immer berechnet. Da
 
 ## Einmaleins und schriftliches Rechnen
 
-Muster: `assets/muster/einmaleins-und-schriftlich.html`. Lösung und Teilergebnisse werden immer berechnet. Der Zahlenraum der Klasse wird geprüft.
+Muster: `assets/muster/einmaleins-und-schriftlich.html`. Lösung und Teilergebnisse werden immer berechnet. Über dem Zahlenraum der Klasse meldet die Prüfung eine WARNUNG (siehe Rechenformate).
 
 ### `x-punktfeld`: Punktfeld
 

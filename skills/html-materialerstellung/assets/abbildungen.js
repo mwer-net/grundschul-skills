@@ -75,7 +75,7 @@
   const samen = (el, inhalt) => attr(el, "seed", null) ?? inhalt;
 
   const NAMEN = {
-    "x-rechenreihe": "Rechenreihe", "x-zuordnen": "Zuordnen", "x-sortieren": "Sortieren", "x-beschriften": "Beschriften", "x-schreibrahmen": "Schreibrahmen",
+    "x-rechenreihe": "Rechenpäckchen", "x-zuordnen": "Zuordnen", "x-sortieren": "Sortieren", "x-beschriften": "Beschriften", "x-schreibrahmen": "Schreibrahmen",
     "x-suchsel": "Suchsel", "x-kreuzwort": "Kreuzworträtsel", "x-loesungswort": "Lösungswort",
     "x-bingo": "Bingo", "x-domino": "Domino", "x-spielplan": "Spielplan",
     "x-uhr": "Uhr", "x-menge": "Menge", "x-dienes": "Mehrsystemblöcke", "x-strichpunkt": "Strich-Punkt-Bild",
@@ -84,10 +84,10 @@
     "x-probe": "Probe",
     "x-gluecksrad": "Glücksrad", "x-wuerfel": "Würfel", "x-strichliste": "Strichliste", "x-diagramm": "Diagramm",
     "x-urne": "Kugeln im Säckchen", "x-wahrscheinlichkeit": "Wahrscheinlichkeit", "x-kombinatorik": "Möglichkeiten",
-    "x-gitter": "Gitter", "x-figur": "Figur", "x-tangram": "Tangram",
+    "x-gitter": "Gitter", "x-figur": "Ebene Figur", "x-tangram": "Tangram",
     "x-hunderterfeld": "Hunderterfeld", "x-hundertertafel": "Hundertertafel", "x-rechenrahmen": "Rechenrahmen", "x-rechenstrich": "Rechenstrich",
     "x-lueckentext": "Lückentext", "x-wortspeicher": "Wortspeicher", "x-ankreuzen": "Ankreuzen", "x-richtigfalsch": "Richtig oder falsch",
-    "x-lineatur": "Schreiblinien", "x-silben": "Silben", "x-wortarten": "Wortarten", "x-satzglieder": "Satzglieder", "x-wortbausteine": "Wortbausteine", "x-zeitleiste": "Zeitleiste", "x-jahreskreis": "Jahreskreis", "x-windrose": "Windrose", "x-plan": "Plan", "x-schaltplan": "Stromkreis", "x-kreislauf": "Kreislauf", "x-verkehrszeichen": "Verkehrszeichen", "x-wetter": "Wettersymbol", "x-rhythmus": "Rhythmus", "x-noten": "Noten",
+    "x-lineatur": "Lineatur", "x-silben": "Silben", "x-wortarten": "Wortarten", "x-satzglieder": "Satzglieder", "x-wortbausteine": "Wortbausteine", "x-zeitleiste": "Zeitleiste", "x-jahreskreis": "Jahreskreis", "x-windrose": "Windrose", "x-plan": "Lageplan", "x-schaltplan": "Stromkreis", "x-kreislauf": "Kreislauf", "x-verkehrszeichen": "Verkehrszeichen", "x-wetter": "Wettersymbol", "x-rhythmus": "Rhythmus", "x-noten": "Noten",
     "x-geld": "Geld", "x-skala": "Messgerät", "x-strecke": "Strecke", "x-kalender": "Kalender", "x-zeitspanne": "Zeitspanne",
     "x-punktfeld": "Punktfeld", "x-malkreuz": "Malkreuz", "x-schriftlich": "Schriftliche Rechnung",
     "x-zahlenmauer": "Zahlenmauer", "x-rechendreieck": "Rechendreieck", "x-zahlenhaus": "Zahlenhaus", "x-zahlenkette": "Rechenkette", "x-zauberdreieck": "Zauberdreieck", "x-rechenrad": "Rechenrad",
@@ -98,6 +98,21 @@
   /** Bricht das Zeichnen ab; das Element erscheint als gestrichelter Kasten mit dem Text (meldeFehler). */
   const abbruch = (meldung) => {
     throw new Abbildungsfehler(meldung);
+  };
+  /**
+   * Wie abbruch, aber der Grund ist der Platz (207-N02): Das Element bekommt zusätzlich data-fehler-platz. Daran
+   * erkennt das Panel, dass eine kleinere (oder größere) Zahl passen würde; andere Fehler setzt es nie selbst um.
+   */
+  const abbruchPlatz = (meldung) => {
+    const f = new Abbildungsfehler(meldung);
+    f.platz = true;
+    throw f;
+  };
+  /** Das Element, das gerade gezeichnet wird (zeichne); warne() hängt eine Warnung daran, ohne abzubrechen. */
+  let imBau = null;
+  /** Gezeichnet wird trotzdem; pruefung.js meldet data-warnung als WARNUNG. Die erste Warnung je Element zählt. */
+  const warne = (meldung) => {
+    if (imBau && !imBau.hasAttribute("data-warnung")) imBau.setAttribute("data-warnung", meldung);
   };
 
   const umbrechen = (meldung, zeichen) => {
@@ -339,7 +354,7 @@
       s += `<rect class="einer" x="${x + c * (u * 1.6)}" y="${tiefe + u * 10 - (r + 1) * u * 1.6 + u * 0.6}" width="${u}" height="${u}" stroke-width="1.4"/>`;
     }
     const w = x + Math.ceil(e / 5) * u * 1.6;
-    if (w > SATZSPIEGEL) abbruch("So viele Blöcke passen nicht in eine Zeile. Nimm eine kleinere Größe.");
+    if (w > SATZSPIEGEL) abbruchPlatz("So viele Blöcke passen nicht in eine Zeile. Nimm eine kleinere Größe.");
     el.setAttribute("data-wert", t * 1000 + h * 100 + z * 10 + e);
     el.innerHTML = svg(r1(Math.max(w, u)), u * 10 + tiefe, s);
   }
@@ -419,7 +434,8 @@
     const breite = num(el, "breite", 560), fs = num(el, "schrift", 16), mittel = num(el, "marken", 5);
     if (!(mittel >= 1)) abbruch("Die mittleren Striche brauchen einen Abstand ab 1.");
     if (!(von < bis)) abbruch("„Bis“ muss größer sein als „Von“.");
-    if (!(schritt > 0) || (bis - von) / schritt > 1000) abbruch("Der Abstand der Striche passt nicht.");
+    if (!(schritt > 0) || (bis - von) / schritt > 1000) abbruch("Das wären mehr als 1000 Striche. Nimm einen größeren Strichabstand oder eine kürzere Spanne.");
+    warneRaum([von, bis], (g) => `Er geht bis ${g}.`);
     const zahlen = (el.getAttribute("zahlen") || `${von} ${bis}`).split(/\s+/).map(Number);
     const pfeile = (el.getAttribute("pfeile") || "").split(/\s+/).filter(Boolean).map(Number);
     const x = (v) => r1(10 + ((v - von) / (bis - von)) * (breite - 20));
@@ -1970,12 +1986,13 @@
     const start = num(el, "start", 0), breite = num(el, "breite", 560);
     const spruenge = liste(el, "spruenge").map(leseSprung);
     if (spruenge.length === 0) abbruch("Der Rechenstrich braucht mindestens einen Sprung, zum Beispiel +30.");
-    if (breite > SATZSPIEGEL) abbruch(`Der Rechenstrich ist breiter als die Seite (höchstens ${SATZSPIEGEL} px).`);
+    if (breite > SATZSPIEGEL) abbruchPlatz("Der Rechenstrich ist breiter als die Seite. Mach ihn schmaler.");
     const hoch = spruenge.some((s) => s > 0), runter = spruenge.some((s) => s < 0);
     if (spruenge.includes(0)) abbruch("Ein Sprung um 0 ist kein Sprung.");
     if (hoch && runter && attr(el, "gemischt", "nein") !== "ja") abbruch("Vor- und Rückwärtssprünge in einer Aufgabe: Das braucht „Gemischte Sprünge“.");
     const zeige = attr(el, "zeige", null) === null ? ["start", "spruenge"] : liste(el, "zeige");
     const werte = rechenstrichWerte(start, spruenge);
+    warneRaum(werte, (g) => `Er geht bis ${g}.`);
     const massstab = attr(el, "massstab", "nein") === "ja" || (hoch && runter);
     const klein = Math.min(...werte), gross = Math.max(...werte), rand = 30, innen = breite - 2 * rand;
     const xVon = (w, i) => {
@@ -1987,7 +2004,7 @@
     if (massstab) {
       orte.slice(1).forEach((x, i) => {
         const b = Math.abs(x - orte[i]);
-        if (b < 28) abbruch(`Der Bogen für ${sprungText(spruenge[i])} wäre nur ${Math.round(b)} px breit. Nimm den Rechenstrich breiter oder ohne Maßstab.`);
+        if (b < 28) abbruchPlatz(`Der Bogen für ${sprungText(spruenge[i])} wäre zu schmal. Mach den Rechenstrich breiter oder nimm ihn ohne Maßstab.`);
       });
     }
     const bogenHoehe = 34, oben = 30 + bogenHoehe, linie = oben + 2;
@@ -2018,14 +2035,22 @@
   }
 
   /* == Rechenformate == */
+  /* Zahlenraum der Klasse (207): Darüber wird trotzdem gezeichnet, etwa für starke Kinder; die Prüfung meldet es als
+     WARNUNG (data-warnung am Element). Nur was gar nicht geht, bricht ab: keine ganze Zahl, unter 0, über eine Million. */
   const ZAHLENRAUM = { 1: 20, 2: 100, 3: 1000, 4: 1000000 };
+  const ZAHLEN_HOECHSTENS = 1000000;
+  // `wie` sagt, was zu groß ist: bei Rechenformaten ein Feld, bei Zahlenstrahl und Rechenstrich die Strecke (207-N01).
+  const warneRaum = (werte, wie = (g) => `Ein Feld wäre ${g}.`) => {
+    const k = klasse(), grenze = ZAHLENRAUM[k] ?? ZAHLEN_HOECHSTENS, groesste = Math.max(...werte);
+    if (groesste > grenze) warne(`${wie(zahl(groesste))} In Klasse ${k} geht es bis ${zahl(grenze)}.`);
+  };
   const pruefeRaum = (werte) => {
-    const k = klasse(), grenze = ZAHLENRAUM[k] ?? 1000000;
     for (const w of werte) {
-      if (!Number.isInteger(w)) abbruch(`${String(w).replace(".", ",")} ist keine ganze Zahl.`);
-      if (w < 0) abbruch(`Ein Feld wäre ${zahl(w)} und damit unter 0.`);
-      if (w > grenze) abbruch(`Ein Feld wäre ${zahl(w)} und damit über ${zahl(grenze)}, die Grenze in Klasse ${k}.`);
+      if (!Number.isInteger(w)) abbruch(`${String(w).replace(".", ",")} ist keine ganze Zahl. Nimm ganze Zahlen.`);
+      if (w < 0) abbruch(`Ein Feld wäre ${zahl(w)}. Zahlen unter 0 gehen hier nicht.`);
+      if (w > ZAHLEN_HOECHSTENS) abbruch(`Ein Feld wäre ${zahl(w)}. Mehr als ${zahl(ZAHLEN_HOECHSTENS)} geht nicht.`);
     }
+    warneRaum(werte);
   };
   /** Rang über die Gaußsche Elimination; die Gleichungen sind klein, die Koeffizienten ganz. */
   const rang = (zeilen) => {
@@ -2159,11 +2184,15 @@
     const dach = dachRoh;
     const zeilen = alleZerlegungen
       ? Array.from({ length: dach + 1 }, (_, i) => [i, dach - i])
-      : (el.getAttribute("zerlegungen") || "").split(";").map((t) => t.trim()).filter(Boolean).map((t) => t.split(/\s+/).map(Number));
+      : (el.getAttribute("zerlegungen") || "").split(";").map((t) => t.trim()).filter(Boolean).map((t) => t.split(/\s+/));
     if (zeilen.length === 0) abbruch("Das Zahlenhaus braucht mindestens ein Stockwerk.");
     if (zeilen.length > 21) abbruch("Das Zahlenhaus hat höchstens 21 Stockwerke.");
-    for (const z of zeilen) {
+    for (let i = 0; i < zeilen.length; i++) {
+      const roh = zeilen[i], z = (zeilen[i] = roh.map(Number));
       if (z.length !== 2) abbruch("Jedes Stockwerk hat zwei Zahlen.");
+      // Eine Kommazahl hieß hier „NaN“ (207-N03); gezeichnet wird wie vorher nichts.
+      const keine = roh.find((t) => !Number.isFinite(Number(t)));
+      if (keine !== undefined) abbruch(`${keine} ist keine ganze Zahl. Nimm ganze Zahlen.`);
       if (z[0] + z[1] !== dach) abbruch(`${zahl(z[0])} und ${zahl(z[1])} ergeben nicht ${zahl(dach)}.`);
     }
     pruefeRaum([dach, ...zeilen.flat()]);
@@ -2217,7 +2246,7 @@
     const pfeilbild = attr(el, "art", "kette") === "pfeilbild";
     const { b, schrift } = feldMass(werte, 44), h = Math.max(30, schrift * 1.8), luecke = pfeilbild ? 62 : 56, oben = pfeilbild ? 40 : 24;
     const breite = werte.length * b + ops.length * luecke;
-    if (breite > SATZSPIEGEL) abbruch("Die Kette ist zu lang für eine Zeile. Nimm weniger Schritte.");
+    if (breite > SATZSPIEGEL) abbruchPlatz("Die Kette ist zu lang für eine Zeile. Nimm weniger Schritte.");
     let s = "";
     const wortHoehe = 14;
     werte.forEach((w, i) => {
@@ -2681,7 +2710,7 @@
     if (art === "plus" && (zahlen.length < 2 || zahlen.length > 4)) abbruch("Bei Plus stehen 2 bis 4 Zahlen untereinander.");
     if (art !== "plus" && zahlen.length !== 2) abbruch("Hier gehören genau 2 Zahlen hinein.");
     if (art === "minus" && zahlen[0] < zahlen[1]) abbruch("Die erste Zahl muss mindestens so groß sein wie die zweite.");
-    if (art === "minus" && !VERFAHREN.includes(verfahren)) abbruch("Bitte das Verfahren wählen, das die Klasse gelernt hat.");
+    if (art === "minus" && !VERFAHREN.includes(verfahren)) abbruch("Wähle das Verfahren, das die Klasse gelernt hat.");
     if (art === "mal" && String(zahlen[1]).length > 3) abbruch("Der zweite Faktor hat höchstens 3 Stellen.");
     if (art === "geteilt" && (zahlen[1] < 2 || zahlen[1] > 9)) abbruch("Geteilt wird durch 2 bis 9.");
   };
@@ -2947,8 +2976,8 @@
     if (!einheiten.includes(einheit)) abbruch(`${einheit} passt nicht zu diesem Messgerät.`);
     const [v0, b0, t0] = SKALA_STANDARD[`${art}|${einheit}`];
     const von = num(el, "von", v0), bis = num(el, "bis", b0), [haupt, klein] = attr(el, "teilung", t0).trim().split(/\s+/).map(Number);
-    if (!(von < bis)) abbruch("„Von“ muss kleiner sein als „bis“.");
-    if (!(haupt > 0 && klein > 0)) abbruch("Die Teilung besteht aus Hauptstrich und Zwischenstrich, z. B. 1 0,1.");
+    if (!(von < bis)) abbruch("„Von“ muss kleiner sein als „Bis“.");
+    if (!(haupt > 0 && klein > 0)) abbruch("Die Teilung besteht aus Hauptstrich und Zwischenstrich, zum Beispiel 1 0,1.");
     const aufgabe = attr(el, "aufgabe", null), wertRoh = attr(el, "wert", null), loesungRoh = attr(el, "loesung", null);
     const massstab = attr(el, "massstab", art === "lineal" ? "original" : "nein"), groesse = attr(el, "groesse", null);
     if (aufgabe !== null && aufgabe !== "ablesen" && aufgabe !== "einzeichnen") abbruch(`Die Aufgabe „${aufgabe}“ gibt es nicht.`);
@@ -2963,7 +2992,7 @@
     let s = "", breite = 0, hoehe = 0;
     if (art === "lineal" || art === "massband") {
       const proEinheit = original ? cm(einheit === "mm" ? 0.1 : 1) : (Number(groesse) || 480) / (bis - von), L = (bis - von) * proEinheit;
-      if (L + 24 > SATZSPIEGEL) abbruch("Das passt nicht auf die Seite: Bitte „bis“ kleiner wählen.");
+      if (L + 24 > SATZSPIEGEL) abbruchPlatz("Das passt nicht auf die Seite. Wähle „Bis“ kleiner.");
       const x0 = 12, koerper = art === "lineal" ? 46 : 34;
       s += `<rect x="0.8" y="0.8" width="${r1(L + 24)}" height="${koerper}" rx="${art === "lineal" ? 3 : 1}" stroke-width="1.6" fill="${art === "lineal" ? "#fff" : "#f4f4f4"}"/>`;
       for (const st of striche) {
@@ -3051,7 +3080,7 @@
     if (richtung !== "waagerecht" && richtung !== "schraeg") abbruch(`Die Richtung „${richtung}“ gibt es nicht.`);
     if (!(laenge > 0)) abbruch("Die Strecke braucht eine Länge.");
     const L = cm(laenge), winkel = richtung === "schraeg" ? Math.PI / 6 : 0, dx = L * Math.cos(winkel), dy = L * Math.sin(winkel), rand = 14;
-    if (dx + rand * 2 > SATZSPIEGEL) abbruch("Diese Strecke passt in Originalgröße nicht auf die Seite.");
+    if (dx + rand * 2 > SATZSPIEGEL) abbruchPlatz("Diese Strecke passt in Originalgröße nicht auf die Seite.");
     masstab(el);
     const x1 = rand, y1 = dy + 18, x2 = x1 + dx, y2 = y1 - dy, nx = Math.sin(winkel) * 7, ny = Math.cos(winkel) * 7;
     let s = `<line class="strecke" data-laenge="${laenge}" x1="${r1(x1)}" y1="${r1(y1)}" x2="${r1(x2)}" y2="${r1(y2)}" stroke-width="1.6"/>`;
@@ -3248,7 +3277,7 @@
       s += `<path class="karo" d="${gitter}" stroke="#808080" stroke-width="0.6"/>`;
       const zeichen = (wort, zeile, farbe, klasse2) => {
         const teile = [...wort];
-        if (teile.length > spalten) abbruch("Der Text ist zu lang für eine Zeile.");
+        if (teile.length > spalten) abbruchPlatz("Der Text ist zu lang für eine Zeile.");
         return teile.map((t, i) => (t === " " ? "" : `<g class="${klasse2}">${text((i + 0.5) * k + 0.5, (zeile + 0.5) * k + 0.5, t, { groesse: k * 0.72, farbe })}</g>`)).join("");
       };
       let frei = 0;
@@ -3261,7 +3290,7 @@
       const grund = (z) => randOben + z * teilung + (m.oben + m.band) * mm, x0 = 0, x1 = breite - 1;
       const rest = breite - 8;
       const weit = (t) => (schrift === "va" ? vaBreite(t, groesse) : textBreite(t, groesse));
-      if (vorlage !== null && weit(vorlage) + (anfang ? weit(anfang) + 16 : 0) > rest) abbruch("Der Text ist zu lang für eine Zeile.");
+      if (vorlage !== null && weit(vorlage) + (anfang ? weit(anfang) + 16 : 0) > rest) abbruchPlatz("Der Text ist zu lang für eine Zeile.");
       for (let z = 0; z < zeilen; z++) {
         const y = grund(z), linie = (lage, stark, name) => `<line class="linie" data-art="${name}" data-z="${z}" data-y="${r1(lage)}" x1="${x0}" y1="${r1(lage)}" x2="${r1(x1)}" y2="${r1(lage)}" stroke-width="${stark ? 1.5 : 1}" style="stroke:${stark ? SCHWARZ : "#808080"}"/>`;
         if (m.band > 0 && mittelband === "getoent" && !istSw()) s += `<rect class="getoent" x="${x0}" y="${r1(y - m.band * mm)}" width="${r1(x1)}" height="${r1(m.band * mm)}" fill="color-mix(in srgb,var(--haupt) 18%,#fff)" stroke="none"/>`;
@@ -3588,7 +3617,7 @@
       const kx = Math.min(Math.max(k.x, k.w / 2 + 1), breite - k.w / 2 - 1);
       const zuerst = seite === "unten" ? ["oben", "unten"] : ["unten", "oben"];
       const wahl = [0, 1, 2].flatMap((n) => zuerst.map((s) => ({ s, n }))).find(({ s, n }) => frei(k, s, n, kx));
-      if (!wahl) abbruch("Ereignisse liegen zu dicht; Leiste länger machen oder Zeitraum kürzen.");
+      if (!wahl) abbruchPlatz("Die Ereignisse liegen zu dicht. Mach die Leiste breiter oder den Zeitraum kürzer.");
       belegt.push({ k, seite: wahl.s, n: wahl.n, kx });
       seite = wahl.s;
     }
@@ -3653,8 +3682,8 @@
     const groesse = n === 24 ? 13 : 15;
     const radial = n === 12;
     const laenge = r - r0 - 10;
-    if (radial && textBreite("September", groesse) > laenge) abbruch("Der Kreis ist zu klein für die Beschriftung.");
-    if (!radial && n !== 24 && textBreite("Donnerstag", groesse) > 2 * (r * 0.62) * Math.sin(Math.PI / n)) abbruch("Der Kreis ist zu klein für die Beschriftung.");
+    if (radial && textBreite("September", groesse) > laenge) abbruchPlatz("Der Kreis ist zu klein für die Beschriftung.");
+    if (!radial && n !== 24 && textBreite("Donnerstag", groesse) > 2 * (r * 0.62) * Math.sin(Math.PI / n)) abbruchPlatz("Der Kreis ist zu klein für die Beschriftung.");
     const punkt = (rad, w) => [c + rad * Math.sin(w), c - rad * Math.cos(w)];
     const sektor = (a, b, innen, aussen) => {
       const [x1, y1] = punkt(aussen, a), [x2, y2] = punkt(aussen, b), [x3, y3] = punkt(innen, b), [x4, y4] = punkt(innen, a), gross = b - a > Math.PI ? 1 : 0;
@@ -4415,7 +4444,7 @@
     if (!m) {
       const unbekannt = /^([A-Za-zÄÖÜäöü]+):\S/.exec(inhalt);
       if (unbekannt) abbruch(`Den Inhalt „${unbekannt[1]}:“ gibt es nicht. Es gehen uhr, wuerfel, menge, geld, rhythmus und bild.`);
-      if (!textPasst(inhalt, b, h, g)) abbruch(`„${inhalt}“ passt nicht ins Feld. Bitte kürzen oder weniger Felder wählen.`);
+      if (!textPasst(inhalt, b, h, g)) abbruch(`„${inhalt}“ passt nicht ins Feld. Kürze den Text oder nimm weniger Felder.`);
       return maskiere(inhalt);
     }
     const [, typ, wert] = m, g2 = Math.max(24, Math.floor(Math.min(b, h)));
@@ -4501,11 +4530,11 @@
     if (eintraege.length < noetig) abbruch(`Das sind ${eintraege.length} Einträge; für verschiedene Karten braucht es mindestens ${noetig}.`);
     if (new Set(eintraege.map((e) => e.feld)).size !== eintraege.length) abbruch("Ein Eintrag steht doppelt in der Liste.");
     const seed = samen(el, `${el.getAttribute("eintraege")}|${seite}|${karten}`), satz = bingoKarten(eintraege, felder, karten, seed);
-    if (!satz) abbruch(`So viele verschiedene Karten gehen mit ${eintraege.length} Einträgen nicht. Bitte Einträge ergänzen.`);
+    if (!satz) abbruch(`So viele verschiedene Karten gehen mit ${eintraege.length} Einträgen nicht. Ergänze Einträge.`);
     const { b, h } = blattMass(), spalten = je === 4 ? 2 : 1, reihen = je === 1 ? 1 : 2;
     const zelle = Math.floor(Math.min((b - 16 * (spalten - 1)) / spalten / seite, (h - 16 * (reihen - 1) - 40 * reihen) / reihen / seite, 130) * 10) / 10;
     const mindestens = cm(klasse() <= 2 ? 2.5 : 2);
-    if (zelle < mindestens - 0.5) abbruch(`Die Felder wären kleiner als ${klasse() <= 2 ? "2,5" : "2"} cm. Bitte weniger Karten je Seite oder weniger Felder.`);
+    if (zelle < mindestens - 0.5) abbruch(`Die Felder wären kleiner als ${klasse() <= 2 ? "2,5" : "2"} cm. Nimm weniger Karten je Seite oder weniger Felder.`);
     const karteHtml = (karte, k) => {
       const inhalte = [...karte.map((i) => miniHtml(el, eintraege[i].feld, zelle - 8, zelle - 8))];
       if (frei) inhalte.splice((felder / 2), 0, '<b class="spiel-joker">★</b>');
@@ -4606,7 +4635,7 @@
     const { b } = blattMass(), g = spielSchrift(), breite = Math.floor((b - 24) / 2), hoehe = 118;
     const station = (z, i) => {
       const zeile = Math.floor(i / 2), rechts = zeile % 2 === 0 ? i % 2 === 1 : i % 2 === 0;
-      if (!textPasst(z, breite - 16, hoehe - 50, g)) abbruch(`„${z}“ passt nicht auf die Station. Bitte kürzen.`);
+      if (!textPasst(z, breite - 16, hoehe - 50, g)) abbruchPlatz(`„${z}“ passt nicht auf die Station. Kürze den Text.`);
       return `<div class="land-station" data-station="${i + 1}" style="grid-column:${rechts ? 2 : 1};grid-row:${zeile + 1}"><span class="domino-nr" data-klein-ok>${i + 1}</span>` +
         `<div class="land-text">${maskiere(z)}</div><div class="ampel" aria-label="Zum Anmalen"><i></i><i></i><i></i></div></div>`;
     };
@@ -4626,7 +4655,7 @@
     if (inhalt.length > felder) abbruch(`Das sind ${inhalt.length} Inhalte für ${felder} Felder.`);
     const { b, h } = blattMass(), [c, r] = spielplanRaster(form, felder, b, h), luecke = 8;
     const s = Math.floor(Math.min((b - luecke * (c - 1)) / c, (h - luecke * (r - 1)) / r, 130));
-    if (s < cm(1.8)) abbruch(`Die Felder würden kleiner als 1,8 cm. Bitte weniger Felder oder ein größeres Format (A4 quer, A3).`);
+    if (s < cm(1.8)) abbruchPlatz("Die Felder würden kleiner als 1,8 cm. Nimm weniger Felder oder ein größeres Format (A4 quer, A3).");
     const weg = spielplanWeg(form, felder, c, r), mitte = ([x, y]) => [x * (s + luecke) + s / 2, y * (s + luecke) + s / 2];
     const leitern = (attr(el, "leitern", "") || "").split(/[;\s]+/).filter(Boolean).map((t) => {
       const m = /^(\d+)-(\d+)$/.exec(t);
@@ -4747,13 +4776,13 @@
     }
     const woerter = eintraege.map((e) => raetselWort(e.wort, gross));
     const zulang = woerter.find((w) => w.length > Math.max(spalten, zeilen));
-    if (zulang) abbruch(`„${zulang.join("")}“ ist länger als das Gitter. Bitte das Gitter vergrößern.`);
+    if (zulang) abbruch(`„${zulang.join("")}“ ist länger als das Gitter. Vergrößere das Gitter.`);
     const drin = suchselEnthalten(woerter);
-    if (drin) abbruch(`„${drin[0]}“ steckt in „${drin[1]}“ und stünde damit zweimal im Gitter. Bitte ein Wort tauschen.`);
+    if (drin) abbruch(`„${drin[0]}“ steckt in „${drin[1]}“ und stünde damit zweimal im Gitter. Tausche ein Wort.`);
     const zelle = raetselZelle();
     if (spalten * zelle > SATZSPIEGEL) abbruch(`${spalten} Spalten passen nicht aufs Blatt; höchstens ${Math.floor(SATZSPIEGEL / zelle)}.`);
     const bau = suchselBau(woerter, spalten, zeilen, richtungen, attr(el, "seed", null) ?? `${el.getAttribute("woerter")}|${spalten}|${zeilen}`, gross);
-    if (!bau) abbruch("Die Wörter passen so nicht. Bitte ein größeres Gitter oder weniger Wörter.");
+    if (!bau) abbruch("Die Wörter passen so nicht. Nimm ein größeres Gitter oder weniger Wörter.");
     const b = spalten * zelle, h = zeilen * zelle;
     let s = "";
     bau.gitter.forEach((reihe, y) => reihe.forEach((t, x) => {
@@ -4852,7 +4881,7 @@
 
   const kaestchenWort = (wort, sichtbar) => {
     const z = raetselZelle(), buchstaben = [...wort];
-    if (buchstaben.length * z > SATZSPIEGEL) abbruch("Das Lösungswort ist zu lang für eine Zeile.");
+    if (buchstaben.length * z > SATZSPIEGEL) abbruchPlatz("Das Lösungswort ist zu lang für eine Zeile.");
     let s = "";
     buchstaben.forEach((b, i) => {
       s += `<rect class="wort-kaestchen" x="${r1(i * z + 1)}" y="1" width="${r1(z - 2)}" height="${r1(z - 2)}" fill="#fff" stroke-width="2"/>` +
@@ -4886,10 +4915,10 @@
       lagen = eintraege.map((e, i) => ({ nr: i, wort: e.wort, x: spalteLoesung - stellen[i], y: i, quer: true }));
       spalten = Math.max(...lagen.map((l) => l.x + l.wort.length));
       zeilen = eintraege.length;
-      if (spalten > maxSpalten) abbruch("Das Gitter wird zu breit. Bitte kürzere Wörter nehmen.");
+      if (spalten > maxSpalten) abbruch("Das Gitter wird zu breit. Nimm kürzere Wörter.");
     } else {
       const bau = kreuzBau(eintraege.map((e) => e.wort), attr(el, "seed", null) ?? el.getAttribute("eintraege"), maxSpalten, maxZeilen);
-      if (!bau) abbruch("Für diese Wörter findet sich kein Gitter. Bitte ein Wort tauschen oder neu mischen.");
+      if (!bau) abbruch("Für diese Wörter findet sich kein Gitter. Tausche ein Wort oder misch neu.");
       ({ lagen, spalten, zeilen } = bau);
     }
     const felder = new Map();
@@ -4904,7 +4933,7 @@
     if (geheim && art === "kreuz") {
       geheim.forEach((b, i) => {
         const ort = [...felder.entries()].find(([k, v]) => v === b && !markiert.has(k));
-        if (!ort) abbruch(`Im Gitter fehlt ein ${b} für das Lösungswort. Bitte ein Wort tauschen.`);
+        if (!ort) abbruch(`Im Gitter fehlt ein ${b} für das Lösungswort. Tausche ein Wort.`);
         markiert.set(ort[0], i + 1);
       });
     }
@@ -4957,7 +4986,7 @@
       if (!antworten) abbruch(`Eine Aufgabe ${bezug} gibt es auf diesem Blatt nicht.`);
       if (zuordnung.length === 0) {
         const vorschlag = antworten.map((a, i) => `${a}: ${buchstaben[i] ?? "?"}`).join("; ");
-        abbruch(`Die Legende fehlt. Sie hält fest, was zu den Lösungen gehört. Bitte als Zuordnung eintragen: ${vorschlag}`);
+        abbruch(`Die Legende fehlt. Sie hält fest, was zu den Lösungen gehört. Trag sie als Zuordnung ein: ${vorschlag}`);
       }
       const fehler = loesungswortFehler(buchstaben, antworten, legende, bezug);
       if (fehler) abbruch(fehler);
@@ -5310,7 +5339,7 @@
     el.querySelectorAll("x-lineatur").forEach((k) => lineatur(k));
   }
 
-  /* -- Rechenreihe und „Neue Zahlen“ (050) -- */
+  /* -- Rechenreihe (in der Oberfläche „Rechenpäckchen“) und „Neue Zahlen“ (050) -- */
   const ZEICHEN_RECHNEN = { "+": "+", "-": "−", "−": "−", "·": "·", "*": "·", ":": ":" };
   const RECHENRAEUME = [10, 20, 100, 1000, 1000000];
   /** Überschreitet die Rechnung einen Zehner? `3 + 7` erreicht ihn nur, `5 + 8` geht darüber. Minus spiegelt Plus. */
@@ -5728,11 +5757,19 @@
 
   const zeichne = (f, el) => {
     el.removeAttribute("data-fehler");
+    el.removeAttribute("data-fehler-platz");
+    el.removeAttribute("data-warnung");
+    imBau = el;
     try {
       f(el);
     } catch (e) {
       folgeseitenWeg(el);
-      meldeFehler(el, e instanceof Abbildungsfehler ? e.message : `Die Abbildung ließ sich nicht zeichnen (${e.message}).`);
+      el.removeAttribute("data-warnung");
+      if (!(e instanceof Abbildungsfehler)) console.error(`${NAMEN[el.localName] || el.localName}:`, e);
+      meldeFehler(el, e instanceof Abbildungsfehler ? e.message : "Mit diesen Angaben lässt sich die Abbildung nicht zeichnen. Ändere eine Angabe.");
+      if (e instanceof Abbildungsfehler && e.platz) el.setAttribute("data-fehler-platz", "");
+    } finally {
+      imBau = null;
     }
   };
 

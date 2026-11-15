@@ -716,7 +716,7 @@ test.describe('Zahldarstellungen (027)', () => {
 			page,
 			'<x-rechenstrich start="0" spruenge="+1 +99" massstab="ja"></x-rechenstrich>',
 		);
-		await expect(eng.locator('x-rechenstrich')).toHaveAttribute('data-fehler', /px breit/);
+		await expect(eng.locator('x-rechenstrich')).toHaveAttribute('data-fehler', /zu schmal/);
 	});
 
 	test('Stellentafel: 7 Stellen mit Plättchen passen, Stellenfarben nur in Farbe, Fehler ab 8 Stellen', async ({
@@ -863,7 +863,9 @@ test.describe('Rechenformate (028)', () => {
 		);
 		await expect(decke.locator('x-zahlenmauer')).toHaveAttribute('data-fehler', /mehrere Lösungen/);
 		const raum = await gezeichnet(page, '<x-zahlenmauer basis="6 6 7"></x-zahlenmauer>', 'kl1 sw');
-		await expect(raum.locator('x-zahlenmauer')).toHaveAttribute('data-fehler', /über 20/);
+		// 207: Über dem Zahlenraum der Klasse wird gezeichnet; die Prüfung warnt.
+		await expect(raum.locator('x-zahlenmauer')).not.toHaveAttribute('data-fehler', /.+/);
+		await expect(raum.locator('x-zahlenmauer')).toHaveAttribute('data-warnung', 'Ein Feld wäre 25. In Klasse 1 geht es bis 20.');
 	});
 
 	test('Zauberdreieck mit Summe 9 und zwei Ecken ist eindeutig, Rad mit Rest wird abgelehnt', async ({ page }) => {
@@ -1477,8 +1479,13 @@ test.describe('Einmaleins und schriftliches Rechnen (029)', () => {
 		await expect(fremd.locator('x-schriftlich')).toHaveAttribute('data-fehler', /mindestens so groß/);
 		const ohne = await gezeichnet(page, '<x-schriftlich art="minus" zahlen="9 5"></x-schriftlich>');
 		await expect(ohne.locator('x-schriftlich')).toHaveAttribute('data-fehler', /Verfahren/);
+		// 207: Über dem Zahlenraum der Klasse wird gezeichnet; die Prüfung meldet es als Warnung.
 		const klasse = await gezeichnet(page, '<x-schriftlich zahlen="800 700"></x-schriftlich>');
-		await expect(klasse.locator('x-schriftlich')).toHaveAttribute('data-fehler', /über 1000/);
+		await expect(klasse.locator('x-schriftlich')).not.toHaveAttribute('data-fehler', /.+/);
+		await expect(klasse.locator('x-schriftlich')).toHaveAttribute(
+			'data-warnung',
+			'Ein Feld wäre 1500. In Klasse 3 geht es bis 1000.',
+		);
 	});
 
 	test('Fehler zum Finden: Blatt und Lösung passen zusammen, anderer seed ändert ihn', async ({ page }) => {
@@ -2608,7 +2615,7 @@ test.describe('Rätsel (038)', () => {
 		);
 		await expect(falsch.locator('x-kreuzwort')).toHaveAttribute('data-fehler', /enthält kein B/);
 		const unmoeglich = await gezeichnet(page, '<x-kreuzwort eintraege="a: HUND; b: KLEE"></x-kreuzwort>');
-		await expect(unmoeglich.locator('x-kreuzwort')).toHaveAttribute('data-fehler', /neu mischen/);
+		await expect(unmoeglich.locator('x-kreuzwort')).toHaveAttribute('data-fehler', /misch neu/);
 	});
 
 	test('Editor: Wort hinzufügen und Neu mischen sind je ein Schritt', async ({ druecke, page }) => {

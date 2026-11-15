@@ -35,17 +35,62 @@ type Gezeichnet = Element & { _abbZellen?: Record<string, FormZelle[]>; _abbInfo
 
 export interface AusDemBlatt {
 	fehler: string | null;
+	/** 207: gezeichnet, aber über dem Zahlenraum der Klasse (`data-warnung`); nur ein Prüfpunkt, kein Fehler. */
+	warnung: string | null;
+	/** 207-N02: Der Fehler kommt vom Platz (`data-fehler-platz`); nur dann sucht das Panel eine passende Zahl. */
+	platz: boolean;
 	zellen: Record<string, FormZelle[]>;
 	info: string | null;
 	sw: boolean;
 }
+
+/**
+ * 207 (197-N02, 207-N02): Grenzen, die vom Platz abhängen, kennt nur die Zeichnung in `abbildungen.js`. Bricht sie
+ * wegen des Platzes ab (`data-fehler-platz`), die gespeicherte Zahl aber zeichnet, nimmt das Panel die nächste Zahl
+ * zur Eingabe hin, die sich noch zeichnen lässt. Jeder andere Fehler (keine Lösung, zu viele Linien) bleibt stehen,
+ * wie er ist, mit dem Text der Zeichnung. So bleibt die Zeichnung die eine Quelle, und nichts, was zeichnet, wird
+ * abgewiesen.
+ */
+const zeichenbarBis = (doc: Document, nr: number, s: AbbildungSchema, vorher: Werte, neu: Werte, feld: Feld) => {
+	if (feld.art !== 'zahl' || feld.loesung) {
+		return null;
+	}
+	const alt = Number(vorher[feld.attribut] ?? feld.standardJe?.(vorher) ?? feld.standard);
+	const ziel = Number(neu[feld.attribut]);
+	if (!Number.isFinite(alt) || !Number.isFinite(ziel) || alt === ziel) {
+		return null;
+	}
+	const mit = (z: number): Werte => ({ ...neu, [feld.attribut]: String(z) });
+	const stand = (z: number) => {
+		zeichne(doc, nr, mit(z), s);
+		return liesVomBlatt(doc, nr);
+	};
+	const amZiel = stand(ziel);
+	if (!amZiel.fehler || !amZiel.platz || stand(alt).fehler) {
+		return null;
+	}
+	const geht = (z: number) => !stand(z).fehler;
+	const schritt = Number.isInteger(alt) && Number.isInteger(ziel) ? 1 : (feld.schritt ?? 1);
+	let gut = alt;
+	let schlecht = ziel;
+	while (Math.abs(schlecht - gut) > schritt + 1e-9) {
+		const k = Math.max(1, Math.floor(Math.abs(schlecht - gut) / schritt / 2));
+		const mitte = Number((gut + Math.sign(schlecht - gut) * k * schritt).toFixed(6));
+		if (geht(mitte)) {
+			gut = mitte;
+		} else {
+			schlecht = mitte;
+		}
+	}
+	return gut === alt ? null : { werte: mit(gut), wert: gut, grund: amZiel.fehler };
+};
 
 const klasseVon = (doc: Document | null | undefined) => {
 	const k = /\bkl([1-4])\b/.exec(doc?.body.className ?? '')?.[1];
 	return k ? Number(k) : undefined;
 };
 
-const LEER: AusDemBlatt = { fehler: null, zellen: {}, info: null, sw: true };
+const LEER: AusDemBlatt = { fehler: null, warnung: null, platz: false, zellen: {}, info: null, sw: true };
 
 interface Optionen {
 	pfad: PfadTeil[];
@@ -94,12 +139,9 @@ const zeichne = (doc: Document, nr: number, werte: Werte, schema: AbbildungSchem
 
 /**
  * 197-18: Meldungen der Zeichnung (Texte in `abbildungen.js`) nennen Attribute und Optionswerte; das Panel zeigt die
- * Namen aus dem Schema. Ein Absturz der Zeichnung erscheint nicht als Technik-Text (197-U2).
+ * Namen aus dem Schema. Technik-Text fängt seit 207 die Zeichnung selbst ab (Konsole statt Meldung).
  */
 export const lesbareMeldung = (text: string, schema: AbbildungSchema | undefined) => {
-	if (/ließ sich nicht zeichnen/.test(text)) {
-		return 'Mit diesen Angaben lässt sich die Abbildung nicht zeichnen. Ändere eine Angabe oder setze zurück.';
-	}
 	const namen = new Map<string, string>();
 	for (const feld of schema?.felder ?? []) {
 		if ('optionen' in feld && Array.isArray(feld.optionen)) {
@@ -123,6 +165,8 @@ const liesVomBlatt = (doc: Document, nr: number): AusDemBlatt => {
 	const element: Gezeichnet | null = elementZu(doc, nr);
 	return {
 		fehler: element?.getAttribute('data-fehler') ?? null,
+		warnung: element?.getAttribute('data-warnung') ?? null,
+		platz: element?.hasAttribute('data-fehler-platz') ?? false,
 		zellen: element?._abbZellen ?? {},
 		info: element?._abbInfo ?? null,
 		sw: !doc.body.classList.contains('farbe'),
@@ -286,10 +330,15 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 			: null;
 	};
 
-	const aendere = (feld: Feld, wert: string | null, { nurLoesung, uebernehmen = true }: Aenderung = {}) => {
+	/** Liefert den Wert, der im Feld steht; bei einer Grenze der Zeichnung (207) ist das nicht der eingegebene. */
+	const aendere = (
+		feld: Feld,
+		wert: string | null,
+		{ nurLoesung, uebernehmen = true }: Aenderung = {},
+	): string | null | undefined => {
 		const { basis: b, schema: s, werte: w } = aktuell.current;
 		if (!s || !w || b === null) {
-			return;
+			return undefined;
 		}
 		const geaendert = aendereFeld(s, w, feld, wert, nurLoesung);
 		if (s.felder.some((f) => f.attribut === feld.attribut)) {
@@ -306,12 +355,22 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 			!s.generiertOhne?.includes(feld.attribut) &&
 			!eigeneListe(s, w);
 		const erzeugt = wuerfeln ? gewuerfelt(geaendert) : null;
-		const neu = wuerfeln && s.generiert ? { ...geaendert, [s.generiert]: erzeugt?.[s.generiert] ?? null } : geaendert;
+		const gewollt = wuerfeln && s.generiert ? { ...geaendert, [s.generiert]: erzeugt?.[s.generiert] ?? null } : geaendert;
+		// Verglichen wird mit dem Gespeicherten: Beim Tippen steht die neue Zahl schon im Entwurf.
+		const { doc: d, nr: n, quelle: q } = aktuell.current;
+		const grenze =
+			uebernehmen && d && q && n !== null ? zeichenbarBis(d, n, s, q, gewollt, feld) : null;
+		const neu = grenze?.werte ?? gewollt;
+		if (grenze) {
+			const z = grenze.wert.toLocaleString('de-DE');
+			zeige({ text: `${feld.name}: ${lesbareMeldung(grenze.grund, s)} Jetzt steht ${z} da.` });
+		}
 		aktuell.current = { ...aktuell.current, werte: neu };
 		setEntwurf({ basis: b, werte: neu });
 		if (uebernehmen) {
 			uebernimm(neu, feld.name);
 		}
+		return neu[feld.attribut];
 	};
 
 	const zuruecksetzen = () => setEntwurf(null);
@@ -385,7 +444,9 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 			});
 			return false;
 		}
-		const warRot = Boolean(liesVomBlatt(d, n).fehler);
+		// 207: Über dem Zahlenraum wird gezeichnet; „Neue Zahlen“ bleibt trotzdem darin.
+		const vorher = liesVomBlatt(d, n);
+		const warRot = Boolean(vorher.fehler ?? vorher.warnung);
 		let ausgang = w;
 		let treffer: Werte | null = null;
 		let leer = false;
@@ -403,7 +464,8 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 				continue;
 			}
 			zeichne(d, n, neu, s);
-			if (!liesVomBlatt(d, n).fehler) {
+			const blatt = liesVomBlatt(d, n);
+			if (!blatt.fehler && !blatt.warnung) {
 				treffer = neu;
 			}
 		}

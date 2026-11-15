@@ -62,6 +62,8 @@ import { Loesungsuebersicht } from '../editor/Loesungspanel';
 import { ersterAufSeite, erstesKindVon, nachbarVon, seiteAn } from '../editor/navigation';
 import { Palette } from '../editor/Palette';
 import { eintraegeImEditor } from '../editor/palette-eintraege';
+import { materialEintraege } from '../lib/material-eintraege';
+import type { AblageStand } from '../ordner/typen';
 import { Blattwerkzeug } from '../editor/Panel';
 import { usePanels } from '../editor/panels';
 import type { PruefKnopf } from '../editor/Pruefliste';
@@ -402,6 +404,9 @@ const KopfMitte = ({
 );
 
 /** Was das Blatt sperrt: die Vorschau einer Version, ein Konflikt beim Speichern, ein neues Blatt von Claude (133). */
+/** Gruppe der übrigen Materialien in ⌘K; „Material“ meint im Editor das offene (193-23). */
+const ANDERE_MATERIALIEN = 'Andere Materialien';
+
 const sperreDesBlatts = (vorschau: boolean, konflikt: boolean, entwurf: boolean) => ({
 	frei: !vorschau && !konflikt && !entwurf,
 	nurAnsehen: vorschau || entwurf,
@@ -443,6 +448,13 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	}, [b.ladeFehler]);
 	const [tastenOffen, setTastenOffen] = useState(false);
 	const [paletteOffen, setPaletteOffen] = useState(false);
+	// S-17: ⌘K findet auch hier jedes Material; die Ablage wird erst beim Öffnen der Palette geholt.
+	const [ablageStand, setAblageStand] = useState<AblageStand | null>(null);
+	useEffect(() => {
+		if (paletteOffen) {
+			lade<AblageStand>('/api/ordner').then(setAblageStand, () => undefined);
+		}
+	}, [paletteOffen]);
 	const [zumBlatt, setZumBlatt] = useState(0);
 	const [umriss, setUmriss] = useState<number | null>(null);
 	const claudeApp = useClaudeApp();
@@ -1198,20 +1210,27 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					<Palette
 						platzhalter="Befehl oder Baustein suchen"
 						freitext={anClaudeWenn(ki.zustand.verfuegbar, claude.fuelle)}
-						eintraege={eintraegeImEditor(befehle.jetzt.current, {
-							// 203-13: Treffer, die zum Blatt passen, vor den übrigen; nie, was nicht mehr angeboten wird.
-							posten: mitZuletzt(einfuegen.fuerBlatt(), einfuegen.angebot),
-							fuegeEin: (p) => einfuegen.fuegeEin(p),
-							zeigeSeite: (nr) => {
-								const ziel = docJetzt ? seiteAn(docJetzt, nr) : null;
-								if (ziel !== null) {
-									struktur.zeigeAn(ziel);
-								}
-							},
-							zeigeEinstellung,
-							fuehreAus: befehle.fuehreAus,
-							schubladen: { teile: schubladenTeile, fuehreAus: befehle.fuehreAus },
-						})}
+						eintraege={[
+							...eintraegeImEditor(befehle.jetzt.current, {
+								// 203-13: Treffer, die zum Blatt passen, vor den übrigen; nie, was nicht mehr angeboten wird.
+								posten: mitZuletzt(einfuegen.fuerBlatt(), einfuegen.angebot),
+								fuegeEin: (p) => einfuegen.fuegeEin(p),
+								zeigeSeite: (nr) => {
+									const ziel = docJetzt ? seiteAn(docJetzt, nr) : null;
+									if (ziel !== null) {
+										struktur.zeigeAn(ziel);
+									}
+								},
+								zeigeEinstellung,
+								fuehreAus: befehle.fuehreAus,
+								schubladen: { teile: schubladenTeile, fuehreAus: befehle.fuehreAus },
+							}),
+							// Über den Weg von „Zurück“: erst speichern, bei einem Fehler die Nachfrage (S-17).
+							...materialEintraege(ablageStand, (pfad) => void verlassen(pfad), ANDERE_MATERIALIEN, {
+								mappe,
+								dok,
+							}),
+						]}
 						schliessen={(ausgefuehrt) => {
 							text.halte(false);
 							if (ausgefuehrt) {

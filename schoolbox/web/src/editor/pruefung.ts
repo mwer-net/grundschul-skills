@@ -8,7 +8,6 @@ import { verschobeneVerweise, verweisText } from '@schoolbox/kern/src/verweise';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { elementZu, pfadZu, trefferAn } from './darstellung';
-import { folgtAutomatische } from './fluss';
 
 /** Fehlende Lösungen in einem Satz, gleich in Prüfliste und Lösungsübersicht (194-38). */
 export const satzFehlend = (anzahl: number) =>
@@ -118,23 +117,12 @@ const nameIm = (doc: Document, ziel: MeldungZiel) => {
 };
 
 /**
- * 193-28: Das Prüfskript misst den Abstand auch zu Aufgaben, die in dieser Fassung gar nicht stehen („Nur Lösung“ auf
- * dem Arbeitsblatt). Sie haben keinen Kasten, der Abstand wird negativ. Solche Meldungen zeigt der Editor nicht.
+ * Abstände nur zwischen gezeigten Aufgaben (193-28) und kein „Platz frei“ vor einer automatischen Seite (206) regelt
+ * das Prüfskript selbst (207); der Editor zeigt den Bericht, wie er kommt.
  */
-const nichtGezeigt = (doc: Document, m: Meldung) =>
-	m.code === 'abstand-knapp' &&
-	(m.ziele ?? []).some((z) => {
-		const element = z.sb === null ? null : elementZu(doc, z.sb);
-		return element !== null && element.getClientRects().length === 0;
-	});
-
 const ausBericht = (doc: Document, meldungen: Meldung[]): Pruefpunkt[] => {
 	const seiten = seitenIn(doc);
-	// 206: Vor einer automatischen Seite ist der Platz unten gewollt, dort ging der nächste Block nicht mehr hin.
-	const gemeldet = meldungen.filter(
-		(m) => !(m.code === 'platz-frei' && folgtAutomatische(doc, m.seite)) && !nichtGezeigt(doc, m),
-	);
-	return gemeldet.map((m) => {
+	return meldungen.map((m) => {
 		const ziele = m.ziele ?? [];
 		const seite = seiten[m.seite - 1]?.getBoundingClientRect();
 		const ganzeSeite = (z: MeldungZiel) =>
