@@ -3,8 +3,9 @@ import path from 'node:path';
 
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 4029;
-const MATERIAL_DIR = path.join(tmpdir(), 'schoolbox-e2e');
+// Port und Ablage lassen sich von außen setzen, damit zwei Läufe nebeneinander gehen (wie bei `test:audit`).
+const PORT = Number(process.env.E2E_PORT ?? 4029);
+const MATERIAL_DIR = process.env.E2E_MATERIAL_DIR ?? path.join(tmpdir(), 'schoolbox-e2e');
 
 // Die Tests legen Mappen direkt in dieser Ablage an, so wie Claude es am Server tut.
 process.env.E2E_MATERIAL_DIR = MATERIAL_DIR;
