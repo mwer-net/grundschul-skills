@@ -25,15 +25,13 @@ describe('⋯ und Rechtsklick am Gestaltungselement (204-10)', () => {
 		assert.equal(ids.at(-1), 'auswahl.loeschen');
 	});
 
-	it('„Ganz nach vorne/hinten“, Gruppieren und Auflösen stehen nicht im Menü', () => {
+	it('„Ganz nach vorne/hinten“ und Kombinieren stehen nicht im Menü, Gruppieren und Auflösen schon (198-08)', () => {
 		const ids = ordneGestaltung(BEFEHLE.filter((b) => b.orte.includes('gestaltung'))).map((x) => x.befehl.id);
-		for (const id of [
-			'auswahl.ganz-vorne',
-			'auswahl.ganz-hinten',
-			'auswahl.gruppieren',
-			'auswahl.gruppe-aufloesen',
-		]) {
+		for (const id of ['auswahl.ganz-vorne', 'auswahl.ganz-hinten', 'auswahl.vereinen', 'auswahl.abziehen']) {
 			assert.equal(ids.includes(id), false, id);
+		}
+		for (const id of ['auswahl.gruppieren', 'auswahl.gruppe-aufloesen']) {
+			assert.equal(ids.includes(id), true, id);
 		}
 	});
 

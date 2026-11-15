@@ -19,6 +19,11 @@ const ERLAUBT = new Set([
 	'seiten/Bausteine.tsx',
 ]);
 
+/** Einzelne Texte, die ein Kürzel tragen dürfen: der Hinweis am Zeiger, solange ein Pfad im Bau ist (198-15). */
+const ERLAUBTE_TEXTE: Record<string, readonly string[]> = {
+	'editor/gestaltung/werkzeuge/pfad.ts': ['Enter: fertig · Esc: verwerfen'],
+};
+
 /** Wer `Kuerzel` zeigt: Menü, Tooltip, Tastenliste, Palette, Hilfe und die Musterseiten. */
 const ZEIGEN_KUERZEL = new Set([
 	'bausteine/Menue.tsx',
@@ -57,7 +62,12 @@ describe('Keine Kürzel in der Oberfläche (166)', () => {
 	it('Kürzel als Text stehen nur in Register, Tastenlisten und Hilfe', () => {
 		for (const { pfad, quelle } of DATEIEN) {
 			if (!ERLAUBT.has(pfad)) {
-				assert.deepEqual(kuerzelImText(quelle), [], pfad);
+				const erlaubt = ERLAUBTE_TEXTE[pfad] ?? [];
+				assert.deepEqual(
+					kuerzelImText(quelle).filter((z) => !erlaubt.some((t) => z.endsWith(`: '${t}',`))),
+					[],
+					pfad,
+				);
 			}
 		}
 	});

@@ -68,7 +68,15 @@ describe('Inhalt der Palette im Editor', () => {
 	});
 
 	it('zeigt „Mit Claude ändern …“ bei mehreren Elementen gesperrt mit Grund (200-N01)', () => {
-		const k = kontext({ gestaltung: { nrn: [3, 4] } as never });
+		// Die übrigen Befehle am Element lesen `element` und `doc`; ohne DOM hier ein leeres Blatt ohne Anker.
+		const element = {
+			hasAttribute: () => false,
+			getAttribute: () => null,
+			closest: () => null,
+			getBoundingClientRect: () => ({ left: 0, top: 0, width: 0, height: 0 }),
+		};
+		const doc = { querySelector: () => null, querySelectorAll: () => [] };
+		const k = kontext({ gestaltung: { nr: 3, nrn: [3, 4], element, doc } as never });
 		const claude = eintraegeImEditor(k, ziele()).find((e) => e.id === 'ansicht.claude');
 		assert.equal(claude?.gesperrt, true);
 		assert.equal(claude?.notiz, CLAUDE_MEHRERE);
