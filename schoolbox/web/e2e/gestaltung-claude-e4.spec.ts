@@ -49,6 +49,8 @@ test.describe('Gruppen und Pfade von Claude (124)', () => {
 	});
 
 	test('Die Gruppe von Claude ist wählbar, ⇧⌘G löst sie, die Teile bleiben, ⌘Z stellt her', async ({ page }) => {
+		// Anlegen, Claude, großer Vergleich und Übernehmen brauchen auf dem Prüfrechner allein schon über 30 s.
+		test.slow();
 		await nimmAn(
 			page,
 			'gruppe',
