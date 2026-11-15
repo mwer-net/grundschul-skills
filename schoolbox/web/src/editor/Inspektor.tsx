@@ -1,7 +1,7 @@
 import { ABSCHNITT_TITEL } from '@schoolbox/kern/src/abschnitte';
 import { FREIES_ELEMENT, kann } from '@schoolbox/kern/src/bausteine';
 import { GESTALTUNG_SELEKTOR } from '@schoolbox/kern/src/gestaltung-arten';
-import { KIT_FELDER, leseNotiz, setzeNotiz, sichtbarkeitFest } from '@schoolbox/kern/src/kit-einstellungen';
+import { leseNotiz, setzeNotiz, sichtbarkeitFest } from '@schoolbox/kern/src/kit-einstellungen';
 import type { ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
@@ -671,12 +671,10 @@ export const Einstellungen = ({
 					{spalten?.nr === nr && <Spaltenwahl aus={aus} spalten={spalten} struktur={struktur} />}
 				</Abschnitt>
 				<Abschnitt name="loesung" titel={ABSCHNITT_TITEL.loesung}>
-					<Loesungswerkzeug
-						l={loes}
-						ohneFeld={aktiv && Boolean(KIT_FELDER[baustein.art]?.some((f) => f.name === 'loesung'))}
-					/>
+					<Loesungswerkzeug l={loes} />
 					<AbbildungFelder abb={abb} abschnitt="loesung" />
-					{aktiv && <KitWerkzeug {...kit} abschnitt="loesung" />}
+					{/* 196-11: ein Feld „Lösung“; in der Lösungsansicht das der Antwortlinie (Vorschau, „Zur anderen …“). */}
+					{aktiv && loes.antwort === null && <KitWerkzeug {...kit} abschnitt="loesung" />}
 				</Abschnitt>
 				{sprachSpaeter && sprache}
 				<Abschnitt name="bewertung" titel={ABSCHNITT_TITEL.bewertung}>
