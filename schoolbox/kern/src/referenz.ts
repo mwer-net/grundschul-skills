@@ -15,7 +15,7 @@
 
 import { abbildungsName } from './abbildungen';
 import type { Baustein, Sicht } from './bausteine';
-import { bausteinUeber, FREI_TITEL, FREIES_ELEMENT, nameFreiesElement } from './bausteine';
+import { bausteinNach, bausteinUeber, FREI_TITEL, FREIES_ELEMENT, nameFreiesElement } from './bausteine';
 import { nameDerGestaltung } from './gestaltung-arten';
 import { FACH_NAME } from './namen';
 import type { Knoten, Zerlegung } from './quelltext';
@@ -204,8 +204,11 @@ const kettePasst = (k: Knoten, kette: Kette, i: number, loesung: boolean): boole
 export const passt = (k: Knoten, selektor: string, loesung: boolean) =>
 	ketten(selektor).some((kette) => kettePasst(k, kette, kette.teile.length - 1, loesung));
 
+/** S-19: Der Lösungstext ist auch auf dem Arbeitsblatt ein Baustein, wie im Editor (`web/src/editor/darstellung.ts`). */
+const LOESUNGSTEXT = bausteinNach('loesungstext')?.selektor;
+
 const sichtVon = (loesung: boolean): Sicht<Knoten> => ({
-	passt: (k, selektor) => passt(k, selektor, loesung),
+	passt: (k, selektor) => passt(k, selektor === LOESUNGSTEXT ? '.nur-loesung' : selektor, loesung),
 	tag: (k) => k.tag,
 	eltern: (k) => k.eltern,
 	kinder: (k) => k.kinder,
