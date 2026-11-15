@@ -13,7 +13,18 @@ import { Symbol } from '../bausteine/Symbol';
 import { limitHinweis, neueGespraechId, useKiZustand } from '../editor/ki';
 import { useEinheiten } from '../ordner/einheiten';
 import { useAblage } from '../ordner/kontext';
-import { ersterSchritt, LETZTE, mitWeg, ortDesAssistenten, titelFehler, wirksameAntworten } from './anlegen-hilfe';
+import type { KlasseFachOffen } from './anlegen-hilfe';
+import {
+	ersterSchritt,
+	klasseFachFehlt,
+	LETZTE,
+	mitWeg,
+	offenVon,
+	OHNE_VORBELEGUNG,
+	ortDesAssistenten,
+	titelFehler,
+	wirksameAntworten,
+} from './anlegen-hilfe';
 import {
 	Fehler,
 	SchrittArt,
@@ -142,7 +153,7 @@ export const MaterialDialog = ({
 	vorDemSprung,
 }: MaterialDialogEigenschaften) => {
 	const { stand } = useAblage();
-	const { angabe: ordnerAngabe, ordner, vorbelegt } = ortDesAssistenten(stand, festerOrdner);
+	const { angabe: ortAngabe, ordner, vorbelegt } = ortDesAssistenten(stand, festerOrdner);
 	const ki = useKiZustand();
 	const { einheiten } = useEinheiten();
 	const zeige = useHinweis();
@@ -159,11 +170,20 @@ export const MaterialDialog = ({
 		return g && g.ordner === ordner ? g : null;
 	});
 	const neueAntworten = () => {
-		const basis = leereAntworten(vorbelegt);
+		// Offenes steht nur als Platzhalter in den Antworten; zu sehen und abzuschicken ist es nicht (S-14).
+		const basis = leereAntworten({
+			fach: vorbelegt.fach ?? OHNE_VORBELEGUNG.fach,
+			klasse: vorbelegt.klasse ?? OHNE_VORBELEGUNG.klasse,
+		});
 		return thema ? mitThema(basis, thema) : basis;
 	};
 	const [antworten, setAntworten] = useState<Antworten>(() => gemerkt?.antworten ?? neueAntworten());
 	const [titelEigen, setTitelEigen] = useState(gemerkt?.titelEigen ?? false);
+	/** Klasse und Fach selbst gewählt; bis dahin gilt die Vorbelegung, auch wenn die Ablage erst später lädt. */
+	const [gewaehlt, setGewaehlt] = useState<KlasseFachOffen>(
+		() => gemerkt?.gewaehlt ?? { fach: false, klasse: false },
+	);
+	const [mahnen, setMahnen] = useState(false);
 	const [schritt, setSchritt] = useState<AssistentSchrittId>(() => gemerkt?.schritt ?? ersterSchritt(thema));
 	const [besucht, setBesucht] = useState<ReadonlySet<AssistentSchrittId>>(
 		() => new Set(gemerkt?.besucht ?? ['start', schritt]),
@@ -177,7 +197,20 @@ export const MaterialDialog = ({
 	// Text hinter einem zugeklappten „Anders …“: Kommt man zurück, steht er wieder da (190-19).
 	const zugeklappt = useRef<Partial<Record<FreitextFeld, string>>>({});
 
-	const wirksam = wirksameAntworten(antworten, vorbelegt, titelEigen);
+	const wirksam = wirksameAntworten(antworten, vorbelegt, titelEigen, gewaehlt);
+	const klasseFachOffen = vorbelegt.quelle === 'behaelter' ? { fach: false, klasse: false } : offenVon(vorbelegt, gewaehlt);
+	const offenJetzt = useRef(klasseFachOffen);
+	offenJetzt.current = klasseFachOffen;
+	const ordnerAngabe = { ...ortAngabe, offen: klasseFachOffen, gewaehlt, mahnen };
+	/** Fehlt Klasse oder Fach, steht der Satz da und „bitte wählen“ rot am Feld (S-14). */
+	const klasseFachPruefen = () => {
+		const fehlt = klasseFachFehlt(offenJetzt.current);
+		if (fehlt) {
+			setFehler(fehlt);
+			setMahnen(true);
+		}
+		return fehlt;
+	};
 	// Für ⏎ direkt nach einem Klick: Der Stand ist dann schon gesetzt, aber noch nicht gezeichnet.
 	const jetzt = useRef(wirksam);
 	jetzt.current = wirksam;
@@ -194,6 +227,15 @@ export const MaterialDialog = ({
 		setAntworten((a) => ({ ...a, ...teil }));
 		jetzt.current = { ...jetzt.current, ...teil };
 		setFehler(null);
+		// Nur die Wahl am Feld zählt als gewählt, nicht ein Wechsel des Wegs, der alles mitnimmt.
+		const keys = Object.keys(teil);
+		if (keys.length > 0 && keys.every((k) => k === 'fach' || k === 'klasse')) {
+			setGewaehlt((g) => ({ fach: g.fach || 'fach' in teil, klasse: g.klasse || 'klasse' in teil }));
+			offenJetzt.current = {
+				fach: offenJetzt.current.fach && !('fach' in teil),
+				klasse: offenJetzt.current.klasse && !('klasse' in teil),
+			};
+		}
 	};
 	const setzeOffen = (feld: FreitextFeld, an: boolean) => {
 		setOffen((o) => ({ ...o, [feld]: an }));
@@ -217,8 +259,8 @@ export const MaterialDialog = ({
 
 	// Schließen fragt nicht (132); mit Antworten über „Start“ hinaus bleibt der Stand für „Weiter ausfüllen“ (190-02).
 	const angelegt = useRef(false);
-	const zustand = useRef({ titelEigen, schritt, besucht, offen });
-	zustand.current = { titelEigen, schritt, besucht, offen };
+	const zustand = useRef({ titelEigen, schritt, besucht, offen, gewaehlt });
+	zustand.current = { titelEigen, schritt, besucht, offen, gewaehlt };
 	const schliessen = () => {
 		const z = zustand.current;
 		if (!angelegt.current && z.besucht.size >= 3) {
@@ -229,6 +271,7 @@ export const MaterialDialog = ({
 				schritt: z.schritt,
 				besucht: [...z.besucht],
 				offen: z.offen,
+				gewaehlt: z.gewaehlt,
 			});
 			zeige({
 				text: 'Assistent geschlossen.',
@@ -253,6 +296,8 @@ export const MaterialDialog = ({
 		jetzt.current = neu;
 		setAntworten(neu);
 		setTitelEigen(false);
+		setGewaehlt({ fach: false, klasse: false });
+		setMahnen(false);
 		setOffen({});
 		setSchritt(erster);
 		setBesucht(new Set(['start', erster]));
@@ -306,6 +351,11 @@ export const MaterialDialog = ({
 	/** Die Einheit: Der Server legt Ordner und Behälter an und startet den Lauf; danach öffnet der Ordner (140). */
 	const starteEinheit = async () => {
 		const a = jetzt.current;
+		if (klasseFachFehlt(offenJetzt.current)) {
+			gehe('fuerWen');
+			klasseFachPruefen();
+			return;
+		}
 		const offenerSchritt = schritteFuer(a).find((s) => s.fehlt?.(a));
 		if (offenerSchritt) {
 			gehe(offenerSchritt.id);
@@ -331,6 +381,11 @@ export const MaterialDialog = ({
 
 	const anlegen = async (mitClaude: boolean) => {
 		const a = jetzt.current;
+		if (vorbelegt.quelle !== 'behaelter' && klasseFachFehlt(offenJetzt.current)) {
+			gehe(mitClaude ? 'fuerWen' : 'titel');
+			klasseFachPruefen();
+			return;
+		}
 		const pruefen = mitClaude ? schritteFuer(a) : schritteFuer({ ...a, weg: 'leer' });
 		const offenerSchritt = pruefen.find((s) => s.fehlt?.(a));
 		if (offenerSchritt) {
@@ -392,6 +447,9 @@ export const MaterialDialog = ({
 		const fehlt = s.fehlt?.(a);
 		if (fehlt) {
 			setFehler(fehlt);
+			return;
+		}
+		if ((s.id === 'fuerWen' || (s.id === 'titel' && vorbelegt.quelle !== 'behaelter')) && klasseFachPruefen()) {
 			return;
 		}
 		const doppelt = s.id === 'thema' || s.id === 'titel' ? titelVergeben() : null;
@@ -634,7 +692,13 @@ export const MaterialDialog = ({
 			<div ref={wurzel} data-assistent={aktuell.id} className="flex flex-col gap-3">
 				{/* Feste Höhe: Kein Schritt lässt den Fuß springen; was nicht passt, rollt (190-17). */}
 				<div className="grid h-[32rem] grid-cols-[12rem_1fr] gap-4 max-md:h-auto max-md:grid-cols-1">
-					<Schrittleiste a={wirksam} aktuell={aktuell.id} besucht={besucht} gehe={gehe} />
+					<Schrittleiste
+						a={wirksam}
+						aktuell={aktuell.id}
+						besucht={besucht}
+						gehe={gehe}
+						klasseFachOffen={klasseFachOffen.fach || klasseFachOffen.klasse}
+					/>
 					<div className="min-w-0 overflow-y-auto px-0.5 pb-1" data-schritt-inhalt>
 						<p className="text-xs font-medium text-leise">{`Schritt ${index + 1} von ${schritte.length}`}</p>
 						<h3 className="text-lg font-semibold">{aktuell.frage(wirksam)}</h3>

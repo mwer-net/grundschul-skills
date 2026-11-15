@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { suchePalette } from '../editor/palette-suche';
 import type { Lage } from './befehle';
-import { BEFEHLE, gilt, kuerzelVon, leistenKnoepfe, MENUE, menueVon, tastenAbschnitte } from './befehle';
+import { BEFEHLE, ERST_WAEHLEN, gilt, kuerzelVon, leistenKnoepfe, MENUE, menueVon, paletteVon, tastenAbschnitte } from './befehle';
 import { dokObjekt, ordnerObjekt } from './objekte';
 import type { AblageDok, AblageStand } from './typen';
 
@@ -136,5 +137,23 @@ describe('Befehle der Ablage', () => {
 		assert.equal(gilt('variante', material(blatt('b', 'a4-hoch'))), false);
 		assert.equal(gilt('variante', material(blatt('w', 'a4-hoch', 0, true))), true);
 		assert.ok(titel(material(blatt('w', 'a4-hoch', 0, true))).includes('Variante mit neuen Zahlen'));
+	});
+
+	it('⌘K: dieselben Befehle wie das Menü an der Auswahl, ohne Auswahl gesperrt mit Grund (S-02)', () => {
+		const quellen = { fuehreAus: () => undefined, untermenue: () => null };
+		const l = material(blatt('b', 'a4-hoch'));
+		const zeilen = paletteVon(l, quellen, 'b');
+		assert.deepEqual(
+			zeilen.map((z) => z.titel),
+			titel(l),
+		);
+		assert.ok(zeilen.every((z) => z.gruppe === 'Auswahl: b' && !z.gesperrt));
+		assert.equal(suchePalette('löschen', zeilen)[0]?.titel, 'In den Papierkorb');
+		assert.equal(suchePalette('umbenennen', zeilen)[0]?.titel, 'Umbenennen');
+		const ohne = paletteVon(lage({}), quellen, '');
+		const papierkorb = suchePalette('löschen', ohne)[0];
+		assert.equal(papierkorb?.gesperrt, true);
+		assert.equal(papierkorb?.notiz, ERST_WAEHLEN);
+		assert.ok(!ohne.some((z) => z.titel === 'Neuer Unterordner'));
 	});
 });

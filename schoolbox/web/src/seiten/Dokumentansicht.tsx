@@ -332,7 +332,8 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 									<ClaudeBautPille {...claude} />
 								</Link>
 							) : (
-								meta.status === 'entwurf' && <Marke>Entwurf</Marke>
+								// Der Stand ist Sache der Lehrkraft; die Kollegin im Link sieht keine Plakette (S-13).
+								!geteilt && meta.status === 'entwurf' && <Marke>Entwurf</Marke>
 							)}
 						</h1>
 						<p className="ml-1 truncate text-xs text-leise max-lg:hidden">

@@ -26,7 +26,7 @@ const ZEIGEN_KUERZEL = new Set([
 	'bausteine/Tastenliste.tsx',
 	'editor/Palette.tsx',
 	'seiten/Hilfe.tsx',
-	'seiten/hilfe-gestalten.tsx',
+	'seiten/hilfe-teile.tsx',
 	'seiten/Schubladenliste.tsx',
 	'seiten/Bausteine.tsx',
 ]);

@@ -205,7 +205,7 @@ export const EntwurfKarte = ({
 						<p className="flex items-center gap-2 font-semibold">
 							<Symbol name="funken" className="size-4 flex-none text-brand-600" />
 							<span className="min-w-0 flex-1 truncate">
-								{phase.nachbessern ? 'Claude bessert den Entwurf nach' : laufTitel}
+								{phase.nachbessern ? 'Claude bessert den Vorschlag nach' : laufTitel}
 							</span>
 							<span className="flex-none font-normal text-leise tabular-nums">
 								{laufzeit(phase.auftrag.seit, jetzt)}
@@ -440,7 +440,7 @@ export const Entwurfsleiste = ({ entwurf }: { entwurf: Entwurf }) => {
 			<div className="flex flex-wrap items-center gap-2">
 				<Symbol name="funken" className="size-4 flex-none text-brand-600" />
 				<div className="min-w-0 flex-1">
-					<p className="font-semibold">Entwurf von Claude</p>
+					<p className="font-semibold">Vorschlag von Claude</p>
 					<p
 						className={klassen(
 							'truncate text-xs',
@@ -448,7 +448,7 @@ export const Entwurfsleiste = ({ entwurf }: { entwurf: Entwurf }) => {
 						)}
 					>
 						{vorschlag.konflikt
-							? 'Das Blatt wurde seit dem Auftrag geändert. Dieser Entwurf lässt sich nicht mehr übernehmen.'
+							? 'Das Blatt wurde seit dem Auftrag geändert. Dieser Vorschlag lässt sich nicht mehr übernehmen.'
 							: zusammenfassung(vorschlag)}
 					</p>
 				</div>
@@ -504,7 +504,7 @@ export const Entwurfsleiste = ({ entwurf }: { entwurf: Entwurf }) => {
 				<NachbessernFeld
 					text={nachbessern}
 					setText={setNachbessern}
-					frage="Was soll Claude am Entwurf ändern?"
+					frage="Was soll Claude am Vorschlag ändern?"
 					sende={entwurf.nachbessern}
 					schliessen={schliesseFeld}
 				/>

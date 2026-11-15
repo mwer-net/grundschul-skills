@@ -8,6 +8,8 @@ export interface GemerkterAssistent {
 	schritt: AssistentSchrittId;
 	besucht: readonly AssistentSchrittId[];
 	offen: Partial<Record<FreitextFeld, boolean>>;
+	/** Klasse und Fach selbst gewählt (S-14). */
+	gewaehlt?: { fach: boolean; klasse: boolean };
 }
 
 /** Das Ereignis, auf das der Rahmen den gemerkten Assistenten öffnet. */

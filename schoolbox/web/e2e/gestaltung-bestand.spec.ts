@@ -63,10 +63,12 @@ test.describe('Ältere Blätter mit Rezept (180)', () => {
 			await page.keyboard.press('ControlOrMeta+k');
 			const palette = page.locator('[data-befehlspalette]');
 			await palette.getByRole('combobox').fill('Rezept');
-			// Nur „An Claude schicken: Rezept“, das jede Suche anbietet.
+			// Nur „An Claude schicken: Rezept“, das jede Suche anbietet; Materialien findet ⌘K auch hier (S-17).
 			const claude = '[data-palette-zeile="claude:schicken"]';
 			await expect(palette.locator(claude)).toBeVisible();
-			await expect(palette.locator(`[data-palette-zeile]:not(${claude})`)).toHaveCount(0);
+			await expect(
+				palette.locator(`[data-palette-zeile]:not(${claude}):not([data-palette-zeile^="dokument:"])`),
+			).toHaveCount(0);
 		});
 
 		test('Ebenen: ohne Rezept und Kopfband, Fläche und Streuungen mit Schloss', async ({ page }) => {

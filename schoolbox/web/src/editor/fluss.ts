@@ -9,9 +9,10 @@ import type { Blatt, FlussPlan } from '@schoolbox/kern/src/fluss';
 import {
 	aeussereSeiten as aeussereSeitenVon,
 	blaetterVon,
+	blattSchluessel,
 	blattZu,
 	FOLGESEITE_STIL,
-	geaenderteBlaetter,
+	geaenderteBlattPaare,
 	istFuss,
 	istUeberschrift,
 	legeUm,
@@ -26,7 +27,10 @@ import { useCallback, useEffect, useRef } from 'react';
 
 import { elementZu, MITLAUFEN, nrVon } from './darstellung';
 
-/** Unterkante der Seite wie in `pruefung.js`: nach vorn erst bei mehr als 1 px Überstand, zurück nur ganz (Regel 14). */
+/**
+ * Unterkante der Seite wie in `pruefung.js`: Ein Block passt bis 1 px Überstand, für Bleiben und Zurückkommen gleich
+ * (Regel 14). Dieselbe Messung entscheidet beide Wege, so pendelt nichts.
+ */
 const TOLERANZ = 1;
 /** Länger wartet der Probelauf nicht auf Bilder, die noch laden. */
 const BILDER_MS = 2000;
@@ -115,6 +119,85 @@ const bilderGeladen = async (doc: Document) => {
 	await Promise.race([geladen, new Promise((fertig) => window.setTimeout(fertig, BILDER_MS))]);
 };
 
+/** Hinter Kopf und Namenszeile, vor Fußzeile und Ebenen: dort stehen die Flussblöcke einer Seite. */
+const ankerIn = (seite: Element) => {
+	const kinder = [...seite.children];
+	const vorn = kinder.findLastIndex((k) => k.matches(VORN));
+	return kinder.slice(vorn + 1).find((k) => k.matches(HINTEN)) ?? null;
+};
+
+type Fenster = Window & { zeichneAbbildungen?: () => void };
+
+/** Arbeitsblatt oder Lösung zeigen, wie `abbildungen.js` sie zeichnet. */
+const zeigeAnsicht = (doc: Document, loesung: boolean) => {
+	if (doc.body.classList.contains('loesung') !== loesung) {
+		doc.body.classList.toggle('loesung', loesung);
+		(doc.defaultView as Fenster | null)?.zeichneAbbildungen?.();
+	}
+};
+
+/**
+ * Wie die Seiten eines Blatts im Bild passen: je Seite die Blöcke, wie viele davon von vorn passen und ob der erste
+ * Block der nächsten Seite noch Platz hätte. Nur im unsichtbaren Rahmen, bevor er zu sehen ist. Gleich vor und nach einem Schritt heißt: Der
+ * Schritt hat an der Passung nichts geändert, auch wenn eine Seite schon vorher überstand (Nachbesserung 2).
+ */
+const passungVon = (seiten: Element[]) =>
+	seiten
+		.map((seite, j) => {
+			const bloecke = flussKinder(seite);
+			const grenze = grenzeVon(seite);
+			let passt = 0;
+			while (passt < bloecke.length && unterkante(bloecke[passt] as Element) <= grenze + TOLERANZ) {
+				passt += 1;
+			}
+			// Ob der erste Block der nächsten Seite hier noch Platz hätte, misst der Block selbst an dieser Stelle,
+			// genau wie `fuelle` (Regel 14); danach steht er wieder, wo er stand.
+			const naechste = seiten[j + 1];
+			const naechster = naechste ? flussKinder(naechste)[0] : undefined;
+			let platz = 0;
+			if (naechster && passt === bloecke.length) {
+				const { parentNode, nextSibling } = naechster;
+				seite.insertBefore(naechster, ankerIn(seite));
+				platz = unterkante(naechster) <= grenzeVon(seite) + TOLERANZ ? 1 : 0;
+				parentNode?.insertBefore(naechster, nextSibling);
+			}
+			return `${bloecke.length}/${passt}/${platz}`;
+		})
+		.join(' ');
+
+/** Die Passung jedes fließenden Blatts (Nummer der ersten Seite), im Arbeitsblatt und, wenn es eine gibt, der Lösung. */
+const passungen = (doc: Document, z: Zerlegung, mitLoesung: boolean) => {
+	const imBild = blaetterImBild(doc);
+	const blaetter = [...blattSchluessel(z).keys()]
+		.slice(0, MAX_BLAETTER)
+		.flatMap((nr) => {
+			const seiten = imBild.find((g) => g[0] && nrVon(g[0]) === nr);
+			return seiten && fliesstImBild(seiten) ? [[nr, seiten] as const] : [];
+		});
+	const ergebnis = new Map<number, string>();
+	if (blaetter.length === 0) {
+		return ergebnis;
+	}
+	const stil = doc.createElement('style');
+	stil.textContent = PROBE_STIL;
+	doc.head.append(stil);
+	const zeigtLoesung = doc.body.classList.contains('loesung');
+	try {
+		for (const loesung of mitLoesung ? [false, true] : [false]) {
+			zeigeAnsicht(doc, loesung);
+			for (const [nr, seiten] of blaetter) {
+				const davor = ergebnis.get(nr);
+				const jetzt = passungVon(seiten);
+				ergebnis.set(nr, davor === undefined ? jetzt : `${davor} | ${jetzt}`);
+			}
+		}
+	} finally {
+		zeigeAnsicht(doc, zeigtLoesung);
+		stil.remove();
+	}
+	return ergebnis;
+};
+
 /** Ein Blatt im Probelauf: seine Blöcke im DOM, die Seiten und woher jeder Block kommt. */
 interface Probe {
 	blatt: Blatt;
@@ -126,12 +209,6 @@ interface Probe {
 	fuss: Element | null;
 }
 
-/** Hinter Kopf und Namenszeile, vor Fußzeile und Ebenen: dort stehen die Flussblöcke einer Seite. */
-const ankerIn = (seite: Element) => {
-	const kinder = [...seite.children];
-	const vorn = kinder.findLastIndex((k) => k.matches(VORN));
-	return kinder.slice(vorn + 1).find((k) => k.matches(HINTEN)) ?? null;
-};
 
 const ohneMarke = (k: Element) => {
 	const kopie = k.cloneNode(true) as Element;
@@ -172,7 +249,7 @@ const probeSeite = (vorlage: HTMLElement, nach: Element) => {
  * wo sie im Arbeitsblatt endete; so wird nur weitergeschoben, nie zurückgeholt.
  */
 const fuelle = (p: Probe, neu: HTMLElement[], bis: number[] | null, ab = { block: 0, seite: 0, besetzt: false }) => {
-	const { folge, herkunft } = p;
+	const { folge } = p;
 	const seiten: Element[][] = [];
 	let s = ab.block;
 	for (let j = ab.seite; s < folge.length; j += 1) {
@@ -190,8 +267,7 @@ const fuelle = (p: Probe, neu: HTMLElement[], bis: number[] | null, ab = { block
 		let m = 0;
 		while (s + m < folge.length) {
 			const block = folge[s + m] as Element;
-			const zugabe = (herkunft.get(block) ?? 0) <= j ? TOLERANZ : 0;
-			if (unterkante(block) > grenze + zugabe) {
+			if (unterkante(block) > grenze + TOLERANZ) {
 				break;
 			}
 			m += 1;
@@ -240,8 +316,6 @@ const probeFuer = (doc: Document, z: Zerlegung, blatt: Blatt, seiten: HTMLElemen
 	};
 };
 
-type Fenster = Window & { zeichneAbbildungen?: () => void };
-
 interface Optionen {
 	/** Diese Blätter (Nummer der ersten Seite), z. B. aus `geaenderteBlaetter` oder „Auf nächste Seite umbrechen“. */
 	blaetter: readonly number[];
@@ -278,16 +352,10 @@ export const probelauf = async (doc: Document, z: Zerlegung, o: Optionen): Promi
 	doc.head.append(stil);
 	const vorher = new Map(proben.flatMap((p) => p.seiten.map((s) => [s, [...s.childNodes]] as const)));
 	const neu = new Map(proben.map((p) => [p, [] as HTMLElement[]]));
-	const fenster = doc.defaultView as Fenster | null;
 	try {
 		// Zuerst das Arbeitsblatt, dann die Lösung, die nur weiterschieben darf; am Ende die Ansicht wie vorher.
 		const zeigtLoesung = doc.body.classList.contains('loesung');
-		const ansicht = (loesung: boolean) => {
-			if (doc.body.classList.contains('loesung') !== loesung) {
-				doc.body.classList.toggle('loesung', loesung);
-				fenster?.zeichneAbbildungen?.();
-			}
-		};
+		const ansicht = (loesung: boolean) => zeigeAnsicht(doc, loesung);
 		let ergebnis: Element[][][];
 		try {
 			ansicht(false);
@@ -546,14 +614,50 @@ interface FlussOptionen {
 	auswahl: RefObject<number | null>;
 }
 
-/** Regel 3: die geänderten Blätter; ohne Fassung davor alle fließenden (höchstens `MAX_BLAETTER`). */
-const welcheBlaetter = (z: Zerlegung, vorher: string | null) =>
+/** So viele Fassungen merkt sich der Editor die Passung ihrer Blätter. */
+const GEMERKT = 400;
+/** Zwei gleiche Blätter, die verschieden passen: Davon weiß der Editor nichts. */
+const UNKLAR = '?';
+
+/**
+ * Regel 3 und Nachbesserung 2: die Blätter, die der Schritt geändert hat und deren Passung (`passungVon`) er dabei
+ * geändert hat. Ohne Fassung davor alle fließenden (höchstens `MAX_BLAETTER`); ist die Passung davor unbekannt,
+ * zählt das Blatt wie geändert.
+ */
+const welcheBlaetter = (z: Zerlegung, vorher: string | null, jetzt: Map<number, string>, gemerkt: Map<string, string>) =>
 	vorher === null
 		? blaetterVon(z)
 				.filter((b) => b.fliesst)
 				.slice(0, MAX_BLAETTER)
 				.map((b) => b.seiten[0]?.nr ?? -1)
-		: geaenderteBlaetter(vorher, z);
+		: geaenderteBlattPaare(vorher, z)
+				.filter((p) => {
+					const davor = p.vorher === null ? undefined : gemerkt.get(p.vorher);
+					return davor === undefined || davor === UNKLAR || davor !== jetzt.get(p.nr);
+				})
+				.map((p) => p.nr);
+
+/** Merkt sich die Passung der Blätter dieser Fassung, unter dem Schlüssel des Blatts (`blattSchluessel`). */
+const merkePassung = (gemerkt: Map<string, string>, z: Zerlegung, jetzt: Map<number, string>) => {
+	const hier = new Map<string, string>();
+	for (const [nr, schluessel] of blattSchluessel(z)) {
+		const passung = jetzt.get(nr);
+		if (passung !== undefined) {
+			const schon = hier.get(schluessel);
+			hier.set(schluessel, schon === undefined || schon === passung ? passung : UNKLAR);
+		}
+	}
+	for (const [schluessel, passung] of hier) {
+		gemerkt.delete(schluessel);
+		gemerkt.set(schluessel, passung);
+	}
+	for (const alt of gemerkt.keys()) {
+		if (gemerkt.size <= GEMERKT) {
+			break;
+		}
+		gemerkt.delete(alt);
+	}
+};
 
 /**
  * Für `Leinwand.vorDemZeigen`: Nach einem Schritt misst der Editor die neue Fassung im unsichtbaren Rahmen. Muss etwas
@@ -564,23 +668,30 @@ export const useFluss = (o: FlussOptionen) => {
 	useEffect(() => {
 		aktuell.current = o;
 	});
+	const gemerkt = useRef(new Map<string, string>());
 	return useCallback(async (doc: Document, html: string) => {
 		const { flussFaellig, zerlegungZu } = aktuell.current;
 		const z = zerlegungZu(html);
-		const faellig = z && flussFaellig(z.quelle);
-		if (!z || !faellig) {
+		if (!z) {
 			return false;
 		}
-		const plan = await probelauf(doc, z, {
-			blaetter: welcheBlaetter(z, faellig.vorher),
-			mitLoesung: hatLoesung(z.quelle),
-		});
+		// Jede Fassung, die der Editor zeigt, misst er einmal, auch beim Öffnen: Daran sieht der nächste Schritt, was
+		// er an der Passung geändert hat. Was dabei kurz wandert, steht danach wieder, wo es stand.
+		const mitLoesung = hatLoesung(z.quelle);
+		const jetzt = passungen(doc, z, mitLoesung);
+		const faellig = flussFaellig(z.quelle);
+		const blaetter = faellig ? welcheBlaetter(z, faellig.vorher, jetzt, gemerkt.current) : [];
+		merkePassung(gemerkt.current, z, jetzt);
+		if (!faellig) {
+			return false;
+		}
+		const plan = blaetter.length === 0 ? null : await probelauf(doc, z, { blaetter, mitLoesung });
 		const { auswahl, fliesse, flussErledigt, nachFluss } = aktuell.current;
 		// Inzwischen kam ein neuer Schritt: Dessen Bild entscheidet, dieses ist nur noch Zwischenstand.
 		if (!aktuell.current.flussFaellig(z.quelle)) {
 			return false;
 		}
-		const u = plan ? legeUm(z.quelle, plan, { jeSeite: false }) : null;
+		const u = plan ? legeUm(z.quelle, plan) : null;
 		if (!u || u.quelle === z.quelle) {
 			flussErledigt();
 			return false;

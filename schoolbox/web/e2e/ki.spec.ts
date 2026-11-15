@@ -182,7 +182,7 @@ test.describe('Neues Blatt im Editor (133)', () => {
 		await expect(leiste(page).locator('[data-entwurf-annahmen]')).toContainText('Klasse 2');
 
 		await leiste(page).getByRole('button', { name: 'Nachbessern …' }).click();
-		await leiste(page).getByRole('textbox', { name: 'Was soll Claude am Entwurf ändern?' }).fill('Größer');
+		await leiste(page).getByRole('textbox', { name: 'Was soll Claude am Vorschlag ändern?' }).fill('Größer');
 		await page.keyboard.press('Enter');
 		await expect.poll(() => auftraege.length).toBe(2);
 		expect(auftraege[0]?.gespraechId).toBeTruthy();

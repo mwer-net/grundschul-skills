@@ -2,7 +2,17 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { FlussPlan } from './fluss';
-import { automatischeSeite, blaetterVon, blattZu, FOLGESEITE_STIL, geaenderteBlaetter, istAutomatisch, legeUm } from './fluss';
+import {
+	automatischeSeite,
+	blaetterVon,
+	blattSchluessel,
+	blattZu,
+	FOLGESEITE_STIL,
+	geaenderteBlaetter,
+	geaenderteBlattPaare,
+	istAutomatisch,
+	legeUm,
+} from './fluss';
 import { klassenVon, zerlege } from './quelltext';
 import { nummeriere } from './struktur';
 
@@ -59,7 +69,7 @@ const klassenDerSeite = (quelle: string, i: number) => {
 
 describe('Blätter erkennen (206-01)', () => {
 	it('fasst eine feste Seite und die automatischen dahinter zusammen, der Fuß zuletzt', () => {
-		const geteilt = legeUm(QUELLE, plan(QUELLE, [3, 3]), BLATT).quelle;
+		const geteilt = legeUm(QUELLE, plan(QUELLE, [3, 3])).quelle;
 		const blaetter = blaetterVon(zerlege(geteilt));
 		assert.equal(blaetter.length, 2);
 		assert.deepEqual(
@@ -86,7 +96,7 @@ describe('Blätter erkennen (206-01)', () => {
 	});
 
 	it('blattZu findet das Blatt auch von einem Element darin', () => {
-		const geteilt = legeUm(QUELLE, plan(QUELLE, [3, 3]), BLATT).quelle;
+		const geteilt = legeUm(QUELLE, plan(QUELLE, [3, 3])).quelle;
 		const z = zerlege(geteilt);
 		const [blatt] = blaetterVon(z);
 		const letzter = blatt?.folge.at(-1) ?? -1;
@@ -96,7 +106,7 @@ describe('Blätter erkennen (206-01)', () => {
 
 describe('Umlegen (206-01)', () => {
 	it('legt eine automatische Seite nach Regel 12 an: Marke, Blöcke, Fuß, Fußzeile, Fläche und Rahmen', () => {
-		const { quelle } = legeUm(QUELLE, plan(QUELLE, [3, 3]), BLATT);
+		const { quelle } = legeUm(QUELLE, plan(QUELLE, [3, 3]));
 		const z = zerlege(quelle);
 		const seiten = blaetterVon(z)[0]?.seiten ?? [];
 		assert.equal(seiten.length, 2);
@@ -121,35 +131,35 @@ describe('Umlegen (206-01)', () => {
 		const schlicht = dokument([
 			`<section class="seite">\n  ${[1, 2, 3].map(aufgabe).join('\n  ')}\n</section>`,
 		]);
-		const { quelle } = legeUm(schlicht, plan(schlicht, [2, 1]), BLATT);
+		const { quelle } = legeUm(schlicht, plan(schlicht, [2, 1]));
 		assert.deepEqual(klassenDerSeite(quelle, 1), ['style', 'aufgabe']);
 	});
 
 	it('ändert außerhalb des Blatts kein Zeichen', () => {
-		const { quelle } = legeUm(QUELLE, plan(QUELLE, [3, 3]), BLATT);
+		const { quelle } = legeUm(QUELLE, plan(QUELLE, [3, 3]));
 		assert.ok(quelle.endsWith(`${ZWEITE}\n</body>\n</html>\n`));
 		assert.ok(quelle.startsWith(QUELLE.slice(0, QUELLE.indexOf('<section'))));
 	});
 
 	it('hin und zurück ergibt zeichengleich die Ausgangsquelle', () => {
-		const hin = legeUm(QUELLE, plan(QUELLE, [3, 3]), BLATT).quelle;
-		const zurueck = legeUm(hin, plan(hin, [6]), BLATT).quelle;
+		const hin = legeUm(QUELLE, plan(QUELLE, [3, 3])).quelle;
+		const zurueck = legeUm(hin, plan(hin, [6])).quelle;
 		assert.equal(zurueck, QUELLE);
-		const drei = legeUm(QUELLE, plan(QUELLE, [2, 2, 2]), BLATT).quelle;
-		assert.equal(legeUm(drei, plan(drei, [3, 3]), BLATT).quelle, hin);
-		const mitte = legeUm(hin, plan(hin, [4, 2]), BLATT).quelle;
-		assert.equal(legeUm(mitte, plan(mitte, [6]), BLATT).quelle, QUELLE);
+		const drei = legeUm(QUELLE, plan(QUELLE, [2, 2, 2])).quelle;
+		assert.equal(legeUm(drei, plan(drei, [3, 3])).quelle, hin);
+		const mitte = legeUm(hin, plan(hin, [4, 2])).quelle;
+		assert.equal(legeUm(mitte, plan(mitte, [6])).quelle, QUELLE);
 	});
 
 	it('entfernt eine leere automatische Seite, behält eine mit freier Gestaltung', () => {
-		const hin = legeUm(QUELLE, plan(QUELLE, [3, 3]), BLATT).quelle;
-		assert.doesNotMatch(legeUm(hin, plan(hin, [6, 0]), BLATT).quelle, /data-weiter/);
+		const hin = legeUm(QUELLE, plan(QUELLE, [3, 3])).quelle;
+		assert.doesNotMatch(legeUm(hin, plan(hin, [6, 0])).quelle, /data-weiter/);
 		const frei = hin.replace(
 			'<div class="seitenflaeche" data-flaeche="farbe"></div>\n    <div class="seitenrahmen" data-rahmen="linie"></div>\n  </div>\n</section>',
 			'<div class="seitenflaeche" data-flaeche="farbe"></div>\n    <div class="seitenrahmen" data-rahmen="linie"></div>\n    <img class="bild" src="a.png" style="left:1mm;top:1mm">\n  </div>\n</section>',
 		);
 		assert.notEqual(frei, hin);
-		assert.match(legeUm(frei, plan(frei, [6, 0]), BLATT).quelle, /data-weiter="auto"/);
+		assert.match(legeUm(frei, plan(frei, [6, 0])).quelle, /data-weiter="auto"/);
 	});
 
 	it('feste Seiten bleiben, und ein Plan, der Blöcke vertauscht, ändert nichts', () => {
@@ -157,12 +167,13 @@ describe('Umlegen (206-01)', () => {
 		const [blatt] = blaetterVon(z);
 		const folge = [...(blatt?.folge ?? [])].reverse();
 		const falsch: FlussPlan = [{ blatt: blatt?.seiten[0]?.nr ?? -1, seiten: [folge] }];
-		assert.equal(legeUm(QUELLE, falsch, BLATT).quelle, QUELLE);
+		assert.equal(legeUm(QUELLE, falsch).quelle, QUELLE);
 	});
 
-	it('nummeriert wie immer durchs Dokument und bildet die alten Nummern ab', () => {
-		const u = legeUm(QUELLE, plan(QUELLE, [3, 3]), BLATT);
-		assert.equal(u.quelle, nummeriere(u.quelle, BLATT));
+	it('lässt die Nummern, wie sie stehen, und bildet die alten Knoten ab', () => {
+		const u = legeUm(QUELLE, plan(QUELLE, [3, 3]));
+		const nummern = (q: string) => [...q.matchAll(/class="nr">([^<]*)</g)].map((m) => m[1]);
+		assert.deepEqual(nummern(u.quelle), nummern(QUELLE));
 		const alt = zerlege(QUELLE);
 		const neu = zerlege(u.quelle);
 		for (const nr of blaetterVon(alt)[0]?.folge ?? []) {
@@ -214,8 +225,84 @@ describe('Welche Blätter ein Schritt ändert (N01, N02)', () => {
 
 describe('Folgeseite ohne Überstand nach oben (N09)', () => {
 	it('bringt die Regel für die erste Nummer mit, die kein Flussblock ist', () => {
-		const { quelle } = legeUm(QUELLE, plan(QUELLE, [3, 3]), BLATT);
+		const { quelle } = legeUm(QUELLE, plan(QUELLE, [3, 3]));
 		assert.ok(quelle.includes(`<style>${FOLGESEITE_STIL}</style>`));
 		assert.equal(blaetterVon(zerlege(quelle))[0]?.folge.length, 6);
+	});
+});
+
+describe('Eine neutrale Änderung ändert nichts sonst (Nachbesserung 2)', () => {
+	/** Wie im großen Übungsheft: jede Seite ein Blatt, gezählt je Seite und über zwei Seiten hinweg. */
+	const seite = (titel: string, nummern: number[]) =>
+		`<section class="seite">\n  <h1>${titel}</h1>\n  ${nummern.map(aufgabe).join('\n  ')}\n</section>`;
+	const HEFT = dokument([seite('Eins', [1, 2, 3]), seite('Zwei', [1, 2]), seite('Drei', [1]), seite('Vier', [4, 5])]);
+	const nummern = (q: string) => [...q.matchAll(/class="nr">([^<]*)</g)].map((m) => m[1]);
+
+	it('der Fluss zählt nicht neu: eigene Zählung je Seite und Blatt bleibt', () => {
+		const z = zerlege(HEFT);
+		const [, zwei] = blaetterVon(z);
+		assert.ok(zwei);
+		const geteilt: FlussPlan = [{ blatt: zwei.seiten[0]?.nr ?? -1, seiten: [zwei.folge.slice(0, 2), zwei.folge.slice(2)] }];
+		const u = legeUm(HEFT, geteilt);
+		assert.notEqual(u.quelle, HEFT);
+		assert.deepEqual(nummern(u.quelle), nummern(HEFT));
+	});
+
+	it('Titel auf Seite 1: nur Blatt 1 geändert, sein Blatt davor bekannt, alle anderen Schlüssel gleich', () => {
+		const neu = HEFT.replace('<h1>Eins</h1>', '<h1>Eins X</h1>');
+		const z = zerlege(neu);
+		const paare = geaenderteBlattPaare(HEFT, z);
+		const ersteSeiten = blaetterVon(z).map((b) => b.seiten[0]?.nr ?? -1);
+		assert.deepEqual(
+			paare.map((p) => p.nr),
+			ersteSeiten.slice(0, 1),
+		);
+		const davor = [...blattSchluessel(zerlege(HEFT)).values()];
+		const jetzt = [...blattSchluessel(z).values()];
+		assert.equal(paare[0]?.vorher, davor[0]);
+		assert.notEqual(jetzt[0], davor[0]);
+		assert.deepEqual(jetzt.slice(1), davor.slice(1));
+	});
+
+	it('ein Blatt mehr: zum neuen Blatt gibt es kein Blatt davor', () => {
+		const neu = HEFT.replace(seite('Zwei', [1, 2]), `${seite('Zwei', [1, 2])}\n${seite('Neu', [1])}`);
+		const paare = geaenderteBlattPaare(HEFT, zerlege(neu));
+		assert.ok(paare.length > 0);
+		assert.ok(paare.every((p) => p.vorher === null));
+	});
+
+	it('Abstand am body: jedes Blatt hat sein Blatt davor', () => {
+		const breit = dokument([seite('Eins', [1]), seite('Zwei', [1])], { koerper: 'kl2" style="--abstand:28px' });
+		const neu = breit.replace('--abstand:28px', '--abstand:120px');
+		const paare = geaenderteBlattPaare(breit, zerlege(neu));
+		assert.equal(paare.length, 2);
+		assert.deepEqual(
+			paare.map((p) => p.vorher),
+			[...blattSchluessel(zerlege(breit)).values()],
+		);
+	});
+});
+
+describe('Hin und zurück ergibt dieselbe Quelle, auch mit Leerzeilen (Nachbesserung 3)', () => {
+	const MIT_LEERZEILEN = dokument([
+		`<section class="seite">\n  <header class="kopf">K</header>\n\n  ${[1, 2, 3, 4].map(aufgabe).join('\n\n  ')}\n\n  <!-- Ende -->\n</section>`,
+	]);
+
+	it('eine Aufgabe weiter und zurück', () => {
+		const hin = legeUm(MIT_LEERZEILEN, plan(MIT_LEERZEILEN, [3, 1])).quelle;
+		assert.match(hin, /data-weiter="auto"/);
+		assert.equal(legeUm(hin, plan(hin, [4, 0])).quelle, MIT_LEERZEILEN);
+	});
+
+	it('zwei Aufgaben weiter und zurück', () => {
+		const hin = legeUm(MIT_LEERZEILEN, plan(MIT_LEERZEILEN, [2, 2])).quelle;
+		assert.equal(legeUm(hin, plan(hin, [4, 0])).quelle, MIT_LEERZEILEN);
+	});
+
+	it('ein Kommentar über der Aufgabe wandert mit und kommt mit zurück', () => {
+		const mitKommentar = MIT_LEERZEILEN.replace(`\n\n  ${aufgabe(4)}`, `\n\n  <!-- Stern -->\n  ${aufgabe(4)}`);
+		const hin = legeUm(mitKommentar, plan(mitKommentar, [3, 1])).quelle;
+		assert.match(hin, /data-weiter="auto">[\s\S]*<!-- Stern -->/);
+		assert.equal(legeUm(hin, plan(hin, [4, 0])).quelle, mitKommentar);
 	});
 });

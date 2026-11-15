@@ -79,22 +79,23 @@ import { folgeZeiger, rolleAmRand, schluckeKlick } from '../bausteine/zeigerzug'
 import { Zeile } from '../bausteine/Zeile';
 import type { AbbildungSteuerung } from './abbildung';
 import { leistenFelder } from './abbildung-felder';
+import { aufgabenZeilen } from './Aufgabenzeilen';
 import { bereiteVor } from './bild';
 import { SammlungDialog } from './Bildpanel';
 import { elementZu } from './darstellung';
 
-const EINGABE =
+export const EINGABE =
 	'h-feld rounded-md border border-rand-feld bg-flaeche px-1.5 text-sm focus:border-brand-500 focus:outline-none disabled:opacity-50 aria-invalid:border-fehler';
 
-interface FeldEigenschaften<F extends Feld> {
+export interface FeldEigenschaften<F extends Feld> {
 	feld: F;
 	abb: AbbildungSteuerung;
 }
 
-const wertVon = (feld: Feld, abb: AbbildungSteuerung) => (abb.werte ? feldWert(feld, abb.werte) : null);
+export const wertVon = (feld: Feld, abb: AbbildungSteuerung) => (abb.werte ? feldWert(feld, abb.werte) : null);
 
 /** 196-09: Enter übernimmt (wie Verlassen) und lässt den Fokus im Feld. */
-const fertigMitEnter = (e: KeyboardEvent<HTMLInputElement>) => {
+export const fertigMitEnter = (e: KeyboardEvent<HTMLInputElement>) => {
 	if (e.key === 'Enter') {
 		const feld = e.currentTarget;
 		feld.blur();
@@ -160,7 +161,7 @@ const LoesungSchalter = ({ abb, feld }: FeldEigenschaften<Feld>) => {
 	);
 };
 
-const Rahmen = ({
+export const Rahmen = ({
 	abb,
 	children,
 	daneben = false,
@@ -784,7 +785,7 @@ const Ziffern = ({ abb, feld }: FeldEigenschaften<ZiffernFeld>) => {
 	);
 };
 
-const Text = ({ abb, feld }: FeldEigenschaften<TextFeld>) => {
+export const Text = ({ abb, feld }: FeldEigenschaften<TextFeld>) => {
 	const id = useId();
 	const roh = wertVon(feld, abb)?.wert ?? null;
 	// 197-17: Listen mit `;` stehen im Panel zeilenweise.
@@ -864,6 +865,13 @@ const Text = ({ abb, feld }: FeldEigenschaften<TextFeld>) => {
 				>
 					{feld.einfuegen.name}
 				</Knopf>
+			)}
+			{/* S-06: Die Schreibweise der Lücken steht am Feld, nicht nur im ⓘ. */}
+			{feld.einfuegen?.zeichen === '[' && (
+				<p className="mt-1 text-xs text-leise" data-luecken-hinweis>
+					Wort markieren und „{feld.einfuegen.name}“ drücken, oder [Wort] tippen. [[Wort]] steht schon
+					eingetragen da.
+				</p>
 			)}
 		</Rahmen>
 	);
@@ -1294,7 +1302,7 @@ const spaltenKlasse = (u: UnterFeld) => {
 };
 
 /** Griff zum Umsortieren: Der Zug sagt nur, wohin; geschrieben wird erst beim Loslassen, ein Schritt im Verlauf. */
-const useZeilenZug = (verschiebe: (von: number, nach: number) => void) => {
+export const useZeilenZug = (verschiebe: (von: number, nach: number) => void) => {
 	const behaelter = useRef<HTMLDivElement>(null);
 	const [zug, setZug] = useState<{ von: number; nach: number } | null>(null);
 	const zielBei = (y: number) => {
@@ -1361,7 +1369,7 @@ const useZeilenZug = (verschiebe: (von: number, nach: number) => void) => {
 };
 
 /** Was nicht in die Zeile passt: Art, Schalter, Entfernen. ↑ ↓ nur am Finger, die Maus nimmt den Griff. */
-const ZeilenMenue = ({
+export const ZeilenMenue = ({
 	abb,
 	aendere,
 	entfernen,
@@ -2306,7 +2314,7 @@ const Eingabe = ({ abb, feld }: FeldEigenschaften<Feld>) => {
 		case 'ziffern':
 			return <Ziffern feld={feld} abb={abb} />;
 		case 'text':
-			return <Text feld={feld} abb={abb} />;
+			return aufgabenZeilen(abb, feld) ?? <Text feld={feld} abb={abb} />;
 		case 'liste':
 			return <Liste feld={feld} abb={abb} />;
 		case 'mehrfach':

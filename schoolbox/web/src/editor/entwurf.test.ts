@@ -50,7 +50,7 @@ describe('Was der Editor zum neuen Blatt zeigt (133)', () => {
 		assert.equal(nachbessern?.art, 'laeuft');
 		// Beim Nachbessern bleibt der Entwurf auf dem Blatt (190-10).
 		assert.equal(quelleDes(nachbessern), '<p>Entwurf</p>');
-		assert.match(sperrGrund(nachbessern) ?? '', /bessert den Entwurf nach/);
+		assert.match(sperrGrund(nachbessern) ?? '', /bessert den Vorschlag nach/);
 		assert.equal(sperrtBlatt(entwurfPhase({ ...ruhe, auftrag: a, laeuft: true })), true);
 		// Bis zur Freigabe plant Claude, danach baut es (190-N03).
 		const plant = entwurfPhase({ ...ruhe, auftrag: { ...a, phase: 'plan' }, laeuft: true });

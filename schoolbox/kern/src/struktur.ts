@@ -69,11 +69,85 @@ export const seitenVon = (z: Zerlegung) => z.knoten.filter((k) => hat(k, 'seite'
 
 const istStern = (aufgabe: Knoten) => aufgabe.kinder.some((k) => hat(k, 'nr') && hat(k, 'stern'));
 
+/** Die äußerste Seite um `k` (eine Seite in einer Seite zählt nicht für sich). */
+const aeussereSeiteVon = (k: Knoten) => {
+	let aussen: Knoten | null = null;
+	for (let e = k.eltern; e; e = e.eltern) {
+		if (hat(e, 'seite')) {
+			aussen = e;
+		}
+	}
+	return aussen;
+};
+
+/** Eine Aufgabennummer, die `nummeriere` zählt: eine Zahl, kein Stern. */
+const zaehltMit = (z: Zerlegung, k: Knoten) =>
+	hat(k, 'nr') && !hat(k, 'stern') && k.kinder.length === 0 && hat(k.eltern, 'aufgabe') && /^\d+$/.test(innenVon(z, k).trim());
+
+/**
+ * Wo im Bestand eine eigene Zählung beginnt (206, Nachbesserung 3): Die erste Aufgabe einer Seite setzt die Zählung
+ * davor nicht fort (z. B. beginnt sie wieder bei 1, obwohl davor Aufgaben stehen). Ergebnis: Anfang der Seite in der
+ * Quelle und der Wert, mit dem sie beginnt. Die erste Zählung im Dokument beginnt immer, und zwar bei 1.
+ */
+const zaehlAnfaenge = (z: Zerlegung) => {
+	const anfaenge = new Map<number, number>();
+	let letzte: number | null = null;
+	let seite: Knoten | null | undefined;
+	for (const k of z.knoten) {
+		if (!zaehltMit(z, k)) {
+			continue;
+		}
+		const wert = Number(innenVon(z, k).trim());
+		const hier = aeussereSeiteVon(k);
+		if (hier !== seite && hier && (letzte === null || wert !== letzte + 1)) {
+			// Die erste Zählung beginnt bei 1, wie ohne Bereiche.
+			anfaenge.set(hier.start, letzte === null ? 1 : wert);
+		}
+		seite = hier;
+		letzte = wert;
+	}
+	return anfaenge;
+};
+
+/** Wie lang Anfang und Ende von `a` und `b` gleich sind (das Ende höchstens bis zum gleichen Anfang). */
+const gleicherRand = (a: string, b: string) => {
+	let vorn = 0;
+	while (vorn < a.length && vorn < b.length && a[vorn] === b[vorn]) {
+		vorn += 1;
+	}
+	let hinten = 0;
+	while (hinten < a.length - vorn && hinten < b.length - vorn && a[a.length - 1 - hinten] === b[b.length - 1 - hinten]) {
+		hinten += 1;
+	}
+	return { vorn, hinten };
+};
+
+/**
+ * Die Zählbereiche von `quelle`, wie sie in `vorher` gezählt waren: Jeder beginnt an einer Seite aus `zaehlAnfaenge`,
+ * die der Schritt nicht ersetzt hat; Seiten, die der Schritt neu brachte, setzen die Zählung davor fort.
+ */
+const bereicheWie = (vorher: string, z: Zerlegung) => {
+	const rand = gleicherRand(vorher, z.quelle);
+	const versatz = z.quelle.length - vorher.length;
+	const anfaenge = new Map<number, number>();
+	for (const [start, wert] of zaehlAnfaenge(zerlege(vorher))) {
+		if (start < rand.vorn) {
+			anfaenge.set(start, wert);
+		} else if (start >= vorher.length - rand.hinten) {
+			anfaenge.set(start + versatz, wert);
+		}
+	}
+	return { anfaenge, geaendert: { von: rand.vorn, bis: z.quelle.length - rand.hinten } };
+};
+
 /**
  * Zählt die Nummern neu: Aufgaben 1, 2, 3 … (die Sternchenaufgabe bleibt ★), Vermutungen A, B, C … je Gruppe. Nummern,
  * die keine Zahl bzw. kein einzelner Buchstabe sind, bleiben, wie sie sind.
+ *
+ * Mit `vorher` (die Fassung vor dem Schritt) zählt nur der Zählbereich neu, in dem die Änderung liegt, und so, wie er
+ * vorher zählte: je Seite, je Blatt oder durch (`zaehlAnfaenge`). Alle anderen Nummern bleiben, wie sie stehen.
  */
-export const nummeriere = (quelle: string, { jeSeite }: Nummerierung) => {
+export const nummeriere = (quelle: string, { jeSeite }: Nummerierung, vorher?: string) => {
 	const z = zerlege(quelle);
 	const aenderungen: Aenderung[] = [];
 	const aufgaben = new Map<Knoten | null, number>();
@@ -88,13 +162,38 @@ export const nummeriere = (quelle: string, { jeSeite }: Nummerierung) => {
 			aenderungen.push(...ersetzeInnen(z, k, text));
 		}
 	};
+	const bereiche = vorher === undefined || jeSeite ? null : bereicheWie(vorher, z);
+	/** Der Zählbereich, in dem die Aufgabe gerade steht: wo er beginnt, mit welchem Wert, ob der Schritt ihn berührt. */
+	let bereich = { von: 0, wert: 1, zaehler: 0 };
+	const bereichsGrenzen = bereiche ? [...bereiche.anfaenge.keys()].sort((a, b) => a - b) : [];
+	const beruehrt = (von: number) => {
+		if (!bereiche) {
+			return true;
+		}
+		const bis = bereichsGrenzen.find((g) => g > von) ?? Infinity;
+		const { von: aenderungVon, bis: aenderungBis } = bereiche.geaendert;
+		return aenderungVon < bis && aenderungBis >= von;
+	};
 	for (const k of z.knoten) {
 		const text = innenVon(z, k).trim();
 		if (!hat(k, 'nr') || hat(k, 'stern') || k.kinder.length > 0) {
 			continue;
 		}
 		if (hat(k.eltern, 'aufgabe') && /^\d+$/.test(text)) {
-			setze(k, String(zaehle(aufgaben, jeSeite ? seiteVon(k) : null)));
+			if (bereiche) {
+				const seite = aeussereSeiteVon(k);
+				const anfang = seite ? bereiche.anfaenge.get(seite.start) : undefined;
+				if (seite && anfang !== undefined && seite.start !== bereich.von) {
+					bereich = { von: seite.start, wert: anfang, zaehler: 0 };
+				}
+				const wert = bereich.wert + bereich.zaehler;
+				bereich.zaehler += 1;
+				if (beruehrt(bereich.von)) {
+					setze(k, String(wert));
+				}
+			} else {
+				setze(k, String(zaehle(aufgaben, jeSeite ? seiteVon(k) : null)));
+			}
 		} else if (hat(k.eltern, 'vermutung') && /^[A-Z]$/.test(text)) {
 			setze(k, BUCHSTABEN[(zaehle(vermutungen, k.eltern?.eltern ?? null) - 1) % BUCHSTABEN.length] ?? text);
 		}
@@ -174,7 +273,7 @@ const ergebnis = (
 		}
 	}
 	// Neu zählen ändert nur Text in den Nummern, die Elemente und ihre Nummern im Editor bleiben dieselben.
-	return { quelle: nummeriere(neu, n), nr };
+	return { quelle: nummeriere(neu, n, quelle), nr };
 };
 
 /**

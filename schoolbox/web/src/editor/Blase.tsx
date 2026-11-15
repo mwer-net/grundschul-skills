@@ -460,12 +460,15 @@ const Inhalt = ({
 	claude,
 	darstellung,
 	jetzt,
+	verworfen,
 	vergleichen,
 }: {
 	bild: Lagebild;
 	claude: Claude;
 	darstellung: Darstellung;
 	jetzt: string | null;
+	/** Nach „Verwerfen“ geht es im Auftragsfeld weiter (S-09). */
+	verworfen: () => void;
 	vergleichen: () => void;
 }) => {
 	const { auftrag, f, laeuft, vorschlag } = bild;
@@ -485,7 +488,10 @@ const Inhalt = ({
 					darstellung={darstellung}
 					zeigeText={!schonGesagt}
 					annehmen={() => void claude.annehmen(f.key)}
-					verwerfen={() => void claude.verwerfen(f.key)}
+					verwerfen={() => {
+						verworfen();
+						void claude.verwerfen(f.key);
+					}}
 					vergleichen={vergleichen}
 					neuStarten={() => claude.neuStarten(f.key)}
 				/>
@@ -642,6 +648,7 @@ const Blase = ({ adresse, claude, darstellung, e, f, jetzt, nr, seiten }: Blasen
 					}}
 					verwerfen={() => {
 						setVergleich(false);
+						setInsFeld(true);
 						void claude.verwerfen(f.key);
 					}}
 					nachbessern={() => {
@@ -686,6 +693,7 @@ const Blase = ({ adresse, claude, darstellung, e, f, jetzt, nr, seiten }: Blasen
 						claude={claude}
 						darstellung={darstellung}
 						jetzt={jetzt}
+						verworfen={() => feld.current?.focus()}
 						vergleichen={() => setVergleich(true)}
 					/>
 				</div>

@@ -2,6 +2,7 @@ import type { MenueEintrag } from '../bausteine/Menue';
 import type { SymbolName } from '../bausteine/Symbol';
 import type { TastenAbschnitt } from '../bausteine/Tastenliste';
 import type { Kuerzel } from '../editor/befehle';
+import type { PalettenEintrag } from '../editor/palette-suche';
 import { kuerzelText, passtTaste } from '../editor/befehle';
 import { hatOffeneEntwuerfe } from '../entwuerfe/offen';
 import type { Merkzettel } from './kontext';
@@ -57,6 +58,8 @@ export interface Befehl {
 	wenn?: (l: Lage) => boolean;
 	/** Gruppe in der Liste der Tasten. */
 	abschnitt: 'Ablage' | 'Auswahl' | 'Ansicht' | 'Gehe zu';
+	/** Andere Wörter dafür in ⌘K (S-02). */
+	suchwoerter?: string[];
 }
 
 const belegt = (l: Lage) => l.objekte.length > 0;
@@ -133,6 +136,7 @@ export const BEFEHLE: Befehl[] = [
 		titel: 'PDF',
 		symbol: 'herunterladen',
 		wenn: (l) => l.art !== 'material' || Boolean(fertigesDok(l)),
+		suchwoerter: ['drucken', 'herunterladen'],
 		abschnitt: 'Ablage',
 	},
 	{
@@ -140,6 +144,7 @@ export const BEFEHLE: Befehl[] = [
 		titel: 'Teilen',
 		symbol: 'teilen',
 		wenn: (l) => l.objekte.length === 1 || (l.art === 'leer' && l.ort !== null && !l.fremd),
+		suchwoerter: ['link', 'kollegin'],
 		abschnitt: 'Ablage',
 	},
 	{
@@ -163,6 +168,7 @@ export const BEFEHLE: Befehl[] = [
 		symbol: 'schreiben',
 		kuerzel: [{ key: 'Enter' }],
 		wenn: (l) => l.objekte.length === 1,
+		suchwoerter: ['name', 'titel'],
 		abschnitt: 'Ablage',
 	},
 	{
@@ -174,6 +180,7 @@ export const BEFEHLE: Befehl[] = [
 			{ code: 'KeyD', befehl: true },
 		],
 		wenn: belegt,
+		suchwoerter: ['kopie', 'verdoppeln'],
 		abschnitt: 'Ablage',
 	},
 	{
@@ -192,7 +199,14 @@ export const BEFEHLE: Befehl[] = [
 		wenn: belegt,
 		abschnitt: 'Ablage',
 	},
-	{ id: 'bewegenNach', titel: 'Bewegen nach …', symbol: 'bewegenNach', wenn: belegt, abschnitt: 'Ablage' },
+	{
+		id: 'bewegenNach',
+		titel: 'Bewegen nach …',
+		symbol: 'bewegenNach',
+		wenn: belegt,
+		abschnitt: 'Ablage',
+		suchwoerter: ['verschieben', 'ordner'],
+	},
 	{
 		id: 'einfuegen',
 		titel: 'Einfügen',
@@ -235,6 +249,7 @@ export const BEFEHLE: Befehl[] = [
 		gefahr: true,
 		kuerzel: [{ key: 'Backspace', befehl: true }, { key: 'Backspace' }, { key: 'Delete' }],
 		wenn: belegt,
+		suchwoerter: ['löschen', 'entfernen', 'wegwerfen'],
 		abschnitt: 'Ablage',
 	},
 	{ id: 'darstellung', titel: 'Darstellung', symbol: 'seiten', wenn: fuerDieFlaeche, abschnitt: 'Ansicht' },
@@ -366,6 +381,26 @@ export interface MenueQuellen {
 	untermenue: (id: string, l: Lage) => MenueEintrag[] | null;
 }
 
+interface Zeile {
+	b: Befehl;
+	id: string;
+	nr: number;
+	unter: MenueEintrag[] | null;
+}
+
+/** Was Menü und ⌘K an dieser Lage zeigen, in der Reihenfolge des Menüs: eine Quelle für beide (S-02). */
+const zeilenVon = (l: Lage, untermenue: MenueQuellen['untermenue'], ohne: readonly string[] = []): Zeile[] =>
+	MENUE[l.art].flatMap((gruppe, nr) =>
+		gruppe.flatMap((id): Zeile[] => {
+			const b = BEFEHLE.find((x) => x.id === id);
+			if (!b || ohne.includes(id) || !verfuegbar(b, l)) {
+				return [];
+			}
+			const unter = untermenue(id, l);
+			return unter?.length === 0 ? [] : [{ b, id, nr, unter }];
+		}),
+	);
+
 /** Baut das Menü: Unverfügbares bleibt weg (070). `ohne`: was die Leiste schon als Knopf zeigt (188-31). */
 export const menueVon = (
 	l: Lage,
@@ -374,38 +409,21 @@ export const menueVon = (
 	ohne: readonly string[] = [],
 ): MenueEintrag[] => {
 	const liste: MenueEintrag[] = kopf ? [{ titel: kopf, aus: true, gruppe: 'kopf' }] : [];
-	MENUE[l.art].forEach((gruppe, nr) => {
-		for (const id of gruppe) {
-			const b = BEFEHLE.find((x) => x.id === id);
-			if (!b || ohne.includes(id) || !verfuegbar(b, l)) {
-				continue;
-			}
-			const unter = untermenue(id, l);
-			if (unter?.length === 0) {
-				continue;
-			}
-			const [erstes] = b.kuerzel ?? [];
-			// Nur eine Datei: Der Eintrag lädt sie selbst, ohne Untermenü mit einem Eintrag (191-41).
-			const einzig = unter?.length === 1 && unter[0]?.waehle ? unter[0].waehle : undefined;
-			liste.push({
-				titel: titelVon(b, l),
-				gruppe: String(nr),
-				...(b.symbol ? { symbol: b.symbol } : {}),
-				...(b.gefahr ? { gefahr: true } : {}),
-				...(erstes ? { kuerzel: kuerzelText(erstes) } : {}),
-				...(einzig
-					? { waehle: einzig }
-					: unter
-						? { untermenue: unter }
-						: { waehle: () => fuehreAus(id, l) }),
-			});
-		}
-	});
+	for (const { b, id, nr, unter } of zeilenVon(l, untermenue, ohne)) {
+		const [erstes] = b.kuerzel ?? [];
+		// Nur eine Datei: Der Eintrag lädt sie selbst, ohne Untermenü mit einem Eintrag (191-41).
+		const einzig = unter?.length === 1 && unter[0]?.waehle ? unter[0].waehle : undefined;
+		liste.push({
+			titel: titelVon(b, l),
+			gruppe: String(nr),
+			...(b.symbol ? { symbol: b.symbol } : {}),
+			...(b.gefahr ? { gefahr: true } : {}),
+			...(erstes ? { kuerzel: kuerzelText(erstes) } : {}),
+			...(einzig ? { waehle: einzig } : unter ? { untermenue: unter } : { waehle: () => fuehreAus(id, l) }),
+		});
+	}
 	return liste;
 };
-
-export const befehlZuTaste = (e: KeyboardEvent, l: Lage) =>
-	BEFEHLE.find((b) => b.kuerzel?.some((k) => passtTaste(k, e)) && verfuegbar(b, l));
 
 /** Für die Tastenliste. Sie liest das Register, damit dort nichts Falsches steht. */
 const tastenTitel = (b: Befehl) => {
@@ -414,6 +432,63 @@ const tastenTitel = (b: Befehl) => {
 	}
 	return b.id === 'oeffnen' ? 'Öffnen' : b.id;
 };
+
+/** Ohne Auswahl stehen die Befehle an einer Auswahl gesperrt mit diesem Grund in ⌘K, statt zu fehlen (S-02). */
+export const ERST_WAEHLEN = 'Erst Material oder Ordner wählen.';
+
+/**
+ * ⌘K in der Ablage: dieselben Befehle wie Rechtsklick und ⋯ an der Auswahl, als Gruppe „Auswahl: …“ (S-02).
+ * Untermenüs werden zu eigenen Zeilen („PDF: Arbeitsblatt“). Ohne Auswahl stehen die Befehle an einer Auswahl
+ * gesperrt da, so landet „löschen“ nie bei „Material anlegen“.
+ */
+export const paletteVon = (l: Lage, { fuehreAus, untermenue }: MenueQuellen, name: string): PalettenEintrag[] => {
+	const gruppe = `Auswahl: ${name}`;
+	if (l.art === 'leer') {
+		const an = new Set([...MENUE.material, ...MENUE.ordner, ...MENUE.mehrere].flat());
+		// Was ohne Auswahl ohnehin gilt oder etwas anlegt, gehört nicht dazu.
+		for (const id of [...MENUE.leer.flat(), 'neuerUnterordner', 'materialHier', 'mitAuswahl', 'imOrdnerZeigen']) {
+			an.delete(id);
+		}
+		return BEFEHLE.filter((b) => an.has(b.id)).map((b) => ({
+			id: `ablage:${b.id}`,
+			titel: tastenTitel(b),
+			gruppe: 'Auswahl',
+			...(b.symbol ? { symbol: b.symbol } : {}),
+			...(b.suchwoerter ? { suchwoerter: b.suchwoerter } : {}),
+			notiz: ERST_WAEHLEN,
+			gesperrt: true,
+			aus: () => undefined,
+		}));
+	}
+	return zeilenVon(l, untermenue).flatMap(({ b, id, unter }): PalettenEintrag[] => {
+		const titel = titelVon(b, l);
+		const [erstes] = b.kuerzel ?? [];
+		const gemeinsam = {
+			gruppe,
+			start: true,
+			...(b.symbol ? { symbol: b.symbol } : {}),
+			suchwoerter: b.suchwoerter ?? [],
+		};
+		if (unter && unter.length > 1) {
+			return unter.flatMap((u, i) =>
+				u.waehle && !u.aus ? [{ ...gemeinsam, id: `ablage:${id}:${i}`, titel: `${titel}: ${u.titel}`, aus: u.waehle }] : [],
+			);
+		}
+		const einzig = unter?.[0]?.waehle;
+		return [
+			{
+				...gemeinsam,
+				id: `ablage:${id}`,
+				titel,
+				...(erstes ? { kuerzel: kuerzelText(erstes) } : {}),
+				aus: einzig ?? (() => fuehreAus(id, l)),
+			},
+		];
+	});
+};
+
+export const befehlZuTaste = (e: KeyboardEvent, l: Lage) =>
+	BEFEHLE.find((b) => b.kuerzel?.some((k) => passtTaste(k, e)) && verfuegbar(b, l));
 
 export const tastenAbschnitte = (mac?: boolean): TastenAbschnitt[] =>
 	(['Ablage', 'Auswahl', 'Ansicht', 'Gehe zu'] as const).map((titel) => ({

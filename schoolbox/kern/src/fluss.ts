@@ -9,8 +9,6 @@ import type { Blatt } from './fluss-blatt';
 import { automatischeSeite, blaetterVon, hatFreieGestaltung, kinderEinzug } from './fluss-blatt';
 import type { Aenderung, Knoten, Zerlegung } from './quelltext';
 import { einrueckung, entferne, fuegeEin, klassenVon, quelleVon, rueckeUm, wendeAn, zerlege } from './quelltext';
-import type { Nummerierung } from './struktur';
-import { nummeriere } from './struktur';
 
 export * from './fluss-blatt';
 
@@ -60,6 +58,45 @@ const planGilt = (blatt: Blatt, seiten: number[][]) => {
 	return gleich(seiten.flat(), blatt.folge) && seiten.slice(0, letzte + 1).every((s, j) => j === 0 || s.length > 0);
 };
 
+/** Eine Zeile, in der nur ein Kommentar steht. */
+const KOMMENTARZEILE = /^[ \t]*<!--(?:(?!-->).)*-->[ \t]*$/;
+
+/**
+ * Was über einem Block auf eigener Zeile zu ihm gehört: Kommentarzeilen direkt darüber und eine Leerzeile, die ihn
+ * (samt Kommentar) vom Block davor trennt. Beides wandert mit, wenn der Block die Seite verlässt, und kommt mit
+ * zurück. So ergibt Hin und Zurück dieselbe Quelle (Regel 14).
+ */
+const vorspannVon = (z: Zerlegung, k: Knoten) => {
+	if (einrueckung(z, k) === null) {
+		return { kommentare: [] as string[], laenge: 0, leer: '' };
+	}
+	const kommentare: string[] = [];
+	let anfang = z.quelle.lastIndexOf('\n', k.start - 1) + 1;
+	let laenge = 0;
+	while (anfang > 0) {
+		const davor = z.quelle.lastIndexOf('\n', anfang - 2) + 1;
+		const zeile = z.quelle.slice(davor, anfang - 1);
+		if (!KOMMENTARZEILE.test(zeile)) {
+			break;
+		}
+		kommentare.unshift(zeile.trim());
+		laenge += anfang - davor;
+		anfang = davor;
+	}
+	const leer = /\n([ \t]*\n)$/.exec(z.quelle.slice(0, anfang))?.[1] ?? '';
+	return { kommentare, laenge, leer };
+};
+
+/** Wie `entferne`, aber mit dem, was über dem Block zu ihm gehört (`vorspannVon`). */
+const entferneBlock = (z: Zerlegung, k: Knoten): Aenderung[] => {
+	const { laenge, leer } = vorspannVon(z, k);
+	return entferne(z, k).map((a) => ({ ...a, von: a.von - laenge - leer.length }));
+};
+
+/** Der Block mit seinen Kommentarzeilen, eingerückt mit `einzug`. */
+const mitKommentaren = (kommentare: string[], text: string, einzug: string) =>
+	[...kommentare, text].join(`\n${einzug}`);
+
 /**
  * Setzt `texte` (Blöcke, schon eingerückt) auf der Seite ein: hinter den Block davor bzw. vor den danach, sonst
  * hinter das letzte bleibende Kind im Stapel (Kopf, Lösung-Marke …), vor das erste, oder ins leere Innere.
@@ -72,13 +109,31 @@ const setzeEin = (
 ): Einsatz => {
 	const innen = kinderEinzug(z, seite);
 	const texte = bloecke.map((k) => ({ nr: k.nr, text: rueckeUm(quelleVon(z, k), einrueckung(z, k), innen) }));
-	const html = (einzug: string | null) => texte.map((t) => t.text).join(einzug === null ? '' : `\n${einzug}`);
+	const vorspann = bloecke.map((k) => vorspannVon(z, k));
+	/** Jeder Block mit seinen Kommentaren und seiner Leerzeile davor, wie er stand, als ganze Zeilen. */
+	const zeilen = (einzug: string) =>
+		texte.map((t, i) => {
+			const v = vorspann[i];
+			return `${v?.leer ?? ''}${einzug}${mitKommentaren(v?.kommentare ?? [], t.text, einzug)}\n`;
+		});
 	const neben = (ziel: Knoten, wo: 'vor' | 'nach'): Einsatz => {
-		const [aenderung] = fuegeEin(z, ziel, wo, html(einrueckung(z, ziel)));
-		if (!aenderung) {
-			throw new Error('Der Block lässt sich hier nicht einsetzen.');
+		const einzug = einrueckung(z, ziel);
+		const rest = /^[ \t]*\n/.exec(z.quelle.slice(ziel.ende))?.[0];
+		if (einzug === null || (wo === 'nach' && rest === undefined)) {
+			const html = texte.map((t) => t.text).join(einzug === null ? '' : `\n${einzug}`);
+			const [aenderung] = fuegeEin(z, ziel, wo, html);
+			if (!aenderung) {
+				throw new Error('Der Block lässt sich hier nicht einsetzen.');
+			}
+			return { aenderung, bloecke: texte };
 		}
-		return { aenderung, bloecke: texte };
+		// Vor `ziel` heißt: vor das, was über ihm zu ihm gehört.
+		const v = vorspannVon(z, ziel);
+		const pos =
+			wo === 'vor'
+				? z.quelle.lastIndexOf('\n', ziel.start - 1) + 1 - v.laenge - v.leer.length
+				: ziel.ende + (rest?.length ?? 0);
+		return { aenderung: { von: pos, bis: pos, text: zeilen(einzug).join('') }, bloecke: texte };
 	};
 	if (ort.nach) {
 		return neben(ort.nach, 'nach');
@@ -98,9 +153,9 @@ const setzeEin = (
 	// Alle Kinder wandern weg: an der Stelle des ersten, sonst ins leere Innere.
 	const weg = seite.kinder[0];
 	if (weg) {
-		const [bereich] = entferne(z, weg);
+		const [bereich] = entferneBlock(z, weg);
 		const eigeneZeile = einrueckung(z, weg) !== null;
-		const text = eigeneZeile ? texte.map((t) => `${innen}${t.text}\n`).join('') : html(null);
+		const text = eigeneZeile ? zeilen(innen).join('') : texte.map((t) => t.text).join('');
 		const pos = bereich?.von ?? weg.start;
 		return { aenderung: { von: pos, bis: pos, text }, bloecke: texte };
 	}
@@ -109,7 +164,7 @@ const setzeEin = (
 		aenderung: {
 			von: seite.oeffnerEnde,
 			bis: seite.schliesserStart,
-			text: `\n${texte.map((t) => `${innen}${t.text}`).join('\n')}\n${aussen}`,
+			text: `\n${zeilen(innen).join('')}${aussen}`,
 		},
 		bloecke: texte,
 	};
@@ -142,7 +197,7 @@ const legeBlattUm = (z: Zerlegung, blatt: Blatt, seiten: number[][], einsaetze: 
 			}
 		}
 		for (const nr of jetzt.filter((n) => !bleibt.has(n))) {
-			weg.push(...entferne(z, knoten(z, nr)));
+			weg.push(...entferneBlock(z, knoten(z, nr)));
 		}
 		const bleibtKind = (k: Knoten) => !jetzt.includes(k.nr) || bleibt.has(k.nr);
 		// Folgen neuer Blöcke zwischen den bleibenden, je an den Block davor gehängt.
@@ -178,8 +233,22 @@ const legeBlattUm = (z: Zerlegung, blatt: Blatt, seiten: number[][], einsaetze: 
 				return { nr, text: rueckeUm(quelleVon(z, k), einrueckung(z, k), innen) };
 			}),
 		);
+		/** Die Folgeseite; jeder Block bringt seine Kommentare und seine Leerzeile davor mit. */
+		const seite = (b: { nr: number; text: string }[]) => {
+			const vor = b.map((t) => vorspannVon(z, knoten(z, t.nr)));
+			const inhalt = b.map((t, i) => mitKommentaren(vor[i]?.kommentare ?? [], t.text, innen));
+			let html = automatischeSeite(z, vorlage, { inhalt });
+			inhalt.forEach((zeile, i) => {
+				const leer = vor[i]?.leer ?? '';
+				const stelle = html.indexOf(`\n${innen}${zeile}`);
+				if (leer !== '' && stelle >= 0) {
+					html = `${html.slice(0, stelle + 1)}${leer}${html.slice(stelle + 1)}`;
+				}
+			});
+			return html;
+		};
 		const html = bloecke
-			.map((b) => automatischeSeite(z, vorlage, { inhalt: b.map((t) => t.text) }))
+			.map(seite)
 			.join(`\n${einrueckung(z, letzte) ?? ''}`);
 		const [aenderung] = fuegeEin(z, letzte, 'nach', html);
 		if (aenderung) {
@@ -194,9 +263,10 @@ const versatz = (a: Aenderung) => a.text.length - (a.bis - a.von);
 /**
  * Legt die Flussblöcke nach `plan` um: verschiebt sie mit Patches, legt automatische Seiten an, entfernt leere
  * (Regel 15) und lässt den Fuß ans Ende (Regel 8; er steht im Plan zuletzt). Blätter, die der Plan nicht nennt oder
- * die schon so liegen, bleiben Zeichen für Zeichen. Nummern zählt `nummeriere` wie immer durchs Dokument.
+ * die schon so liegen, bleiben Zeichen für Zeichen. Die Nummern bleiben, wie sie stehen: Der Fluss ändert die
+ * Reihenfolge nie, und ein Material zählt je Seite, je Blatt oder durch (206, Nachbesserung 2).
  */
-export const legeUm = (quelle: string, plan: FlussPlan, n: Nummerierung): Umgelegt => {
+export const legeUm = (quelle: string, plan: FlussPlan): Umgelegt => {
 	const z = zerlege(quelle);
 	const blaetter = blaetterVon(z);
 	const einsaetze: Einsatz[] = [];
@@ -239,13 +309,13 @@ export const legeUm = (quelle: string, plan: FlussPlan, n: Nummerierung): Umgele
 		}
 		return imWeg(k.start) ? null : (anStelle.get(verschoben(k.start)) ?? null);
 	});
-	return { quelle: nummeriere(neu, n), nummer: (nr) => nummern[nr] ?? null };
+	return { quelle: neu, nummer: (nr) => nummern[nr] ?? null };
 };
 
 /** Höchstens so viele Blätter misst ein Schritt, der das ganze Material betrifft (z. B. Abstand, Klasse, Format). */
 export const MAX_BLAETTER = 40;
 
-/** Was in `.nr` steht, zählt `nummeriere` neu; es ändert kein Blatt (Regel 3). */
+/** Was in `.nr` steht, zählen Schritte wie Einfügen neu; es ändert kein Blatt (Regel 3). */
 const NR_INHALT = /(<span\b[^>]*\bclass="(?:[^"]*\s)?nr(?:\s[^"]*)?"[^>]*>)[^<]*(<\/span>)/g;
 const ohneNummern = (text: string) => text.replace(NR_INHALT, '$1$2');
 
@@ -264,21 +334,47 @@ const blattTexte = (z: Zerlegung) => {
 	};
 };
 
+/** Ein Blatt mit allem, was seine Seiten im Bild bestimmt: Text ohne `.nr` und alles außerhalb der Blätter. */
+const schluesselVon = (rest: string, text: string) => `${rest}\u0001${text}`;
+
+/** Für jedes fließende Blatt (Nummer der ersten Seite) sein Schlüssel; gleiche Schlüssel liegen im Bild gleich. */
+export const blattSchluessel = (z: Zerlegung) => {
+	const t = blattTexte(z);
+	return new Map(
+		t.blaetter.flatMap((b, i) => (b.fliesst ? [[b.seiten[0]?.nr ?? -1, schluesselVon(t.rest, t.texte[i] ?? '')]] : [])),
+	);
+};
+
+/** Ein geändertes Blatt in `nachher` und der Schlüssel des Blatts, das in `vorher` an seiner Stelle stand. */
+export interface BlattPaar {
+	nr: number;
+	vorher: string | null;
+}
+
 /**
  * Regel 3: Welche Blätter (Nummer der ersten Seite in `nachher`) ein Schritt geändert hat, Blatt für Blatt verglichen,
  * ohne die Nummern in `.nr`. Ändert sich etwas außerhalb aller Blätter (Abstand und Klasse am `<body>`, Stil im Kopf),
  * sind es alle fließenden Blätter, höchstens `MAX_BLAETTER`. Gleiche Blätter vorn und hinten bleiben, auch wenn eine
- * Seite dazukam oder wegfiel.
+ * Seite dazukam oder wegfiel. Zu jedem das Blatt davor, wenn die Zahl der Blätter dazwischen gleich blieb.
  */
-export const geaenderteBlaetter = (vorher: string, nachher: Zerlegung): number[] => {
+export const geaenderteBlattPaare = (vorher: string, nachher: Zerlegung): BlattPaar[] => {
 	const n = blattTexte(nachher);
 	const a = blattTexte(zerlege(vorher));
-	const nummer = (b: Blatt) => b.seiten[0]?.nr ?? -1;
+	const paare = (von: number, bisN: number, bisA: number) => {
+		const gleichViele = bisN - von === bisA - von;
+		return n.blaetter.slice(von, bisN).flatMap((b, i) =>
+			b.fliesst
+				? [
+						{
+							nr: b.seiten[0]?.nr ?? -1,
+							vorher: gleichViele ? schluesselVon(a.rest, a.texte[von + i] ?? '') : null,
+						},
+					]
+				: [],
+		);
+	};
 	if (n.rest !== a.rest) {
-		return n.blaetter
-			.filter((b) => b.fliesst)
-			.slice(0, MAX_BLAETTER)
-			.map(nummer);
+		return paare(0, n.blaetter.length, a.blaetter.length).slice(0, MAX_BLAETTER);
 	}
 	let vorn = 0;
 	while (vorn < n.texte.length && vorn < a.texte.length && n.texte[vorn] === a.texte[vorn]) {
@@ -292,8 +388,8 @@ export const geaenderteBlaetter = (vorher: string, nachher: Zerlegung): number[]
 	) {
 		hinten += 1;
 	}
-	return n.blaetter
-		.slice(vorn, n.blaetter.length - hinten)
-		.filter((b) => b.fliesst)
-		.map(nummer);
+	return paare(vorn, n.blaetter.length - hinten, a.blaetter.length - hinten);
 };
+
+export const geaenderteBlaetter = (vorher: string, nachher: Zerlegung): number[] =>
+	geaenderteBlattPaare(vorher, nachher).map((p) => p.nr);

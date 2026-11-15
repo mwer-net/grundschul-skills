@@ -265,6 +265,55 @@ describe('nummeriere', () => {
 	});
 });
 
+describe('Zählbereiche bleiben, wie sie gezählt waren (206, Nachbesserung 3)', () => {
+	const mitNr = (n: number | string) => `<div class="aufgabe"><span class="nr">${n}</span><div class="anw"><span class="text">A${n}</span></div></div>`;
+	const blatt = (...nrn: (number | string)[]) => `<section class="seite">\n  ${nrn.map(mitNr).join('\n  ')}\n</section>`;
+	const dok = (...seiten: string[]) => `<html><body>\n${seiten.join('\n')}\n</body></html>`;
+	/** Wie im großen Übungsheft: Seite 1 und 2 zählen je für sich, Seite 4 setzt Seite 3 fort, dazu eine Bewertung. */
+	const HEFT = dok(blatt(1, 2, 3), blatt(1, 2), blatt(1, 2), blatt(3, 4), blatt(1));
+	const seitenText = (q: string) => q.split(/(?=<section)/);
+
+	it('Einfügen auf Seite 2 zählt nur Seite 2, alle anderen Seiten bleiben Zeichen für Zeichen', () => {
+		const { quelle } = dupliziereBaustein(HEFT, aufgabe(HEFT, 3).nr, BLATT);
+		assert.deepEqual(nummern(quelle), ['1', '2', '3', '1', '2', '3', '1', '2', '3', '4', '1']);
+		const vorher = seitenText(HEFT);
+		seitenText(quelle).forEach((t, i) => i !== 2 && assert.equal(t, vorher[i]));
+	});
+
+	it('Löschen holt den Stand zeichengleich zurück', () => {
+		const { quelle } = dupliziereBaustein(HEFT, aufgabe(HEFT, 3).nr, BLATT);
+		assert.equal(loescheBaustein(quelle, aufgabe(quelle, 4).nr, BLATT).quelle, HEFT);
+	});
+
+	it('ein Bereich über zwei Seiten zählt über beide weiter', () => {
+		const { quelle } = dupliziereBaustein(HEFT, aufgabe(HEFT, 5).nr, BLATT);
+		assert.deepEqual(nummern(quelle), ['1', '2', '3', '1', '2', '1', '2', '3', '4', '5', '1']);
+	});
+
+	it('am Anfang einer eigenen Zählung: die neue Aufgabe ist 1, der Bereich zählt weiter', () => {
+		const ziel = aufgabe(HEFT, 3);
+		const neu = `${HEFT.slice(0, ziel.start)}${mitNr(0)}\n  ${HEFT.slice(ziel.start)}`;
+		assert.deepEqual(nummern(nummeriere(neu, BLATT, HEFT)), ['1', '2', '3', '1', '2', '3', '1', '2', '3', '4', '1']);
+	});
+
+	it('einseitig und durchlaufend gezählt: wie bisher durch das ganze Dokument', () => {
+		const eine = dok(blatt(1, 2, 3));
+		assert.deepEqual(nummern(dupliziereBaustein(eine, aufgabe(eine, 0).nr, BLATT).quelle), ['1', '2', '3', '4']);
+		const durch = dok(blatt(1, 2), blatt(3, 4), blatt(5));
+		assert.deepEqual(nummern(dupliziereBaustein(durch, aufgabe(durch, 0).nr, BLATT).quelle), ['1', '2', '3', '4', '5', '6']);
+	});
+
+	it('unklare Zählung: nur der Bereich der Änderung zählt neu, der Rest bleibt', () => {
+		const krumm = dok(blatt(1, 2), blatt(7, 9), blatt(4));
+		const { quelle } = dupliziereBaustein(krumm, aufgabe(krumm, 0).nr, BLATT);
+		assert.deepEqual(nummern(quelle), ['1', '2', '3', '7', '9', '4']);
+	});
+
+	it('ohne Fassung davor zählt nummeriere wie bisher durch', () => {
+		assert.deepEqual(nummern(nummeriere(HEFT, BLATT)), ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11']);
+	});
+});
+
 describe('Spalten und Abstand', () => {
 	it('setzt --spalten, lässt andere Angaben stehen und bleibt zwischen 1 und 6', () => {
 		const z = zerlege(PRAESENTATION);

@@ -97,16 +97,16 @@ export const sperrtBlatt = (phase: EntwurfPhase | null) =>
 export const sperrGrund = (phase: EntwurfPhase | null) => {
 	if (phase?.art === 'laeuft') {
 		if (phase.nachbessern) {
-			return 'Claude bessert den Entwurf nach. Bearbeiten geht wieder, sobald er fertig ist.';
+			return 'Claude bessert den Vorschlag nach. Bearbeiten geht wieder, sobald er fertig ist.';
 		}
 		return phase.auftrag.phase === 'plan'
 			? `${laufWort(true)} den Aufgabenplan. Bearbeiten geht wieder, sobald das Blatt fertig ist.`
-			: `${laufWort(false)} das Blatt. Bearbeiten geht wieder, sobald der Entwurf da ist.`;
+			: `${laufWort(false)} das Blatt. Bearbeiten geht wieder, sobald der Vorschlag da ist.`;
 	}
 	if (phase?.art === 'plan') {
 		return 'Erst den Aufgabenplan freigeben oder verwerfen, dann geht es hier weiter.';
 	}
-	return sperrtBlatt(phase) ? 'Erst den Entwurf übernehmen oder verwerfen, dann geht es hier weiter.' : null;
+	return sperrtBlatt(phase) ? 'Erst den Vorschlag übernehmen oder verwerfen, dann geht es hier weiter.' : null;
 };
 
 /** Die Quelle des offenen Entwurfs, die das Blatt statt der eigenen zeigt. */

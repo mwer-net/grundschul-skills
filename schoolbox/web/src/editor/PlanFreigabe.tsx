@@ -125,7 +125,8 @@ export const PlanFreigabe = ({
 								e.stopPropagation();
 								setFeldOffen(false);
 							}
-							if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+							// ↩ sendet, ⇧↩ macht eine neue Zeile, wie in der Blase und im Feld des Entwurfs (S-11).
+							if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
 								void sendeWunsch(e);
 							}
 						}}

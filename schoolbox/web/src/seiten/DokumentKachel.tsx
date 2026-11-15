@@ -81,7 +81,8 @@ export const DokumentKachel = ({ dokument, mappe, teile, variante, zugang }: Eig
 			>
 				<div className="relative">
 					<Vorschau zugang={zugang} dokument={dokument} />
-					{meta.status === 'entwurf' && (
+					{/* Im Teilen-Link keine Plakette: Der Stand ist Sache der Lehrkraft (S-13). */}
+					{!geteilt && meta.status === 'entwurf' && (
 						<span className="absolute top-2 left-2">
 							<Marke>Entwurf</Marke>
 						</span>
