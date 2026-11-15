@@ -1,5 +1,5 @@
 import type { Einfuegbar, SchonDa } from '@schoolbox/kern/src/einfuegen';
-import { fuegeBausteinEin, schonDa } from '@schoolbox/kern/src/einfuegen';
+import { fuegeBausteinEin, schonDa, starterFuerKlasse } from '@schoolbox/kern/src/einfuegen';
 import { fuegeBausteinAn } from '@schoolbox/kern/src/einfuegen-ablage';
 import { legeUm } from '@schoolbox/kern/src/fluss';
 import { fuegeGestaltungKopieEin, neueIdsInGestaltung } from '@schoolbox/kern/src/gestaltung';
@@ -126,7 +126,7 @@ export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, ohneAu
 			);
 			return;
 		}
-		setzeEin(e, e.einfuegbar, nr);
+		setzeEin(e, starterFuerKlasse(e.einfuegbar, blatt.klasse), nr);
 	};
 
 	/** Aus der Schublade gezogen: an der Stelle, die die Lücke zeigte. */

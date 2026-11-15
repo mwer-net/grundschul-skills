@@ -2733,15 +2733,22 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'auswahl',
 				attribut: 'achse',
-				// S-05 (UX 186): Beim Weg gibt es keine Achse.
-				nurWenn: wennNicht('aufgabe', 'keine', 'fortsetzen', 'weg'),
+				// S-05 (UX 186): Beim Weg gibt es keine Achse. Ist dort eine gespeichert, bleibt das Feld da, bis sie
+				// auf „Keine“ steht; eine neue lässt sich dort nicht wählen.
+				nurWenn: (w) =>
+					wennNicht('aufgabe', 'keine', 'fortsetzen', 'weg')(w) || (w.aufgabe === 'weg' && !!w.achse),
 				name: 'Achse',
 				gruppe: 'Aufgabe',
 				// 197-07: Spiegeln braucht eine Achse; eine neue Achse steht in der Mitte des Gitters.
 				// Beim Spiegeln nur eine Achse, die die Figur nicht schneidet; sie steht ab der Mitte (197-07).
 				angeboten: (wert, w) =>
-					w.aufgabe !== 'spiegeln' || (wert !== null && achseFuer(w, wert) !== null),
+					w.aufgabe === 'weg'
+						? wert === null || wert === w.achse
+						: w.aufgabe !== 'spiegeln' || (wert !== null && achseFuer(w, wert) !== null),
 				mitnehmen: (w, alt): Werte => {
+					if (!w.achse && w.aufgabe === 'weg') {
+						return { 'achse-bei': null };
+					}
 					if (!w.achse || w.achse === alt.achse) {
 						return {};
 					}

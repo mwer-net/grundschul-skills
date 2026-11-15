@@ -31,6 +31,7 @@ import {
 } from './quelltext';
 import type { Nummerierung, StrukturErgebnis } from './struktur';
 import { nummeriere, ordneSchritte, seitenVon } from './struktur';
+import type { Klasse } from './werte';
 
 export interface Einfuegbar {
 	id: string;
@@ -213,6 +214,21 @@ export const einfuegbarAus = (e: KatalogEintrag, starter: ReadonlyMap<string, st
 		...(html === undefined ? {} : { html }),
 		...(e.anweisung ? { anweisung: e.anweisung } : {}),
 	};
+};
+
+/**
+ * Starter, die über dem Zahlenraum einer Klasse liegen, haben für diese Klasse eine kleinere Fassung (UX 186): frisch
+ * eingefügt meldet die Prüfung nichts. Die Muster, aus denen die Starter kommen, bleiben, wie sie sind.
+ */
+const STARTER_JE_KLASSE: Readonly<Record<string, Partial<Record<Klasse, string>>>> = {
+	'x-zahlenstrahl': {
+		1: '<x-zahlenstrahl von="0" bis="20" schritt="2" zahlen="0 10 20" pfeile="6 14" breite="620"></x-zahlenstrahl>',
+	},
+};
+
+export const starterFuerKlasse = (e: Einfuegbar, klasse: Klasse): Einfuegbar => {
+	const html = STARTER_JE_KLASSE[e.id]?.[klasse];
+	return html && e.html !== undefined ? { ...e, html } : e;
 };
 
 /** Was eine Seite nur einmal hat (203-14): Einfügen wählt das vorhandene, statt ein zweites zu setzen. */
