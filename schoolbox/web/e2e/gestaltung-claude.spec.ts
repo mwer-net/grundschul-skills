@@ -112,10 +112,14 @@ test.describe('Gestaltung von Claude (112)', () => {
 			),
 		);
 		await expect.poll(async () => (await kasten(aufgabe(page, 1))).y).toBeGreaterThan(a1.y + 100);
-		const a2 = await kasten(aufgabe(page, 1));
-		const b2 = await kasten(blase(page));
-		expect(Math.abs(b2.x - a2.x - (b1.x - a1.x))).toBeLessThanOrEqual(1);
-		expect(Math.abs(b2.y - a2.y - (b1.y - a1.y))).toBeLessThanOrEqual(1);
+		// Der Fluss (206) setzt die Seite nach der Änderung noch einmal; erst danach steht alles.
+		await expect
+			.poll(async () => {
+				const a2 = await kasten(aufgabe(page, 1));
+				const b2 = await kasten(blase(page));
+				return Math.max(Math.abs(b2.x - a2.x - (b1.x - a1.x)), Math.abs(b2.y - a2.y - (b1.y - a1.y)));
+			})
+			.toBeLessThanOrEqual(1);
 	});
 
 	test('Gegenprobe: foreignObject in einer Ebene führt zu keinem Vorschlag, das Blatt bleibt', async ({ page }) => {
