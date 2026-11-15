@@ -36,12 +36,48 @@ import type { Einblendung } from './Leinwand';
 import { LUECKE_UND_ORIGINAL } from './luecke';
 import type { Luecke } from './navigation';
 import { kopf } from './schubladen/reihe';
-import { sichtfeldVon } from './sichtfeld';
+import { lageDerLeiste, umfeldDerLeiste } from './leistenlage';
+import { sichtfeldVon, useSichtfeld } from './sichtfeld';
 import { EIGENE_GESCHICHTE } from './tasten';
 import { TEXTWERKZEUG } from './text';
 import { FINGER_WEG, HALTEN_MS, MAUS_WEG } from './ziehen';
 import type { ZugAmZeiger } from './zug-von-aussen';
 import { zieheVonAussen, ziehgutBaustein } from './zug-von-aussen';
+
+const sichtbar = (m: Element) =>
+	m.getClientRects().length > 0 && m.ownerDocument.defaultView?.getComputedStyle(m).visibility !== 'hidden';
+
+/**
+ * „Nur Arbeitsblatt“ / „Nur Lösung“ am Element (S-16): an der nächsten Stelle über, unter oder neben dem Element, an
+ * der sie nichts verdeckt, auch nicht das Element selbst; dieselbe Suche wie für die Leiste.
+ */
+const Sichtbarkeitsmarke = ({ e, element }: { e: Einblendung; element: Element }) => {
+	const ich = useRef<HTMLSpanElement>(null);
+	const [mass, setMass] = useState({ breite: 110, hoehe: 24 });
+	const sicht = useSichtfeld(e.doc);
+	useLayoutEffect(() => {
+		const k = ich.current;
+		if (k) {
+			const { offsetHeight: hoehe, offsetWidth: breite } = k;
+			setMass((alt) => (alt.breite === breite && alt.hoehe === hoehe ? alt : { breite, hoehe }));
+		}
+	});
+	const r = element.getBoundingClientRect();
+	const box = { links: e.links + r.left * e.skala, rechts: e.links + r.right * e.skala, oben: r.top * e.skala, unten: r.bottom * e.skala };
+	const lage = sicht
+		? lageDerLeiste(box, mass, { ...sicht, oben: -1e6, unten: 1e6 }, 0, umfeldDerLeiste(e, r, [element], true))
+		: { links: box.links, top: box.oben - mass.hoehe };
+	return (
+		<span
+			ref={ich}
+			className="pointer-events-none absolute rounded-md bg-amber-200 px-2 py-0.5 text-sm font-medium whitespace-nowrap"
+			data-sichtbarkeit-marke
+			style={{ left: lage.links, top: lage.top }}
+		>
+			{element.classList.contains('nur-loesung') ? 'Nur Lösung' : 'Nur Arbeitsblatt'}
+		</span>
+	);
+};
 
 const ZEILE = 'w-full rounded-md px-2 py-1 text-left hover:bg-flaeche-2';
 
@@ -214,21 +250,12 @@ export const Einfuegemarken = ({
 	return (
 		<>
 			{[...doc.querySelectorAll('.nicht-loesung, body.loesung .nur-loesung')]
-				// Nicht in der Lücke und nicht am Original, das sie beim Ziehen ausblendet (094).
-				.filter((m) => !m.closest(LUECKE_UND_ORIGINAL))
-				.map((m) => {
-					const r = m.getBoundingClientRect();
-					return (
-						<span
-							key={nrVon(m)}
-							className="pointer-events-none absolute rounded-md bg-amber-200 px-2 py-0.5 text-sm font-medium"
-							data-sichtbarkeit-marke
-							style={{ left: links + r.left * skala, top: r.top * skala - 12 }}
-						>
-							{m.classList.contains('nur-loesung') ? 'Nur Lösung' : 'Nur Arbeitsblatt'}
-						</span>
-					);
-				})}
+				// Nicht in der Lücke und nicht am Original, das sie beim Ziehen ausblendet (094). S-04: keine Plakette für
+				// etwas, das in dieser Ansicht nicht zu sehen ist.
+				.filter((m) => !m.closest(LUECKE_UND_ORIGINAL) && sichtbar(m))
+				.map((m) => (
+					<Sichtbarkeitsmarke key={nrVon(m)} element={m} e={e} />
+				))}
 			{luecke && !schnell && !e.zieht && (
 				// 205-04: Der ganze Zwischenraum ist der Knopf, nicht nur die Pille.
 				<button

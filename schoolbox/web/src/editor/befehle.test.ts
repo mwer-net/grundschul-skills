@@ -679,8 +679,20 @@ describe('Zoom-Tasten (184)', () => {
 		const abschnitte = tastenAbschnitte(undefined, true);
 		assert.deepEqual(
 			abschnitte.map((a) => a.titel),
-			['Gewählter Baustein', 'Im Blatt bewegen', 'Werkzeuge', 'Ansicht', 'Material'],
+			['Gewählter Baustein', 'Freies Element', 'Im Blatt bewegen', 'Werkzeuge', 'Ansicht', 'Material'],
 		);
+		// S-15: Tasten freier Elemente stehen nicht unter „Gewählter Baustein“; keine Taste mit zwei Bedeutungen.
+		const baustein = abschnitte.find((a) => a.titel === 'Gewählter Baustein');
+		const frei = abschnitte.find((a) => a.titel === 'Freies Element');
+		for (const id of ['auswahl.nach-vorne', 'auswahl.sperren', 'auswahl.spiegeln', 'auswahl.gruppieren']) {
+			assert.ok(frei?.zeilen.some((z) => z.id === id), id);
+			assert.ok(!baustein?.zeilen.some((z) => z.id === id), id);
+		}
+		assert.ok(frei?.zeilen.some((z) => z.id.startsWith('auswahl.schiebe-')));
+		for (const a of abschnitte) {
+			const tasten = a.zeilen.flatMap((z) => z.tasten);
+			assert.equal(new Set(tasten).size, tasten.length, `${a.titel}: ${tasten.join(' ')}`);
+		}
 		const bewegen = abschnitte.find((a) => a.titel === 'Im Blatt bewegen');
 		assert.ok(!bewegen?.zeilen.some((z) => z.id.startsWith('werkzeug.')));
 		const werkzeuge = abschnitte.find((a) => a.titel === 'Werkzeuge');

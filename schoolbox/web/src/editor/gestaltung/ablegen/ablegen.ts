@@ -12,6 +12,7 @@ import type { Ziehgut } from '../../zug-von-aussen';
 import { zeigeAblageLinien } from '../ablage-linien';
 import type { Kandidat } from '../einrasten';
 import { kandidatenAufSeite, rasteEin } from '../einrasten';
+import { freieStelle, inhaltAuf } from './freie-stelle';
 import { eckeVon, entferneVorschau, markiereZiel, missHoehe, seitenIn, seiteUnter, zeigeVorschau } from './vorschau';
 import type { GestaltungsGut } from './ziehgut';
 import type { AblageTreffer } from './ziele';
@@ -125,9 +126,33 @@ const bildHoehe = async (doc: Document, gut: GestaltungsGut) => {
 	return bild.naturalWidth > 0 ? (gut.groesse.b * bild.naturalHeight) / bild.naturalWidth : undefined;
 };
 
+/** Der Satzspiegel der Seite (ohne Innenabstand), geschnitten mit dem sichtbaren Teil, falls etwas zu sehen ist. */
+const freierBereich = (doc: Document, beste: NonNullable<ReturnType<typeof sichtbarsteSeite>>) => {
+	const r = beste.seite.getBoundingClientRect();
+	const stil = doc.defaultView?.getComputedStyle(beste.seite);
+	const rand = (wert: string | undefined) => parseFloat(wert ?? '') || 0;
+	const satz = {
+		links: r.left + rand(stil?.paddingLeft),
+		rechts: r.right - rand(stil?.paddingRight),
+		oben: r.top + rand(stil?.paddingTop),
+		unten: r.bottom - rand(stil?.paddingBottom),
+	};
+	const zuSehen = beste.zuSehen > 0 && beste.rechts > beste.links;
+	return zuSehen
+		? {
+				links: Math.max(satz.links, beste.links),
+				rechts: Math.min(satz.rechts, beste.rechts),
+				oben: Math.max(satz.oben, beste.oben),
+				unten: Math.min(satz.unten, beste.unten),
+			}
+		: satz;
+};
+
 /**
- * Klick in der Schublade (und Enter in ⌘K): in die Mitte des sichtbaren Teils der Seite, die am meisten zu sehen ist.
- * `true`, wenn etwas abgelegt wurde.
+ * Klick in der Schublade (und Enter in ⌘K) auf der Seite, die am meisten zu sehen ist. S-10: Ein Bild kommt an die
+ * freie Stelle im sichtbaren Teil, an der es nichts verdeckt und am größten Platz hat, und wird dafür bis
+ * `MINDESTBREITE` kleiner. Gibt es keine, und für alles andere: in die Mitte des sichtbaren Teils. `true`, wenn etwas abgelegt
+ * wurde.
  */
 export const legeInMitte = async (teile: AblegenTeile, gut: GestaltungsGut) => {
 	const { doc } = teile;
@@ -136,11 +161,22 @@ export const legeInMitte = async (teile: AblegenTeile, gut: GestaltungsGut) => {
 	if (!doc || !beste) {
 		return false;
 	}
+	const h = hoehe ?? hoeheVon(doc, beste.seite, gut);
+	// Nur Bilder (Upload, Bibliothek, Figuren); Formen und Text kommen weiter in die Mitte.
+	const frei =
+		hoehe === undefined ? null : freieStelle(freierBereich(doc, beste), inhaltAuf(beste.seite), gut.groesse.b, h, true);
+	if (frei) {
+		const klein = frei.breite < gut.groesse.b ? { ...gut, groesse: { ...gut.groesse, b: Math.round(frei.breite) } } : gut;
+		const ort = ortUm(doc, beste.seite, klein, frei.x, frei.y, (h * klein.groesse.b) / gut.groesse.b);
+		if (ort) {
+			return legeAb(teile.struktur, klein, versetztNeben(beste.seite, ort));
+		}
+	}
 	const r = beste.seite.getBoundingClientRect();
 	// Ist die Seite gar nicht zu sehen, gilt ihre eigene Mitte.
 	const y = beste.zuSehen > 0 ? (beste.oben + beste.unten) / 2 : (r.top + r.bottom) / 2;
 	const x = beste.rechts > beste.links ? (beste.links + beste.rechts) / 2 : (r.left + r.right) / 2;
-	const ort = ortUm(doc, beste.seite, gut, x, y, hoehe ?? hoeheVon(doc, beste.seite, gut));
+	const ort = ortUm(doc, beste.seite, gut, x, y, h);
 	return ort ? legeAb(teile.struktur, gut, versetztNeben(beste.seite, ort)) : false;
 };
 
