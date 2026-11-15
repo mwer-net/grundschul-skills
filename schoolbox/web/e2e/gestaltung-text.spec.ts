@@ -79,8 +79,11 @@ test.describe('Text in der Schublade „Werkzeuge“ (105, 175)', () => {
 	test('Werkzeuge: Abschnitt Text mit genau Titel, Stempel, Etikett', async ({ page }) => {
 		await oeffneText(page);
 		const abschnitte = schublade(page).locator('[data-formen-abschnitt]');
-		await expect(abschnitte.nth(0)).toHaveAttribute('data-formen-abschnitt', 'werkzeuge');
-		await expect(abschnitte.nth(1)).toHaveAttribute('data-formen-abschnitt', 'text');
+		// 198-18: Text zuerst, dann Formen und Sprechblasen; „Zeichnen“ danach (198-10).
+		await expect(abschnitte.nth(0)).toHaveAttribute('data-formen-abschnitt', 'text');
+		await expect(abschnitte.nth(1)).toHaveAttribute('data-formen-abschnitt', 'grundformen');
+		await expect(abschnitte.nth(2)).toHaveAttribute('data-formen-abschnitt', 'blasen');
+		await expect(abschnitte.nth(3)).toHaveAttribute('data-formen-abschnitt', 'werkzeuge');
 		const text = schublade(page).locator('[data-formen-abschnitt="text"]');
 		await expect(text.getByRole('heading', { level: 3 })).toHaveText(/Text$/);
 		await expect(text.locator('[data-schmuck-kachel]')).toHaveCount(3);
