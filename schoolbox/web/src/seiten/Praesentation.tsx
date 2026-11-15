@@ -146,6 +146,25 @@ interface Eigenschaften {
 	dok: string;
 }
 
+/** Der Titel im Browser; ist alles da, aber das Material nicht, „nicht gefunden“. */
+const praesentationTitel = (titel: string | null, geladen: boolean) => {
+	if (titel) {
+		return `Präsentation: ${titel}`;
+	}
+	return geladen ? NICHT_GEFUNDEN : 'Präsentation';
+};
+
+/** „3 / 12“ in der Steuerleiste; vor der ersten Meldung leer. */
+const folienText = (stand: FolienStand | null) => (stand ? `${stand.folie} / ${stand.folien}` : '');
+
+/** Gleich geht es los: schwarz, nur der Ladestand. Keine Komponente: React nimmt das `div` an dieser Stelle weiter. */
+const sofortLaden = (phase: Phase) => (
+	<div className="absolute inset-0 flex items-center justify-center bg-black" role="status">
+		{phase.art === 'laedt' && <Symbol name="laden" className="size-6 animate-spin text-white/60" />}
+		{phase.art === 'ohne-folien' && <Ladestand phase={phase} />}
+	</div>
+);
+
 /**
  * Hülle für den Präsentationsmodus: Startseite, Vollbild, Bildschirm wach halten, Steuerleiste. Die Folien zeigt und
  * steuert `praesentation.js` im Iframe; die Hülle lädt nie neu, auch wenn Claude das Material gerade ändert.
@@ -154,7 +173,7 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 	const { daten, fehler } = useInhalt(zugang);
 	const dokument = daten?.dokumente.find((d) => d.id === dok);
 	const titel = dokument?.meta.titel ?? null;
-	useTitel(titel ? `Präsentation: ${titel}` : daten ? NICHT_GEFUNDEN : 'Präsentation');
+	useTitel(praesentationTitel(titel, Boolean(daten)));
 	const navigate = useNavigate();
 	const ort = useLocation();
 	// Aus Ablage, Ansicht oder Editor: sofort starten, Vollbild hat der Klick schon verlangt (192 Urteil 2).
@@ -337,6 +356,21 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 		);
 	}
 
+	const vorDemStart = sofort ? (
+		sofortLaden(phase)
+	) : (
+		<Startseite
+			titel={titel ?? ''}
+			folien={stand?.folien ?? null}
+			phase={phase}
+			zurueck={zurueck}
+			zurueckGehen={(e) => {
+				e.preventDefault();
+				zurueckGehen();
+			}}
+			starten={starten}
+		/>
+	);
 	return (
 		<div ref={buehne} className={klassen('fixed inset-0 bg-black', mausWeg && 'cursor-none')}>
 			<iframe
@@ -376,7 +410,7 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 							onClick={mit(() => laufzeit()?.zurueck())}
 						/>
 						<span className="min-w-16 px-1 text-center font-medium tabular-nums" data-folie>
-							{stand ? `${stand.folie} / ${stand.folien}` : ''}
+							{folienText(stand)}
 						</span>
 						<LeistenKnopf
 							symbol="weiter"
@@ -408,24 +442,8 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 						<LeistenKnopf symbol="schliessen" titel="Beenden" onClick={beenden} />
 					</div>
 				</div>
-			) : sofort ? (
-				// Gleich geht es los: schwarz, nur der Ladestand.
-				<div className="absolute inset-0 flex items-center justify-center bg-black" role="status">
-					{phase.art === 'laedt' && <Symbol name="laden" className="size-6 animate-spin text-white/60" />}
-					{phase.art === 'ohne-folien' && <Ladestand phase={phase} />}
-				</div>
 			) : (
-				<Startseite
-					titel={titel ?? ''}
-					folien={stand?.folien ?? null}
-					phase={phase}
-					zurueck={zurueck}
-					zurueckGehen={(e) => {
-						e.preventDefault();
-						zurueckGehen();
-					}}
-					starten={starten}
-				/>
+				vorDemStart
 			)}
 		</div>
 	);

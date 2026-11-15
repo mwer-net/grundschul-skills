@@ -189,7 +189,6 @@ test.describe('Inventur Editor', () => {
 
 test.describe('Inventur außerhalb des Editors', () => {
 	test('Mein Material: Suche, Filter, Neuer Ordner, Material anlegen; Kopf: Befehle, Hilfe, Papierkorb, Abmelden', async ({
-		druecke,
 		page,
 	}) => {
 		await legeMappeAn('Die Kartoffel', 'sachunterricht', 3, [{ titel: 'Teile der Kartoffel' }]);

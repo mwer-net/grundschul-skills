@@ -1,4 +1,5 @@
 import type { InspektorTeil } from './abschnitte';
+import { KOMBINIEREN_TEILE } from './kombinieren';
 import { MehrfachFuellung, MehrfachKontur, MehrfachPosition } from './mehrfach-teile';
 
 /** Teile, die nur bei Mehrfachauswahl erscheinen; `fuer` prüft jede gewählte Art. */
@@ -27,4 +28,6 @@ export const MEHRFACH_TEILE: InspektorTeil[] = [
 		fuer: (art) => art === 'form' || art === 'formtext',
 		Inhalt: MehrfachKontur,
 	},
+	// 198-16: „Kombinieren“ nur bei Mehrfachauswahl; in `INSPEKTOR_TEILE` stand der Abschnitt auch einzeln (leer) da.
+	...KOMBINIEREN_TEILE,
 ];

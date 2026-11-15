@@ -448,6 +448,18 @@ export const Ebenen = ({
 		}
 	};
 
+	/** Fragt den Kern einmal je Stelle, ob er dort ablegen würde. */
+	const erlaubt = (l: Lauf, ablage: Ablage) => {
+		const schluessel = JSON.stringify(ablage);
+		const bekannt = l.geprueft.get(schluessel);
+		if (bekannt !== undefined) {
+			return bekannt;
+		}
+		const ok = neu.current.struktur.kannVerschieben(l.nr, ablage);
+		l.geprueft.set(schluessel, ok);
+		return ok;
+	};
+
 	/**
 	 * Hätte das Gezogene über einer Kindzeile der Zeile `nr` ein Ziel, wie `zielAb` es dort fände (die Kindzeile selbst,
 	 * sonst `nr`)? Nur dann klappt sie auf (195-07).
@@ -472,18 +484,6 @@ export const Ebenen = ({
 			}
 			return !seite && l.inZiele.has(nr) && gilt({ in: nr });
 		});
-	};
-
-	/** Fragt den Kern einmal je Stelle, ob er dort ablegen würde. */
-	const erlaubt = (l: Lauf, ablage: Ablage) => {
-		const schluessel = JSON.stringify(ablage);
-		const bekannt = l.geprueft.get(schluessel);
-		if (bekannt !== undefined) {
-			return bekannt;
-		}
-		const ok = neu.current.struktur.kannVerschieben(l.nr, ablage);
-		l.geprueft.set(schluessel, ok);
-		return ok;
 	};
 
 	/**
@@ -964,6 +964,107 @@ export const Ebenen = ({
 		);
 	};
 
+	/** Name der Zeile, beim Umbenennen das Eingabefeld. */
+	const titelDerZeile = ({
+		aktiv,
+		blass,
+		istGestaltungZeile,
+		k,
+		symbol,
+		tooltip,
+		waehleZeile,
+	}: {
+		aktiv: boolean;
+		blass: boolean;
+		istGestaltungZeile: boolean;
+		k: GliederungKnoten;
+		symbol: SymbolName | undefined;
+		tooltip: string;
+		waehleZeile: () => void;
+	}) =>
+		umbenennen === k.nr ? (
+			<input
+				autoFocus
+				className="h-zeile min-w-0 flex-1 rounded-md border border-brand-500 bg-white px-1 outline-none"
+				aria-label="Name in den Ebenen"
+				defaultValue={k.eigenerName ?? k.titel}
+				data-nicht-ziehen
+				data-umbenennen
+				onFocus={(e) => e.currentTarget.select()}
+				onBlur={(e) => benenne(k, e.currentTarget.value)}
+				onKeyDown={(e) => {
+					e.stopPropagation();
+					if (e.key === 'Enter') {
+						e.preventDefault();
+						e.currentTarget.blur();
+					} else if (e.key === 'Escape') {
+						e.preventDefault();
+						setUmbenennen(null);
+					}
+				}}
+			/>
+		) : (
+			<Tooltip
+				text={`${tooltip} · Doppelklick benennt um`}
+				seite="right"
+				aus={zug !== null || !istGestaltungZeile}
+			>
+				<button
+					type="button"
+					className="flex h-zeile min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left select-none hover:bg-flaeche-2 aria-[current=true]:bg-brand-100 aria-[current=true]:text-tinte"
+					style={{ WebkitTouchCallout: 'none' }}
+					data-gliederung-titel
+					aria-current={aktiv}
+					onClick={(e) => {
+						// 113: ⇧- und ⌘-Klick nehmen ein Gestaltungselement dazu oder weg.
+						if (istGestaltungZeile && doc && (e.shiftKey || e.metaKey || e.ctrlKey)) {
+							schalteDazu(doc, auswahl, k.nr, (n) => {
+								if (n !== null) {
+									waehle(n);
+								}
+							});
+							return;
+						}
+						waehleZeile();
+					}}
+					onDoubleClick={() => {
+						if (istGestaltungZeile && aktuell) {
+							setUmbenennen(k.nr);
+						}
+					}}
+				>
+					{k.nummer && (
+						<span
+							className={klassen(
+								'w-3.5 flex-none text-center font-medium text-leise',
+								blass && 'opacity-50',
+							)}
+						>
+							{k.nummer}
+						</span>
+					)}
+					{symbol && (
+						<Symbol
+							name={symbol}
+							className={klassen('size-3.5 flex-none text-leise', blass && 'opacity-50')}
+						/>
+					)}
+					{/* 195-12: Bausteinzeilen zeigen den Tooltip nur, wenn der Text gekürzt ist. */}
+					<Gekuerzt
+						text={k.titel}
+						seite="right"
+						aus={zug !== null || istGestaltungZeile}
+						className={klassen(blass && 'opacity-50')}
+					/>
+					{k.nurIn?.selbst && (
+						<span className="flex-none text-xs text-leise" data-nur-in={k.nurIn.fassung}>
+							{k.nurIn.fassung === 'loesung' ? 'nur in der Lösung' : 'nur im Arbeitsblatt'}
+						</span>
+					)}
+				</button>
+			</Tooltip>
+		);
+
 	const zeigeKnoten = (gelesen: GliederungKnoten, tiefe: number, seite: number): ReactNode => {
 		const k = mitVorab(gelesen);
 		const hatKinder = k.kinder.length > 0;
@@ -1014,88 +1115,7 @@ export const Ebenen = ({
 						LUECKE
 					)}
 					{hatKinder ? pfeil(k.schluessel, zugeklappt) : LUECKE}
-					{umbenennen === k.nr ? (
-						<input
-							autoFocus
-							className="h-zeile min-w-0 flex-1 rounded-md border border-brand-500 bg-white px-1 outline-none"
-							aria-label="Name in den Ebenen"
-							defaultValue={k.eigenerName ?? k.titel}
-							data-nicht-ziehen
-							data-umbenennen
-							onFocus={(e) => e.currentTarget.select()}
-							onBlur={(e) => benenne(k, e.currentTarget.value)}
-							onKeyDown={(e) => {
-								e.stopPropagation();
-								if (e.key === 'Enter') {
-									e.preventDefault();
-									e.currentTarget.blur();
-								} else if (e.key === 'Escape') {
-									e.preventDefault();
-									setUmbenennen(null);
-								}
-							}}
-						/>
-					) : (
-						<Tooltip
-							text={`${tooltip} · Doppelklick benennt um`}
-							seite="right"
-							aus={zug !== null || !istGestaltungZeile}
-						>
-							<button
-								type="button"
-								className="flex h-zeile min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left select-none hover:bg-flaeche-2 aria-[current=true]:bg-brand-100 aria-[current=true]:text-tinte"
-								style={{ WebkitTouchCallout: 'none' }}
-								data-gliederung-titel
-								aria-current={aktiv}
-								onClick={(e) => {
-									// 113: ⇧- und ⌘-Klick nehmen ein Gestaltungselement dazu oder weg.
-									if (istGestaltungZeile && doc && (e.shiftKey || e.metaKey || e.ctrlKey)) {
-										schalteDazu(doc, auswahl, k.nr, (n) => {
-											if (n !== null) {
-												waehle(n);
-											}
-										});
-										return;
-									}
-									waehleZeile();
-								}}
-								onDoubleClick={() => {
-									if (istGestaltungZeile && aktuell) {
-										setUmbenennen(k.nr);
-									}
-								}}
-							>
-								{k.nummer && (
-									<span
-										className={klassen(
-											'w-3.5 flex-none text-center font-medium text-leise',
-											blass && 'opacity-50',
-										)}
-									>
-										{k.nummer}
-									</span>
-								)}
-								{symbol && (
-									<Symbol
-										name={symbol}
-										className={klassen('size-3.5 flex-none text-leise', blass && 'opacity-50')}
-									/>
-								)}
-								{/* 195-12: Bausteinzeilen zeigen den Tooltip nur, wenn der Text gekürzt ist. */}
-								<Gekuerzt
-									text={k.titel}
-									seite="right"
-									aus={zug !== null || istGestaltungZeile}
-									className={klassen(blass && 'opacity-50')}
-								/>
-								{k.nurIn?.selbst && (
-									<span className="flex-none text-xs text-leise" data-nur-in={k.nurIn.fassung}>
-										{k.nurIn.fassung === 'loesung' ? 'nur in der Lösung' : 'nur im Arbeitsblatt'}
-									</span>
-								)}
-							</button>
-						</Tooltip>
-					)}
+					{titelDerZeile({ aktiv, blass, istGestaltungZeile, k, symbol, tooltip, waehleZeile })}
 					{istGestaltungZeile && zeichenVon(k, aktiv)}
 				</div>
 				{hatKinder && !zugeklappt && (

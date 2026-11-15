@@ -26,6 +26,14 @@ interface Eigenschaften<T extends string> {
 	knopf?: Record<string, unknown>;
 }
 
+/** Farbe eines Knopfs: gedrückt, gesperrt oder bereit. */
+const knopfFarbe = (gedrueckt: boolean, gesperrt?: boolean) => {
+	if (gedrueckt) {
+		return 'bg-brand-50 text-brand-700';
+	}
+	return gesperrt ? 'cursor-default text-leise opacity-50' : 'text-leise hover:bg-flaeche-2 hover:text-tinte';
+};
+
 /**
  * Schmale Spalte ganz links: je Schublade Symbol und Name; die Taste steht im Tooltip (53). Klick öffnet, ein Klick
  * auf eine sichtbare schließt sie. Am iPad nur Symbole, mit 44 px Trefferfläche, damit das Blatt Platz behält.
@@ -46,11 +54,7 @@ export const Schubladenleiste = <T extends string>({ eintraege, knopf, offen, wa
 						aria-disabled={e.gesperrt || undefined}
 						className={klassen(
 							'flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-lg px-0 py-1',
-							offen.includes(e.id)
-								? 'bg-brand-50 text-brand-700'
-								: e.gesperrt
-									? 'cursor-default text-leise opacity-50'
-									: 'text-leise hover:bg-flaeche-2 hover:text-tinte',
+							knopfFarbe(offen.includes(e.id), e.gesperrt),
 						)}
 						data-schublade-knopf={e.id}
 						onClick={() => {

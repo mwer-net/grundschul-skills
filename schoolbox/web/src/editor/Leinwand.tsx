@@ -122,7 +122,7 @@ const genau = (gemerkt: number, jetzt: number) => (Math.abs(jetzt - gemerkt) < 1
  * 194-04: Wohin die Ansicht senkrecht rollt, damit der Rahmen `r` zu sehen ist; `null`, wenn er schon ganz zu sehen
  * ist. Höher als die Ansicht oder oben abgeschnitten: an den oberen Rand, unten abgeschnitten: an den unteren.
  */
-export const senkrechtesZiel = (
+const senkrechtesZiel = (
 	r: { top: number; bottom: number; height: number },
 	ansicht: { scrollTop: number; clientHeight: number; getBoundingClientRect: () => { top: number } },
 ) => {
@@ -354,6 +354,66 @@ const ZugMarken = ({ links, skala, zug }: { links: number; skala: number; zug: Z
 	);
 };
 
+/** Die Fläche unter den Rahmen: so breit wie das Blatt im Maßstab, vor dem ersten Messen die ganze Breite. */
+const innenStil = (innenBreite: number, masse: Masse | null, skala: number) => ({
+	width: innenBreite || '100%',
+	height: masse ? Math.ceil(masse.hoehe * skala) : '60vh',
+});
+
+/** 195: Die Nummer unter dem Zeiger, wenn er auf einem Element steht (keine Lücke). */
+const nrImHover = (hover: Klickziel | null) => (hover && hover.art !== 'luecke' ? hover.nr : null);
+
+/** 205: Die Lücke unter dem Zeiger, sonst `null`. */
+const lueckeImHover = (hover: Klickziel | null) => (hover?.art === 'luecke' ? hover.luecke : null);
+
+/** 195: Was die Zeile unter dem Zeiger in den Ebenen im Blatt rahmt; nicht, solange das Blatt selbst etwas zeigt. */
+const zielAusEbenen = (hover: Klickziel | null, doc: Document | null, ebenenZeile: number | null, zieht: boolean) =>
+	!hover && doc && ebenenZeile !== null && !zieht ? zielZurZeile(doc, ebenenZeile) : null;
+
+/** Die Griffe für die Größe nur am Element, für das sie gemessen ist. */
+const groesseAn = (groesse: Groesse | null, auswahl: number | null) => (groesse?.nr === auswahl ? groesse : null);
+
+/** 195-04: Der Punkt, der beim Zoom stehen bleibt: der Zeiger, ohne Zeiger die Mitte, ohne Zoom die Mitte oben. */
+const festerPunkt = (
+	gezoomt: boolean,
+	zeiger: { x: number; y: number } | null,
+	ecke: { x: number; y: number },
+	element: HTMLElement,
+	ansicht: HTMLElement,
+) => {
+	if (!gezoomt) {
+		return { x: element.clientWidth / 2, y: 0 };
+	}
+	return zeiger
+		? { x: zeiger.x - ecke.x, y: zeiger.y - ecke.y }
+		: { x: element.clientWidth / 2, y: ansicht.clientHeight / 2 };
+};
+
+/** Das gewählte Element im Blatt und sein Rahmen. */
+const auswahlImBlatt = (doc: Document | null, auswahl: number | null) => {
+	const ausgewaehlt = doc && auswahl !== null ? elementZu(doc, auswahl) : null;
+	// 194-20: In der Textsitzung umfasst der Rahmen den Absatz mit der Schreibmarke, auch einen eben neu entstandenen.
+	// Hat ein Werkzeug außerhalb den Fokus (Schnellauswahl nach „/“, 194-33), bleibt die Auswahl im Blatt stehen.
+	const marke = doc?.getSelection()?.anchorNode;
+	const schreibt =
+		doc?.activeElement?.closest?.('[contenteditable="true"]') ??
+		(marke?.nodeType === 3 ? marke.parentElement : (marke as Element | null | undefined))?.closest?.(
+			'[contenteditable="true"]',
+		) ??
+		null;
+	const gewaehlt =
+		ausgewaehlt && schreibt && schreibt !== ausgewaehlt && schreibt.parentElement === ausgewaehlt.parentElement
+			? schreibt
+			: ausgewaehlt;
+	// 194-09: Ein Element ohne Fläche (ausgeblendet, leer) bekommt keinen Rahmen links oben in der Ecke.
+	const flaeche = Boolean(gewaehlt && gewaehlt.getClientRects().length > 0);
+	const box = flaeche ? gewaehlt?.getBoundingClientRect() : undefined;
+	// Gestaltung hat ihren eigenen, gedrehten Rahmen mit Griffen (097); dieser bleibt nur fürs Hinrollen.
+	const gestaltung = gewaehlt?.matches(GESTALTUNG_SELEKTOR) === true;
+	const mitRahmen = Boolean(gewaehlt && flaeche && ausgewaehlt && nrVon(ausgewaehlt) !== null);
+	return { ausgewaehlt, box, gestaltung, mitRahmen };
+};
+
 export const Leinwand = ({
 	ablegen,
 	auswahl,
@@ -391,7 +451,7 @@ export const Leinwand = ({
 	/** 205: Was ein Klick unter dem Zeiger wählen würde; der Hover-Rahmen zeigt es. */
 	const [hover, setHover] = useState<Klickziel | null>(null);
 	// 195: Was der Zeiger hier zeigt, hebt die Ebenen-Zeile hervor; was er in den Ebenen zeigt, rahmt das Blatt.
-	const hoverNr = hover && hover.art !== 'luecke' ? hover.nr : null;
+	const hoverNr = nrImHover(hover);
 	useEffect(() => {
 		setzeHover('blatt', hoverNr);
 		return () => setzeHover('blatt', null);
@@ -733,11 +793,7 @@ export const Leinwand = ({
 		}
 		const kasten = element.getBoundingClientRect();
 		const sicht = ansicht.getBoundingClientRect();
-		const punkt = !gezoomt
-			? { x: element.clientWidth / 2, y: 0 }
-			: zeiger
-				? { x: zeiger.x - kasten.left, y: zeiger.y - sicht.top }
-				: { x: element.clientWidth / 2, y: ansicht.clientHeight / 2 };
+		const punkt = festerPunkt(gezoomt, zeiger, { x: kasten.left, y: sicht.top }, element, ansicht);
 		const neu = rollenNachZoom({
 			vorher,
 			nachher: { skala, links },
@@ -753,27 +809,9 @@ export const Leinwand = ({
 		};
 	}, [anker, skala, links, zoom, vorschau]);
 
-	const ausgewaehlt = doc && auswahl !== null ? elementZu(doc, auswahl) : null;
-	// 194-20: In der Textsitzung umfasst der Rahmen den Absatz mit der Schreibmarke, auch einen eben neu entstandenen.
-	// Hat ein Werkzeug außerhalb den Fokus (Schnellauswahl nach „/“, 194-33), bleibt die Auswahl im Blatt stehen.
-	const marke = doc?.getSelection()?.anchorNode;
-	const schreibt =
-		doc?.activeElement?.closest?.('[contenteditable="true"]') ??
-		(marke?.nodeType === 3 ? marke.parentElement : (marke as Element | null | undefined))?.closest?.(
-			'[contenteditable="true"]',
-		) ??
-		null;
-	const gewaehlt =
-		ausgewaehlt && schreibt && schreibt !== ausgewaehlt && schreibt.parentElement === ausgewaehlt.parentElement
-			? schreibt
-			: ausgewaehlt;
-	// 194-09: Ein Element ohne Fläche (ausgeblendet, leer) bekommt keinen Rahmen links oben in der Ecke.
-	const flaeche = Boolean(gewaehlt && gewaehlt.getClientRects().length > 0);
-	const box = flaeche ? gewaehlt?.getBoundingClientRect() : undefined;
+	const { ausgewaehlt, box, gestaltung, mitRahmen } = auswahlImBlatt(doc, auswahl);
 	const zieht = zug !== null || vonAussen;
-	const ausEbenen = !hover && doc && ebenenZeile !== null && !zieht ? zielZurZeile(doc, ebenenZeile) : null;
-	// Gestaltung hat ihren eigenen, gedrehten Rahmen mit Griffen (097); dieser bleibt nur fürs Hinrollen.
-	const gestaltung = gewaehlt?.matches(GESTALTUNG_SELEKTOR) === true;
+	const ausEbenen = zielAusEbenen(hover, doc, ebenenZeile, zieht);
 
 	return (
 		<div
@@ -789,11 +827,7 @@ export const Leinwand = ({
 				}
 			}}
 		>
-			<div
-				className="relative"
-				data-innen
-				style={{ width: innenBreite || '100%', height: masse ? Math.ceil(masse.hoehe * skala) : '60vh' }}
-			>
+			<div className="relative" data-innen style={innenStil(innenBreite, masse, skala)}>
 				{rahmen.map((r) => (
 					<iframe
 						key={r.nr}
@@ -822,7 +856,7 @@ export const Leinwand = ({
 				{ausEbenen && doc && !nurAnsehen && (
 					<Hoverrahmen ziel={ausEbenen} doc={doc} auswahl={auswahl} links={links} skala={skala} />
 				)}
-				{box && gewaehlt && flaeche && ausgewaehlt && nrVon(ausgewaehlt) !== null && !zieht && (
+				{box && mitRahmen && !zieht && (
 					<div
 						ref={auswahlRahmen}
 						className="pointer-events-none absolute rounded-[2px] border-[1.5px] border-brand-500"
@@ -842,7 +876,7 @@ export const Leinwand = ({
 					doc={doc}
 					einblendung={einblendung}
 					links={links}
-					luecke={hover?.art === 'luecke' && !zieht ? hover.luecke : null}
+					luecke={zieht ? null : lueckeImHover(hover)}
 					masse={masse}
 					skala={skala}
 					zieht={zieht}
@@ -851,7 +885,7 @@ export const Leinwand = ({
 				{!nurAnsehen && (
 					<Griffe
 						gewaehlt={ausgewaehlt}
-						groesse={groesse?.nr === auswahl && !gestaltung ? groesse : null}
+						groesse={gestaltung ? null : groesseAn(groesse, auswahl)}
 						links={links}
 						skala={skala}
 						ziehBreite={ziehBreite}

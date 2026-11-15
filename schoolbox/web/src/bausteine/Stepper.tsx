@@ -154,10 +154,8 @@ export const Stepper = ({
 						} else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
 							e.preventDefault();
 							const n = liesZahl(text);
-							gib(
-								(Number.isFinite(n) ? n : jetzt) +
-								(e.key === 'ArrowUp' ? grenzen.schritt : -grenzen.schritt),
-							);
+							const stufe = e.key === 'ArrowUp' ? grenzen.schritt : -grenzen.schritt;
+							gib((Number.isFinite(n) ? n : jetzt) + stufe);
 						} else if (e.key === 'Escape' && text !== zahlMitKomma(jetzt)) {
 							// Nur das Getippte verwerfen; ein zweites Esc gehört wieder der Umgebung.
 							e.preventDefault();

@@ -16,7 +16,8 @@ import type { AbbildungSteuerung } from './abbildung';
 import { hatWeitere } from './abbildung-felder';
 import { AbbildungFelder, AbbildungHinweise } from './Abbildungspanel';
 import type { Ablage } from './ablage';
-import { AusgeblendetHinweis, GesperrtHinweis, gesperrtIn } from './AusgeblendetHinweis';
+import { gesperrtIn } from './ausgeblendet-hilfe';
+import { AusgeblendetHinweis, GesperrtHinweis } from './AusgeblendetHinweis';
 import type { BildSteuerung } from './bild';
 import { BildKontext } from './bild';
 import { BildDarstellung, Bildwerkzeug } from './Bildpanel';
@@ -34,7 +35,7 @@ import { Pruefhinweise } from './Pruefliste';
 import type { Pruefpunkt, Pruefstand } from './pruefung';
 import { holeInSeiteAus } from './pruefung';
 import { Sprachwerkzeug } from './Sprachwerkzeug';
-import type { Struktur } from './struktur';
+import type { Spalten, Struktur } from './struktur';
 import type { useText } from './text';
 
 type ReiterName = 'auswahl' | 'blatt';
@@ -238,7 +239,7 @@ const OHNE_SICHTBARKEIT = new Set(['namenszeile', 'kopf', 'fuss']);
 const EIGENE_SICHTBARKEIT = new Set(['aufgabe', 'sternchenaufgabe', 'item', 'karte', 'tabellenzeile']);
 const STAPEL = new Set(['aufgabe', 'sternchenaufgabe', 'seite']);
 
-export const hatSichtbarkeit = (pfad: PfadTeil[], folien: boolean) => {
+const hatSichtbarkeit = (pfad: PfadTeil[], folien: boolean) => {
 	const art = pfad.at(-1)?.baustein.art;
 	const eltern = pfad.at(-2)?.baustein.art;
 	// 196-17: Folien haben keine Lösungsansicht.
@@ -297,9 +298,11 @@ const FolienNotiz = ({
 			rows={4}
 			value={text}
 			onChange={(e) => setText(e.target.value)}
-			onBlur={() =>
-				text.trim() !== wert &&
-				struktur.fuehreAus('Notiz geändert', (q) => ({ quelle: setzeNotiz(q, nr, text), nr }))}
+			onBlur={() => {
+				if (text.trim() !== wert) {
+					struktur.fuehreAus('Notiz geändert', (q) => ({ quelle: setzeNotiz(q, nr, text), nr }));
+				}
+			}}
 			onKeyDown={(e) => {
 				if (e.key === 'Escape' && text !== wert) {
 					e.preventDefault();
@@ -411,6 +414,174 @@ const inSeiteHolen =
 		};
 	};
 
+/** Was jede Einstellung eines Bausteins braucht, wie `KitWerkzeug` es nimmt. */
+interface Kit {
+	art: string;
+	aus: boolean;
+	folien: boolean;
+	nr: number;
+	quelle: string | null;
+	struktur: Struktur;
+}
+
+/** Hinweise über den Abschnitten: frei, ausgeblendet, gesperrt, unsichtbar, Prüfung, Abbildung, Sammlung. */
+const Hinweise = ({
+	abb,
+	ablage,
+	aktiv,
+	art,
+	doc,
+	gesperrt,
+	loesung,
+	nr,
+	pruefung,
+	quelle,
+	schalteAnsicht,
+	struktur,
+}: {
+	abb: AbbildungSteuerung;
+	ablage: Ablage;
+	aktiv: boolean;
+	art: string;
+	doc: Document | null;
+	gesperrt: number | null;
+	loesung: boolean;
+	nr: number;
+	pruefung: Pruefstand | null;
+	quelle: string | null;
+	schalteAnsicht: () => void;
+	struktur: Struktur;
+}) => (
+	<div className="flex flex-col gap-2 px-3 pb-2 empty:hidden" data-abschnitt="hinweise">
+		{FREIES_ELEMENT.has(art) && <FreiesElementHinweis />}
+		<AusgeblendetHinweis doc={doc} nr={nr} quelle={quelle} struktur={struktur} />
+		<GesperrtHinweis gesperrt={gesperrt} struktur={struktur} />
+		<UnsichtbarHinweis doc={doc} loesung={loesung} nr={nr} quelle={quelle} schalte={schalteAnsicht} />
+		<Pruefhinweise
+			stand={pruefung}
+			nr={nr}
+			gesperrt={gesperrt !== null}
+			knopf={inSeiteHolen(doc, struktur, gesperrt !== null)}
+		/>
+		<AbbildungHinweise abb={abb} />
+		{aktiv && quelle && <SammlungName ablage={ablage} />}
+	</div>
+);
+
+/** Abschnitt „Inhalt“: Bild, Abbildung, Notiz der Folie, Tabelle und die Einstellungen des Bausteins. */
+const InhaltAbschnitt = ({
+	abb,
+	aktiv,
+	bild,
+	inTabelle,
+	kit,
+	pfad,
+}: {
+	abb: AbbildungSteuerung;
+	aktiv: boolean;
+	bild: BildSteuerung;
+	inTabelle: boolean;
+	kit: Kit;
+	pfad: PfadTeil[];
+}) => {
+	const { art, aus, folien, nr, quelle, struktur } = kit;
+	return (
+		<Abschnitt name="inhalt" titel={ABSCHNITT_TITEL.inhalt}>
+			<Bildwerkzeug bild={bild} />
+			<AbbildungFelder abb={abb} abschnitt="inhalt" />
+			{aktiv && quelle && art === 'seite' && folien && (
+				<Feld titel="Notiz">
+					<FolienNotiz aus={aus} nr={nr} quelle={quelle} struktur={struktur} />
+				</Feld>
+			)}
+			{aktiv && (
+				<>
+					{!inTabelle && (
+						<TabellenWerkzeug
+							aus={aus}
+							folien={folien}
+							nr={nr}
+							pfad={pfad}
+							quelle={quelle}
+							struktur={struktur}
+						/>
+					)}
+					<KitWerkzeug {...kit} abschnitt="inhalt" />
+				</>
+			)}
+		</Abschnitt>
+	);
+};
+
+/** 196-20: Am Baustein „Punkte“ die Aufgabe, zu der er gehört. */
+const aufgabeDerPunkte = (art: string, pfad: PfadTeil[]) =>
+	art === 'punkte'
+		? pfad.findLast((t) => t.baustein.art === 'aufgabe' || t.baustein.art === 'sternchenaufgabe')
+		: undefined;
+
+/** 196-18: „Reihe · Spalten“ nur an der Reihe selbst und an ihrem direkten Kind. */
+const reiheHier = (spalten: Spalten | null, nr: number, pfad: PfadTeil[]) =>
+	spalten !== null && (spalten.nr === nr || pfad.at(-2)?.nr === spalten.nr);
+
+/** Die Abschnitte der Eltern: Tabelle an Zeile und Zelle, Aufgabe am Baustein „Punkte“, Reihe, dann „Weitere“. */
+const ElternAbschnitte = ({
+	abb,
+	aktiv,
+	doc,
+	inTabelle,
+	kit,
+	pfad,
+	spalten,
+}: {
+	abb: AbbildungSteuerung;
+	aktiv: boolean;
+	doc: Document | null;
+	inTabelle: boolean;
+	kit: Kit;
+	pfad: PfadTeil[];
+	spalten: Spalten | null;
+}) => {
+	const { art, aus, folien, nr, quelle, struktur } = kit;
+	const aufgabe = aufgabeDerPunkte(art, pfad);
+	const anzahl = eintraegeIn(doc, spalten?.nr);
+	return (
+		<>
+			{aktiv && inTabelle && (
+				<Abschnitt name="eltern-tabelle" titel="Tabelle">
+					<TabellenWerkzeug
+						aus={aus}
+						folien={folien}
+						nr={nr}
+						pfad={pfad}
+						quelle={quelle}
+						struktur={struktur}
+					/>
+				</Abschnitt>
+			)}
+			{aktiv && aufgabe && (
+				<Abschnitt name="eltern-aufgabe" titel="Aufgabe">
+					<KitWerkzeug {...kit} art="aufgabe" nr={aufgabe.nr} nur={['punkte']} abschnitt="bewertung" />
+				</Abschnitt>
+			)}
+			<Abschnitt
+				name="eltern"
+				titel={spalten?.name ?? ''}
+				// 196-32: Bei einem Eintrag gibt es kein „alle“
+				notiz={anzahl > 1 ? `gilt für alle ${anzahl} Einträge` : undefined}
+			>
+				{spalten && reiheHier(spalten, nr, pfad) && spalten.nr !== nr && (
+					<Spaltenwahl aus={aus} spalten={spalten} struktur={struktur} />
+				)}
+			</Abschnitt>
+			{hatWeitere(abb) && (
+				<Abschnitt name="weitere" titel={ABSCHNITT_TITEL.weitere} einklappbar zu>
+					<AbbildungFelder abb={abb} abschnitt="weitere" />
+				</Abschnitt>
+			)}
+		</>
+	);
+};
+
 /** Feste Abschnitte in fester Reihenfolge; was leer bleibt, blendet `Abschnitt` aus. */
 export const Einstellungen = ({
 	abb,
@@ -442,16 +613,8 @@ export const Einstellungen = ({
 	const folien = format === 'folie';
 	const kit = { art: baustein.art, aus, folien, nr, quelle, struktur };
 	const spalten = aktiv ? (struktur.werte?.spalten ?? null) : null;
-	// 196-18: „Reihe · Spalten“ nur an der Reihe selbst und an ihrem direkten Kind
-	const reiheHier = spalten !== null && (spalten.nr === nr || pfad.at(-2)?.nr === spalten.nr);
-	const anzahl = eintraegeIn(doc, spalten?.nr);
 	// 196-05: An Zeile und Zelle steht der Aufbau der Tabelle unten als ihr Eltern-Abschnitt.
 	const inTabelle = baustein.art === 'tabellenzeile' || baustein.art === 'tabellenzelle';
-	// 196-20: Am Baustein „Punkte“ die Punkte seiner Aufgabe
-	const aufgabe =
-		baustein.art === 'punkte'
-			? pfad.findLast((t) => t.baustein.art === 'aufgabe' || t.baustein.art === 'sternchenaufgabe')
-			: undefined;
 	// 196-21: Keine Lesehilfen an „Name:“ und „Datum:“; an der Zelle nach der Lösung
 	const sprachSpaeter = baustein.art === 'tabellenzelle';
 	const sprache = !pfad.some((t) => t.baustein.art === 'namenszeile') && (
@@ -466,20 +629,20 @@ export const Einstellungen = ({
 		/>
 	);
 	const hinweise = (
-		<div className="flex flex-col gap-2 px-3 pb-2 empty:hidden" data-abschnitt="hinweise">
-			{FREIES_ELEMENT.has(baustein.art) && <FreiesElementHinweis />}
-			<AusgeblendetHinweis doc={doc} nr={nr} quelle={quelle} struktur={struktur} />
-			<GesperrtHinweis gesperrt={gesperrt} struktur={struktur} />
-			<UnsichtbarHinweis doc={doc} loesung={loesung} nr={nr} quelle={quelle} schalte={schalteAnsicht} />
-			<Pruefhinweise
-				stand={pruefung}
-				nr={nr}
-				gesperrt={gesperrt !== null}
-				knopf={inSeiteHolen(doc, struktur, gesperrt !== null)}
-			/>
-			<AbbildungHinweise abb={abb} />
-			{aktiv && quelle && <SammlungName ablage={ablage} />}
-		</div>
+		<Hinweise
+			abb={abb}
+			ablage={ablage}
+			aktiv={aktiv}
+			art={baustein.art}
+			doc={doc}
+			gesperrt={gesperrt}
+			loesung={loesung}
+			nr={nr}
+			pruefung={pruefung}
+			quelle={quelle}
+			schalteAnsicht={schalteAnsicht}
+			struktur={struktur}
+		/>
 	);
 	// Gestaltung (099): eigene Abschnitte statt der Bausteine; Pfad und Hinweise bleiben.
 	if (istGestaltungAuswahl(baustein)) {
@@ -500,30 +663,7 @@ export const Einstellungen = ({
 				data-gesperrt-felder={gesperrt !== null || undefined}
 			>
 				{!sprachSpaeter && sprache}
-				<Abschnitt name="inhalt" titel={ABSCHNITT_TITEL.inhalt}>
-					<Bildwerkzeug bild={bild} />
-					<AbbildungFelder abb={abb} abschnitt="inhalt" />
-					{aktiv && quelle && baustein.art === 'seite' && folien && (
-						<Feld titel="Notiz">
-							<FolienNotiz aus={aus} nr={nr} quelle={quelle} struktur={struktur} />
-						</Feld>
-					)}
-					{aktiv && (
-						<>
-							{!inTabelle && (
-								<TabellenWerkzeug
-									aus={aus}
-									folien={folien}
-									nr={nr}
-									pfad={pfad}
-									quelle={quelle}
-									struktur={struktur}
-								/>
-							)}
-							<KitWerkzeug {...kit} abschnitt="inhalt" />
-						</>
-					)}
-				</Abschnitt>
+				<InhaltAbschnitt abb={abb} aktiv={aktiv} bild={bild} inTabelle={inTabelle} kit={kit} pfad={pfad} />
 				<Abschnitt name="darstellung" titel={ABSCHNITT_TITEL.darstellung}>
 					<BildDarstellung bild={bild} />
 					<AbbildungFelder abb={abb} abschnitt="darstellung" />
@@ -556,38 +696,15 @@ export const Einstellungen = ({
 						/>
 					)}
 				</Abschnitt>
-				{aktiv && inTabelle && (
-					<Abschnitt name="eltern-tabelle" titel="Tabelle">
-						<TabellenWerkzeug
-							aus={aus}
-							folien={folien}
-							nr={nr}
-							pfad={pfad}
-							quelle={quelle}
-							struktur={struktur}
-						/>
-					</Abschnitt>
-				)}
-				{aktiv && aufgabe && (
-					<Abschnitt name="eltern-aufgabe" titel="Aufgabe">
-						<KitWerkzeug {...kit} art="aufgabe" nr={aufgabe.nr} nur={['punkte']} abschnitt="bewertung" />
-					</Abschnitt>
-				)}
-				<Abschnitt
-					name="eltern"
-					titel={spalten?.name ?? ''}
-					// 196-32: Bei einem Eintrag gibt es kein „alle“
-					notiz={anzahl > 1 ? `gilt für alle ${anzahl} Einträge` : undefined}
-				>
-					{spalten && reiheHier && spalten.nr !== nr && (
-						<Spaltenwahl aus={aus} spalten={spalten} struktur={struktur} />
-					)}
-				</Abschnitt>
-				{hatWeitere(abb) && (
-					<Abschnitt name="weitere" titel={ABSCHNITT_TITEL.weitere} einklappbar zu>
-						<AbbildungFelder abb={abb} abschnitt="weitere" />
-					</Abschnitt>
-				)}
+				<ElternAbschnitte
+					abb={abb}
+					aktiv={aktiv}
+					doc={doc}
+					inTabelle={inTabelle}
+					kit={kit}
+					pfad={pfad}
+					spalten={spalten}
+				/>
 			</fieldset>
 		</div>
 	);

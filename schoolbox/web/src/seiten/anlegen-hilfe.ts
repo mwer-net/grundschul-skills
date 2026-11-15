@@ -2,6 +2,7 @@ import type { Antworten, AssistentSchrittId, Weg } from '@schoolbox/kern/src/ass
 import { formatOptionen, formatWahl, titelVorschlag } from '@schoolbox/kern/src/assistent';
 import type { Fach, Klasse } from '@schoolbox/kern/src/werte';
 
+import type { KiLimit } from '../editor/ki';
 import type { AblageStand } from '../ordner/typen';
 
 export const LETZTE = 'schoolbox.zuletzt-fach-klasse';
@@ -223,4 +224,12 @@ export const titelFehler = (stand: AblageStand | null, ordner: string | null, ti
 		stand.ordner.some((o) => o.eltern === ordner && vergleichbar(o.name) === t) ||
 		stand.dokumente.some((d) => d.ordner === ordner && vergleichbar(d.meta.titel) === t);
 	return vergeben ? `In diesem Ordner gibt es „${titel.trim()}“ schon. Wähle bitte einen anderen Titel.` : null;
+};
+
+/** Der Satz zum 5-Stunden-Fenster, sobald es zu `warnAb` genutzt ist (190-12). Vorher stand er nach dem Start. */
+export const fensterWarnung = (limit: KiLimit | null, warnAb: number) => {
+	const fenster = limit?.fenster.fuenfStunden.auslastung ?? null;
+	return fenster !== null && fenster >= warnAb
+		? `Dein 5-Stunden-Fenster ist schon zu ${Math.round(fenster * 100)} % genutzt. Die Einheit kann daran scheitern; „Weiterbauen“ geht danach.`
+		: null;
 };

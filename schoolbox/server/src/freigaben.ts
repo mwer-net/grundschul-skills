@@ -311,12 +311,10 @@ export const teilenRouter = (kontext: Kontext, sendeSeite: (status: number) => R
 			throw new HttpFehler(404, 'Nicht gefunden.');
 		}
 		const gewuenscht = text(req.query.ordner);
-		const gezeigt =
-			gewuenscht === undefined || gewuenscht === wurzel.id
-				? wurzel
-				: ordnerUnter(baum, wurzel.id).includes(gewuenscht)
-					? baum.ordner.find((o) => o.id === gewuenscht)
-					: undefined;
+		/** Ein Ordner unter der Wurzel; sonst nichts. */
+		const unterordner = (id: string) =>
+			ordnerUnter(baum, wurzel.id).includes(id) ? baum.ordner.find((o) => o.id === id) : undefined;
+		const gezeigt = gewuenscht === undefined || gewuenscht === wurzel.id ? wurzel : unterordner(gewuenscht);
 		if (!gezeigt) {
 			throw new HttpFehler(404, 'Nicht gefunden.');
 		}

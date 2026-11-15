@@ -39,6 +39,75 @@ const flaeche = (a: Rechteck, b: Rechteck) =>
 	Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) *
 	Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
 
+/** Eine schon getroffene Wahl, gemessen an der Box von jetzt; `null`, wenn es sie nicht (mehr) gibt. */
+const gemerkteStelle = (
+	wahl: Wahl | null,
+	zeilen: { oben: number; unten: number; obenEng: number; untenEng: number },
+	vonDx: (dx: number) => number,
+	{
+		neben,
+		nebenTop,
+		seite,
+	}: { neben: { 'neben-rechts': number; 'neben-links': number }; nebenTop: number; seite: Kante | null },
+) => {
+	if (wahl === null) {
+		return null;
+	}
+	const [seitenname, dx] = wahl.split(':');
+	if (seitenname !== undefined && seitenname in zeilen) {
+		return { links: vonDx(Number(dx)), top: zeilen[seitenname as keyof typeof zeilen], wahl };
+	}
+	if (seite && (wahl === 'neben-rechts' || wahl === 'neben-links')) {
+		return { links: neben[wahl], top: nebenTop, wahl };
+	}
+	return null;
+};
+
+/** Weitere waagerechte Stellen in einer Zeile mit Umfeld: links- und mittig am Element, am Seitenrand, neben Inhalt. */
+const xeMitUmfeld = (box: Kante, b: number, h: number, top: number, umfeld: Umfeld) => {
+	const A = LEISTEN_ABSTAND;
+	const xe = [box.links, (box.links + box.rechts - b) / 2];
+	if (umfeld.seite) {
+		xe.push(umfeld.seite.rechts - b, umfeld.seite.links);
+	}
+	// Gleich neben fremdem Inhalt in dieser Zeile.
+	for (const c of umfeld.inhalt) {
+		if (c.bottom > top && c.top < top + h) {
+			xe.push(c.right + A, c.left - b - A);
+		}
+	}
+	return xe;
+};
+
+/** Die Stelle, die am wenigsten fremden Inhalt verdeckt; Abstand zum Element kostet, bei Gleichstand die frühere. */
+const besteStelle = (
+	stellen: readonly { wahl: Wahl; links: number; top: number }[],
+	box: Kante,
+	mass: { breite: number; hoehe: number },
+	frei: number,
+	umfeld: Umfeld,
+) => {
+	const { breite: b, hoehe: h } = mass;
+	const A = LEISTEN_ABSTAND;
+	let beste = stellen[0];
+	let wert = Number.POSITIVE_INFINITY;
+	stellen.forEach((p, i) => {
+		const r = { left: p.links, right: p.links + b, top: p.top, bottom: p.top + h };
+		// Das eigene Element zu verdecken ist auch nicht gut, aber besser als fremden Inhalt.
+		const eigen = flaeche(r, { left: box.links, right: box.rechts, top: box.oben, bottom: box.unten }) / 4;
+		// Weit weg vom Element kostet auch: Eine Leiste, die man suchen muss, hilft nicht.
+		const weg =
+			Math.max(0, box.links - r.right, r.left - box.rechts) +
+			Math.max(0, box.oben - frei - A - r.bottom, r.top - box.unten - A);
+		const w = umfeld.inhalt.reduce((summe, c) => summe + flaeche(r, c), 0) + eigen + weg * ENTFERNUNG + i / 1000;
+		if (w < wert) {
+			wert = w;
+			beste = p;
+		}
+	});
+	return beste;
+};
+
 /**
  * Wo die Leiste am Element steht (204-15, 204-16, 204-N04), für Bausteine und Gestaltungselemente dieselbe Regel.
  * Ohne `umfeld`: über dem Element, sonst darunter, sonst oben im Sichtfeld; waagerecht rechtsbündig, bei einem Element
@@ -77,12 +146,9 @@ export const lageDerLeiste = (
 	const sichtStelle = { wahl: 'sicht', links: imSicht(anker), top: sicht.oben + A };
 
 	// Eine schon getroffene Wahl gilt weiter, gemessen an der Box von jetzt.
-	const [seitenname, dx] = (wahl ?? '').split(':');
-	if (wahl !== null && seitenname !== undefined && seitenname in zeilen) {
-		return { links: imSicht(box.rechts + Number(dx)), top: zeilen[seitenname as keyof typeof zeilen], wahl };
-	}
-	if (wahl !== null && seite && (wahl === 'neben-rechts' || wahl === 'neben-links')) {
-		return { links: neben[wahl], top: nebenTop, wahl };
+	const gemerkt = gemerkteStelle(wahl, zeilen, (dx) => imSicht(box.rechts + dx), { neben, nebenTop, seite });
+	if (gemerkt) {
+		return gemerkt;
 	}
 
 	const stellen: { wahl: Wahl; links: number; top: number }[] = [];
@@ -91,19 +157,7 @@ export const lageDerLeiste = (
 		if (!passt(top)) {
 			continue;
 		}
-		const xe = [anker];
-		if (umfeld) {
-			xe.push(box.links, (box.links + box.rechts - b) / 2);
-			if (seite) {
-				xe.push(seite.rechts - b, seite.links);
-			}
-			// Gleich neben fremdem Inhalt in dieser Zeile.
-			for (const c of umfeld.inhalt) {
-				if (c.bottom > top && c.top < top + h) {
-					xe.push(c.right + A, c.left - b - A);
-				}
-			}
-		}
+		const xe = umfeld ? [anker, ...xeMitUmfeld(box, b, h, top, umfeld)] : [anker];
 		for (const x of xe) {
 			const links = imSicht(x);
 			if (x === anker || imBlatt(links)) {
@@ -112,34 +166,16 @@ export const lageDerLeiste = (
 		}
 	}
 	if (seite && passt(nebenTop)) {
-		for (const [name, x] of Object.entries(neben)) {
-			if (ganzImSicht(x)) {
-				stellen.push({ wahl: name, links: x, top: nebenTop });
-			}
-		}
+		stellen.push(
+			...Object.entries(neben)
+				.filter(([, x]) => ganzImSicht(x))
+				.map(([name, x]) => ({ wahl: name, links: x, top: nebenTop })),
+		);
 	}
 	if (stellen.length === 0) {
 		return { ...sichtStelle };
 	}
-	let beste = stellen[0] ?? sichtStelle;
-	if (umfeld) {
-		let wert = Number.POSITIVE_INFINITY;
-		stellen.forEach((p, i) => {
-			const r = { left: p.links, right: p.links + b, top: p.top, bottom: p.top + h };
-			// Das eigene Element zu verdecken ist auch nicht gut, aber besser als fremden Inhalt.
-			const eigen = flaeche(r, { left: box.links, right: box.rechts, top: box.oben, bottom: box.unten }) / 4;
-			// Weit weg vom Element kostet auch: Eine Leiste, die man suchen muss, hilft nicht.
-			const weg =
-				Math.max(0, box.links - r.right, r.left - box.rechts) +
-				Math.max(0, box.oben - frei - A - r.bottom, r.top - box.unten - A);
-			const w =
-				umfeld.inhalt.reduce((summe, c) => summe + flaeche(r, c), 0) + eigen + weg * ENTFERNUNG + i / 1000;
-			if (w < wert) {
-				wert = w;
-				beste = p;
-			}
-		});
-	}
+	const beste = (umfeld ? besteStelle(stellen, box, mass, frei, umfeld) : stellen[0]) ?? sichtStelle;
 	return { links: beste.links, top: beste.top, wahl: beste.wahl };
 };
 

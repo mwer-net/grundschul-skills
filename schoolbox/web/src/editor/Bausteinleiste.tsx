@@ -146,32 +146,33 @@ const boxAufLeinwand = (e: Eigenschaften['e']) =>
  * ⋯. Kein Name, kein Griff, kein „+“, keine Knöpfe der Art: Die stehen im Inspektor und im ⋯. Beim Tippen bleiben die
  * Schriftknöpfe und „Fertig“ an ihrem Platz; die rechte Kante steht.
  */
-export const Bausteinleiste = ({ befehle, e, pfad, struktur, text }: Eigenschaften) => {
-	const leiste = useRef<HTMLDivElement>(null);
-	const [mass, setMass] = useState({ breite: 300, hoehe: 30 });
-	const fest = useRef(KEIN_PLATZ);
-	const sicht = useSichtfeld(e.doc);
-	const gewaehlt = pfad.at(-1);
-	const nr = gewaehlt?.nr ?? null;
-	const sitzung = text.bearbeitet;
+/** Was die Leiste zeigt: Claude und die Pfeile nicht in der Textsitzung, Textknöpfe nur an Text. */
+const teileDerLeiste = (befehle: Befehle, baustein: PfadTeil['baustein'], sitzung: boolean) => ({
+	claude: !sitzung && da(befehle, 'auswahl.claude'),
+	mitPfeilen: !sitzung && kannVerschieben(befehle.jetzt.current),
+	mitText: kann(baustein, 'text'),
+});
 
-	useLayoutEffect(() => {
-		const element = leiste.current;
-		if (!element) {
-			return;
-		}
-		const { offsetHeight: hoehe, offsetWidth: breite } = element;
-		setMass((alt) => (alt.breite === breite && alt.hoehe === hoehe ? alt : { breite, hoehe }));
-	});
-
-	// Bei Gestaltung steht dort die eigene Leiste (099); nur die Textsitzung behält diese Leiste mit „Fertig“.
-	const gestaltung = istGestaltungAuswahl(gewaehlt?.baustein);
-	const box = boxAufLeinwand(e);
-	if (!gewaehlt || !box || !sicht || nr === null || !(struktur.aktiv || sitzung) || (gestaltung && !sitzung)) {
-		return null;
-	}
-
-	const { baustein, name } = gewaehlt;
+/** Wo die Leiste steht; außerhalb der Textsitzung merkt `fest` Breite und Stelle. */
+const lageAmBaustein = ({
+	box,
+	e,
+	fest,
+	gestaltung,
+	mass,
+	nr,
+	sicht,
+	sitzung,
+}: {
+	box: NonNullable<ReturnType<typeof boxAufLeinwand>>;
+	e: Eigenschaften['e'];
+	fest: { current: Fest };
+	gestaltung: boolean;
+	mass: { breite: number; hoehe: number };
+	nr: number;
+	sicht: NonNullable<ReturnType<typeof useSichtfeld>>;
+	sitzung: boolean;
+}) => {
 	// 204-15: Am Gestaltungselement steht die Leiste wie dessen eigene über dem Drehgriff.
 	const frei = gestaltung ? DREH_ABSTAND : 0;
 	const element = elementZu(e.doc, nr);
@@ -194,10 +195,41 @@ export const Bausteinleiste = ({ befehle, e, pfad, struktur, text }: Eigenschaft
 	const links = bleibt
 		? Math.max(sicht.links + LEISTEN_ABSTAND, vorher.links + fest.current.breite - mass.breite)
 		: vorher.links;
-	const top = vorher.top;
-	const claude = !sitzung && da(befehle, 'auswahl.claude');
-	const mitPfeilen = !sitzung && kannVerschieben(befehle.jetzt.current);
-	const mitText = kann(baustein, 'text');
+	return { links, top: vorher.top };
+};
+
+export const Bausteinleiste = ({ befehle, e, pfad, struktur, text }: Eigenschaften) => {
+	const leiste = useRef<HTMLDivElement>(null);
+	const [mass, setMass] = useState({ breite: 300, hoehe: 30 });
+	const fest = useRef(KEIN_PLATZ);
+	const sicht = useSichtfeld(e.doc);
+	const gewaehlt = pfad.at(-1);
+	const nr = gewaehlt?.nr ?? null;
+	const sitzung = text.bearbeitet;
+
+	// Ohne Abhängigkeiten: misst nach jedem Bild; gleiche Maße lassen den Zustand, wie er ist.
+	useLayoutEffect(() => {
+		const miss = () => {
+			const element = leiste.current;
+			if (!element) {
+				return;
+			}
+			const { offsetHeight: hoehe, offsetWidth: breite } = element;
+			setMass((alt) => (alt.breite === breite && alt.hoehe === hoehe ? alt : { breite, hoehe }));
+		};
+		miss();
+	});
+
+	// Bei Gestaltung steht dort die eigene Leiste (099); nur die Textsitzung behält diese Leiste mit „Fertig“.
+	const gestaltung = istGestaltungAuswahl(gewaehlt?.baustein);
+	const box = boxAufLeinwand(e);
+	if (!gewaehlt || !box || !sicht || nr === null || !(struktur.aktiv || sitzung) || (gestaltung && !sitzung)) {
+		return null;
+	}
+
+	const { baustein, name } = gewaehlt;
+	const { links, top } = lageAmBaustein({ box, e, fest, gestaltung, mass, nr, sicht, sitzung });
+	const { claude, mitPfeilen, mitText } = teileDerLeiste(befehle, baustein, sitzung);
 	// Nach dem Schreiben geht der Fokus nach einem Menü ins Blatt zurück, nicht auf ⋯ (204-13).
 	const blatt = { current: (e.doc.defaultView?.frameElement as HTMLElement | null | undefined) ?? null };
 

@@ -401,6 +401,18 @@ const zeilenVon = (l: Lage, untermenue: MenueQuellen['untermenue'], ohne: readon
 		}),
 	);
 
+/** Was ein Eintrag tut: die einzige Datei laden, sonst das Untermenü öffnen, sonst den Befehl ausführen. */
+const wirkungVon = (
+	einzig: (() => void) | undefined,
+	unter: MenueEintrag[] | null,
+	befehl: () => void,
+): Pick<MenueEintrag, 'waehle' | 'untermenue'> => {
+	if (einzig) {
+		return { waehle: einzig };
+	}
+	return unter ? { untermenue: unter } : { waehle: befehl };
+};
+
 /** Baut das Menü: Unverfügbares bleibt weg (070). `ohne`: was die Leiste schon als Knopf zeigt (188-31). */
 export const menueVon = (
 	l: Lage,
@@ -419,7 +431,7 @@ export const menueVon = (
 			...(b.symbol ? { symbol: b.symbol } : {}),
 			...(b.gefahr ? { gefahr: true } : {}),
 			...(erstes ? { kuerzel: kuerzelText(erstes) } : {}),
-			...(einzig ? { waehle: einzig } : unter ? { untermenue: unter } : { waehle: () => fuehreAus(id, l) }),
+			...wirkungVon(einzig, unter, () => fuehreAus(id, l)),
 		});
 	}
 	return liste;

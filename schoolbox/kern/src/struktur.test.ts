@@ -398,16 +398,16 @@ describe('Spalten und Abstand', () => {
 });
 
 describe('Seitenbefehle kennen das Blatt (206-03)', () => {
-	const aufgabe = (i: number) => `<div class="aufgabe"><span class="nr">${i}</span></div>`;
+	const aufgabeHtml = (i: number) => `<div class="aufgabe"><span class="nr">${i}</span></div>`;
 	const QUELLE = `<!DOCTYPE html>
 <html lang="de">
 <head></head>
 <body class="kl2">
 <section class="seite">
-  ${[1, 2].map(aufgabe).join('\n  ')}
+  ${[1, 2].map(aufgabeHtml).join('\n  ')}
 </section>
 <section class="seite" data-weiter="auto">
-  ${[3, 4].map(aufgabe).join('\n  ')}
+  ${[3, 4].map(aufgabeHtml).join('\n  ')}
 </section>
 <section class="seite">
   <p>B</p>

@@ -580,8 +580,11 @@ describe('Werkzeuge (098)', () => {
 	});
 
 	it('⌘K findet Streuen unter „Konfetti“, „Punkte“ und „Sterne“ (174)', () => {
-		const woerter = BEFEHLE.find((b) => b.id === 'werkzeug.streuen')?.suchwoerter ?? [];
-		for (const wort of ['werkzeug', 'zeichnen', 'streuung', 'konfetti', 'punkte', 'sterne']) {
+		// 198-10: Das Werkzeug heißt „Konfetti“; „Streuen“ bleibt als Suchwort.
+		const streuen = BEFEHLE.find((b) => b.id === 'werkzeug.streuen');
+		assert.equal(streuen?.titel, 'Konfetti');
+		const woerter = streuen?.suchwoerter ?? [];
+		for (const wort of ['werkzeug', 'zeichnen', 'streuen', 'streuung', 'punkte', 'sterne']) {
 			assert.ok(woerter.includes(wort), wort);
 		}
 		const rechteck = BEFEHLE.find((b) => b.id === 'werkzeug.rechteck')?.suchwoerter ?? [];
@@ -630,8 +633,12 @@ describe('Kürzel aus dem Register (166)', () => {
 		assert.throws(() => kuerzelVon('gibt-es-nicht'), /gibt-es-nicht/);
 	});
 
-	it('beim Tippen gelten nur ⌘+, ⌘-, ⌘0, ⌘J, ⌘K, ⌘Z und ⇧⌘Z', () => {
-		assert.deepEqual(new Set(tastenBeimTippen(true)), new Set(['⌘+', '⌘-', '⌘0', '⌘J', '⌘K', '⌘Z', '⇧⌘Z']));
+	it('beim Tippen gelten nur ⌘+, ⌘-, ⌘0, ⌘J, ⌘K, ⌘S, ⌘Z, ⇧⌘Z und ⌥⇧K', () => {
+		// 193-05: ⌘S, sonst öffnet Safari „Seite sichern“; 193-31: ⌥⇧K meldet ein Problem wie ⌘K auch beim Schreiben.
+		assert.deepEqual(
+			new Set(tastenBeimTippen(true)),
+			new Set(['⌘+', '⌘-', '⌘0', '⌘J', '⌘K', '⌘S', '⌘Z', '⇧⌘Z', '⌥⇧K']),
+		);
 	});
 
 	it('die Leertaste heißt so', () => {
@@ -695,12 +702,12 @@ describe('Zoom-Tasten (184)', () => {
 		// S-15: Tasten freier Elemente stehen nicht unter „Gewählter Baustein“; keine Taste mit zwei Bedeutungen.
 		const baustein = abschnitte.find((a) => a.titel === 'Gewählter Baustein');
 		const frei = abschnitte.find((a) => a.titel === 'Freies Element');
-		for (const id of ['auswahl.nach-vorne', 'auswahl.sperren', 'auswahl.spiegeln', 'auswahl.gruppieren']) {
+		for (const befehl of ['auswahl.nach-vorne', 'auswahl.sperren', 'auswahl.spiegeln', 'auswahl.gruppieren']) {
 			assert.ok(
-				frei?.zeilen.some((z) => z.id === id),
-				id,
+				frei?.zeilen.some((z) => z.id === befehl),
+				befehl,
 			);
-			assert.ok(!baustein?.zeilen.some((z) => z.id === id), id);
+			assert.ok(!baustein?.zeilen.some((z) => z.id === befehl), befehl);
 		}
 		assert.ok(frei?.zeilen.some((z) => z.id.startsWith('auswahl.schiebe-')));
 		for (const a of abschnitte) {

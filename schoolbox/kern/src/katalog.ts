@@ -233,27 +233,6 @@ export const kategorienFuer = (fach: Fach, eintraege: readonly KatalogEintrag[] 
 	return [...VORNE, ...desFachs, ...FAECHER_DER_BIBLIOTHEK.filter((k) => !desFachs.includes(k)), ...HINTEN];
 };
 
-/**
- * Die Liste der Schnellauswahl, des Slash-Menüs und der Palette (203-13). Ohne Suchwort nur, was zum Blatt passt, in
- * der Reihenfolge von `kategorienFuer`; mit Suchwort alle Treffer im Angebot, die passenden zuerst. `ohne`: Kategorien,
- * die an diesem Ort nichts zu suchen haben (das Slash-Menü steht im Text einer Aufgabe).
- */
-export const angebotFuerBlatt = <T extends KatalogEintrag>(
-	angebot: readonly T[],
-	b: FuerBlatt,
-	anfrage = '',
-	ohne: readonly Kategorie[] = [],
-): T[] => {
-	const hier = angebot.filter((e) => !(ohne as readonly string[]).includes(e.kategorie));
-	if (anfrage.trim()) {
-		const treffer = sucheImKatalog(anfrage, hier);
-		return [...treffer.filter((e) => passtZuBlatt(e, b)), ...treffer.filter((e) => !passtZuBlatt(e, b))];
-	}
-	const ordnung = kategorienFuer(b.fach, hier) as readonly string[];
-	const rang = (e: T) => (ordnung.includes(e.kategorie) ? ordnung.indexOf(e.kategorie) : ordnung.length);
-	return hier.filter((e) => passtZuBlatt(e, b)).toSorted((x, y) => rang(x) - rang(y));
-};
-
 /** Wer „loschen“ oder „grosse“ tippt, meint „Löschen“ und „Größe“. */
 export const suchform = (t: string) =>
 	t.toLocaleLowerCase('de').replace(/ä/g, 'a').replace(/ö/g, 'o').replace(/ü/g, 'u').replace(/ß/g, 'ss');
@@ -273,4 +252,25 @@ export const sucheImKatalog = <T extends KatalogEintrag>(
 	});
 	const imNamen = (e: KatalogEintrag) => woerter.every((w) => suchform(e.name).includes(w));
 	return [...treffer.filter(imNamen), ...treffer.filter((e) => !imNamen(e))];
+};
+
+/**
+ * Die Liste der Schnellauswahl, des Slash-Menüs und der Palette (203-13). Ohne Suchwort nur, was zum Blatt passt, in
+ * der Reihenfolge von `kategorienFuer`; mit Suchwort alle Treffer im Angebot, die passenden zuerst. `ohne`: Kategorien,
+ * die an diesem Ort nichts zu suchen haben (das Slash-Menü steht im Text einer Aufgabe).
+ */
+export const angebotFuerBlatt = <T extends KatalogEintrag>(
+	angebot: readonly T[],
+	b: FuerBlatt,
+	anfrage = '',
+	ohne: readonly Kategorie[] = [],
+): T[] => {
+	const hier = angebot.filter((e) => !(ohne as readonly string[]).includes(e.kategorie));
+	if (anfrage.trim()) {
+		const treffer = sucheImKatalog(anfrage, hier);
+		return [...treffer.filter((e) => passtZuBlatt(e, b)), ...treffer.filter((e) => !passtZuBlatt(e, b))];
+	}
+	const ordnung = kategorienFuer(b.fach, hier) as readonly string[];
+	const rang = (e: T) => (ordnung.includes(e.kategorie) ? ordnung.indexOf(e.kategorie) : ordnung.length);
+	return hier.filter((e) => passtZuBlatt(e, b)).toSorted((x, y) => rang(x) - rang(y));
 };

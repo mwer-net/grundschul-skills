@@ -8,6 +8,14 @@ import type { PalettenEintrag } from './palette-suche';
 import { gruppiere, merkeBenutzt, startliste, suchePalette, zuletztBenutzt } from './palette-suche';
 import { TEXTWERKZEUG } from './text';
 
+/** Die Zeile für freien Text unter den Treffern. */
+interface Freitext {
+	titel: (text: string) => string;
+	aus: (text: string) => void;
+	/** Ist die Eingabe der Anfang eines Befehls, fehlt die Zeile (190-05). */
+	ausser?: (text: string) => boolean;
+}
+
 interface Eigenschaften {
 	eintraege: readonly PalettenEintrag[];
 	platzhalter: string;
@@ -15,14 +23,7 @@ interface Eigenschaften {
 	 * Letzte Zeile, sobald etwas getippt ist: im Editor „An Claude schicken“ (füllt das Feld der Blase, abgeschickt wird
 	 * von Hand), sonst „Material anlegen“ mit dem Text als Thema (136).
 	 */
-	freitext?:
-		| {
-				titel: (text: string) => string;
-				aus: (text: string) => void;
-				/** Ist die Eingabe der Anfang eines Befehls, fehlt die Zeile (190-05). */
-				ausser?: (text: string) => boolean;
-		  } |
-		  undefined;
+	freitext?: Freitext | undefined;
 	/** `true`: Es folgt gleich die Aktion der Zeile. */
 	schliessen: (ausgefuehrt: boolean) => void;
 }

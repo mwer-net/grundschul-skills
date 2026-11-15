@@ -9,6 +9,7 @@ import { Tooltip } from '../bausteine/Tooltip';
 import { Vorschau } from '../bausteine/Vorschau';
 import { laufWort, laufzeit, useJetzt } from '../editor/entwurf';
 import { ART_NAME, datum, FACH_FARBE, FACH_NAME, FORMAT_NAME, klasseName } from '../lib/text';
+import { listenRaster } from './darstellung-hilfe';
 import { NamensFeld } from './NamensFeld';
 import { inhaltText, seitenText, STRICH } from './objekte';
 import { BlattMini, OrdnerBild } from './OrdnerBild';
@@ -130,6 +131,22 @@ const Haken = ({ an }: { an: boolean }) => (
 	</span>
 );
 
+/** Gekürzt wird vorn: Der Ordner, in dem das Objekt liegt, steht immer ganz da; der volle Pfad im Tooltip (189-13). */
+const OrtText = ({ className, ort }: { className?: string; ort: { kurz: string; voll: string } }) => {
+	const trenner = ort.kurz.lastIndexOf(' › ');
+	const vorn = trenner < 0 ? '' : ort.kurz.slice(0, trenner);
+	const letzter = trenner < 0 ? ort.kurz : ort.kurz.slice(trenner + 3);
+	return (
+		<Tooltip text={ort.voll}>
+			<span className={klassen('flex min-w-0 whitespace-nowrap', className)} data-ort>
+				{vorn && <span className="min-w-0 truncate">{vorn}</span>}
+				{vorn && <span className="flex-none">{'\u00a0›\u00a0'}</span>}
+				<span className="max-w-full shrink-0 truncate">{letzter}</span>
+			</span>
+		</Tooltip>
+	);
+};
+
 export const Kachel = ({
 	benennt,
 	blass,
@@ -214,38 +231,6 @@ export interface ZeileAnsicht extends ObjektAnsicht {
 	mitMaterial: boolean;
 	claude?: ClaudeBaut | undefined;
 }
-
-/**
- * Spalten nach Platz: Unter dem Inhaltscontainer fallen Format, Klasse und Fach nacheinander weg. Ohne Material in
- * Sicht gibt es die drei gar nicht, der Platz geht an den Namen (188-35).
- */
-export const listenRaster = (mitMaterial: boolean, mitOrt = false) => {
-	// Der Ort braucht Platz für den letzten Ordner ganz (189-13); der Name gibt ihn ab.
-	if (mitOrt) {
-		return mitMaterial
-			? 'grid grid-cols-[minmax(0,1fr)_6.5rem_14rem] @3xl:grid-cols-[minmax(0,1fr)_6.5rem_14rem_7rem] @4xl:grid-cols-[minmax(0,1fr)_6.5rem_14rem_7rem_5rem_5rem_9rem]'
-			: 'grid grid-cols-[minmax(0,1fr)_6.5rem_14rem] @4xl:grid-cols-[minmax(0,1fr)_6.5rem_14rem_9rem]';
-	}
-	return mitMaterial
-		? 'grid grid-cols-[minmax(0,1fr)_6.5rem_8rem] @3xl:grid-cols-[minmax(0,1fr)_6.5rem_8rem_7rem] @4xl:grid-cols-[minmax(0,1fr)_6.5rem_8rem_7rem_5rem_5rem_9rem]'
-		: 'grid grid-cols-[minmax(0,1fr)_6.5rem_8rem] @4xl:grid-cols-[minmax(0,1fr)_6.5rem_8rem_9rem]';
-};
-
-/** Gekürzt wird vorn: Der Ordner, in dem das Objekt liegt, steht immer ganz da; der volle Pfad im Tooltip (189-13). */
-const OrtText = ({ className, ort }: { className?: string; ort: { kurz: string; voll: string } }) => {
-	const trenner = ort.kurz.lastIndexOf(' › ');
-	const vorn = trenner < 0 ? '' : ort.kurz.slice(0, trenner);
-	const letzter = trenner < 0 ? ort.kurz : ort.kurz.slice(trenner + 3);
-	return (
-		<Tooltip text={ort.voll}>
-			<span className={klassen('flex min-w-0 whitespace-nowrap', className)} data-ort>
-				{vorn && <span className="min-w-0 truncate">{vorn}</span>}
-				{vorn && <span className="flex-none">{'\u00a0›\u00a0'}</span>}
-				<span className="max-w-full shrink-0 truncate">{letzter}</span>
-			</span>
-		</Tooltip>
-	);
-};
 
 /** Im laufenden Jahr ohne Jahr, sonst mit (188-18). */
 const geaendertText = (wann: string) =>

@@ -108,7 +108,7 @@ const LinienMass = ({ aus, k, lage }: { k: GestaltungKontext; lage: Lage; aus: b
 	const [a, b] = enden;
 	const laenge = Math.round(Math.hypot(b.x - a.x, b.y - a.y));
 	// 198-N02: höchstens die Diagonale der Seite, wie B und H höchstens das Seitenmaß (198-12).
-	const seite = k.element.closest('.seite') as HTMLElement | null;
+	const seite = k.element.closest<HTMLElement>('.seite');
 	const maxLaenge = seite ? Math.round(Math.hypot(seite.offsetWidth, seite.offsetHeight)) : Number.POSITIVE_INFINITY;
 	const winkel = (Math.round((Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI) + 360) % 360;
 	const setze = (l: number, w: number) => {
@@ -150,6 +150,54 @@ const imLauf = (live: LiveLage | null, nr: number, ruhe: Kasten): Kasten => {
 	return { x: Math.round(x), y: Math.round(y), b: Math.round(b), h: Math.round(h), drehen };
 };
 
+/** Drehung und, bei Bild und Figur, Spiegeln in einer Zeile. */
+const DrehungZeile = ({
+	aus,
+	k,
+	lage,
+	winkel,
+}: {
+	k: GestaltungKontext;
+	lage: Lage;
+	/** Angezeigte Drehung, während einer Geste die am Zeiger. */
+	winkel: number;
+	aus: boolean;
+}) => {
+	const gespiegelt = (lage.spiegeln ?? 1) < 0;
+	return (
+		<div className="flex gap-1.5">
+			<Zahl
+				titel="Drehung"
+				name="Drehung"
+				einheit="°"
+				wert={winkel}
+				aus={aus}
+				zeige={(wert) => k.zeigeLage(k.nr, { drehen: wert ?? lage.drehen ?? null })}
+				setze={(wert) => {
+					const drehen = drehungImBereich(wert);
+					return schreibe(k, 'Gedreht', {
+						drehen: drehen === 0 && lage.drehen === undefined ? null : drehen,
+					});
+				}}
+			/>
+			{SPIEGELBAR.has(k.art) ? (
+				<label className="flex min-w-0 flex-1 items-center justify-between gap-1.5 pl-1.5 text-sm">
+					<span className="truncate">Spiegeln</span>
+					<Schalter
+						name="Spiegeln"
+						an={gespiegelt}
+						aus={aus}
+						data-spiegeln
+						setze={(an) => schreibe(k, 'Gespiegelt', { spiegeln: an ? -1 : null })}
+					/>
+				</label>
+			) : (
+				<span className="flex-1" />
+			)}
+		</div>
+	);
+};
+
 export const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 	// 120: Eine Gruppe mit Bild, Schrift oder gedrehtem Teil skaliert nur gleichmäßig.
 	const groesse =
@@ -162,11 +210,13 @@ export const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 	const lage = useMemo(() => leseLage(quelle, k.nr), [quelle, k.nr]);
 	const mass = gemessen(k.element);
 	const jetzt = { b: lage.b ?? mass.b, h: lage.h ?? mass.h };
+	// Text wächst mit dem Inhalt: seine Höhe ist die gemessene.
+	const hoehe = groesse === 'text' ? mass.h : jetzt.h;
 	const zeigt = imLauf(useLiveLage(), k.nr, {
 		x: Math.round(lage.x ?? 0),
 		y: Math.round(lage.y ?? 0),
 		b: jetzt.b,
-		h: groesse === 'text' ? mass.h : jetzt.h,
+		h: hoehe,
 		drehen: lage.drehen ?? 0,
 	});
 	const aus = !aktiv;
@@ -191,13 +241,11 @@ export const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 		if (!seite) {
 			return Math.round(wert);
 		}
-		const ausdehnung = feld === 'x' ? jetzt.b : groesse === 'text' ? mass.h : jetzt.h;
+		const ausdehnung = feld === 'x' ? jetzt.b : hoehe;
 		const voll = feld === 'x' ? seite.b : seite.h;
 		return Math.round(begrenze(wert, -ausdehnung / 2, voll - ausdehnung / 2));
 	};
 	const linie = k.element.matches('svg.form[data-form="linie"]');
-	const gespiegelt = (lage.spiegeln ?? 1) < 0;
-
 	return (
 		<div className="flex flex-col gap-1.5" data-gestaltung-position>
 			<div className="flex gap-1.5">
@@ -260,38 +308,7 @@ export const Position = ({ aktiv, k, quelle }: InspektorTeile) => {
 				)}
 			</div>
 			{/* 107: Eine Linie hat zwei Endpunkte und keine Drehung; ihr Winkel steht oben (198-04). */}
-			{!linie && (
-				<div className="flex gap-1.5">
-					<Zahl
-						titel="Drehung"
-						name="Drehung"
-						einheit="°"
-						wert={zeigt.drehen}
-						aus={aus}
-						zeige={(wert) => k.zeigeLage(k.nr, { drehen: wert ?? lage.drehen ?? null })}
-						setze={(wert) => {
-							const drehen = drehungImBereich(wert);
-							return schreibe(k, 'Gedreht', {
-								drehen: drehen === 0 && lage.drehen === undefined ? null : drehen,
-							});
-						}}
-					/>
-					{SPIEGELBAR.has(k.art) ? (
-						<label className="flex min-w-0 flex-1 items-center justify-between gap-1.5 pl-1.5 text-sm">
-							<span className="truncate">Spiegeln</span>
-							<Schalter
-								name="Spiegeln"
-								an={gespiegelt}
-								aus={aus}
-								data-spiegeln
-								setze={(an) => schreibe(k, 'Gespiegelt', { spiegeln: an ? -1 : null })}
-							/>
-						</label>
-					) : (
-						<span className="flex-1" />
-					)}
-				</div>
-			)}
+			{!linie && <DrehungZeile k={k} lage={lage} winkel={zeigt.drehen} aus={aus} />}
 		</div>
 	);
 };

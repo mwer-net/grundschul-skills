@@ -39,7 +39,7 @@ import type { Ablage } from './ablage';
 import type { PfadTeil } from './darstellung';
 import type { BlattSeite } from './gestaltung/blatt';
 import { BlattGestaltung } from './gestaltung/blatt';
-import { useReglerSchreiben } from './gestaltung/blatt/regler';
+import { useReglerSchreiben } from './gestaltung/blatt/regler-schreiben';
 import { palettenFarben } from './palettenfarben';
 import type { Spalten, Struktur } from './struktur';
 import { EIGENE_GESCHICHTE } from './tasten';

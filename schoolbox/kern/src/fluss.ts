@@ -39,12 +39,6 @@ interface Einsatz {
 
 const gleich = (a: readonly number[], b: readonly number[]) => a.length === b.length && a.every((x, i) => x === b[i]);
 
-/** Liegen die Blöcke schon so, wie der Plan sagt? Dann bleibt das Blatt unberührt. */
-const schonSo = (z: Zerlegung, blatt: Blatt, seiten: number[][]) =>
-	blatt.seiten.every((s, j) => gleich(s.bloecke, seiten[j] ?? [])) &&
-	seiten.slice(blatt.seiten.length).every((s) => s.length === 0) &&
-	blatt.seiten.every((s, j) => j === 0 || (seiten[j]?.length ?? 0) > 0 || hatFreieGestaltung(knoten(z, s.nr)));
-
 const knoten = (z: Zerlegung, nr: number) => {
 	const k = z.knoten[nr];
 	if (!k) {
@@ -52,6 +46,12 @@ const knoten = (z: Zerlegung, nr: number) => {
 	}
 	return k;
 };
+
+/** Liegen die Blöcke schon so, wie der Plan sagt? Dann bleibt das Blatt unberührt. */
+const schonSo = (z: Zerlegung, blatt: Blatt, seiten: number[][]) =>
+	blatt.seiten.every((s, j) => gleich(s.bloecke, seiten[j] ?? [])) &&
+	seiten.slice(blatt.seiten.length).every((s) => s.length === 0) &&
+	blatt.seiten.every((s, j) => j === 0 || (seiten[j]?.length ?? 0) > 0 || hatFreieGestaltung(knoten(z, s.nr)));
 
 /** Der Plan muss genau die Flussblöcke des Blatts in ihrer Reihenfolge nennen, und keine Seite davor bleibt leer. */
 const planGilt = (blatt: Blatt, seiten: number[][]) => {

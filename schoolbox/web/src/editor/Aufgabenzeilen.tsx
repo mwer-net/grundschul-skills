@@ -1,14 +1,6 @@
 import type { TextFeld } from '@schoolbox/kern/src/abbildungen';
 import type { Aussage, Frage } from '@schoolbox/kern/src/aufgabenzeilen';
-import {
-	aussagenText,
-	aussagenVerlustfrei,
-	aussagenVon,
-	fragenText,
-	fragenVerlustfrei,
-	fragenVon,
-	VERBOTEN,
-} from '@schoolbox/kern/src/aufgabenzeilen';
+import { aussagenText, aussagenVon, fragenText, fragenVon, VERBOTEN } from '@schoolbox/kern/src/aufgabenzeilen';
 import type { ReactNode, RefObject } from 'react';
 import { useEffect, useId, useRef, useState } from 'react';
 
@@ -19,7 +11,8 @@ import { Schalter as Umschalter } from '../bausteine/Schalter';
 import { Symbol } from '../bausteine/Symbol';
 import type { AbbildungSteuerung } from './abbildung';
 import type { FeldEigenschaften } from './Abbildungspanel';
-import { EINGABE, fertigMitEnter, Rahmen, Text, useZeilenZug, wertVon, ZeilenMenue } from './Abbildungspanel';
+import { EINGABE, Rahmen, Text, ZeilenMenue } from './Abbildungspanel';
+import { fertigMitEnter, useZeilenZug, wertVon } from './abbildungspanel-hilfe';
 
 /**
  * S-06 (UX 186): Ankreuzen und Richtig/falsch zeigen Zeilen wie Zuordnen und Sortieren. Die Kurzschrift im Attribut
@@ -105,7 +98,7 @@ const Zelle = ({
 );
 
 /** Liste oder Text, mit dem Knopf zum Wechseln. Passt der Wert nicht in Zeilen, bleibt es beim Text. */
-const ZeilenOderText = ({
+export const ZeilenOderText = ({
 	abb,
 	feld,
 	kurzschrift,
@@ -146,7 +139,7 @@ const ZeilenOderText = ({
 };
 
 /** Je Frage eine Zeile, darunter die Antworten mit Haken „richtig“. */
-const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & { umschalten: ReactNode }) => {
+export const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & { umschalten: ReactNode }) => {
 	const id = useId();
 	const wert = wertVon(feld, abb)?.wert ?? null;
 	const [fragen, setFragen] = useZeilen(wert, fragenVon, fragenText);
@@ -176,6 +169,8 @@ const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & {
 		}
 		return { text: `Antwort ${String(n)}`, richtig: false };
 	};
+	/** Der Zug endet unter der letzten Zeile. */
+	const zugAmEnde = zug?.nach === fragen.length;
 	return (
 		<Rahmen feld={feld} abb={abb} id={id}>
 			<div ref={behaelter} className="flex flex-col gap-2" data-liste={feld.attribut}>
@@ -186,9 +181,7 @@ const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & {
 							'flex flex-col gap-0.5 rounded-sm',
 							zug?.von === i && 'opacity-40',
 							zug?.nach === i && 'shadow-[0_-2px_0_0_var(--color-brand-500)]',
-							zug?.nach === fragen.length &&
-							i === fragen.length - 1 &&
-							'shadow-[0_2px_0_0_var(--color-brand-500)]',
+							zugAmEnde && i === fragen.length - 1 && 'shadow-[0_2px_0_0_var(--color-brand-500)]',
 						)}
 						data-zeile={i}
 					>
@@ -213,11 +206,12 @@ const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & {
 								wert={frage.frage}
 								verboten={VERBOTEN.frage}
 								zuViel={() => setZuViel(true)}
-								setze={(w, sofort) =>
+								setze={(w, sofort) => {
 									schreibe(
 										mitFrage(i, (f) => ({ ...f, frage: w })),
 										sofort,
-									)}
+									);
+								}}
 							/>
 							<ZeilenMenue
 								abb={abb}
@@ -246,7 +240,7 @@ const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & {
 												? 'border-brand-500 bg-brand-500 text-white'
 												: 'border-rand-feld bg-flaeche',
 										)}
-										onClick={() =>
+										onClick={() => {
 											schreibe(
 												mitFrage(i, (f) => ({
 													...f,
@@ -254,7 +248,8 @@ const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & {
 														m === j ? { ...b, richtig: !b.richtig } : b,
 													),
 												})),
-											)}
+											);
+										}}
 									>
 										{a.richtig && <Symbol name="haken" className="size-3" />}
 									</button>
@@ -264,7 +259,7 @@ const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & {
 										wert={a.text}
 										verboten={VERBOTEN.antwort}
 										zuViel={() => setZuViel(true)}
-										setze={(w, sofort) =>
+										setze={(w, sofort) => {
 											schreibe(
 												mitFrage(i, (f) => ({
 													...f,
@@ -273,7 +268,8 @@ const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & {
 													),
 												})),
 												sofort,
-											)}
+											);
+										}}
 									/>
 									<button
 										type="button"
@@ -281,13 +277,14 @@ const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & {
 										title="Antwort entfernen"
 										disabled={frage.antworten.length <= 1}
 										className="flex size-(--hoehe-feld) flex-none items-center justify-center rounded-md text-leise hover:bg-flaeche-2 disabled:opacity-40"
-										onClick={() =>
+										onClick={() => {
 											schreibe(
 												mitFrage(i, (f) => ({
 													...f,
 													antworten: f.antworten.filter((_, m) => m !== j),
 												})),
-											)}
+											);
+										}}
 									>
 										<Symbol name="schliessen" className="size-3" />
 									</button>
@@ -349,7 +346,7 @@ const FragenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & {
 };
 
 /** Je Aussage eine Zeile mit dem Umschalter „richtig“ (aus: falsch). */
-const AussagenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & { umschalten: ReactNode }) => {
+export const AussagenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> & { umschalten: ReactNode }) => {
 	const id = useId();
 	const wert = wertVon(feld, abb)?.wert ?? null;
 	const [aussagen, setAussagen] = useZeilen(wert, aussagenVon, aussagenText);
@@ -372,6 +369,8 @@ const AussagenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> &
 	const fokus = useFokusNach(behaelter);
 	const griffAn = (i: number) =>
 		behaelter.current?.querySelectorAll<HTMLButtonElement>('[data-zeile-griff]')[i]?.focus();
+	/** Der Zug endet unter der letzten Zeile. */
+	const zugAmEnde = zug?.nach === aussagen.length;
 	return (
 		<Rahmen feld={feld} abb={abb} id={id}>
 			<div ref={behaelter} className="flex flex-col gap-0.5" data-liste={feld.attribut}>
@@ -391,9 +390,7 @@ const AussagenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> &
 							'flex items-center gap-1 rounded-sm',
 							zug?.von === i && 'opacity-40',
 							zug?.nach === i && 'shadow-[0_-2px_0_0_var(--color-brand-500)]',
-							zug?.nach === aussagen.length &&
-							i === aussagen.length - 1 &&
-							'shadow-[0_2px_0_0_var(--color-brand-500)]',
+							zugAmEnde && i === aussagen.length - 1 && 'shadow-[0_2px_0_0_var(--color-brand-500)]',
 						)}
 						data-zeile={i}
 					>
@@ -456,31 +453,4 @@ const AussagenZeilen = ({ abb, feld, umschalten }: FeldEigenschaften<TextFeld> &
 			</div>
 		</Rahmen>
 	);
-};
-
-/** Felder, die Zeilen statt Kurzschrift zeigen; sonst `null`. */
-export const aufgabenZeilen = (abb: AbbildungSteuerung, feld: TextFeld) => {
-	if (abb.schema?.name === 'Ankreuzen' && feld.attribut === 'fragen') {
-		return (
-			<ZeilenOderText
-				abb={abb}
-				feld={feld}
-				verlustfrei={fragenVerlustfrei}
-				kurzschrift="Je Frage: erst die Frage, dann ein Doppelpunkt und die Antworten mit Komma. Ein * vor der Antwort markiert die richtige. Ein Semikolon trennt die Fragen."
-				liste={(u) => <FragenZeilen abb={abb} feld={feld} umschalten={u} />}
-			/>
-		);
-	}
-	if (abb.schema?.name === 'Richtig oder falsch' && feld.attribut === 'aussagen') {
-		return (
-			<ZeilenOderText
-				abb={abb}
-				feld={feld}
-				verlustfrei={aussagenVerlustfrei}
-				kurzschrift="Je Aussage: erst die Aussage, dann ein Doppelpunkt und r für richtig oder f für falsch. Ein Semikolon trennt die Aussagen."
-				liste={(u) => <AussagenZeilen abb={abb} feld={feld} umschalten={u} />}
-			/>
-		);
-	}
-	return null;
 };

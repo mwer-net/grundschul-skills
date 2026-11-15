@@ -6,17 +6,9 @@ import { SymbolKnopf } from '../../../bausteine/SymbolKnopf';
 import { Tooltip } from '../../../bausteine/Tooltip';
 import { kuerzelText } from '../../befehle';
 import type { SchubladenLage } from '../../schubladen';
-import { passtZurSuche } from '../../schubladen/formen/typ';
-import type { Werkzeug } from '.';
 import { WERKZEUGE } from '.';
 import { useWerkzeugStand, waehleWerkzeug } from './stand';
-
-/** Die Namen, unter denen die Suche der Schublade ein Werkzeug findet. */
-export const namenVon = (w: Werkzeug) => [w.titel, ...(w.suchwoerter ?? [])];
-
-/** 198-10: Werkzeuge mit eigener Kachel im Abschnitt „Zeichnen“, in dieser Lage und zu dieser Suche. */
-export const zeichenwerkzeuge = (lage: SchubladenLage, suche = '') =>
-	WERKZEUGE.filter((w) => w.kachel && w.bereit(lage) && passtZurSuche(namenVon(w), suche));
+import { zeichenwerkzeuge } from './werkzeugknoepfe-daten';
 
 /**
  * Abschnitt „Zeichnen“ der Schublade (198-10): Stift, Form aus Punkten und Konfetti als Kacheln mit Symbol und Wort wie

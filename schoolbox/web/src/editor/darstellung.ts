@@ -25,6 +25,9 @@ import { gestaltungsText, teileVon, titelDerGestaltung } from './gestaltung-tite
 /** 206-07: Beim Tippen rücken die Blöcke hinter dem getippten Block schon im Bild weiter. `false`: erst am Ende. */
 export const MITLAUFEN = true;
 
+/** 206-07: Die Seite schneidet den Block, in dem getippt wird, nicht ab; die Schreibmarke bleibt zu sehen. */
+const MITLAUFEN_STIL = MITLAUFEN ? 'body>.seite:has([contenteditable=true]){overflow:visible!important}' : '';
+
 const EDITOR_STIL =
 	'<style data-editor data-grau-roh>html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;' +
 	'touch-action:pan-x pan-y}' +
@@ -44,10 +47,7 @@ const EDITOR_STIL =
 	// 194-18: Ein geleerter Text behält im Editor eine Zeile Höhe und bleibt anklickbar.
 	':is(h1,h2,h3,h4,p):empty{min-height:1em;min-height:1lh}' +
 	'.flaeche{outline:1px dashed rgba(0,0,0,.3);outline-offset:-1px}' +
-	`[data-flaeche-offen] .flaeche{overflow:visible!important}${
-	// 206-07: Die Seite schneidet den Block, in dem getippt wird, nicht ab; die Schreibmarke bleibt zu sehen.
-	MITLAUFEN ? 'body>.seite:has([contenteditable=true]){overflow:visible!important}' : ''
-	}</style>`;
+	`[data-flaeche-offen] .flaeche{overflow:visible!important}${MITLAUFEN_STIL}</style>`;
 
 /** Die Prüfung aus blatt.py, hier ohne Selbststart: Der Editor ruft `pruefeBlatt` nach jeder Änderung (020). */
 const PRUEFUNG = '<script src="pruefung.js" data-manuell defer></script>';
@@ -116,6 +116,26 @@ export const trefferAn = (start: Element | null): Treffer | null => {
 
 export const elementZu = (doc: Document, nr: number) => doc.querySelector(`[${MARKE}="${nr}"]`);
 
+const istAeussereSeite = (e: Element | null): e is Element =>
+	e !== null && e.matches('.seite') && e.parentElement === e.ownerDocument.body;
+const istAutomatisch = (e: Element | null) => istAeussereSeite(e) && e.getAttribute('data-weiter') === 'auto';
+
+/** 206: Ist `umgebung` eine Seite, gezählt wird im ganzen Blatt (die feste Seite und die automatischen dahinter). */
+const blattSeitenZu = (umgebung: Element): Element[] => {
+	if (!istAeussereSeite(umgebung)) {
+		return [umgebung];
+	}
+	let erste = umgebung;
+	while (istAutomatisch(erste) && istAeussereSeite(erste.previousElementSibling)) {
+		erste = erste.previousElementSibling;
+	}
+	const seiten = [erste];
+	for (let n = erste.nextElementSibling; n && istAutomatisch(n); n = n.nextElementSibling) {
+		seiten.push(n);
+	}
+	return seiten;
+};
+
 /** Wie der Baustein in Pfad und Gliederung heißt; `umgebung` ist der Baustein darum, in dem gezählt wird. */
 export const nameVon = ({ baustein, element }: Treffer, umgebung: Element | null) => {
 	const { sonderfall } = baustein;
@@ -155,26 +175,6 @@ export const nameVon = ({ baustein, element }: Treffer, umgebung: Element | null
 		.flatMap((ort) => [...ort.querySelectorAll(baustein.selektor)])
 		.filter((e) => !(sonderfall && e.matches(sonderfall.selektor)) && bausteinVon(e) === baustein);
 	return `${name} ${geschwister.indexOf(element) + 1}`;
-};
-
-const istAeussereSeite = (e: Element | null): e is Element =>
-	e !== null && e.matches('.seite') && e.parentElement === e.ownerDocument.body;
-const istAutomatisch = (e: Element | null) => istAeussereSeite(e) && e.getAttribute('data-weiter') === 'auto';
-
-/** 206: Ist `umgebung` eine Seite, gezählt wird im ganzen Blatt (die feste Seite und die automatischen dahinter). */
-const blattSeitenZu = (umgebung: Element): Element[] => {
-	if (!istAeussereSeite(umgebung)) {
-		return [umgebung];
-	}
-	let erste = umgebung;
-	while (istAutomatisch(erste) && istAeussereSeite(erste.previousElementSibling)) {
-		erste = erste.previousElementSibling;
-	}
-	const seiten = [erste];
-	for (let n = erste.nextElementSibling; n && istAutomatisch(n); n = n.nextElementSibling) {
-		seiten.push(n);
-	}
-	return seiten;
 };
 
 export interface PfadTeil {

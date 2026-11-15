@@ -86,13 +86,14 @@ export const Pfad = ({ fehlt = false, gehe, pfad }: Eigenschaften) => {
 			style={letzter ? { minWidth: VORSPANN + letzterMin } : undefined}
 			data-pfad
 		>
-			{ohneWurzel ? null : letzter || fehlt ? (
-				<Link to="/" className={STUECK} data-ablage-ziel="wurzel" data-pfad-stueck="wurzel">
-					<Gekuerzt text={WURZEL_NAME} />
-				</Link>
-			) : (
-				<h1 className="truncate px-1 text-sm font-semibold">{WURZEL_NAME}</h1>
-			)}
+			{!ohneWurzel &&
+				(letzter || fehlt ? (
+					<Link to="/" className={STUECK} data-ablage-ziel="wurzel" data-pfad-stueck="wurzel">
+						<Gekuerzt text={WURZEL_NAME} />
+					</Link>
+				) : (
+					<h1 className="truncate px-1 text-sm font-semibold">{WURZEL_NAME}</h1>
+				))}
 			{(mitte.length > 0 || ohneWurzel) && (
 				<>
 					{!ohneWurzel && <Trenner />}

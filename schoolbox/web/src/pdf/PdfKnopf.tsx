@@ -86,6 +86,13 @@ export const PdfKnopf = ({
 		...(echteMasse ? [{ titel: ECHTE_MASSE, gruppe: 'masse', aus: true }] : []),
 	];
 	const name = laeuft ? PDF_LAEUFT : undefined;
+	// Mit Tooltip ein eigener Auslöser mit Pfeil; ohne nimmt das Menü seinen eigenen.
+	const mitTooltip = tooltip ? (
+		<MitTooltip tooltip={tooltip} art={art} groesse={groesse}>
+			{inhalt}
+			<Symbol name="runter" className="size-3 flex-none" />
+		</MitTooltip>
+	) : undefined;
 	return (
 		<>
 			{wahl.length > 1 || (echteMasse && erste) ? (
@@ -101,12 +108,9 @@ export const PdfKnopf = ({
 							<Knopf art={art} groesse={groesse} className="px-1.5!">
 								{inhalt}
 							</Knopf>
-						) : tooltip ? (
-							<MitTooltip tooltip={tooltip} art={art} groesse={groesse}>
-								{inhalt}
-								<Symbol name="runter" className="size-3 flex-none" />
-							</MitTooltip>
-						) : undefined
+						) : (
+							mitTooltip
+						)
 					}
 					eintraege={eintraege}
 				/>

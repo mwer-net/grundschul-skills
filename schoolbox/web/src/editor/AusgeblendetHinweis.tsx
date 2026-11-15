@@ -44,12 +44,6 @@ export const AusgeblendetHinweis = ({
 	);
 };
 
-/** Nummer des gesperrten Elements (`data-gesperrt`), in dem die Auswahl liegt, sonst `null`. */
-export const gesperrtIn = (doc: Document | null, nr: number) => {
-	const element = doc ? elementZu(doc, nr)?.closest('[data-gesperrt]') : null;
-	return element ? nrVon(element) : null;
-};
-
 /**
  * Gesperrt (`data-gesperrt`): Wie beim Ausgeblendeten sagt der Inspektor es und bietet „Entsperren“; die Felder
  * darunter lassen sich bis dahin nicht bedienen (Abnahme G4 für 196).

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 
+import type { ApiFehler } from '../api';
 import { Blattansicht } from '../bausteine/Blattansicht';
 import { Gekuerzt } from '../bausteine/Gekuerzt';
 import { useHinweis } from '../bausteine/hinweis';
@@ -31,13 +32,14 @@ import {
 	praesentationSeite,
 } from '../lib/zugang';
 import { useClaudeBaut } from '../ordner/claude-baut';
+import type { ClaudeBaut } from '../ordner/darstellung';
 import { ClaudeBautPille } from '../ordner/darstellung';
 import { useOrdnerDesDokuments } from '../ordner/kontext';
 import { PdfKnopf } from '../pdf/PdfKnopf';
 import { dokumentWahl, materialName } from '../pdf/wahl';
 import { SOFORT, vollbildFuerSofort } from '../praesentation/laufzeit';
 import { TeilenDialog } from '../teilen/TeilenDialog';
-import type { DokumentEintrag, Mappe } from '../typen';
+import type { DokumentEintrag, DokumentMeta, Mappe } from '../typen';
 import { MaterialFehlt, NICHT_GEFUNDEN } from './NichtGefunden';
 
 interface Eigenschaften {
@@ -199,8 +201,13 @@ const useBefehleDerAnsicht = (zugang: Zugang, dokument: DokumentEintrag | undefi
 	useMeldeSeitenbefehle(liste);
 };
 
+interface Ort {
+	adresse: string;
+	name: string;
+}
+
 interface LeisteEigenschaften {
-	zurueck: { adresse: string; name: string } | null;
+	zurueck: Ort | null;
 	/** Titel und Angaben, links neben dem Zurück-Knopf. */
 	titel?: ReactNode;
 	children?: ReactNode;
@@ -234,6 +241,78 @@ const Leiste = ({ children, titel, zurueck }: LeisteEigenschaften) => (
 	</div>
 );
 
+/** Wohin „Zurück“ führt: an den Ort im geteilten Ordner, in den Ordner der Ablage, sonst zur Mappe. */
+const zurueckZiel = (
+	zugang: Zugang,
+	geteilterOrt: Ort | null,
+	ablageOrt: Ort | null,
+	mappenTitel: string | undefined,
+): Ort => {
+	if (geteilterOrt) {
+		return geteilterOrt;
+	}
+	if (ablageOrt) {
+		return ablageOrt;
+	}
+	if (mappenTitel !== undefined) {
+		return { adresse: mappenSeite(zugang), name: mappenTitel };
+	}
+	return { adresse: istGeteilt(zugang) ? mappenSeite(zugang) : '/', name: '' };
+};
+
+/** Der Titel im Browser; ist alles da, aber das Material nicht, „nicht gefunden“. */
+const dokumentTitel = (titel: string | undefined, geladen: boolean) => titel ?? (geladen ? NICHT_GEFUNDEN : undefined);
+
+/**
+ * Noch nichts geladen: die Leiste und ein Kreisel; sonst fehlt das Material. Keine Komponente: React nimmt die Leiste an
+ * dieser Stelle weiter.
+ */
+const ohneDokument = (zurueck: Ort | null, fehler: ApiFehler | null, geladen: boolean, geteilt: boolean) => {
+	if (!fehler && !geladen) {
+		return (
+			<>
+				<Leiste zurueck={zurueck} />
+				<div className="mt-2" data-ansicht-laedt>
+					<div className="flex h-[60vh] items-center justify-center rounded-2xl bg-leinwand text-leise">
+						<Symbol name="laden" className="size-6 animate-spin" />
+					</div>
+				</div>
+			</>
+		);
+	}
+	return <MaterialFehlt fehler={fehler} geteilt={geteilt} />;
+};
+
+/** Art, Format und Umfang unter dem Titel. */
+const angabenVon = (meta: DokumentMeta) => {
+	const folie = meta.format === 'folie';
+	const umfang = folie ? anzahl(meta.seiten, 'Folie', 'Folien') : anzahl(meta.seiten, 'Seite', 'Seiten');
+	return [ART_NAME[meta.art], FORMAT_NAME[meta.format], ...(meta.seiten > 0 ? [umfang] : [])].join(' · ');
+};
+
+/** Baut Claude an diesem Blatt, sagt die Ansicht es wie die Kachel; Klick öffnet den Editor (190-11). */
+const TitelMarke = ({
+	claude,
+	dok,
+	entwurf,
+	zugang,
+}: {
+	claude: ClaudeBaut | undefined;
+	dok: string;
+	entwurf: boolean;
+	zugang: Zugang;
+}) => {
+	if (claude) {
+		return (
+			<Link to={editorSeite(zugang, dok)} state={AUS_ANSICHT} className="no-underline">
+				<ClaudeBautPille {...claude} />
+			</Link>
+		);
+	}
+	// Der Stand ist Sache der Lehrkraft; die Kollegin im Link sieht keine Plakette (S-13).
+	return entwurf && <Marke>Entwurf</Marke>;
+};
+
 /**
  * Ein Dokument ansehen, als PDF herunterladen und teilen; für die Lehrkraft und genauso hinter Teilen-Links. Ändert
  * Claude das Material, lädt die Ansicht von selbst neu.
@@ -247,7 +326,7 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 	const zeige = useHinweis();
 	const dokument = daten?.dokumente.find((d) => d.id === dok);
 	const zurueckOrt = useOrdnerDesDokuments(geteilt ? null : zugang.mappe, dok);
-	useTitel(dokument?.meta.titel ?? (fehler || daten ? NICHT_GEFUNDEN : undefined));
+	useTitel(dokumentTitel(dokument?.meta.titel, Boolean(fehler || daten)));
 	const ansicht = useAnsichtsProfil(zugang, dok, dokument?.meta);
 	const oeffneTeilen = useMemo(() => () => setTeilen(true), []);
 	useBefehleDerAnsicht(zugang, dokument, oeffneTeilen);
@@ -282,30 +361,10 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 	}, [bereit]);
 
 	const geteilterOrt = zurueckZurMappe && geteilt ? ortVon(dok) : null;
-	const zurueck = !zurueckZurMappe
-		? null
-		: geteilterOrt
-			? geteilterOrt
-			: zurueckOrt
-				? zurueckOrt
-				: daten
-					? { adresse: mappenSeite(zugang), name: daten.mappe.titel }
-					: { adresse: geteilt ? mappenSeite(zugang) : '/', name: '' };
+	const zurueck = zurueckZurMappe ? zurueckZiel(zugang, geteilterOrt, zurueckOrt, daten?.mappe.titel) : null;
 
 	if (!daten || !dokument) {
-		if (!fehler && !daten) {
-			return (
-				<>
-					<Leiste zurueck={zurueck} />
-					<div className="mt-2" data-ansicht-laedt>
-						<div className="flex h-[60vh] items-center justify-center rounded-2xl bg-leinwand text-leise">
-							<Symbol name="laden" className="size-6 animate-spin" />
-						</div>
-					</div>
-				</>
-			);
-		}
-		return <MaterialFehlt fehler={fehler} geteilt={geteilt} />;
+		return ohneDokument(zurueck, fehler, Boolean(daten), geteilt);
 	}
 
 	const { mappe } = daten;
@@ -318,44 +377,20 @@ export const Dokumentansicht = ({ dok, zugang, zurueckZurMappe }: Eigenschaften)
 	const entwuerfe = !geteilt && meta.entwuerfe.length > 0;
 	const zeigeLoesung = (ja: boolean) => setSuche(ja ? { fassung: 'loesung' } : {}, { replace: true });
 	const { profil } = ansicht;
-	const folie = meta.format === 'folie';
+
+	const titelZeile = (
+		<>
+			<h1 className={`flex min-w-0 items-center gap-2 text-sm font-semibold ${zurueck ? 'ml-[11px]' : ''}`}>
+				<Gekuerzt text={meta.titel} />
+				<TitelMarke claude={claude} dok={dok} entwurf={!geteilt && meta.status === 'entwurf'} zugang={zugang} />
+			</h1>
+			<p className="ml-1 truncate text-xs text-leise max-lg:hidden">{angabenVon(meta)}</p>
+		</>
+	);
 
 	return (
 		<>
-			<Leiste
-				zurueck={zurueck}
-				titel={(
-					<>
-						<h1
-							className={`flex min-w-0 items-center gap-2 text-sm font-semibold ${zurueck ? 'ml-[11px]' : ''}`}
-						>
-							<Gekuerzt text={meta.titel} />
-							{/* Baut Claude an diesem Blatt, sagt die Ansicht es wie die Kachel; Klick öffnet den Editor (190-11). */}
-							{claude ? (
-								<Link to={editorSeite(zugang, dok)} state={AUS_ANSICHT} className="no-underline">
-									<ClaudeBautPille {...claude} />
-								</Link>
-							) : (
-								// Der Stand ist Sache der Lehrkraft; die Kollegin im Link sieht keine Plakette (S-13).
-								!geteilt && meta.status === 'entwurf' && <Marke>Entwurf</Marke>
-							)}
-						</h1>
-						<p className="ml-1 truncate text-xs text-leise max-lg:hidden">
-							{[
-								ART_NAME[meta.art],
-								FORMAT_NAME[meta.format],
-								...(meta.seiten > 0
-									? [
-											folie
-												? anzahl(meta.seiten, 'Folie', 'Folien')
-												: anzahl(meta.seiten, 'Seite', 'Seiten'),
-										]
-									: []),
-							].join(' · ')}
-						</p>
-					</>
-				)}
-			>
+			<Leiste zurueck={zurueck} titel={titelZeile}>
 				<div className="flex flex-none items-center gap-1.5">
 					{meta.hatLoesung && (
 						<Segment

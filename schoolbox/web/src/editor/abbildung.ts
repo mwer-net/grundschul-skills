@@ -45,65 +45,6 @@ export interface AusDemBlatt {
 }
 
 /**
- * 207 (197-N02, 207-N02): Grenzen, die vom Platz abhängen, kennt nur die Zeichnung in `abbildungen.js`. Bricht sie
- * wegen des Platzes ab (`data-fehler-platz`), die gespeicherte Zahl aber zeichnet, nimmt das Panel die nächste Zahl
- * zur Eingabe hin, die sich noch zeichnen lässt. Jeder andere Fehler (keine Lösung, zu viele Linien) bleibt stehen,
- * wie er ist, mit dem Text der Zeichnung. So bleibt die Zeichnung die eine Quelle, und nichts, was zeichnet, wird
- * abgewiesen.
- */
-/**
- * S-01 (UX 186): Ein Feld mit `bisZumRand` endet am Satzspiegel. Eine größere Eingabe wird zur größten Zahl, die noch
- * auf die Seite passt (in Schritten des Felds); die Hinweisleiste sagt es. Gespeicherte Werte bleiben, wie sie sind.
- */
-const bisZumRand = (doc: Document, nr: number, feld: Feld, neu: Werte) => {
-	if (feld.art !== 'zahl' || !feld.bisZumRand) {
-		return null;
-	}
-	const ziel = Number(neu[feld.attribut]);
-	const rand = randGrenze(doc, nr, feld);
-	if (rand === null || !Number.isFinite(ziel) || ziel <= rand) {
-		return null;
-	}
-	const schritt = feld.schritt ?? 1;
-	const wert = Math.floor((rand - feld.min) / schritt) * schritt + feld.min;
-	return wert < feld.min || wert >= ziel ? null : { werte: { ...neu, [feld.attribut]: String(wert) }, wert };
-};
-
-const zeichenbarBis = (doc: Document, nr: number, s: AbbildungSchema, vorher: Werte, neu: Werte, feld: Feld) => {
-	if (feld.art !== 'zahl' || feld.loesung) {
-		return null;
-	}
-	const alt = Number(vorher[feld.attribut] ?? feld.standardJe?.(vorher) ?? feld.standard);
-	const ziel = Number(neu[feld.attribut]);
-	if (!Number.isFinite(alt) || !Number.isFinite(ziel) || alt === ziel) {
-		return null;
-	}
-	const mit = (z: number): Werte => ({ ...neu, [feld.attribut]: String(z) });
-	const stand = (z: number) => {
-		zeichne(doc, nr, mit(z), s);
-		return liesVomBlatt(doc, nr);
-	};
-	const amZiel = stand(ziel);
-	if (!amZiel.fehler || !amZiel.platz || stand(alt).fehler) {
-		return null;
-	}
-	const geht = (z: number) => !stand(z).fehler;
-	const schritt = Number.isInteger(alt) && Number.isInteger(ziel) ? 1 : (feld.schritt ?? 1);
-	let gut = alt;
-	let schlecht = ziel;
-	while (Math.abs(schlecht - gut) > schritt + 1e-9) {
-		const k = Math.max(1, Math.floor(Math.abs(schlecht - gut) / schritt / 2));
-		const mitte = Number((gut + Math.sign(schlecht - gut) * k * schritt).toFixed(6));
-		if (geht(mitte)) {
-			gut = mitte;
-		} else {
-			schlecht = mitte;
-		}
-	}
-	return gut === alt ? null : { werte: mit(gut), wert: gut, grund: amZiel.fehler };
-};
-
-/**
  * S-01 (UX 186): Bis wohin ein Feld mit `bisZumRand` reicht, ohne dass die Zeichnung über den Satzspiegel ihrer Seite
  * ragt. Gemessen am gezeichneten Element: dessen Wert plus der Platz bis zum rechten Rand des Satzspiegels (Format und
  * Ränder der Seite zählen, auch ein Zoom). Die Zeichnung wächst mit dem Wert um genau so viel; `null` ohne Seite.
@@ -245,6 +186,119 @@ const liesVomBlatt = (doc: Document, nr: number): AusDemBlatt => {
 };
 
 /**
+ * 207 (197-N02, 207-N02): Grenzen, die vom Platz abhängen, kennt nur die Zeichnung in `abbildungen.js`. Bricht sie
+ * wegen des Platzes ab (`data-fehler-platz`), die gespeicherte Zahl aber zeichnet, nimmt das Panel die nächste Zahl
+ * zur Eingabe hin, die sich noch zeichnen lässt. Jeder andere Fehler (keine Lösung, zu viele Linien) bleibt stehen,
+ * wie er ist, mit dem Text der Zeichnung. So bleibt die Zeichnung die eine Quelle, und nichts, was zeichnet, wird
+ * abgewiesen.
+ */
+/**
+ * S-01 (UX 186): Ein Feld mit `bisZumRand` endet am Satzspiegel. Eine größere Eingabe wird zur größten Zahl, die noch
+ * auf die Seite passt (in Schritten des Felds); die Hinweisleiste sagt es. Gespeicherte Werte bleiben, wie sie sind.
+ */
+const bisZumRand = (doc: Document, nr: number, feld: Feld, neu: Werte) => {
+	if (feld.art !== 'zahl' || !feld.bisZumRand) {
+		return null;
+	}
+	const ziel = Number(neu[feld.attribut]);
+	const rand = randGrenze(doc, nr, feld);
+	if (rand === null || !Number.isFinite(ziel) || ziel <= rand) {
+		return null;
+	}
+	const schritt = feld.schritt ?? 1;
+	const wert = Math.floor((rand - feld.min) / schritt) * schritt + feld.min;
+	return wert < feld.min || wert >= ziel ? null : { werte: { ...neu, [feld.attribut]: String(wert) }, wert };
+};
+
+const zeichenbarBis = (doc: Document, nr: number, s: AbbildungSchema, vorher: Werte, neu: Werte, feld: Feld) => {
+	if (feld.art !== 'zahl' || feld.loesung) {
+		return null;
+	}
+	const alt = Number(vorher[feld.attribut] ?? feld.standardJe?.(vorher) ?? feld.standard);
+	const ziel = Number(neu[feld.attribut]);
+	if (!Number.isFinite(alt) || !Number.isFinite(ziel) || alt === ziel) {
+		return null;
+	}
+	const mit = (z: number): Werte => ({ ...neu, [feld.attribut]: String(z) });
+	const stand = (z: number) => {
+		zeichne(doc, nr, mit(z), s);
+		return liesVomBlatt(doc, nr);
+	};
+	const amZiel = stand(ziel);
+	if (!amZiel.fehler || !amZiel.platz || stand(alt).fehler) {
+		return null;
+	}
+	const geht = (z: number) => !stand(z).fehler;
+	const schritt = Number.isInteger(alt) && Number.isInteger(ziel) ? 1 : (feld.schritt ?? 1);
+	let gut = alt;
+	let schlecht = ziel;
+	while (Math.abs(schlecht - gut) > schritt + 1e-9) {
+		const k = Math.max(1, Math.floor(Math.abs(schlecht - gut) / schritt / 2));
+		const mitte = Number((gut + Math.sign(schlecht - gut) * k * schritt).toFixed(6));
+		if (geht(mitte)) {
+			gut = mitte;
+		} else {
+			schlecht = mitte;
+		}
+	}
+	return gut === alt ? null : { werte: mit(gut), wert: gut, grund: amZiel.fehler };
+};
+
+/** Die gewählte Abbildung: ihre Nummer, ihr Knoten, ihr Tag und ihr Schema. */
+const abbildungIm = (pfad: PfadTeil[], zerlegung: ReturnType<typeof zuSehen>['zerlegung']) => {
+	const gewaehlt = pfad.at(-1);
+	const nr = gewaehlt && kann(gewaehlt.baustein, 'abbildung') ? gewaehlt.nr : null;
+	const knoten = nr === null ? undefined : zerlegung?.knoten[nr];
+	const tag = knoten?.tag ?? null;
+	return { nr, knoten, tag, schema: tag ? schemaVon(tag) : undefined };
+};
+
+/** 197-N02: Wo eine Meldung der Zeichnung steht: am zuletzt geänderten Feld, wenn es zu sehen ist. */
+const meldungsFeld = (
+	geaendertZuletzt: { nr: number; attribut: string } | null,
+	nr: number | null,
+	schema: AbbildungSchema | undefined,
+	werte: Werte | null,
+) => {
+	const zuletztFeld =
+		geaendertZuletzt?.nr === nr ? schema?.felder.find((f) => f.attribut === geaendertZuletzt.attribut) : undefined;
+	return zuletztFeld && zuSehenIm(schema, werte, zuletztFeld.attribut) ? zuletztFeld.attribut : '_element';
+};
+
+/** 197-03: Das Attribut der erzeugten Aufgaben, wenn eine Änderung an `feld` sie neu würfelt; sonst `null`. */
+const wuerfeltNeu = (s: AbbildungSchema, feld: Feld, eigeneListe: () => boolean) =>
+	s.generiert && feld.attribut !== s.generiert && !s.generiertOhne?.includes(feld.attribut) && !eigeneListe()
+		? s.generiert
+		: null;
+
+/** S-01, 207: Passt die Eingabe nicht auf die Seite oder nicht in die Zeichnung, die nächste, die passt, mit Hinweis. */
+const passendeZahl = (
+	d: Document | null,
+	n: number | null,
+	q: Werte | null,
+	s: AbbildungSchema,
+	feld: Feld,
+	gewollt: Werte,
+) => {
+	if (!d || n === null) {
+		return null;
+	}
+	const amRand = bisZumRand(d, n, feld, gewollt);
+	if (amRand) {
+		return {
+			werte: amRand.werte,
+			text: `${feld.name}: Mehr passt nicht auf die Seite. Jetzt steht ${zahlImFeld(feld, amRand.wert)} da.`,
+		};
+	}
+	const grenze = q ? zeichenbarBis(d, n, s, q, gewollt, feld) : null;
+	if (!grenze) {
+		return null;
+	}
+	const z = zahlImFeld(feld, grenze.wert);
+	return { werte: grenze.werte, text: `${feld.name}: ${lesbareMeldung(grenze.grund, s)} Jetzt steht ${z} da.` };
+};
+
+/**
  * Das Abbildungs-Panel (018): die Werte der gewählten Abbildung nach ihrem Schema, als Entwurf. Jede Eingabe zeigt
  * sich sofort im Blatt (Attribut im `iframe` setzen, Element neu zeichnen). Ist der ganze Entwurf gültig, wird er
  * übernommen: ein Schritt im Verlauf, der nur die geänderten Attribute in der Quelle setzt. Ein ungültiger Entwurf
@@ -253,11 +307,7 @@ const liesVomBlatt = (doc: Document, nr: number): AusDemBlatt => {
 export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Optionen) => {
 	const { doc, zerlegung } = zuSehen(struktur.gezeigt);
 	const zeige = useHinweis();
-	const gewaehlt = pfad.at(-1);
-	const nr = gewaehlt && kann(gewaehlt.baustein, 'abbildung') ? gewaehlt.nr : null;
-	const knoten = nr === null ? undefined : zerlegung?.knoten[nr];
-	const tag = knoten?.tag ?? null;
-	const schema = tag ? schemaVon(tag) : undefined;
+	const { knoten, nr, schema, tag } = abbildungIm(pfad, zerlegung);
 
 	const quelle = useMemo(
 		() => (schema && knoten && zerlegung ? werteVon(schema, knoten, zerlegung) : null),
@@ -283,9 +333,7 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 	);
 	/** 197-N02: Das zuletzt geänderte Feld dieser Abbildung; dort steht eine Meldung der Zeichnung ohne eigenes Feld. */
 	const [geaendertZuletzt, setGeaendertZuletzt] = useState<{ nr: number; attribut: string } | null>(null);
-	const zuletztFeld =
-		geaendertZuletzt?.nr === nr ? schema?.felder.find((f) => f.attribut === geaendertZuletzt.attribut) : undefined;
-	const meldungAm = zuletztFeld && zuSehenIm(schema, werte, zuletztFeld.attribut) ? zuletztFeld.attribut : '_element';
+	const meldungAm = meldungsFeld(geaendertZuletzt, nr, schema, werte);
 	/**
 	 * S-03 (UX 186): Eine Eingabe, eine Meldung. Eine Regel über mehrere Felder meldet an jedem beteiligten; gezeigt wird
 	 * die am zuletzt geänderten Feld, sonst die erste an einem sichtbaren Feld. Felder, die ihre eigene Prüfung nicht
@@ -354,6 +402,7 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 			offenBeim.current = null;
 		}
 		zuletzt.current = doc && nr !== null && quelle ? { doc, nr, werte: quelle, schema } : null;
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- `zeige` und `struktur` gelten nur beim Weggehen; zeichnen soll nur ein Wechsel von Blatt, Element oder Quelle
 	}, [doc, nr, quelle, schema]);
 
 	/**
@@ -384,6 +433,24 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 		setGrenzen(randGrenzen(doc, nr, schema));
 	}, [doc, nr, werte, quelle, schema, regelFehler]);
 
+	/** 197-03: Welche Rechenreihen ihre Liste von Hand bekommen haben, in dieser Sitzung. */
+	const eigene = useRef(new Set<string>());
+	const schluessel = () => `${adresse}:${aktuell.current.nr}`;
+	/** Die Liste passt nicht mehr zu den Einstellungen: andere Anzahl, andere Rechenart oder von Hand geschrieben. */
+	const eigeneListe = (s: AbbildungSchema, w: Werte) => {
+		const liste = s.generiert ? w[s.generiert] : null;
+		if (!liste?.trim()) {
+			return false;
+		}
+		if (eigene.current.has(schluessel())) {
+			return true;
+		}
+		const aufgaben = liste.split(';').filter((a) => a.trim());
+		const anzahl = Number(w.anzahl ?? 10);
+		const zeichen = w.rechenart ?? '+';
+		return aufgaben.length !== anzahl || aufgaben.some((a) => !a.includes(zeichen));
+	};
+
 	/** Übernimmt den Entwurf als einen Schritt, wenn er gültig ist und sich etwas geändert hat. */
 	const uebernimm = (neu?: Werte, was?: string) => {
 		const { doc: d, nr: n, quelle: q, schema: s, werte: w } = aktuell.current;
@@ -405,9 +472,9 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 		const attribute = Object.fromEntries(geaendert.map((a) => [a, fassung[a] ?? null]));
 		const [zeitAlt, zeitNeu] = [zeitDerUhr(q), zeitDerUhr(fassung)];
 		struktur.aendereAttribute(`${s.name}: ${was ?? 'geändert'}`, (alt) => {
-			const neu = setzeAbbildung(alt, n, attribute).quelle;
+			const gesetzt = setzeAbbildung(alt, n, attribute).quelle;
 			// 197-01: Die Zeit daneben (Text, Lösung der Antwortlinie) geht mit.
-			return tag === 'x-uhr' ? schreibeUhrzeitUm(neu, n, zeitAlt, zeitNeu) : neu;
+			return tag === 'x-uhr' ? schreibeUhrzeitUm(gesetzt, n, zeitAlt, zeitNeu) : gesetzt;
 		});
 	};
 
@@ -442,26 +509,15 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 		}
 		// Die erzeugten Aufgaben gehören zu den Einstellungen: Ändert sich eine, entstehen sie neu. Nicht bei der
 		// Anordnung und nicht, wenn die Lehrkraft die Liste selbst geschrieben hat (197-03).
-		const wuerfeln =
-			s.generiert &&
-			feld.attribut !== s.generiert &&
-			!s.generiertOhne?.includes(feld.attribut) &&
-			!eigeneListe(s, w);
-		const erzeugt = wuerfeln ? gewuerfelt(geaendert) : null;
+		const generiert = wuerfeltNeu(s, feld, () => eigeneListe(s, w));
 		const gewollt =
-			wuerfeln && s.generiert ? { ...geaendert, [s.generiert]: erzeugt?.[s.generiert] ?? null } : geaendert;
+			generiert === null ? geaendert : { ...geaendert, [generiert]: gewuerfelt(geaendert)?.[generiert] ?? null };
 		// Verglichen wird mit dem Gespeicherten: Beim Tippen steht die neue Zahl schon im Entwurf.
 		const { doc: d, nr: n, quelle: q } = aktuell.current;
-		const amRand = uebernehmen && d && n !== null ? bisZumRand(d, n, feld, gewollt) : null;
-		const grenze = !amRand && uebernehmen && d && q && n !== null ? zeichenbarBis(d, n, s, q, gewollt, feld) : null;
-		const neu = amRand?.werte ?? grenze?.werte ?? gewollt;
-		if (amRand) {
-			zeige({
-				text: `${feld.name}: Mehr passt nicht auf die Seite. Jetzt steht ${zahlImFeld(feld, amRand.wert)} da.`,
-			});
-		} else if (grenze) {
-			const z = zahlImFeld(feld, grenze.wert);
-			zeige({ text: `${feld.name}: ${lesbareMeldung(grenze.grund, s)} Jetzt steht ${z} da.` });
+		const passend = uebernehmen ? passendeZahl(d, n, q, s, feld, gewollt) : null;
+		const neu = passend?.werte ?? gewollt;
+		if (passend) {
+			zeige({ text: passend.text });
 		}
 		aktuell.current = { ...aktuell.current, werte: neu };
 		setEntwurf({ basis: b, werte: neu });
@@ -472,24 +528,6 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 	};
 
 	const zuruecksetzen = () => setEntwurf(null);
-
-	/** 197-03: Welche Rechenreihen ihre Liste von Hand bekommen haben, in dieser Sitzung. */
-	const eigene = useRef(new Set<string>());
-	const schluessel = () => `${adresse}:${aktuell.current.nr}`;
-	/** Die Liste passt nicht mehr zu den Einstellungen: andere Anzahl, andere Rechenart oder von Hand geschrieben. */
-	const eigeneListe = (s: AbbildungSchema, w: Werte) => {
-		const liste = s.generiert ? w[s.generiert] : null;
-		if (!liste?.trim()) {
-			return false;
-		}
-		if (eigene.current.has(schluessel())) {
-			return true;
-		}
-		const aufgaben = liste.split(';').filter((a) => a.trim());
-		const anzahl = Number(w.anzahl ?? 10);
-		const zeichen = w.rechenart ?? '+';
-		return aufgaben.length !== anzahl || aufgaben.some((a) => !a.includes(zeichen));
-	};
 
 	const kerne = (doc?.defaultView as Zeichner | null)?.schoolboxAbbildungen;
 	const hatNeueZahlen = Boolean(tag && (kerne?.NEUE_ZAHLEN.includes(tag) || hatNeueZahlenImKern(tag, werte)));
@@ -530,7 +568,7 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 	 * es nicht (197-01).
 	 */
 	const neueZahlen = () => {
-		const { basis: b, doc: d, nr: n, quelle: q, schema: s, werte: w } = aktuell.current;
+		const { basis: b, doc: d, nr: n, schema: s, werte: w } = aktuell.current;
 		if (!s || !w || b === null || n === null || !d) {
 			return false;
 		}
@@ -572,11 +610,11 @@ export const useAbbildung = ({ adresse, basis: bildBasis, pfad, struktur }: Opti
 		}
 		if (!treffer) {
 			zeichne(d, n, w, s);
-			const klasse = klasseVon(d);
+			const blattKlasse = klasseVon(d);
 			zeige({
 				text: leer
 					? grundOhneZahlen(w)
-					: `Für ${klasse ? `Klasse ${klasse}` : 'dieses Blatt'} gibt es hier keine passenden Zahlen. Ändere die Zahlen von Hand.`,
+					: `Für ${blattKlasse ? `Klasse ${blattKlasse}` : 'dieses Blatt'} gibt es hier keine passenden Zahlen. Ändere die Zahlen von Hand.`,
 			});
 			return false;
 		}

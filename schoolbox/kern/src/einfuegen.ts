@@ -462,6 +462,11 @@ export const umbruchVor = (quelle: string, nr: number, n: Nummerierung): Struktu
 	return { quelle: nummeriere(neu, n, quelle), nr: neueSeite ? (flussbloeckeVon(neueSeite)[0] ?? null) : null };
 };
 
+const folgtAufSeite = (davor: Knoten, seite: Knoten) => {
+	const geschwister = seite.eltern?.kinder ?? [];
+	return geschwister[geschwister.indexOf(seite) - 1] === davor;
+};
+
 /**
  * „An vorige Seite anschließen“ geht bei einer festen Seite ohne Namenszeile und Kopf, die nicht die erste ist und
  * deren Blatt davor fließen kann.
@@ -493,11 +498,6 @@ export const seiteZumAnschliessen = (quelle: string, nr: number) => {
 	const k = zerlege(quelle).knoten[nr];
 	const seite = k?.eltern;
 	return k && seite && flussbloeckeVon(seite)[0] === nr && kannAnschliessen(quelle, seite.nr) ? seite.nr : null;
-};
-
-const folgtAufSeite = (davor: Knoten, seite: Knoten) => {
-	const geschwister = seite.eltern?.kinder ?? [];
-	return geschwister[geschwister.indexOf(seite) - 1] === davor;
 };
 
 /** Die feste Seite wird automatisch und gehört damit zum Blatt davor (Regel 17); der Fluss füllt danach neu. */

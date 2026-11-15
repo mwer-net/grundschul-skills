@@ -257,6 +257,90 @@ export interface PaarTeil {
 	maxJe?: (w: Werte) => number;
 }
 
+const ZAHL = /^-?\d+([.,]\d+)?$/;
+export const alsZahl = (wert: string) => (ZAHL.test(wert.trim()) ? Number(wert.trim().replace(',', '.')) : NaN);
+
+export const listeVon = (wert: string | null) => (wert ?? '').split(/[\s,;]+/).filter(Boolean);
+
+/** Platzhalter für ein leeres Unterfeld im Entwurf, damit die Zeile beim Tippen nicht wegfällt. */
+export const LEER = '∅';
+
+/** Eine Zeile einer Liste in höchstens `anzahl` Unterfelder. */
+const zeileTeilen = (text: string, trenner: string, anzahl: number): string[] => {
+	if (trenner === '') {
+		const t = new RegExp(`^(${LEER}|\\d*)(.*)$`, 's').exec(text);
+		return [t?.[1] ?? '', t?.[2] ?? ''];
+	}
+	if (trenner === ' ') {
+		return text.split(/\s+/).filter(Boolean);
+	}
+	const i = text.indexOf(trenner);
+	return i < 0 || anzahl < 2
+		? [text.trim()]
+		: [text.slice(0, i).trim(), ...zeileTeilen(text.slice(i + trenner.length), trenner, anzahl - 1)];
+};
+
+/** `Hund: 7; Katze: 4` → `[['Hund', '7'], ['Katze', '4']]`. Eine leere letzte Zeile (`…;`) zählt nicht. */
+export const zeilenVon = (feld: ListeFeld, wert: string | null): string[][] => {
+	const { feldTrenner = ':', unter, zeilenTrenner = ';' } = feld;
+	if (!wert?.trim()) {
+		return [];
+	}
+	const zeilen = zeilenTrenner === ' ' ? wert.trim().split(/\s+/) : wert.split(zeilenTrenner);
+	if (zeilen.at(-1)?.trim() === '') {
+		zeilen.pop();
+	}
+	return zeilen.map((z) => {
+		const werte = zeileTeilen(z.trim(), feldTrenner, unter.length);
+		return unter.map((_, i) => {
+			const w = werte[i] ?? '';
+			return w === LEER ? '' : w;
+		});
+	});
+};
+
+/** `uhr:7:30` → Art und Wert; ohne bekannte Art ist alles Text. */
+export const miniTeile = (wert: string): { art: string; inhalt: string } => {
+	const t = /^(uhr|wuerfel|menge|geld|rhythmus|bild):(.*)$/s.exec(wert);
+	return t ? { art: t[1] ?? '', inhalt: t[2] ?? '' } : { art: '', inhalt: wert };
+};
+
+export const rasterVon = (wert: string | null): string[][] =>
+	(wert ?? '')
+		.split('/')
+		.map((z) => z.trim())
+		.filter(Boolean)
+		.map((z) => z.split(/\s+/));
+
+/** Wie die Oberfläche Zahlen schreibt: Komma, ab 10 000 mit Tausenderpunkt (207-N03); Jahreszahlen bleiben 2100. */
+const zahlText = (n: number) =>
+	Math.abs(n) >= 10_000 ? n.toLocaleString('de-DE', { maximumFractionDigits: 6 }) : String(n).replace('.', ',');
+
+const PX_JE_CM = 96 / 2.54;
+
+/** Der Rand der Figur im Gitter in Kästchen, aus dem Raster und den Linien; ohne Figur `null`. */
+const gitterFigur = (w: Werte) => {
+	const zellen = rasterVon(w.figur ?? null).flatMap((zeile, y) =>
+		zeile.flatMap((z, x) =>
+			z === '0'
+				? []
+				: [
+						[x, y],
+						[x + 1, y + 1],
+					],
+		),
+	);
+	const punkte = (w.linien ?? '')
+		.split(/[;\s]+/)
+		.filter(Boolean)
+		.map((p) => p.split(',').map(Number));
+	const xs = [...zellen, ...punkte].map((p) => p[0] ?? 0);
+	const ys = [...zellen, ...punkte].map((p) => p[1] ?? 0);
+	return xs.length === 0
+		? null
+		: { links: Math.min(...xs), oben: Math.min(...ys), rechts: Math.max(...xs), unten: Math.max(...ys) };
+};
+
 /** 197-11: Ein Haken je Zeile einer Liste: Wert ist die Nummer ab 1, Name der Text vor dem ersten `:`. */
 const nummernDerZeilen = (wert: string | null, vor: string): Option[] =>
 	(wert ?? '')
@@ -553,9 +637,6 @@ export const FARBEN: Option[] = [
 	{ wert: 'leer', name: 'Weiß' },
 ];
 
-const ZAHL = /^-?\d+([.,]\d+)?$/;
-export const alsZahl = (wert: string) => (ZAHL.test(wert.trim()) ? Number(wert.trim().replace(',', '.')) : NaN);
-
 const WUERFELBAU_TEILE = [
 	{ wert: 'schraegbild', name: 'Schrägbild' },
 	{ wert: 'bauplan', name: 'Bauplan' },
@@ -748,6 +829,16 @@ export const markeTrennen = (satz: MarkSatz, i: number): MarkSatz => {
 
 const namenOptionen = (namen: string[]): Option[] => namen.map((wert) => ({ wert, name: wert }));
 
+/** Jahreskreis: Größe in px vor dem Runden, je Art. */
+const kreisRoh = (art: string, band: number) => {
+	if (art === 'jahr') {
+		return (9 * 15 * 0.56 + 10 + 2 + band) / 0.41;
+	}
+	return art === 'woche' || art === 'tag'
+		? 2 * (2 + (10 * 15 * 0.56) / (1.24 * Math.sin(Math.PI / (art === 'woche' ? 7 : 4))))
+		: 200;
+};
+
 /**
  * Jahreskreis: kleinste Größe in px, bei der die Beschriftung passt, wie in `jahreskreis` in `abbildungen.js`
  * („September“ radial, „Donnerstag“ quer, Schrift 15 × 0,56). 24 Stunden prüft das Asset nicht.
@@ -755,12 +846,7 @@ const namenOptionen = (namen: string[]): Option[] => namen.map((wert) => ({ wert
 const kreisMindestens = (w: Werte) => {
 	const art = w.art ?? 'jahr';
 	const band = art === 'jahr' && w.jahreszeiten === 'ja' ? 18 : 0;
-	const roh =
-		art === 'jahr'
-			? (9 * 15 * 0.56 + 10 + 2 + band) / 0.41
-			: art === 'woche' || art === 'tag'
-				? 2 * (2 + (10 * 15 * 0.56) / (1.24 * Math.sin(Math.PI / (art === 'woche' ? 7 : 4))))
-				: 200;
+	const roh = kreisRoh(art, band);
 	return Math.max(200, Math.ceil(roh / 20) * 20);
 };
 
@@ -1166,24 +1252,60 @@ const achseFuer = (w: Werte, achse: string): number | null => {
 	return linien.find((bei) => (bis <= bei && 2 * bei - von <= grenze) || (von >= bei && 2 * bei - bis >= 0)) ?? null;
 };
 
+/** Gekürzte Liste: unverändert, wenn nichts wegfiel, sonst die übrigen Einträge; `null`, wenn keiner bleibt. */
+const gekuerzt = (wert: string | null, neu: string[], anzahl: number, trenner: string) => {
+	if (neu.length === anzahl) {
+		return wert ?? null;
+	}
+	return neu.length > 0 ? neu.join(trenner) : null;
+};
+
 /** Zeilen einer Liste (`a: b; c: d`) nach einer Bedingung an der ersten Spalte. */
 const zeilenMit = (wert: string | null, behalten: (erste: string) => boolean) => {
 	const zeilen = (wert ?? '').split(';').filter((z) => z.trim() !== '');
 	const neu = zeilen.filter((z) => behalten((z.split(':')[0] ?? '').trim()));
-	return neu.length === zeilen.length ? (wert ?? null) : neu.length > 0 ? neu.join(';') : null;
+	return gekuerzt(wert, neu, zeilen.length, ';');
 };
 
 /** Zahlen einer Liste innerhalb der Grenzen; `null` heißt leer. */
 const zahlenZwischen = (wert: string | null, von: number, bis: number) => {
 	const zahlen = listeVon(wert);
 	const neu = zahlen.filter((z) => alsZahl(z) >= von && alsZahl(z) <= bis);
-	return neu.length === zahlen.length ? (wert ?? null) : neu.length > 0 ? neu.join(' ') : null;
+	return gekuerzt(wert, neu, zahlen.length, ' ');
+};
+
+/** Sortieren: die Einträge; „Bilder“ bei der Art fragt sie ab. */
+const SORTIEREN_EINTRAEGE: ListeFeld = {
+	art: 'liste',
+	attribut: 'eintraege',
+	name: 'Einträge in richtiger Reihenfolge',
+	unter: [
+		{ name: 'Text', art: 'text', standard: 'Neu' },
+		{ name: 'Bild', art: 'bild', leer: true },
+	],
+	min: 2,
+	max: 12,
+};
+
+/** Suchsel: die Wörter; „Bilder“ bei der Art fragt sie ab. */
+const SUCHSEL_WOERTER: ListeFeld = {
+	art: 'liste',
+	attribut: 'woerter',
+	alsText: true,
+	name: 'Wörter',
+	hilfe: 'Nur Buchstaben. Das Bild braucht nur die Wortliste „Bilder“.',
+	unter: [
+		{ name: 'Wort', art: 'text', standard: 'Wort' },
+		{ name: 'Bild', art: 'mini', leer: true },
+	],
+	feldTrenner: ': ',
+	min: 2,
+	max: 20,
 };
 
 /** Hat jede Zeile der Liste ein Bild? Erst dann gibt es „Bilder“ (197-07). */
-const jedeZeileMitBild = (tag: string, liste: string, spalte: number) => (w: Werte) => {
-	const feld = schemaVon(tag)?.felder.find((f) => f.attribut === liste);
-	const zeilen = feld?.art === 'liste' ? zeilenVon(feld, w[liste] ?? null) : [];
+const jedeZeileMitBild = (feld: ListeFeld, spalte: number) => (w: Werte) => {
+	const zeilen = zeilenVon(feld, w[feld.attribut] ?? null);
 	return zeilen.length > 0 && zeilen.every((z) => (z[spalte] ?? '').trim() !== '');
 };
 
@@ -1633,30 +1755,6 @@ const diagrammBis = (w: Werte) => {
 
 /** Nutzbare Breite eines Blatts in px; dieselbe Zahl steht in `abbildungen.js`, ein Test hält beide gleich. */
 export const SATZSPIEGEL = 620;
-const PX_JE_CM = 96 / 2.54;
-
-/** Der Rand der Figur im Gitter in Kästchen, aus dem Raster und den Linien; ohne Figur `null`. */
-const gitterFigur = (w: Werte) => {
-	const zellen = rasterVon(w.figur ?? null).flatMap((zeile, y) =>
-		zeile.flatMap((z, x) =>
-			z === '0'
-				? []
-				: [
-						[x, y],
-						[x + 1, y + 1],
-					],
-		),
-	);
-	const punkte = (w.linien ?? '')
-		.split(/[;\s]+/)
-		.filter(Boolean)
-		.map((p) => p.split(',').map(Number));
-	const xs = [...zellen, ...punkte].map((p) => p[0] ?? 0);
-	const ys = [...zellen, ...punkte].map((p) => p[1] ?? 0);
-	return xs.length === 0
-		? null
-		: { links: Math.min(...xs), oben: Math.min(...ys), rechts: Math.max(...xs), unten: Math.max(...ys) };
-};
 
 /** Passt die Breite bei 1 cm nicht aufs Blatt, nimmt die Wahl die kleinen Kästchen. Ohne Angabe sind es in Klasse 1 und 2 1 cm. */
 const kaestchenFuer = (w: Werte, breite: (kaestchenPx: number) => number): Werte =>
@@ -3440,24 +3538,14 @@ export const ABBILDUNG_SCHEMA = {
 			ort: 'aufgabe',
 		},
 		felder: [
-			{
-				art: 'liste',
-				attribut: 'eintraege',
-				name: 'Einträge in richtiger Reihenfolge',
-				unter: [
-					{ name: 'Text', art: 'text', standard: 'Neu' },
-					{ name: 'Bild', art: 'bild', leer: true },
-				],
-				min: 2,
-				max: 12,
-			},
+			SORTIEREN_EINTRAEGE,
 			{
 				art: 'auswahl',
 				attribut: 'art',
 				name: 'Art',
 				standard: 'saetze',
 				// 197-07: „Bilder“ erst, wenn jeder Eintrag ein Bild hat.
-				angeboten: (wert, w) => wert !== 'bilder' || jedeZeileMitBild('x-sortieren', 'eintraege', 1)(w),
+				angeboten: (wert, w) => wert !== 'bilder' || jedeZeileMitBild(SORTIEREN_EINTRAEGE, 1)(w),
 				optionen: [
 					{ wert: 'saetze', name: 'Sätze' },
 					{ wert: 'woerter', name: 'Wörter' },
@@ -4492,20 +4580,7 @@ export const ABBILDUNG_SCHEMA = {
 		},
 		felder: [
 			{ art: 'mischen', attribut: 'seed', name: 'Gitter' },
-			{
-				art: 'liste',
-				attribut: 'woerter',
-				alsText: true,
-				name: 'Wörter',
-				hilfe: 'Nur Buchstaben. Das Bild braucht nur die Wortliste „Bilder“.',
-				unter: [
-					{ name: 'Wort', art: 'text', standard: 'Wort' },
-					{ name: 'Bild', art: 'mini', leer: true },
-				],
-				feldTrenner: ': ',
-				min: 2,
-				max: 20,
-			},
+			SUCHSEL_WOERTER,
 			{
 				art: 'zahl',
 				attribut: 'spalten',
@@ -4544,7 +4619,7 @@ export const ABBILDUNG_SCHEMA = {
 				attribut: 'wortliste',
 				name: 'Wortliste',
 				standard: 'text',
-				angeboten: (wert, w) => wert !== 'bilder' || jedeZeileMitBild('x-suchsel', 'woerter', 1)(w),
+				angeboten: (wert, w) => wert !== 'bilder' || jedeZeileMitBild(SUCHSEL_WOERTER, 1)(w),
 				optionen: [
 					{ wert: 'text', name: 'Text' },
 					{ wert: 'bilder', name: 'Bilder' },
@@ -6493,44 +6568,6 @@ export const feldWert = (feld: Feld, w: Werte): { wert: string | null; nurLoesun
 export const stellenVon = (w: Werte, attributName: string) =>
 	(w[attributName] ?? STELLEN_STANDARD).split(/\s+/).filter(Boolean);
 
-export const listeVon = (wert: string | null) => (wert ?? '').split(/[\s,;]+/).filter(Boolean);
-
-/** Platzhalter für ein leeres Unterfeld im Entwurf, damit die Zeile beim Tippen nicht wegfällt. */
-export const LEER = '∅';
-
-const teile = (text: string, trenner: string, anzahl: number): string[] => {
-	if (trenner === '') {
-		const t = new RegExp(`^(${LEER}|\\d*)(.*)$`, 's').exec(text);
-		return [t?.[1] ?? '', t?.[2] ?? ''];
-	}
-	if (trenner === ' ') {
-		return text.split(/\s+/).filter(Boolean);
-	}
-	const i = text.indexOf(trenner);
-	return i < 0 || anzahl < 2
-		? [text.trim()]
-		: [text.slice(0, i).trim(), ...teile(text.slice(i + trenner.length), trenner, anzahl - 1)];
-};
-
-/** `Hund: 7; Katze: 4` → `[['Hund', '7'], ['Katze', '4']]`. Eine leere letzte Zeile (`…;`) zählt nicht. */
-export const zeilenVon = (feld: ListeFeld, wert: string | null): string[][] => {
-	const { feldTrenner = ':', unter, zeilenTrenner = ';' } = feld;
-	if (!wert?.trim()) {
-		return [];
-	}
-	const zeilen = zeilenTrenner === ' ' ? wert.trim().split(/\s+/) : wert.split(zeilenTrenner);
-	if (zeilen.at(-1)?.trim() === '') {
-		zeilen.pop();
-	}
-	return zeilen.map((z) => {
-		const werte = teile(z.trim(), feldTrenner, unter.length);
-		return unter.map((_, i) => {
-			const w = werte[i] ?? '';
-			return w === LEER ? '' : w;
-		});
-	});
-};
-
 export const MINI_ARTEN: Option[] = [
 	{ wert: '', name: 'Text' },
 	{ wert: 'bild', name: 'Bild' },
@@ -6540,12 +6577,6 @@ export const MINI_ARTEN: Option[] = [
 	{ wert: 'geld', name: 'Geld' },
 	{ wert: 'rhythmus', name: 'Rhythmus' },
 ];
-
-/** `uhr:7:30` → Art und Wert; ohne bekannte Art ist alles Text. */
-export const miniTeile = (wert: string): { art: string; inhalt: string } => {
-	const t = /^(uhr|wuerfel|menge|geld|rhythmus|bild):(.*)$/s.exec(wert);
-	return t ? { art: t[1] ?? '', inhalt: t[2] ?? '' } : { art: '', inhalt: wert };
-};
 
 export const zeilenText = (feld: ListeFeld, zeilen: string[][]): string | null => {
 	const { feldTrenner = ':', unter, zeilenTrenner = ';' } = feld;
@@ -6594,13 +6625,6 @@ export const zeilenAusText = (feld: ListeFeld, text: string) =>
 			return feld.unter.map((u, j) => spalten[j] ?? u.standard ?? '');
 		});
 
-export const rasterVon = (wert: string | null): string[][] =>
-	(wert ?? '')
-		.split('/')
-		.map((z) => z.trim())
-		.filter(Boolean)
-		.map((z) => z.split(/\s+/));
-
 export const rasterText = (zeilen: string[][]) => {
 	const text = zeilen.map((z) => z.join(' ')).join(' / ');
 	return text === '' ? null : text;
@@ -6615,6 +6639,35 @@ export const ziffernText = (liste: string[]) => {
 				.slice(0, bis + 1)
 				.map((z) => z.trim() || '?')
 				.join(' ');
+};
+
+/** 197-10: Alle Felder mit diesem Lösungs-Attribut wandern zusammen; schreibt in `neu`. */
+const setzeLoesungsTeile = (
+	schema: AbbildungSchema,
+	w: Werte,
+	neu: Werte,
+	feld: Feld,
+	lAttr: string,
+	wert: string | null,
+	nurLoesung: boolean,
+) => {
+	const geschwister = schema.felder.filter((f) => f.loesung?.attribut === lAttr && f.loesung.teil !== undefined);
+	const zahlen = geschwister.map((f) =>
+		f === feld ? (wert ?? '0') : (feldWert(f, w).wert ?? String(f.art === 'zahl' ? f.standard : 0)),
+	);
+	for (const f of geschwister) {
+		neu[f.attribut] = null;
+	}
+	if (nurLoesung) {
+		neu[lAttr] = zahlen.join(' ');
+		return;
+	}
+	// Ein Malwinkel in der Lösung („3x7“) gehört nicht zu den Plättchen und bleibt.
+	neu[lAttr] = zahlenDerLoesung(w[lAttr] ?? null).length > 0 ? null : (w[lAttr] ?? null);
+	geschwister.forEach((f, i) => {
+		const z = zahlen[i] ?? null;
+		neu[f.attribut] = f.art === 'zahl' && z !== null && alsZahl(z) === f.standard ? null : z;
+	});
 };
 
 /**
@@ -6632,25 +6685,7 @@ export const aendereFeld = (
 	const neu = { ...w };
 	const teil = feld.loesung?.teil;
 	if (feld.loesung && teil !== undefined) {
-		// Alle Felder mit diesem Lösungs-Attribut wandern zusammen (197-10).
-		const lAttr = feld.loesung.attribut;
-		const geschwister = schema.felder.filter((f) => f.loesung?.attribut === lAttr && f.loesung.teil !== undefined);
-		const zahlen = geschwister.map((f) =>
-			f === feld ? (wert ?? '0') : (feldWert(f, w).wert ?? String(f.art === 'zahl' ? f.standard : 0)),
-		);
-		for (const f of geschwister) {
-			neu[f.attribut] = null;
-		}
-		if (nurLoesung) {
-			neu[lAttr] = zahlen.join(' ');
-		} else {
-			// Ein Malwinkel in der Lösung („3x7“) gehört nicht zu den Plättchen und bleibt.
-			neu[lAttr] = zahlenDerLoesung(w[lAttr] ?? null).length > 0 ? null : (w[lAttr] ?? null);
-			geschwister.forEach((f, i) => {
-				const z = zahlen[i] ?? null;
-				neu[f.attribut] = f.art === 'zahl' && z !== null && alsZahl(z) === f.standard ? null : z;
-			});
-		}
+		setzeLoesungsTeile(schema, w, neu, feld, feld.loesung.attribut, wert, nurLoesung);
 	} else if (feld.loesung?.abgeleitet) {
 		neu[feld.attribut] = wert;
 		neu[feld.loesung.attribut] = nurLoesung ? feld.loesung.abgeleitet(neu) : null;
@@ -6688,10 +6723,6 @@ export const unterschiede = (alt: Werte, neu: Werte) =>
 	Object.keys(neu).filter((a) => (alt[a] ?? null) !== (neu[a] ?? null));
 
 // ── Prüfen ──────────────────────────────────────────────────────────────────
-
-/** Wie die Oberfläche Zahlen schreibt: Komma, ab 10 000 mit Tausenderpunkt (207-N03); Jahreszahlen bleiben 2100. */
-const zahlText = (n: number) =>
-	Math.abs(n) >= 10_000 ? n.toLocaleString('de-DE', { maximumFractionDigits: 6 }) : String(n).replace('.', ',');
 
 const pruefeUnterfeld = (u: UnterFeld, wert: string): string | null => {
 	if (wert === '') {

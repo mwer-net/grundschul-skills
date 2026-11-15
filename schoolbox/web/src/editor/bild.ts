@@ -336,7 +336,7 @@ export const useBild = ({ adresse, basis, pfad, struktur }: Optionen) => {
 	 */
 	const hochladen = (dateien: File | readonly File[], frei?: FreiAblegen) =>
 		arbeite('hochladen', async () => {
-			const liste = Array.isArray(dateien) ? dateien : [dateien as File];
+			const liste: readonly File[] = Array.isArray(dateien) ? dateien : [dateien as File];
 			const [erste, ...weitere] = liste;
 			if (!erste) {
 				return;

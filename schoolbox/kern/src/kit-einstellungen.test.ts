@@ -252,8 +252,8 @@ describe('Felder für die Leiste am Baustein', () => {
 
 describe('Lesen eines Elements, das es nicht mehr gibt (195-01)', () => {
 	it('gibt nichts zurück statt zu werfen; Schreiben wirft weiterhin', () => {
-		const nr = zerlege(BLATT).knoten.length + 5;
-		assert.deepEqual(leseKit(BLATT, nr, 'aufgabe'), {});
-		assert.throws(() => setzeKit(BLATT, nr, 'aufgabe', 'stern', true));
+		const fehlt = zerlege(BLATT).knoten.length + 5;
+		assert.deepEqual(leseKit(BLATT, fehlt, 'aufgabe'), {});
+		assert.throws(() => setzeKit(BLATT, fehlt, 'aufgabe', 'stern', true));
 	});
 });

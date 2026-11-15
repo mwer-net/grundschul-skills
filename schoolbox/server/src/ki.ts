@@ -1724,6 +1724,33 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			});
 	};
 
+	/** Der wartende Auftrag zu einem Wunsch; `umfang` gilt, wenn er nicht auf einem Vorschlag aufbaut. */
+	const neuerAuftrag = (
+		wunsch: KiWunsch,
+		umfang: string,
+		grundlage: Awaited<ReturnType<typeof vorschlagZumNachbessern>> | null,
+	): KiAuftrag => {
+		const referenz = wunsch.referenz ?? grundlage?.meta.referenz;
+		return {
+			id: randomUUID(),
+			mappe: wunsch.mappe,
+			dok: wunsch.dok,
+			status: 'wartet',
+			schritte: [],
+			fehler: null,
+			ergebnis: null,
+			antwort: null,
+			umfang: grundlage?.meta.umfang ?? umfang,
+			...(wunsch.neuesBlatt ? { neuesBlatt: true } : {}),
+			...(wunsch.phase ? { phase: wunsch.phase } : {}),
+			...(wunsch.gespraechId ? { gespraech: wunsch.gespraechId } : {}),
+			...(referenz ? { referenz } : {}),
+			...(grundlage ? { grundlage: grundlage.schluessel } : {}),
+			...(wunsch.neuesBlatt ? {} : { bitte: wunsch.anzeige ?? wunsch.auftrag, getippt: !wunsch.anzeige }),
+			...(!wunsch.neuesBlatt && wunsch.zitat ? { zitat: wunsch.zitat } : {}),
+		};
+	};
+
 	const starte = async (eingang: KiWunsch): Promise<KiAuftrag> => {
 		const schluessel = dokSchluessel(eingang.mappe, eingang.dok);
 		const grundlage =
@@ -1752,25 +1779,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			await leseQuelle(dir),
 			wunsch.aufVorschlag ? { ...wunsch, referenz: undefined } : wunsch,
 		);
-		const referenz = wunsch.referenz ?? grundlage?.meta.referenz;
-		const auftrag: KiAuftrag = {
-			id: randomUUID(),
-			mappe: wunsch.mappe,
-			dok: wunsch.dok,
-			status: 'wartet',
-			schritte: [],
-			fehler: null,
-			ergebnis: null,
-			antwort: null,
-			umfang: grundlage?.meta.umfang ?? teil.umfang,
-			...(wunsch.neuesBlatt ? { neuesBlatt: true } : {}),
-			...(wunsch.phase ? { phase: wunsch.phase } : {}),
-			...(wunsch.gespraechId ? { gespraech: wunsch.gespraechId } : {}),
-			...(referenz ? { referenz } : {}),
-			...(grundlage ? { grundlage: grundlage.schluessel } : {}),
-			...(wunsch.neuesBlatt ? {} : { bitte: wunsch.anzeige ?? wunsch.auftrag, getippt: !wunsch.anzeige }),
-			...(!wunsch.neuesBlatt && wunsch.zitat ? { zitat: wunsch.zitat } : {}),
-		};
+		const auftrag = neuerAuftrag(wunsch, teil.umfang, grundlage);
 		auftraege.set(auftrag.id, auftrag);
 		if (wunsch.neuesBlatt) {
 			entwurfAuftraege.set(schluessel, auftrag.id);

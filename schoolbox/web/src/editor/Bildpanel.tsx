@@ -22,8 +22,8 @@ import { Tooltip } from '../bausteine/Tooltip';
 import { Zeile } from '../bausteine/Zeile';
 import { useLaden } from '../lib/laden';
 import type { BildSteuerung, BildWerte, FreiAblegen } from './bild';
-import { beschreibungAus } from './bild';
 import { gesehen, merkeGesehen, passt } from './bild-sammlung';
+import { bildBeschreibung, bilderZahl } from './bildpanel-hilfe';
 import { elementZu } from './darstellung';
 import type { AblegenTeile } from './gestaltung/ablegen/ablegen';
 import { AblageKachel } from './gestaltung/ablegen/Kachel';
@@ -142,15 +142,7 @@ export const BILDGRUPPEN = [
 
 export type SammlungsGruppe = (typeof BILDGRUPPEN)[number]['wert'];
 
-/** „3 Bilder“ neben der Gruppe; ohne Bilder nichts. */
-export const bilderZahl = (zahl: number) => (zahl === 0 ? undefined : `${zahl} ${zahl === 1 ? 'Bild' : 'Bilder'}`);
-
-/** 199-21: Ohne Beschreibung der Name aus der Datei („marktplatz.jpg“ → „Marktplatz“), Kameranamen bleiben. */
-/** 199-N05: Die Beschreibung des Bilds, sonst sein Name aus dem Hochladen, erst dann aus dem Dateinamen. */
-export const bildBeschreibung = (eintrag: SammlungsBild) =>
-	eintrag.alt[0] ?? eintrag.titel ?? beschreibungAus(eintrag.name);
-
-export const bildName = (eintrag: SammlungsBild) => bildBeschreibung(eintrag) || eintrag.name;
+const bildName = (eintrag: SammlungsBild) => bildBeschreibung(eintrag) || eintrag.name;
 
 /** Ziehen aus der Bilder-Schublade (103): das Gut zu einem Eintrag, sobald die Maße der Vorschau bekannt sind. */
 export type BildZiehen = (

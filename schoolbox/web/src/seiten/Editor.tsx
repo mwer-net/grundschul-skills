@@ -5,7 +5,7 @@ import { hatLoesung, kannLoesungHaben } from '@schoolbox/kern/src/loesungen';
 import type { Verlauf, Zerlegung } from '@schoolbox/kern/src/quelltext';
 import { zerlege } from '@schoolbox/kern/src/quelltext';
 import { hatNamenszeile } from '@schoolbox/kern/src/struktur';
-import type { Druckprofil, Format } from '@schoolbox/kern/src/werte';
+import type { Druckprofil, Format, Klasse } from '@schoolbox/kern/src/werte';
 import { FORMAT_NAME } from '@schoolbox/kern/src/werte';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -27,7 +27,7 @@ import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { useAbbildung } from '../editor/abbildung';
 import { useAblage } from '../editor/ablage';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
-import { gesperrtIn } from '../editor/AusgeblendetHinweis';
+import { gesperrtIn } from '../editor/ausgeblendet-hilfe';
 import { Bausteinleiste } from '../editor/Bausteinleiste';
 import { useBearbeitung } from '../editor/bearbeitung';
 import type { MenueArt } from '../editor/befehle';
@@ -412,6 +412,24 @@ const sperreDesBlatts = (vorschau: boolean, konflikt: boolean, entwurf: boolean)
 	nurAnsehen: vorschau || entwurf,
 });
 
+/** 193-07: Der Titel aus der Quelle, sobald es eine gibt; sonst der aus den Metadaten. */
+const titelDesBlatts = (quelle: string | null, ersatz: string) =>
+	(quelle === null ? null : titelAusHtml(quelle)) ?? ersatz;
+
+/** 203-02: Die Klasse des Blatts; ohne Angabe im Blatt die der Mappe. */
+const klasseImBlatt = (quelle: string | null, ersatz: Klasse) =>
+	(quelle === null ? undefined : klasseDesBlatts(quelle)) ?? ersatz;
+
+/** 193-08: Ob man aus der Ansicht kam (`AUS_ANSICHT` im Zustand der Adresse). */
+const kommtAusAnsicht = (zustand: unknown) => (zustand as { ausAnsicht?: boolean } | null)?.ausAnsicht === true;
+
+/** Ob das Blatt eine Namenszeile hat; vor der ersten Zerlegung nicht. */
+const mitNamenszeile = (zerlegung: Zerlegung | null | undefined) => (zerlegung ? hatNamenszeile(zerlegung) : false);
+
+/** 198-03: Ob die Auswahl oder ein Element der Mehrfachauswahl gesperrt ist. */
+const gesperrtGewaehlt = (doc: Document | null, auswahl: number | null, weitere: readonly number[] | undefined) =>
+	[auswahl, ...(weitere ?? [])].some((nr) => nr !== null && gesperrtIn(doc, nr) !== null);
+
 const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument: DokumentEintrag }) => {
 	const { id: dok, meta } = dokument;
 	const mappe = mappenDaten.id;
@@ -483,7 +501,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const format = formatVon(b.verlauf, meta.format);
 	const quelle = b.verlauf?.quelle ?? null;
 	// 193-07: Nach dem Umbenennen im Reiter „Blatt“ gilt sofort der Titel der Quelle, auch für ⌘Z.
-	const titel = (quelle === null ? null : titelAusHtml(quelle)) ?? meta.titel;
+	const titel = titelDesBlatts(quelle, meta.titel);
 	useTitel(b.ladeFehler ? NICHT_GEFUNDEN : `${titel} bearbeiten`);
 	const sperre = sperreDesBlatts(vorschau !== null, b.konflikt !== null, entwurf.sperrt);
 	const sichtbareSeite = useRef<() => number | null>(() => null);
@@ -553,10 +571,12 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		},
 		halte: (an) => halteText.current(an),
 	});
+	const { getippt: pruefungGetippt } = pruefung;
+	const { getippt: mitlaufenGetippt } = mitlaufen;
 	const getippt = useCallback(() => {
-		pruefung.getippt();
-		mitlaufen.getippt();
-	}, [pruefung.getippt, mitlaufen.getippt]);
+		pruefungGetippt();
+		mitlaufenGetippt();
+	}, [pruefungGetippt, mitlaufenGetippt]);
 	const text = useText({
 		geschichte,
 		geladen,
@@ -657,7 +677,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		// 203-02: Die Elemente zeichnen nach der Klasse des Blatts; sie kann von der Mappe abweichen.
 		blatt: {
 			fach: mappenDaten.fach,
-			klasse: (quelle === null ? undefined : klasseDesBlatts(quelle)) ?? mappenDaten.klasse,
+			klasse: klasseImBlatt(quelle, mappenDaten.klasse),
 			art: meta.art,
 		},
 		dokument: { mappe, dok },
@@ -678,7 +698,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 	const seite = useSichtbareSeite(geladen, ansicht, skala);
 	sichtbareSeite.current = () => (docJetzt ? seiteAn(docJetzt, seite.nr) : null);
 
-	const ausAnsicht = (useLocation().state as { ausAnsicht?: boolean } | null)?.ausAnsicht === true;
+	const ausAnsicht = kommtAusAnsicht(useLocation().state);
 	const [ungespeichert, setUngespeichert] = useState<(() => void) | null>(null);
 	/**
 	 * 193-08: Kam man aus der Ansicht, geht „Zurück“ einen Schritt im Verlauf zurück; sonst ersetzt die Ansicht den
@@ -737,15 +757,13 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			hatNeueZahlen: abbildung.hatNeueZahlen,
 			kiVerfuegbar: ki.zustand.verfuegbar,
 			claudeGrund: claude.knopfGrund,
-			namenszeile: zerlegung ? hatNamenszeile(zerlegung) : false,
+			namenszeile: mitNamenszeile(zerlegung),
 			festeSeiten: format === 'minibuch',
 			hatBild: bild.nimmtBild,
 			linksOffen: sichtbar(zeigt),
 			gestaltung: gestaltungJetzt,
 			// 198-03: Die Sperre gilt im Befehl, gleich von wo er kommt (Tasten, Menüs, ⌘K, Leiste, Ebenen).
-			gesperrt: [auswahl, ...(gestaltungJetzt?.nrn ?? [])].some(
-				(nr) => nr !== null && gesperrtIn(docJetzt, nr) !== null,
-			),
+			gesperrt: gesperrtGewaehlt(docJetzt, auswahl, gestaltungJetzt?.nrn),
 			davor: (() => {
 				const element = docJetzt && auswahl !== null ? elementZu(docJetzt, auswahl) : null;
 				const vorher = element?.previousElementSibling;
@@ -1156,6 +1174,24 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 			profil={profil}
 		/>
 	);
+	/** Fuß der Nachfrage beim Verlassen; `verlasse` geht trotz ungespeicherter Änderungen. */
+	const fussZeile = (verlasse: () => void) => (
+		<>
+			<Knopf
+				art="gefahr"
+				data-trotzdem-verlassen
+				onClick={() => {
+					setUngespeichert(null);
+					verlasse();
+				}}
+			>
+				Trotzdem verlassen
+			</Knopf>
+			<Knopf data-hauptaktion onClick={() => setUngespeichert(null)}>
+				Hier bleiben
+			</Knopf>
+		</>
+	);
 	return (
 		<ClaudeKontext.Provider value={claude.steuerung}>
 			<div className="flex h-dvh flex-col bg-papier" data-editor>
@@ -1234,7 +1270,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 								schubladen: { teile: schubladenTeile, fuehreAus: befehle.fuehreAus },
 							}),
 							// Über den Weg von „Zurück“: erst speichern, bei einem Fehler die Nachfrage (S-17).
-							...materialEintraege(ablageStand, (pfad) => void verlassen(pfad), ANDERE_MATERIALIEN, {
+							...materialEintraege(ablageStand, (weg) => void verlassen(weg), ANDERE_MATERIALIEN, {
 								mappe,
 								dok,
 							}),
@@ -1253,23 +1289,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 					<Dialog
 						titel="Noch nicht gespeichert"
 						schliessen={() => setUngespeichert(null)}
-						fuss={(
-							<>
-								<Knopf
-									art="gefahr"
-									data-trotzdem-verlassen
-									onClick={() => {
-										setUngespeichert(null);
-										ungespeichert();
-									}}
-								>
-									Trotzdem verlassen
-								</Knopf>
-								<Knopf data-hauptaktion onClick={() => setUngespeichert(null)}>
-									Hier bleiben
-								</Knopf>
-							</>
-						)}
+						fuss={fussZeile(ungespeichert)}
 					>
 						<p>Deine letzten Änderungen sind noch nicht gespeichert.</p>
 					</Dialog>
@@ -1329,7 +1349,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 									ziehbar={struktur.aktiv}
 									einfuegeLinie={frei && struktur.aktiv}
 									// Nach dem Ziehen ist der Baustein im Blick wie nach ⌥↑↓ (193, aus Abnahme 206).
-									ablegen={(nr, ablage) => struktur.verschiebe(nr, ablage, true)}
+									ablegen={(nr, ziel) => struktur.verschiebe(nr, ziel, true)}
 									jeSeite={format === 'folie'}
 									einblendung={(e) => (
 										<>

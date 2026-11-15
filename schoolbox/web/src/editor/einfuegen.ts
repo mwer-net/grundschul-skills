@@ -77,6 +77,9 @@ interface Optionen {
  * der Katalog ohne das, was im Blatt nicht zeichnet (`gehtImBlatt`; andere Schubladen suchen darin per Kennung, z. B.
  * `tipp` und `willi` in „Figuren“), `angebot` nur, was Schublade, Schnellauswahl, Slash und Palette zeigen (203-04).
  */
+/** Wo eine Ablage einfügt: im Behälter (`in`) oder am Nachbarn (`nr`). */
+const nrDerAblage = (ablage: Ablage) => ('in' in ablage ? ablage.in : ablage.nr);
+
 export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, ohneAuswahl, struktur }: Optionen) => {
 	const ziel = () => auswahl ?? ohneAuswahl?.() ?? null;
 	const { daten, neuLaden } = useLaden<{ eintraege: Posten[] }>('/api/katalog');
@@ -93,8 +96,7 @@ export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, ohneAu
 		const ok = struktur.fuehreAus(
 			`${e.name} eingefügt`,
 			(q) => {
-				const nr =
-					wo !== null && typeof wo === 'object' ? ('in' in wo.ablage ? wo.ablage.in : wo.ablage.nr) : wo;
+				const nr = wo !== null && typeof wo === 'object' ? nrDerAblage(wo.ablage) : wo;
 				gefunden.da = schonDa(q, einfuegbar, nr);
 				if (gefunden.da) {
 					return { quelle: q, nr: gefunden.da.nr };
@@ -195,12 +197,12 @@ export const useEinfuegen = ({ auswahl, blatt, dokument, folien, nachher, ohneAu
 					),
 			};
 		}
-		const blatt = blattDerSeite(doc, seitenNr);
-		if (!fliesst || bloecke <= 1 || blatt === null) {
+		const seitenBlatt = blattDerSeite(doc, seitenNr);
+		if (!fliesst || bloecke <= 1 || seitenBlatt === null) {
 			return null;
 		}
 		const umbrechen = async () => {
-			const plan = await probelauf(doc, z, { blaetter: [blatt], mitLoesung: hatLoesung(z.quelle) });
+			const plan = await probelauf(doc, z, { blaetter: [seitenBlatt], mitLoesung: hatLoesung(z.quelle) });
 			if (!plan) {
 				return;
 			}
