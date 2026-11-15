@@ -211,7 +211,7 @@ test.describe('Präsentation', () => {
 		await page.clock.fastForward('10:00');
 		await expect(text).toHaveText('noch 15 Minuten');
 		await druecke(timer);
-		await expect(text).toHaveText('Pause');
+		await expect(text).toHaveText('Pause noch 15 Minuten');
 		await page.clock.fastForward('05:00');
 		await druecke(timer);
 		await expect(text).toHaveText('noch 15 Minuten');
@@ -224,6 +224,23 @@ test.describe('Präsentation', () => {
 		await expect(timer).toHaveAttribute('data-zustand', 'um');
 		await druecke(timer);
 		await expect(text).toHaveText('25 Minuten');
+
+		// 207 (192-U5): Pausiert und die Folie neu betreten, beginnt der Timer von vorn.
+		await druecke(timer);
+		await page.clock.fastForward('03:00');
+		await druecke(timer);
+		await expect(text).toHaveText('Pause noch 22 Minuten');
+		await gehe(page, 4);
+		await gehe(page, 5);
+		await expect(folie.locator('.seite.aktiv x-timer .timer-text')).toHaveText('25 Minuten');
+
+		// 207 (192-U4): Eine Antwort antippen setzt einen Strich und blättert nicht weiter.
+		await gehe(page, 2);
+		const antwort = folie.locator('.seite.aktiv .vermutung').first();
+		await druecke(antwort);
+		await druecke(antwort);
+		await expect(nummer).toHaveText('2 / 6');
+		await expect(antwort.locator('.praesentation-striche line')).toHaveCount(2);
 	});
 
 	test('läuft nach dem Start ohne Netz bis zum Ende', async ({ context, druecke, page }) => {

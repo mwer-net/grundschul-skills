@@ -34,8 +34,12 @@ body.praesentieren .seite{display:none;position:fixed;left:50%;top:50%;margin:0;
 body.praesentieren .seite.aktiv{display:flex}
 body.praesentieren [data-schritt]{transition:opacity .3s,visibility .3s}
 ${verdeckt("body.praesentieren")}
-body.praesentieren x-timer{cursor:pointer}
+body.praesentieren x-timer,body.praesentieren .vermutung{cursor:pointer}
+body.praesentieren .vermutung .leerstelle{display:flex;align-items:center;justify-content:center}
+.praesentation-striche{display:flex;align-items:center;justify-content:center;gap:.3em;height:1.6em;pointer-events:none}
+.praesentation-striche svg{height:100%;width:auto;overflow:visible}
 body.praesentieren x-timer .timer-text{width:0;display:flex;justify-content:center;white-space:nowrap}
+body.praesentieren x-timer[data-zustand="pause"] .timer-text{flex-direction:column;align-items:center}
 body.praesentieren x-timer.letzte-minute .timer-scheibe{fill:var(--akzent)!important}
 body.praesentieren.sw x-timer.letzte-minute .timer-scheibe{opacity:.45}
 .praesentation-schwarz{display:none;position:fixed;inset:0;background:#000;z-index:2147483646}
@@ -50,10 +54,13 @@ body.praesentieren.ohne-nummer .praesentation-nummer{display:none}
   const ZURUECK = ["ArrowLeft", "ArrowUp", "PageUp", "Backspace"];
   const WISCHEN = 50; // px, und deutlich mehr waagerecht als senkrecht
   const TIPPEN = 12; // px: so wenig darf sich der Finger beim Antippen bewegen
+  const LANG = 600; // ms: so lange drücken stellt einen Timer zurück
 
   let folien = [], info = [], nr = 0, schwarz = false, stil = null, nummer = null, abdeckung = null, ende = null;
   const timer = new Map();
-  let uhr = null;
+  // Striche der Abstimmung (192-U4): nur in der laufenden Präsentation, nie in der Datei.
+  const striche = new Map();
+  let uhr = null, gezeigt = -1;
 
   const zahl = (el) => parseFloat(el.getAttribute("data-schritt"));
   const schritteIn = (verlauf) => verlauf.filter((v) => v === "s").length;
@@ -91,6 +98,14 @@ body.praesentieren.ohne-nummer .praesentation-nummer{display:none}
 
   function zeige() {
     folien.forEach((f, i) => f.classList.toggle("aktiv", i === nr));
+    // Neu betreten: Ein pausierter Timer der Folie beginnt von vorn (192-U5); ein laufender läuft weiter.
+    if (gezeigt !== nr) {
+      folien[nr].querySelectorAll("x-timer").forEach((el) => {
+        const t = timer.get(el);
+        if (t && t.seit === null && t.rest < t.dauer) stelleZurueck(el);
+      });
+      gezeigt = nr;
+    }
     const { stufen, verlauf } = info[nr];
     verdecke(folien[nr], stufen, schritteIn(verlauf), (a) => verlauf.includes(a));
     document.body.classList.toggle("schwarz", schwarz);
@@ -163,7 +178,13 @@ body.praesentieren.ohne-nummer .praesentation-nummer{display:none}
     const text = el.querySelector(".timer-text");
     const minuten = Math.ceil(r / 60000);
     if (text && zustand === "laeuft") text.textContent = `noch ${minuten} ${minuten === 1 ? "Minute" : "Minuten"}`;
-    if (text && zustand === "pause") text.textContent = "Pause";
+    // In der Pause zwei Zeilen, damit es so breit bleibt wie „noch 22 Minuten“ (192-U5).
+    if (text && zustand === "pause") {
+      const [oben, unten] = [document.createElement("span"), document.createElement("span")];
+      oben.textContent = "Pause";
+      unten.textContent = `noch ${minuten} ${minuten === 1 ? "Minute" : "Minuten"}`;
+      text.replaceChildren(oben, " ", unten);
+    }
     if (text && zustand === "um") text.textContent = "Die Zeit ist um.";
   }
 
@@ -178,6 +199,12 @@ body.praesentieren.ohne-nummer .praesentation-nummer{display:none}
     }
   }
 
+  function stelleZurueck(el) {
+    Object.assign(timerStand(el), { rest: timerStand(el).dauer, seit: null });
+    zeichneTimer(el);
+    takt();
+  }
+
   function tippeTimer(el) {
     const t = timerStand(el);
     const r = restVon(t);
@@ -188,12 +215,43 @@ body.praesentieren.ohne-nummer .praesentation-nummer{display:none}
     takt();
   }
 
-  function tippe(ziel, x) {
+  // Strichliste wie an der Tafel: je fünf ein Bündel, der fünfte quer.
+  function zeichneStriche(antwort) {
+    const n = striche.get(antwort) || 0;
+    let ort = antwort.querySelector(".praesentation-striche");
+    if (!n) return ort && ort.remove();
+    if (!ort) {
+      ort = document.createElement("span");
+      ort.className = "praesentation-striche";
+      ort.setAttribute("aria-live", "polite");
+      (antwort.querySelector(".leerstelle") || antwort).appendChild(ort);
+    }
+    const buendel = [];
+    for (let rest = n; rest > 0; rest -= 5) {
+      const k = Math.min(rest, 5);
+      const linien = [...Array(Math.min(k, 4))].map((_, i) => `<line x1="${3 + i * 6}" y1="2" x2="${3 + i * 6}" y2="22"/>`);
+      if (k === 5) linien.push('<line x1="-1" y1="18" x2="23" y2="6"/>');
+      buendel.push(`<svg viewBox="0 0 ${k === 5 ? 22 : 6 * k} 24" fill="none" stroke="currentColor" stroke-width="2.6" ` +
+        `stroke-linecap="round">${linien.join("")}</svg>`);
+    }
+    ort.innerHTML = buendel.join("");
+    ort.setAttribute("aria-label", `${n} ${n === 1 ? "Strich" : "Striche"}`);
+  }
+
+  function zaehle(antwort, um) {
+    striche.set(antwort, Math.max(0, (striche.get(antwort) || 0) + um));
+    zeichneStriche(antwort);
+  }
+
+  function tippe(ziel, x, lang) {
     const verdeckt = ziel && ziel.closest(".aufdecken.zu");
     const uhrZiel = ziel && ziel.closest("x-timer");
+    const antwort = ziel && ziel.closest(".seite.aktiv .vermutung");
     if (!schwarz && verdeckt) deckeAuf(verdeckt);
     else if (!schwarz && ziel && ziel.closest(".aufdecken")) return;
+    else if (!schwarz && uhrZiel && lang) stelleZurueck(uhrZiel);
     else if (!schwarz && uhrZiel) tippeTimer(uhrZiel);
+    else if (!schwarz && antwort) zaehle(antwort, lang ? -1 : 1);
     else if (x < innerWidth / 3) zurueck();
     else weiter();
   }
@@ -228,6 +286,9 @@ body.praesentieren.ohne-nummer .praesentation-nummer{display:none}
     document.querySelectorAll(".aktiv, .schritt-zu, .aufdecken.zu").forEach((el) =>
       el.classList.remove("aktiv", "schritt-zu", "zu"));
     [stil, nummer, abdeckung].forEach((el) => el.remove());
+    document.querySelectorAll(".praesentation-striche").forEach((el) => el.remove());
+    striche.clear();
+    gezeigt = -1;
     delete window.praesentation;
     window.dispatchEvent(new CustomEvent("praesentation:stand", { detail: null }));
   }
@@ -284,7 +345,7 @@ body.praesentieren.ohne-nummer .praesentation-nummer{display:none}
     }, mit);
     document.addEventListener("pointerdown", (e) => {
       druck = e.isPrimary && (e.pointerType !== "mouse" || e.button === 0)
-        ? { x: e.clientX, y: e.clientY, id: e.pointerId } : null;
+        ? { x: e.clientX, y: e.clientY, id: e.pointerId, t: Date.now() } : null;
     }, mit);
     document.addEventListener("pointercancel", () => {
       druck = null;
@@ -292,15 +353,23 @@ body.praesentieren.ohne-nummer .praesentation-nummer{display:none}
     document.addEventListener("pointerup", (e) => {
       if (!druck || e.pointerId !== druck.id) return;
       const dx = e.clientX - druck.x, dy = e.clientY - druck.y;
+      const t = druck.t;
       druck = null;
       if (Math.abs(dx) >= WISCHEN && Math.abs(dx) > 1.5 * Math.abs(dy)) {
         if (dx < 0) weiter();
         else zurueck();
       } else if (Math.hypot(dx, dy) < TIPPEN) {
-        tippe(e.target instanceof Element ? e.target : null, e.clientX);
+        tippe(e.target instanceof Element ? e.target : null, e.clientX, Date.now() - t >= LANG);
       }
     }, mit);
     document.addEventListener("visibilitychange", takt, mit);
+    document.addEventListener("contextmenu", (e) => {
+      const antwort = !schwarz && e.target instanceof Element && e.target.closest(".seite.aktiv .vermutung");
+      const uhrZiel = !schwarz && e.target instanceof Element && e.target.closest(".seite.aktiv x-timer");
+      if (!antwort && !uhrZiel) return;
+      e.preventDefault();
+      if (antwort && e.pointerType !== "touch") zaehle(antwort, -1);
+    }, mit);
 
     window.praesentation = {
       weiter, zurueck, taste, vorladen, stand, beenden,
@@ -421,7 +490,6 @@ body.praesentation-notizen .seite.notizblatt{width:794px;height:1123px;--rand:48
   background:var(--haupt);border:0;border-radius:999px;padding:22px 44px;cursor:pointer;min-height:44px}
 .praesentation-startseite button.leise{font:20px/1.4 Andika,sans-serif;color:inherit;background:none;padding:10px 16px;
   text-decoration:underline}
-.praesentation-startseite ul{list-style:none;margin:0;padding:0;color:#555;font-size:18px}
 .praesentation-wieder{position:fixed;right:24px;bottom:24px;z-index:2147483647;font-size:20px;padding:14px 26px;
   box-shadow:0 2px 12px rgba(0,0,0,.25)}
 @media print{.praesentation-startseite,.praesentation-wieder{display:none!important}}`;
@@ -430,12 +498,11 @@ body.praesentation-notizen .seite.notizblatt{width:794px;height:1123px;--rand:48
     fuegeStilEin(START_STIL);
     const anzahl = document.querySelectorAll(".seite").length;
     const kopf = document.querySelector(".seite h1");
-    const titel = (kopf ? kopf.textContent : document.title).trim().replace(/\s+/g, " ");
+    // Der Titel des Materials (192-U6); die erste Überschrift nur, wenn die Datei keinen hat.
+    const titel = (document.title.trim() || (kopf ? kopf.textContent : "")).trim().replace(/\s+/g, " ");
     const seite = document.createElement("div");
     seite.className = "praesentation-startseite";
-    seite.innerHTML = '<h1></h1><p></p><button type="button" class="los">Präsentation starten</button><ul>' +
-      "<li>Weiter: Pfeil rechts, Leertaste, Klicker oder rechts antippen</li><li>Zurück: Pfeil links oder links antippen</li>" +
-      "<li>B: schwarzer Bildschirm · Esc: beenden</li></ul>" +
+    seite.innerHTML = '<h1></h1><p></p><button type="button" class="los">Präsentation starten</button>' +
       '<button type="button" class="leise">Folien als Seiten ansehen</button>';
     seite.querySelector("h1").textContent = titel;
     seite.querySelector("p").textContent = `${anzahl} ${anzahl === 1 ? "Folie" : "Folien"} · funktioniert ohne Internet`;
@@ -473,6 +540,15 @@ body.praesentation-notizen .seite.notizblatt{width:794px;height:1123px;--rand:48
       wieder.hidden = false;
     });
     document.addEventListener("visibilitychange", halteWach);
+    // Esc im Vollbild nimmt der Browser für sich und schickt keine Taste; so beendet ein Druck auch die Präsentation.
+    let warVoll = false;
+    const vollbild = () => {
+      const voll = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      if (warVoll && !voll && window.praesentation) window.praesentation.beenden();
+      warVoll = voll;
+    };
+    document.addEventListener("fullscreenchange", vollbild);
+    document.addEventListener("webkitfullscreenchange", vollbild);
     addEventListener("praesentation:ende", () => {
       if (wach) wach.release().catch(() => {});
       wach = null;
