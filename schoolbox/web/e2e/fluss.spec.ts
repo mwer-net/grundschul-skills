@@ -283,4 +283,24 @@ test.describe('Seiten laufen weiter (206)', () => {
 		expect(automatische(soll)).toBe(0);
 		await gespeichert(page, doc.material);
 	});
+
+	test('Einfügen und Löschen zählen nur im eigenen Zählbereich (Nachbesserung 3)', async ({ page }) => {
+		// Hinter dem Blatt ein zweites, das selbst von 1 an zählt (wie im großen Übungsheft).
+		const doc = await uhrzeit();
+		const zweites = `<section class="seite">\n  ${hoheAufgabe(1)}\n  ${hoheAufgabe(2)}\n</section>`;
+		await writeFile(doc.material, (await readFile(doc.material, 'utf8')).replace('</body>', `${zweites}\n</body>`));
+		await oeffne(page, doc.id, doc.dok);
+		const vorher = await quelle(page);
+		const zweitesVorher = vorher.slice(vorher.lastIndexOf('<section'));
+		await material(page).locator('body > .seite').first().locator(':scope > .aufgabe .nr').first().click();
+		await page.keyboard.press('ControlOrMeta+d');
+		await expect.poll(() => quelle(page)).not.toBe(vorher);
+		await geladen(page);
+		const nachher = await quelle(page);
+		expect(nachher.slice(nachher.lastIndexOf('<section'))).toBe(zweitesVorher);
+		await expect(seiten(page).last().locator(':scope > .aufgabe .nr')).toHaveText(['1', '2']);
+		await page.keyboard.press('Backspace');
+		await expect.poll(() => quelle(page)).toBe(vorher);
+		await gespeichert(page, doc.material);
+	});
 });

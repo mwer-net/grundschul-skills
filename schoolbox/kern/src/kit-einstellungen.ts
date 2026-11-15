@@ -503,7 +503,7 @@ export const setzeKitMitAuswahl = (
 	const begrenzt = feld.typ === 'zahl' ? Math.min(feld.max, Math.max(feld.min, Number(wert))) : wert;
 	const aenderungen = regel.setze(z, k, begrenzt);
 	const ohneNummern = wendeAn(quelle, aenderungen);
-	const neu = name === 'stern' ? nummeriere(ohneNummern, n) : ohneNummern;
+	const neu = name === 'stern' ? nummeriere(ohneNummern, n, quelle) : ohneNummern;
 	const start = startNach(k.start, aenderungen);
 	const danach = zerlege(neu).knoten.find((c) => c.start === start)?.nr ?? nr;
 	return { quelle: neu, nr: danach };
@@ -585,7 +585,7 @@ export const setzeKit = (
 	const z = zerlege(quelle);
 	const begrenzt = feld.typ === 'zahl' ? Math.min(feld.max, Math.max(feld.min, Number(wert))) : wert;
 	const neu = wendeAn(quelle, regel.setze(z, knotenVon(z, nr), begrenzt));
-	return name === 'stern' ? nummeriere(neu, n) : neu;
+	return name === 'stern' ? nummeriere(neu, n, quelle) : neu;
 };
 
 export const SICHTBARKEITEN = [

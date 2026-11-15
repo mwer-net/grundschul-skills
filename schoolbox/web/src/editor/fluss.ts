@@ -27,7 +27,10 @@ import { useCallback, useEffect, useRef } from 'react';
 
 import { elementZu, MITLAUFEN, nrVon } from './darstellung';
 
-/** Unterkante der Seite wie in `pruefung.js`: nach vorn erst bei mehr als 1 px Überstand, zurück nur ganz (Regel 14). */
+/**
+ * Unterkante der Seite wie in `pruefung.js`: Ein Block passt bis 1 px Überstand, für Bleiben und Zurückkommen gleich
+ * (Regel 14). Dieselbe Messung entscheidet beide Wege, so pendelt nichts.
+ */
 const TOLERANZ = 1;
 /** Länger wartet der Probelauf nicht auf Bilder, die noch laden. */
 const BILDER_MS = 2000;
@@ -148,14 +151,14 @@ const passungVon = (seiten: Element[]) =>
 				passt += 1;
 			}
 			// Ob der erste Block der nächsten Seite hier noch Platz hätte, misst der Block selbst an dieser Stelle,
-			// genau wie `fuelle` (zurück nur ganz); danach steht er wieder, wo er stand.
+			// genau wie `fuelle` (Regel 14); danach steht er wieder, wo er stand.
 			const naechste = seiten[j + 1];
 			const naechster = naechste ? flussKinder(naechste)[0] : undefined;
 			let platz = 0;
 			if (naechster && passt === bloecke.length) {
 				const { parentNode, nextSibling } = naechster;
 				seite.insertBefore(naechster, ankerIn(seite));
-				platz = unterkante(naechster) <= grenzeVon(seite) ? 1 : 0;
+				platz = unterkante(naechster) <= grenzeVon(seite) + TOLERANZ ? 1 : 0;
 				parentNode?.insertBefore(naechster, nextSibling);
 			}
 			return `${bloecke.length}/${passt}/${platz}`;
@@ -246,7 +249,7 @@ const probeSeite = (vorlage: HTMLElement, nach: Element) => {
  * wo sie im Arbeitsblatt endete; so wird nur weitergeschoben, nie zurückgeholt.
  */
 const fuelle = (p: Probe, neu: HTMLElement[], bis: number[] | null, ab = { block: 0, seite: 0, besetzt: false }) => {
-	const { folge, herkunft } = p;
+	const { folge } = p;
 	const seiten: Element[][] = [];
 	let s = ab.block;
 	for (let j = ab.seite; s < folge.length; j += 1) {
@@ -264,8 +267,7 @@ const fuelle = (p: Probe, neu: HTMLElement[], bis: number[] | null, ab = { block
 		let m = 0;
 		while (s + m < folge.length) {
 			const block = folge[s + m] as Element;
-			const zugabe = (herkunft.get(block) ?? 0) <= j ? TOLERANZ : 0;
-			if (unterkante(block) > grenze + zugabe) {
+			if (unterkante(block) > grenze + TOLERANZ) {
 				break;
 			}
 			m += 1;

@@ -282,3 +282,27 @@ describe('Eine neutrale Änderung ändert nichts sonst (Nachbesserung 2)', () =>
 		);
 	});
 });
+
+describe('Hin und zurück ergibt dieselbe Quelle, auch mit Leerzeilen (Nachbesserung 3)', () => {
+	const MIT_LEERZEILEN = dokument([
+		`<section class="seite">\n  <header class="kopf">K</header>\n\n  ${[1, 2, 3, 4].map(aufgabe).join('\n\n  ')}\n\n  <!-- Ende -->\n</section>`,
+	]);
+
+	it('eine Aufgabe weiter und zurück', () => {
+		const hin = legeUm(MIT_LEERZEILEN, plan(MIT_LEERZEILEN, [3, 1])).quelle;
+		assert.match(hin, /data-weiter="auto"/);
+		assert.equal(legeUm(hin, plan(hin, [4, 0])).quelle, MIT_LEERZEILEN);
+	});
+
+	it('zwei Aufgaben weiter und zurück', () => {
+		const hin = legeUm(MIT_LEERZEILEN, plan(MIT_LEERZEILEN, [2, 2])).quelle;
+		assert.equal(legeUm(hin, plan(hin, [4, 0])).quelle, MIT_LEERZEILEN);
+	});
+
+	it('ein Kommentar über der Aufgabe wandert mit und kommt mit zurück', () => {
+		const mitKommentar = MIT_LEERZEILEN.replace(`\n\n  ${aufgabe(4)}`, `\n\n  <!-- Stern -->\n  ${aufgabe(4)}`);
+		const hin = legeUm(mitKommentar, plan(mitKommentar, [3, 1])).quelle;
+		assert.match(hin, /data-weiter="auto">[\s\S]*<!-- Stern -->/);
+		assert.equal(legeUm(hin, plan(hin, [4, 0])).quelle, mitKommentar);
+	});
+});

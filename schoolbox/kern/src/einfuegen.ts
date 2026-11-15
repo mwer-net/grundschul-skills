@@ -81,7 +81,7 @@ export const ergebnis = (quelle: string, a: Aenderung[], n: Nummerierung, bauste
 	// Eingefügte Schritte bekommen auf der Folie eigene Zahlen nach ihrer Stelle (192-16), wie beim Duplizieren.
 	const aussen = knoten.find((k) => k.start === erste.von + erste.text.indexOf('<'))?.nr ?? null;
 	const geordnet = n.jeSeite ? ordneSchritte(neu, aussen, true) : neu;
-	return { quelle: nummeriere(geordnet, n), nr };
+	return { quelle: nummeriere(geordnet, n, quelle), nr };
 };
 
 /** Oberstes Kind der Seite, in dem `k` liegt. */
@@ -441,7 +441,7 @@ export const umbruchVor = (quelle: string, nr: number, n: Nummerierung): Struktu
 	const weg = raus.reduce((summe, a) => summe + (a.bis - a.von), 0);
 	const start = rein.von - weg + rein.text.indexOf('<');
 	const neueSeite = zerlege(neu).knoten.find((c) => c.start === start);
-	return { quelle: nummeriere(neu, n), nr: neueSeite ? (flussbloeckeVon(neueSeite)[0] ?? null) : null };
+	return { quelle: nummeriere(neu, n, quelle), nr: neueSeite ? (flussbloeckeVon(neueSeite)[0] ?? null) : null };
 };
 
 /**
@@ -489,5 +489,5 @@ export const schliesseAn = (quelle: string, nr: number, n: Nummerierung): Strukt
 	}
 	const z = zerlege(quelle);
 	const k = z.knoten[nr] as Knoten;
-	return { quelle: nummeriere(wendeAn(quelle, setzeAttribut(z, k, WEITER, AUTOMATISCH)), n), nr };
+	return { quelle: nummeriere(wendeAn(quelle, setzeAttribut(z, k, WEITER, AUTOMATISCH)), n, quelle), nr };
 };

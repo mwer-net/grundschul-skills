@@ -58,6 +58,45 @@ const planGilt = (blatt: Blatt, seiten: number[][]) => {
 	return gleich(seiten.flat(), blatt.folge) && seiten.slice(0, letzte + 1).every((s, j) => j === 0 || s.length > 0);
 };
 
+/** Eine Zeile, in der nur ein Kommentar steht. */
+const KOMMENTARZEILE = /^[ \t]*<!--(?:(?!-->).)*-->[ \t]*$/;
+
+/**
+ * Was über einem Block auf eigener Zeile zu ihm gehört: Kommentarzeilen direkt darüber und eine Leerzeile, die ihn
+ * (samt Kommentar) vom Block davor trennt. Beides wandert mit, wenn der Block die Seite verlässt, und kommt mit
+ * zurück. So ergibt Hin und Zurück dieselbe Quelle (Regel 14).
+ */
+const vorspannVon = (z: Zerlegung, k: Knoten) => {
+	if (einrueckung(z, k) === null) {
+		return { kommentare: [] as string[], laenge: 0, leer: '' };
+	}
+	const kommentare: string[] = [];
+	let anfang = z.quelle.lastIndexOf('\n', k.start - 1) + 1;
+	let laenge = 0;
+	while (anfang > 0) {
+		const davor = z.quelle.lastIndexOf('\n', anfang - 2) + 1;
+		const zeile = z.quelle.slice(davor, anfang - 1);
+		if (!KOMMENTARZEILE.test(zeile)) {
+			break;
+		}
+		kommentare.unshift(zeile.trim());
+		laenge += anfang - davor;
+		anfang = davor;
+	}
+	const leer = /\n([ \t]*\n)$/.exec(z.quelle.slice(0, anfang))?.[1] ?? '';
+	return { kommentare, laenge, leer };
+};
+
+/** Wie `entferne`, aber mit dem, was über dem Block zu ihm gehört (`vorspannVon`). */
+const entferneBlock = (z: Zerlegung, k: Knoten): Aenderung[] => {
+	const { laenge, leer } = vorspannVon(z, k);
+	return entferne(z, k).map((a) => ({ ...a, von: a.von - laenge - leer.length }));
+};
+
+/** Der Block mit seinen Kommentarzeilen, eingerückt mit `einzug`. */
+const mitKommentaren = (kommentare: string[], text: string, einzug: string) =>
+	[...kommentare, text].join(`\n${einzug}`);
+
 /**
  * Setzt `texte` (Blöcke, schon eingerückt) auf der Seite ein: hinter den Block davor bzw. vor den danach, sonst
  * hinter das letzte bleibende Kind im Stapel (Kopf, Lösung-Marke …), vor das erste, oder ins leere Innere.
@@ -70,13 +109,31 @@ const setzeEin = (
 ): Einsatz => {
 	const innen = kinderEinzug(z, seite);
 	const texte = bloecke.map((k) => ({ nr: k.nr, text: rueckeUm(quelleVon(z, k), einrueckung(z, k), innen) }));
-	const html = (einzug: string | null) => texte.map((t) => t.text).join(einzug === null ? '' : `\n${einzug}`);
+	const vorspann = bloecke.map((k) => vorspannVon(z, k));
+	/** Jeder Block mit seinen Kommentaren und seiner Leerzeile davor, wie er stand, als ganze Zeilen. */
+	const zeilen = (einzug: string) =>
+		texte.map((t, i) => {
+			const v = vorspann[i];
+			return `${v?.leer ?? ''}${einzug}${mitKommentaren(v?.kommentare ?? [], t.text, einzug)}\n`;
+		});
 	const neben = (ziel: Knoten, wo: 'vor' | 'nach'): Einsatz => {
-		const [aenderung] = fuegeEin(z, ziel, wo, html(einrueckung(z, ziel)));
-		if (!aenderung) {
-			throw new Error('Der Block lässt sich hier nicht einsetzen.');
+		const einzug = einrueckung(z, ziel);
+		const rest = /^[ \t]*\n/.exec(z.quelle.slice(ziel.ende))?.[0];
+		if (einzug === null || (wo === 'nach' && rest === undefined)) {
+			const html = texte.map((t) => t.text).join(einzug === null ? '' : `\n${einzug}`);
+			const [aenderung] = fuegeEin(z, ziel, wo, html);
+			if (!aenderung) {
+				throw new Error('Der Block lässt sich hier nicht einsetzen.');
+			}
+			return { aenderung, bloecke: texte };
 		}
-		return { aenderung, bloecke: texte };
+		// Vor `ziel` heißt: vor das, was über ihm zu ihm gehört.
+		const v = vorspannVon(z, ziel);
+		const pos =
+			wo === 'vor'
+				? z.quelle.lastIndexOf('\n', ziel.start - 1) + 1 - v.laenge - v.leer.length
+				: ziel.ende + (rest?.length ?? 0);
+		return { aenderung: { von: pos, bis: pos, text: zeilen(einzug).join('') }, bloecke: texte };
 	};
 	if (ort.nach) {
 		return neben(ort.nach, 'nach');
@@ -96,9 +153,9 @@ const setzeEin = (
 	// Alle Kinder wandern weg: an der Stelle des ersten, sonst ins leere Innere.
 	const weg = seite.kinder[0];
 	if (weg) {
-		const [bereich] = entferne(z, weg);
+		const [bereich] = entferneBlock(z, weg);
 		const eigeneZeile = einrueckung(z, weg) !== null;
-		const text = eigeneZeile ? texte.map((t) => `${innen}${t.text}\n`).join('') : html(null);
+		const text = eigeneZeile ? zeilen(innen).join('') : texte.map((t) => t.text).join('');
 		const pos = bereich?.von ?? weg.start;
 		return { aenderung: { von: pos, bis: pos, text }, bloecke: texte };
 	}
@@ -107,7 +164,7 @@ const setzeEin = (
 		aenderung: {
 			von: seite.oeffnerEnde,
 			bis: seite.schliesserStart,
-			text: `\n${texte.map((t) => `${innen}${t.text}`).join('\n')}\n${aussen}`,
+			text: `\n${zeilen(innen).join('')}${aussen}`,
 		},
 		bloecke: texte,
 	};
@@ -140,7 +197,7 @@ const legeBlattUm = (z: Zerlegung, blatt: Blatt, seiten: number[][], einsaetze: 
 			}
 		}
 		for (const nr of jetzt.filter((n) => !bleibt.has(n))) {
-			weg.push(...entferne(z, knoten(z, nr)));
+			weg.push(...entferneBlock(z, knoten(z, nr)));
 		}
 		const bleibtKind = (k: Knoten) => !jetzt.includes(k.nr) || bleibt.has(k.nr);
 		// Folgen neuer Blöcke zwischen den bleibenden, je an den Block davor gehängt.
@@ -176,8 +233,22 @@ const legeBlattUm = (z: Zerlegung, blatt: Blatt, seiten: number[][], einsaetze: 
 				return { nr, text: rueckeUm(quelleVon(z, k), einrueckung(z, k), innen) };
 			}),
 		);
+		/** Die Folgeseite; jeder Block bringt seine Kommentare und seine Leerzeile davor mit. */
+		const seite = (b: { nr: number; text: string }[]) => {
+			const vor = b.map((t) => vorspannVon(z, knoten(z, t.nr)));
+			const inhalt = b.map((t, i) => mitKommentaren(vor[i]?.kommentare ?? [], t.text, innen));
+			let html = automatischeSeite(z, vorlage, { inhalt });
+			inhalt.forEach((zeile, i) => {
+				const leer = vor[i]?.leer ?? '';
+				const stelle = html.indexOf(`\n${innen}${zeile}`);
+				if (leer !== '' && stelle >= 0) {
+					html = `${html.slice(0, stelle + 1)}${leer}${html.slice(stelle + 1)}`;
+				}
+			});
+			return html;
+		};
 		const html = bloecke
-			.map((b) => automatischeSeite(z, vorlage, { inhalt: b.map((t) => t.text) }))
+			.map(seite)
 			.join(`\n${einrueckung(z, letzte) ?? ''}`);
 		const [aenderung] = fuegeEin(z, letzte, 'nach', html);
 		if (aenderung) {
