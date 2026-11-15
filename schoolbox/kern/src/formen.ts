@@ -85,19 +85,6 @@ export const FORMEN: Readonly<Record<string, Form>> = Object.fromEntries(ALLE.ma
 export const formVon = (art: string | null | undefined): Form | undefined =>
 	art && Object.hasOwn(FORMEN, art) ? FORMEN[art] : undefined;
 
-/**
- * Name in Ebenen und Pfad (`nameDerGestaltung`, `titelDerGestaltung`): eine Quelle für beide (196-15). Eine Form, die
- * das Register nicht kennt (`data-form="kreis"` von Claude), heißt nach ihrem Attribut; ohne Attribut `null`.
- */
-export const formName = (art: string | null | undefined, lies?: (attr: string) => string | null | undefined) => {
-	const roh = (art ?? '').trim().replace(/[-_]+/g, ' ');
-	const form = formVon(art);
-	if (form) {
-		return anzeigeName(form.art, lies) ?? form.name;
-	}
-	return roh ? `${roh[0]?.toUpperCase() ?? ''}${roh.slice(1)}` : null;
-};
-
 /** 198-06: Vielecke heißen nach ihrer Eckenzahl wie die Kacheln (Raute, Sechseck); sonst „Vieleck“. */
 const VIELECK_NAMEN: Readonly<Record<number, string>> = {
 	3: 'Dreieck',
@@ -131,6 +118,19 @@ const anzeigeName = (art: string, lies?: (attr: string) => string | null | undef
 		default:
 			return null;
 	}
+};
+
+/**
+ * Name in Ebenen und Pfad (`nameDerGestaltung`, `titelDerGestaltung`): eine Quelle für beide (196-15). Eine Form, die
+ * das Register nicht kennt (`data-form="kreis"` von Claude), heißt nach ihrem Attribut; ohne Attribut `null`.
+ */
+export const formName = (art: string | null | undefined, lies?: (attr: string) => string | null | undefined) => {
+	const roh = (art ?? '').trim().replace(/[-_]+/g, ' ');
+	const form = formVon(art);
+	if (form) {
+		return anzeigeName(form.art, lies) ?? form.name;
+	}
+	return roh ? `${roh[0]?.toUpperCase() ?? ''}${roh.slice(1)}` : null;
 };
 
 /** Standards beim Ablegen (3-formen.md). */

@@ -6,16 +6,13 @@ import { Knopf } from '../bausteine/Knopf';
 export const VonHand = ({ schliessen, text }: { text: string; schliessen: () => void }) => {
 	const feld = useRef<HTMLTextAreaElement>(null);
 	useEffect(() => feld.current?.select(), []);
+	const fuss = (
+		<Knopf onClick={schliessen} data-hauptaktion>
+			Fertig
+		</Knopf>
+	);
 	return (
-		<Dialog
-			titel="In der Claude-App weiterarbeiten"
-			schliessen={schliessen}
-			fuss={(
-				<Knopf onClick={schliessen} data-hauptaktion>
-					Fertig
-				</Knopf>
-			)}
-		>
+		<Dialog titel="In der Claude-App weiterarbeiten" schliessen={schliessen} fuss={fuss}>
 			<label className="flex flex-col gap-2">
 				<span>
 					Kopiere diesen Text und füge ihn im Claude-Chat ein. Schreib dahinter, was du ändern möchtest.

@@ -146,21 +146,22 @@ describe('Einfügen auf einer Folie zählt die Schritte neu (192-16)', () => {
 	const folien = { jeSeite: true };
 	const zellen = (quelle: string) => zerlege(quelle).knoten.filter((k) => klassenVon(k).includes('zelle'));
 	const schritte = (quelle: string) => zellen(quelle).map((k) => attribut(k, 'data-schritt')?.wert);
-	const texte = (quelle: string) => zellen(quelle).map((k) => quelle.slice(k.start, k.ende).replace(/<[^>]+>/g, ''));
+	const zellenTexte = (quelle: string) =>
+		zellen(quelle).map((k) => quelle.slice(k.start, k.ende).replace(/<[^>]+>/g, ''));
 	const kopie = { id: 'ablage', ort: 'zeile' as const, html: zelle('eins', '1') };
 
 	it('⌘V hinter die dritte Zeile: 1, 2, 3, 4', () => {
 		const ziel = zellen(FOLIE)[2]?.nr ?? -1;
 		const { quelle } = fuegeBausteinAn(FOLIE, kopie, { nr: ziel, wo: 'nach' }, folien);
 		assert.deepEqual(schritte(quelle), ['1', '2', '3', '4']);
-		assert.deepEqual(texte(quelle), ['eins', 'zwei', 'drei', 'eins']);
+		assert.deepEqual(zellenTexte(quelle), ['eins', 'zwei', 'drei', 'eins']);
 	});
 
 	it('⌘V hinter die erste Zeile: Die Kopie ist Schritt 2', () => {
 		const ziel = zellen(FOLIE)[0]?.nr ?? -1;
 		const { quelle } = fuegeBausteinAn(FOLIE, kopie, { nr: ziel, wo: 'nach' }, folien);
 		assert.deepEqual(schritte(quelle), ['1', '2', '3', '4']);
-		assert.deepEqual(texte(quelle), ['eins', 'eins', 'zwei', 'drei']);
+		assert.deepEqual(zellenTexte(quelle), ['eins', 'eins', 'zwei', 'drei']);
 	});
 
 	it('aus Schublade und Ablage über `fuegeBausteinEin`: ebenso fortlaufend, die andere Folie bleibt', () => {

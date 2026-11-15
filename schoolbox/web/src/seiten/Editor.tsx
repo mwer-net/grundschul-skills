@@ -27,7 +27,7 @@ import { SymbolKnopf } from '../bausteine/SymbolKnopf';
 import { useAbbildung } from '../editor/abbildung';
 import { useAblage } from '../editor/ablage';
 import { Konfliktleiste, Speicheranzeige, Vorschauleiste } from '../editor/Anzeigen';
-import { gesperrtIn } from '../editor/AusgeblendetHinweis';
+import { gesperrtIn } from '../editor/ausgeblendet-hilfe';
 import { Bausteinleiste } from '../editor/Bausteinleiste';
 import { useBearbeitung } from '../editor/bearbeitung';
 import type { MenueArt } from '../editor/befehle';

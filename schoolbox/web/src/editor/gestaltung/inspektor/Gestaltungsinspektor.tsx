@@ -1,5 +1,5 @@
 import { Abschnitt } from '../../../bausteine/Abschnitt';
-import { gesperrtIn } from '../../AusgeblendetHinweis';
+import { gesperrtIn } from '../../ausgeblendet-hilfe';
 import type { PfadTeil } from '../../darstellung';
 import { bausteinVon, elementZu } from '../../darstellung';
 import type { Struktur } from '../../struktur';

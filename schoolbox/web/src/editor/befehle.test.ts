@@ -695,12 +695,12 @@ describe('Zoom-Tasten (184)', () => {
 		// S-15: Tasten freier Elemente stehen nicht unter „Gewählter Baustein“; keine Taste mit zwei Bedeutungen.
 		const baustein = abschnitte.find((a) => a.titel === 'Gewählter Baustein');
 		const frei = abschnitte.find((a) => a.titel === 'Freies Element');
-		for (const id of ['auswahl.nach-vorne', 'auswahl.sperren', 'auswahl.spiegeln', 'auswahl.gruppieren']) {
+		for (const befehl of ['auswahl.nach-vorne', 'auswahl.sperren', 'auswahl.spiegeln', 'auswahl.gruppieren']) {
 			assert.ok(
-				frei?.zeilen.some((z) => z.id === id),
-				id,
+				frei?.zeilen.some((z) => z.id === befehl),
+				befehl,
 			);
-			assert.ok(!baustein?.zeilen.some((z) => z.id === id), id);
+			assert.ok(!baustein?.zeilen.some((z) => z.id === befehl), befehl);
 		}
 		assert.ok(frei?.zeilen.some((z) => z.id.startsWith('auswahl.schiebe-')));
 		for (const a of abschnitte) {

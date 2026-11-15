@@ -172,6 +172,11 @@ const VORSCHAU_FIT = {
 })();</script>`,
 } as const;
 
+const vorschauSeite = (innen: string, ort: string, assets: string, fit: boolean) =>
+	`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Vorschau</title><base href="${assets}">
+<link rel="stylesheet" href="blatt.css"><style>html,body{background:#fff;overflow:hidden}body{margin:0;padding:12px}.flaeche{min-width:240px;outline:1px dashed #aaa;outline-offset:-1px}</style>${fit ? VORSCHAU_FIT.stil : ''}</head>
+<body class="${fit ? 'kl4' : 'kl2'} farbe" data-ort="${ort}"><div class="koerper">${innen}</div><script src="abbildungen.js"></script>${fit ? VORSCHAU_FIT.skript : ''}</body></html>`;
+
 const katalogVorschau = (e: KatalogEintrag, starter: ReadonlyMap<string, string>, assets: string, fit: boolean) => {
 	const b = einfuegbarAus(e, starter);
 	// In der Schublade zeigt ein Aufgabenpaket, was eingefügt wird: Hülle mit Nummer und Anweisung (147).
@@ -179,11 +184,6 @@ const katalogVorschau = (e: KatalogEintrag, starter: ReadonlyMap<string, string>
 	const innen = (teile !== undefined && fit ? neueAufgabe(teile, b.anweisung, 1) : teile) ?? b.html ?? '';
 	return vorschauSeite(innen, b.ort, assets, fit);
 };
-
-const vorschauSeite = (innen: string, ort: string, assets: string, fit: boolean) =>
-	`<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Vorschau</title><base href="${assets}">
-<link rel="stylesheet" href="blatt.css"><style>html,body{background:#fff;overflow:hidden}body{margin:0;padding:12px}.flaeche{min-width:240px;outline:1px dashed #aaa;outline-offset:-1px}</style>${fit ? VORSCHAU_FIT.stil : ''}</head>
-<body class="${fit ? 'kl4' : 'kl2'} farbe" data-ort="${ort}"><div class="koerper">${innen}</div><script src="abbildungen.js"></script>${fit ? VORSCHAU_FIT.skript : ''}</body></html>`;
 
 const urlPfad = (teile: string[]) => teile.map(encodeURIComponent).join('/');
 

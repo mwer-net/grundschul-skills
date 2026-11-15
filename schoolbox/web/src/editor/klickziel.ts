@@ -9,10 +9,24 @@ import { lueckeAn } from './navigation';
  * einer Seite oder den innersten Baustein. Klick, Rechtsklick und Hover-Rahmen fragen alle hier, damit der Rahmen nie
  * etwas anderes zeigt, als der Klick wählt.
  */
-export type Klickziel =
-	| { art: 'gestaltung'; nr: number; element: Element } |
-	{ art: 'baustein'; nr: number; element: Element } |
-	{ art: 'luecke'; luecke: Luecke };
+export type Klickziel = KlickGestaltung | KlickBaustein | KlickLuecke;
+
+interface KlickGestaltung {
+	art: 'gestaltung';
+	nr: number;
+	element: Element;
+}
+
+interface KlickBaustein {
+	art: 'baustein';
+	nr: number;
+	element: Element;
+}
+
+interface KlickLuecke {
+	art: 'luecke';
+	luecke: Luecke;
+}
 
 export interface KlickStelle {
 	doc: Document;

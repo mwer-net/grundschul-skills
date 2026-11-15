@@ -61,25 +61,21 @@ export const Vergleich = ({
 		}
 	};
 	const trenner = adresse.includes('?') ? '&' : '?';
+	const fuss = (
+		<>
+			<Knopf art="zweit" onClick={verwerfen}>
+				Verwerfen
+			</Knopf>
+			<Knopf art="zweit" onClick={nachbessern}>
+				Nachbessern
+			</Knopf>
+			<Knopf onClick={annehmen} disabled={konflikt} data-hauptaktion data-vergleich-uebernehmen>
+				Übernehmen
+			</Knopf>
+		</>
+	);
 	return (
-		<Dialog
-			titel="Vorschlag von Claude"
-			schliessen={schliessen}
-			breit
-			fuss={(
-				<>
-					<Knopf art="zweit" onClick={verwerfen}>
-						Verwerfen
-					</Knopf>
-					<Knopf art="zweit" onClick={nachbessern}>
-						Nachbessern
-					</Knopf>
-					<Knopf onClick={annehmen} disabled={konflikt} data-hauptaktion data-vergleich-uebernehmen>
-						Übernehmen
-					</Knopf>
-				</>
-			)}
-		>
+		<Dialog titel="Vorschlag von Claude" schliessen={schliessen} breit fuss={fuss}>
 			<div className="grid h-[70dvh] grid-cols-2 gap-3">
 				<figure className="flex min-h-0 flex-col">
 					<figcaption className="mb-1 font-medium">Vorher</figcaption>

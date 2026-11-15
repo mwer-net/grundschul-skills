@@ -116,6 +116,18 @@ const verarbeite = async (
 	}
 };
 
+/** 199-N05: In jedem `bilder/`: Datei → Name aus dem Hochladen. */
+const NAMEN = '.namen.json';
+
+const leseNamen = async (ordner: string): Promise<Map<string, string>> => {
+	try {
+		const daten = JSON.parse(await readFile(path.join(ordner, NAMEN), 'utf8')) as Record<string, unknown>;
+		return new Map(Object.entries(daten).flatMap(([k, v]) => (typeof v === 'string' && v ? [[k, v]] : [])));
+	} catch {
+		return new Map();
+	}
+};
+
 /**
  * Ein hochgeladenes Bild nach `dokumente/<dok>/bilder/`: ohne Metadaten (vor allem ohne GPS-Ort), höchstens
  * 2400 px an der längsten Kante, PNG bei Transparenz, sonst JPEG. Der Name kommt aus dem Dateinamen.
@@ -145,18 +157,6 @@ export const nimmBildAuf = async (
 		);
 	}
 	return bild;
-};
-
-/** 199-N05: In jedem `bilder/`: Datei → Name aus dem Hochladen. */
-const NAMEN = '.namen.json';
-
-const leseNamen = async (ordner: string): Promise<Map<string, string>> => {
-	try {
-		const daten = JSON.parse(await readFile(path.join(ordner, NAMEN), 'utf8')) as Record<string, unknown>;
-		return new Map(Object.entries(daten).flatMap(([k, v]) => (typeof v === 'string' && v ? [[k, v]] : [])));
-	} catch {
-		return new Map();
-	}
 };
 
 /** Die Datei hinter einem `src` des Dokuments; nur Bilder in seiner Mappe oder in assets/. */

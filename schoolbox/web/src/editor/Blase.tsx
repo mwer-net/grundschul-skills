@@ -566,8 +566,8 @@ const Blase = ({ adresse, claude, darstellung, e, f, jetzt, nr, seiten }: Blasen
 			setLeisteUnten((alt) => (alt === wert ? alt : wert));
 		};
 		miss();
-		const bild = requestAnimationFrame(miss);
-		return () => cancelAnimationFrame(bild);
+		const naechstesBild = requestAnimationFrame(miss);
+		return () => cancelAnimationFrame(naechstesBild);
 	});
 
 	const nachrichten = f.verlauf.length;

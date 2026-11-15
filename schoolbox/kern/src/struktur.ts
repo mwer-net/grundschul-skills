@@ -322,12 +322,12 @@ const ablageImStapel = (z: Zerlegung, ziel: Knoten, wo: 'vor' | 'nach') => {
 	return erste ? { ziel: erste, wo: 'vor' as const } : { ziel, wo };
 };
 
+/** Eine Seite des Dokuments, keine verkleinerte Folie in „Folien mit Notizen“. */
+const istAussen = (z: Zerlegung, k: Knoten) => istSeite(k) && aeussereSeiten(z).includes(k);
+
 /** 206 (Regel 19): Die Seiten des Blatts, zu dem die Seite `k` gehört; sonst nur `k`. */
 const blattVon = (z: Zerlegung, k: Knoten) =>
 	istAussen(z, k) ? (blattZu(z, k.nr)?.seiten.map((s) => knotenAn(z, s.nr)) ?? [k]) : [k];
-
-/** Eine Seite des Dokuments, keine verkleinerte Folie in „Folien mit Notizen“. */
-const istAussen = (z: Zerlegung, k: Knoten) => istSeite(k) && aeussereSeiten(z).includes(k);
 
 /** Die Seiten eines Blatts als ein Stück Quelle, eingerückt wie `ziel`. */
 const blattText = (z: Zerlegung, seiten: Knoten[], ziel: Knoten) => {
@@ -410,6 +410,12 @@ export const dupliziereBaustein = (quelle: string, nr: number, n: Nummerierung) 
 	return ergebnis(quelle, aenderungen, aenderungen[0], n, !hat(k, 'seite'));
 };
 
+/** `data-weiter="auto"` wird `data-weiter`: Die Seite gilt als fest (Regel 20). */
+const festeSeite = (seite: Knoten): Aenderung[] => {
+	const weiter = attribut(seite, WEITER);
+	return weiter ? [{ von: weiter.start, bis: weiter.ende, text: WEITER }] : [];
+};
+
 export const loescheBaustein = (quelle: string, nr: number, n: Nummerierung) => {
 	const z = zerlege(quelle);
 	const k = knotenAn(z, nr);
@@ -435,12 +441,6 @@ export const loescheBaustein = (quelle: string, nr: number, n: Nummerierung) => 
 	const danach = folge.nr > k.nr ? folge.nr - weg : folge.nr;
 	// Eine Lücke in den Schritten der Folie schließt sich (192-16).
 	return { quelle: n.jeSeite && !hat(k, 'seite') ? ordneSchritte(neu.quelle, danach) : neu.quelle, nr: danach };
-};
-
-/** `data-weiter="auto"` wird `data-weiter`: Die Seite gilt als fest (Regel 20). */
-const festeSeite = (seite: Knoten): Aenderung[] => {
-	const weiter = attribut(seite, WEITER);
-	return weiter ? [{ von: weiter.start, bis: weiter.ende, text: WEITER }] : [];
 };
 
 /** Was eine neue Seite von der ersten übernimmt: Namenszeile und die Marke „Lösung“. */

@@ -97,6 +97,86 @@ const PlanKarte = ({
 	);
 };
 
+const ZEILEN_HOCH = 5;
+
+/**
+ * Mehrzeilig bis fünf Zeilen, ⏎ sendet, ⇧⏎ neue Zeile (190-27). Den Text hält der Aufrufer: Er bleibt nach Esc stehen,
+ * bis er gesendet oder der Entwurf entschieden ist.
+ */
+const NachbessernFeld = ({
+	frage,
+	schliessen,
+	sende,
+	setText,
+	text,
+}: {
+	text: string;
+	setText: (text: string) => void;
+	sende: (text: string) => Promise<boolean>;
+	schliessen?: () => void;
+	frage: string;
+}) => {
+	const [belegt, setBelegt] = useState(false);
+	const feld = useRef<HTMLTextAreaElement>(null);
+	useEffect(() => {
+		const el = feld.current;
+		if (!el) {
+			return;
+		}
+		const zeile = Number.parseFloat(getComputedStyle(el).lineHeight) || 20;
+		el.style.height = 'auto';
+		el.style.height = `${Math.min(el.scrollHeight, zeile * ZEILEN_HOCH + 12)}px`;
+	}, [text]);
+	const abschicken = async (e: FormEvent | TastenEreignis<HTMLTextAreaElement>) => {
+		e.preventDefault();
+		const t = text.trim();
+		if (!t || belegt) {
+			return;
+		}
+		setBelegt(true);
+		const angenommen = await sende(t);
+		setBelegt(false);
+		if (angenommen) {
+			setText('');
+			schliessen?.();
+		}
+	};
+	return (
+		<form className="mt-2 flex items-end gap-2 border-t border-rand pt-2" onSubmit={(e) => void abschicken(e)}>
+			<textarea
+				ref={feld}
+				autoFocus
+				rows={1}
+				aria-label={frage}
+				placeholder={frage}
+				className="min-w-0 flex-1 resize-none rounded-md border border-rand-feld bg-flaeche px-2 py-1.5"
+				maxLength={FELD_ZEICHEN}
+				value={text}
+				data-entwurf-feld
+				onChange={(e) => setText(e.target.value)}
+				onKeyDown={(e) => {
+					if (e.key === 'Escape' && schliessen) {
+						e.preventDefault();
+						e.stopPropagation();
+						schliessen();
+					}
+					if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+						void abschicken(e);
+					}
+				}}
+			/>
+			<Knopf type="submit" disabled={!text.trim() || belegt}>
+				Senden
+			</Knopf>
+			{schliessen && (
+				<Knopf art="leise" onClick={schliessen}>
+					Abbrechen
+				</Knopf>
+			)}
+		</form>
+	);
+};
+
 /** Die Karte nach einem Lauf ohne Blatt: Fehler oder Rückfrage. Esc wirkt wie „Selbst füllen“ (190-31). */
 const OhneBlattKarte = ({
 	entwurf,
@@ -244,86 +324,6 @@ const zusammenfassung = (v: Vorschlag) => {
 	return [aufgaben > 0 ? `${aufgaben} ${aufgaben === 1 ? 'Aufgabe' : 'Aufgaben'}` : null, pruefung]
 		.filter(Boolean)
 		.join(' · ');
-};
-
-const ZEILEN_HOCH = 5;
-
-/**
- * Mehrzeilig bis fünf Zeilen, ⏎ sendet, ⇧⏎ neue Zeile (190-27). Den Text hält der Aufrufer: Er bleibt nach Esc stehen,
- * bis er gesendet oder der Entwurf entschieden ist.
- */
-const NachbessernFeld = ({
-	frage,
-	schliessen,
-	sende,
-	setText,
-	text,
-}: {
-	text: string;
-	setText: (text: string) => void;
-	sende: (text: string) => Promise<boolean>;
-	schliessen?: () => void;
-	frage: string;
-}) => {
-	const [belegt, setBelegt] = useState(false);
-	const feld = useRef<HTMLTextAreaElement>(null);
-	useEffect(() => {
-		const el = feld.current;
-		if (!el) {
-			return;
-		}
-		const zeile = Number.parseFloat(getComputedStyle(el).lineHeight) || 20;
-		el.style.height = 'auto';
-		el.style.height = `${Math.min(el.scrollHeight, zeile * ZEILEN_HOCH + 12)}px`;
-	}, [text]);
-	const abschicken = async (e: FormEvent | TastenEreignis<HTMLTextAreaElement>) => {
-		e.preventDefault();
-		const t = text.trim();
-		if (!t || belegt) {
-			return;
-		}
-		setBelegt(true);
-		const angenommen = await sende(t);
-		setBelegt(false);
-		if (angenommen) {
-			setText('');
-			schliessen?.();
-		}
-	};
-	return (
-		<form className="mt-2 flex items-end gap-2 border-t border-rand pt-2" onSubmit={(e) => void abschicken(e)}>
-			<textarea
-				ref={feld}
-				autoFocus
-				rows={1}
-				aria-label={frage}
-				placeholder={frage}
-				className="min-w-0 flex-1 resize-none rounded-md border border-rand-feld bg-flaeche px-2 py-1.5"
-				maxLength={FELD_ZEICHEN}
-				value={text}
-				data-entwurf-feld
-				onChange={(e) => setText(e.target.value)}
-				onKeyDown={(e) => {
-					if (e.key === 'Escape' && schliessen) {
-						e.preventDefault();
-						e.stopPropagation();
-						schliessen();
-					}
-					if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-						void abschicken(e);
-					}
-				}}
-			/>
-			<Knopf type="submit" disabled={!text.trim() || belegt}>
-				Senden
-			</Knopf>
-			{schliessen && (
-				<Knopf art="leise" onClick={schliessen}>
-					Abbrechen
-				</Knopf>
-			)}
-		</form>
-	);
 };
 
 /** Der Editor liegt außerhalb der Ablage (`Rahmen`) und hat ihren Stand nicht: einmal holen, wenn die Zeile kommt. */
