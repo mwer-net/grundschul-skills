@@ -60,8 +60,7 @@ const StandMarke = ({ d, s }: { d: PlanDokument; s: EinheitStand }) => {
 			</span>
 		);
 	}
-	const erstesOffenes = s.plan?.dokumente.find((x) => !x.fertig)?.slug === d.slug;
-	return s.status === 'laeuft' && erstesOffenes ? (
+	return s.status === 'laeuft' && s.inArbeit === d.slug ? (
 		<span className="flex items-center gap-1 text-brand-700">
 			<Symbol name="laden" className="size-3 animate-spin" />
 			in Arbeit
@@ -115,6 +114,21 @@ const KOPF: Record<EinheitStand['status'], (titel: string) => string> = {
 	fertig: (t) => `Die Einheit „${t}“ ist fertig`,
 	unvollstaendig: (t) => `Die Einheit „${t}“ ist unvollständig`,
 	verworfen: (t) => `Die Einheit „${t}“ ist verworfen`,
+};
+
+/** Neben dem Kopf: der Fortschritt; vor dem ersten Material sagt er, dass Claude erst Aussehen und Bilder macht. */
+const zahlText = (s: EinheitStand, plant: boolean) => {
+	if (s.status === 'plan') {
+		return `${geplant(s)} Materialien geplant`;
+	}
+	if (!s.plan || plant) {
+		return 'Claude plant die Einheit …';
+	}
+	const stand = `${fertig(s)} von ${geplant(s)} fertig`;
+	if (s.status !== 'laeuft' || s.inArbeit || fertig(s) > 0) {
+		return stand;
+	}
+	return `${stand} · Claude bereitet ${s.bilder ? 'Aussehen und Bilder' : 'das Aussehen'} vor`;
 };
 
 /** Das Band oben im Ordner einer Einheit (140, A2 S. 6): Stand, Abbrechen, Weiterbauen, Verwerfen, Annahmen, Befunde. */
@@ -173,8 +187,7 @@ export const EinheitBand = ({ s }: { s: EinheitStand }) => {
 		}
 	};
 	const plant = s.freigegeben === false;
-	const stand = s.plan && !plant ? `${fertig(s)} von ${geplant(s)} fertig` : 'Claude plant die Einheit …';
-	const zahl = s.status === 'plan' ? `${geplant(s)} Materialien geplant` : stand;
+	const zahl = zahlText(s, plant);
 	const kopf = laeuft && plant ? `Claude plant die Einheit „${s.titel}“` : KOPF[s.status](s.titel);
 	const befunde = s.befunde.filter((b) => b.texte.length > 0);
 	return (

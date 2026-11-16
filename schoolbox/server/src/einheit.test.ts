@@ -202,6 +202,9 @@ describe('Lauf einer Einheit (139)', () => {
 	it('Nur eine Einheit zur Zeit; Abbrechen lässt das Fertige stehen, Weiterbauen setzt fort', async () => {
 		await fall('einheit-haenger');
 		const { id } = await starte();
+		// In Arbeit ist das zuletzt geschriebene Material, nicht das erste offene im Plan.
+		await warte(async () => (await stand(id)).inArbeit === 'fall-2');
+		assert.deepEqual((await stand(id)).importiert, {});
 		await warte(async () => Object.keys((await stand(id)).importiert).length === 1);
 		assert.equal(
 			(await api('/einheiten', { method: 'POST', body: JSON.stringify({ angaben: ANGABEN }) })).status,

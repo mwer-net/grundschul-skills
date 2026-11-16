@@ -134,6 +134,21 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 	const arbeitDir = (id: string) => path.join(dir(id), 'arbeit');
 	const ablageDir = (id: string) => path.join(dir(id), 'ablage');
 
+	/** Das geplante Material mit der jüngsten `material.html` seit `seit`, sonst `null`. */
+	const zuletztGeschrieben = async (s: EinheitStand, seit: number) => {
+		let bestes: { slug: string; zeit: number } | null = null;
+		for (const d of s.plan?.dokumente ?? []) {
+			const zeit = await stat(path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html')).then(
+				(st) => st.mtimeMs,
+				() => 0,
+			);
+			if (zeit >= seit && (!bestes || zeit > bestes.zeit)) {
+				bestes = { slug: d.slug, zeit };
+			}
+		}
+		return bestes?.slug ?? null;
+	};
+
 	let aktiv: {
 		stand: EinheitStand;
 		kind: ChildProcessWithoutNullStreams | null;
@@ -146,6 +161,8 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		letztesThema: string;
 		/** Der zuletzt gemeldete Stand: Der Takt meldet nur Änderungen. */
 		gemeldet: string;
+		/** Start des Laufs in ms: Ältere Dateien stammen aus einem früheren Lauf und zählen für `inArbeit` nicht. */
+		seit: number;
 	} | null = null;
 	let aufraeumTakt: ReturnType<typeof setInterval> | null = null;
 
@@ -346,6 +363,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			}
 		}
 		await uebernimmThema(s);
+		s.inArbeit = await zuletztGeschrieben(s, a.seit);
 		for (const d of s.plan?.dokumente ?? []) {
 			if (d.fertig) {
 				try {
@@ -579,8 +597,10 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			letzterPlan: '',
 			letztesThema: '',
 			gemeldet: '',
+			seit: Date.now(),
 		};
 		s.status = 'laeuft';
+		s.inArbeit = null;
 		s.grund = null;
 		s.ende = null;
 		s.laufSeit = new Date().toISOString();

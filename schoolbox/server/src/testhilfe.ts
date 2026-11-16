@@ -82,7 +82,7 @@ process.stdin.on('end', () => {
 	const nutzung = fall === 'kontext-gross' ? { usage: { input_tokens: 10, cache_read_input_tokens: 120000, cache_creation_input_tokens: 500 } } : {};
 	sag({ type: 'assistant', message: { ...nutzung, content: [{ type: 'tool_use', name: 'Skill', input: { skill: 'fach-mathematik' } }, { type: 'tool_use', name: 'Edit', input: {} }] } });
 	const ende = (extra) => sag({ type: 'result', subtype: 'success', is_error: false, result: 'Annahme: Klasse 2', num_turns: 2, total_cost_usd: 0.01, usage: { output_tokens: 5 }, permission_denials: [], ...extra });
-	// 139: eine Einheit mit zwei Materialien; „einheit-skript“ baut erst ein Skript ein, „einheit-haenger“ bleibt nach dem ersten stehen.
+	// 139: eine Einheit mit zwei Materialien; „einheit-skript“ baut erst ein Skript ein, „einheit-haenger“ schreibt erst das zweite, bleibt nach dem ersten fertigen stehen.
 	if (fall.startsWith('einheit')) {
 		const blatt = (titel, extra = '') => '<!doctype html><html lang="de"><head><meta charset="utf-8"><title>' + titel + '</title><link rel="stylesheet" href="blatt.css"><link rel="stylesheet" href="../../thema.css"></head><body class="kl2 a4-hoch farbe"><section class="seite"><h1>' + titel + '</h1><img src="../../bilder/uhr.png" alt="Uhr">' + extra + '</section></body></html>';
 		const plan = (fertig) => fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Uhrzeit', annahmen: ['Klasse 2'], dokumente: [{ slug: 'fall-1', titel: 'Fall 1', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Einstieg', fertig: fertig >= 1 }, { slug: 'fall-2', titel: 'Fall 2', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Üben', fertig: fertig >= 2 }] }));
@@ -96,6 +96,8 @@ process.stdin.on('end', () => {
 			fs.mkdirSync('bilder', { recursive: true });
 			fs.writeFileSync('bilder/uhr.png', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
 			for (const slug of ['fall-1', 'fall-2']) { fs.mkdirSync('dokumente/' + slug, { recursive: true }); }
+			// Der Hänger beginnt mit dem zweiten Material: „in Arbeit“ folgt der Datei, nicht der Reihenfolge im Plan.
+			if (fall === 'einheit-haenger') { fs.writeFileSync('dokumente/fall-2/material.html', blatt('Fall 2')); await warte(2500); }
 			fs.writeFileSync('dokumente/fall-1/material.html', blatt('Fall 1'));
 			plan(1);
 			await warte(2500);

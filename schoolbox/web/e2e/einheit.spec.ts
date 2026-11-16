@@ -140,8 +140,12 @@ test.describe('Unterrichtseinheit (140)', () => {
 		await page.keyboard.press('Enter');
 		await gibFrei(page);
 		await expect(band(page)).toHaveAttribute('data-einheit-band', 'laeuft');
-		await expect(page.locator('[data-objekt]').filter({ hasText: 'Fall 1' })).toBeVisible();
-		await expect(page.locator('[data-einheit-platzhalter] li')).toHaveCount(1);
+		// Der Hänger schreibt Fall 2 zuerst: „in Arbeit“ folgt der Datei, nicht dem ersten offenen im Plan.
+		const platzhalter = page.locator('[data-einheit-platzhalter] li');
+		await expect(platzhalter.filter({ hasText: 'Fall 2' })).toContainText('in Arbeit');
+		await expect(platzhalter.filter({ hasText: 'Fall 1' })).toContainText('geplant');
+		await expect(page.locator('[data-objekt]').filter({ hasText: 'Fall 1' })).toBeVisible({ timeout: 15_000 });
+		await expect(platzhalter).toHaveCount(1);
 		const ordner = page.url();
 
 		await page.goto('/hilfe');

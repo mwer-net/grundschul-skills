@@ -292,4 +292,10 @@ export interface EinheitStand {
 	/** Claudes Plan als Text: Geschichte, Rätselkette, Materialien. Die Lehrkraft gibt ihn frei, bevor gebaut wird. */
 	planText?: string | null;
 	freigegeben?: boolean;
+	/**
+	 * Das Material, an dem Claude gerade arbeitet: das geplante mit der zuletzt geschriebenen `material.html` im
+	 * Lauf. `null`, solange Claude noch keins schreibt (Bilder, Thema). Die Reihenfolge im Plan sagt das nicht: Das
+	 * Deckblatt steht vorn, entsteht beim Verkauf aber zuletzt.
+	 */
+	inArbeit?: string | null;
 }
