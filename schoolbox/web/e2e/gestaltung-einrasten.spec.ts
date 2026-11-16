@@ -38,13 +38,16 @@ const skalaVon = (page: Page) =>
 		return f ? f.getBoundingClientRect().width / f.offsetWidth : 1;
 	});
 
-/** Eine Stelle links im Element, die die Form trifft (nicht der Kreis darüber). */
+/**
+ * Eine Stelle links im Element, die die Form trifft (nicht der Kreis darüber). Seit 187 ragt der Griff an der Kante 8 px
+ * ins Element; erst dahinter wird gezogen statt skaliert.
+ */
 const griffpunkt = async (ziel: Locator) => {
 	const b = await ziel.boundingBox();
 	if (!b) {
 		throw new Error('nicht sichtbar');
 	}
-	return { x: b.x + 6, y: b.y + b.height / 2 };
+	return { x: b.x + 13, y: b.y + b.height / 2 };
 };
 
 const ziehe = async (
