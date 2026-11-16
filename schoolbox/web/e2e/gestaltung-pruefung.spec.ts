@@ -31,7 +31,8 @@ test.describe('Prüfung der Gestaltung (096)', () => {
 
 		await druecke(zusammenfassung(page));
 		const hinweise = page.locator('[data-pruefliste] [data-hinweise]');
-		await druecke(hinweise.locator('summary'));
+		// 193-22: Ohne Wichtiges stehen die Hinweise schon offen.
+		await expect(hinweise).toHaveAttribute('open', '');
 		const eintrag = hinweise.locator('[data-pruefpunkt="verdeckt"]');
 		await expect(eintrag).toContainText('Wilma verdeckt');
 		await druecke(eintrag);
@@ -63,11 +64,12 @@ test.describe('Prüfung der Gestaltung (096)', () => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		const form =
-			'<svg class="form" data-lage="frei" data-name="Kreis" data-form="kreis" viewBox="0 0 100 100" style="--x:-100px;--y:300px;--b:100px;--h:100px"><circle cx="50" cy="50" r="48" style="fill:var(--haupt)"/></svg>';
+			'<svg class="form" data-lage="frei" data-name="Kreis" data-form="kreis" viewBox="0 0 100 100" style="--x:-70px;--y:300px;--b:100px;--h:100px"><circle cx="50" cy="50" r="48" style="fill:var(--haupt)"/></svg>';
 		await aendere(page, mitEbene(await quelle(page), [form]));
+		// Nur der Teil auf der Seite ist zu sehen und zu treffen; dort klickt die Lehrkraft.
 		await material(page)
 			.locator('[data-name="Kreis"]')
-			.click({ position: { x: 95, y: 50 } });
+			.click({ position: { x: 85, y: 50 } });
 		const hinweis = page.locator('[data-pruefhinweise]');
 		await expect(hinweis).toContainText('liegt außerhalb der Seite');
 		await expect(hinweis).not.toContainText('Tipp:');
@@ -86,7 +88,8 @@ test.describe('Prüfung der Gestaltung (096)', () => {
 
 		await druecke(zusammenfassung(page));
 		const hinweise = page.locator('[data-pruefliste] [data-hinweise]');
-		await druecke(hinweise.locator('summary'));
+		// 193-22: Ohne Wichtiges stehen die Hinweise schon offen.
+		await expect(hinweise).toHaveAttribute('open', '');
 		const eintrag = hinweise.locator('[data-pruefpunkt="ausgeblendet"]');
 		await expect(eintrag).toContainText('Ein Element ist ausgeblendet und wird nicht gedruckt.');
 		await druecke(eintrag);
