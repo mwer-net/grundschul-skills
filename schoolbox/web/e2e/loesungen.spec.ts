@@ -8,7 +8,8 @@ import { expect, test } from './hilfe';
 const zurueck = (page: Page) => page.getByRole('button', { name: 'Rückgängig (⌘Z)' });
 const fassung = (page: Page, name: 'Lösung' | 'Arbeitsblatt') =>
 	page.getByRole('group', { name: 'Was zeigen?' }).getByRole('button', { name, exact: true });
-const antwort = (page: Page) => page.getByLabel('Richtige Antwort');
+// 196-11: Ein Feld „Lösung“ im Abschnitt „Lösung“, in beiden Ansichten dasselbe.
+const antwort = (page: Page) => page.locator('[data-inspektor]').getByRole('textbox', { name: 'Lösung', exact: true });
 const breadcrumb = (page: Page) => page.locator('[data-breadcrumb]');
 
 /** Zeilen der neuen Fassung, die sich geändert haben. */
@@ -42,7 +43,7 @@ test.describe('Editor: Lösungen', () => {
 		await oeffne(page, id, dok);
 
 		await druecke(material(page).locator('.antwort').nth(1));
-		await expect(antwort(page)).toHaveCount(0);
+		await expect(antwort(page)).toHaveValue('halb 5');
 
 		await druecke(fassung(page, 'Lösung'));
 		const linie = material(page).locator('.antwort').nth(1);
@@ -227,7 +228,8 @@ test.describe('Editor: Lösungen', () => {
 		await druecke(zelle(4).locator('b'));
 		await druecke(breadcrumb(page).getByRole('button', { name: 'Eintrag 1' }));
 		await expect(breadcrumb(page)).toHaveText('Seite 1›Aufgabe 2›Reihe›Eintrag 1');
-		await expect(schalter).toHaveCount(0);
+		// 196-12: Der Schalter steht in beiden Ansichten und ist gleich gestellt.
+		await expect(schalter).not.toBeChecked();
 
 		await druecke(zurueck(page));
 		await gespeichert(page, datei);

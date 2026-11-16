@@ -459,6 +459,17 @@ export const Leinwand = ({
 	const ebenenZeile = useHover('zeile');
 	/** Die letzte Stelle der Maus im Blatt: ⌥ und eine neue Fassung rechnen das Ziel dort neu. */
 	const mausStelle = useRef<{ x: number; y: number } | null>(null);
+	// 205: Auch ein Tastendruck, während der Fokus außerhalb des Blatts liegt (gleich nach dem Öffnen), nimmt den Rahmen.
+	useEffect(() => {
+		const tastendruck = (e: KeyboardEvent) => {
+			if (e.key !== 'Alt') {
+				mausStelle.current = null;
+				setHover(null);
+			}
+		};
+		window.addEventListener('keydown', tastendruck);
+		return () => window.removeEventListener('keydown', tastendruck);
+	}, []);
 	const rueckrufe = useRef({
 		waehle,
 		taste,

@@ -62,7 +62,9 @@ test.describe('Editor', () => {
 		await expect(page.locator('[data-auswahl] h2')).toHaveText('Sternchenaufgabe');
 
 		await page.keyboard.press('Escape');
-		await expect(page.locator('[data-breadcrumb]')).toHaveText('Seite 1');
+		// 196-23: An der Seite zeigt der Inspektor das Blatt; welche Seite gewählt ist, sagt ihre Leiste.
+		await expect(page.getByRole('toolbar', { name: 'Leiste für Seite 1' })).toBeVisible();
+		await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
 		await page.keyboard.press('Escape');
 		await expect(page.locator('[data-auswahlrahmen]')).toHaveCount(0);
 		await expect(page.locator('[data-inspektor="blatt"]')).toBeVisible();
@@ -81,16 +83,14 @@ test.describe('Editor', () => {
 		const { dok, id, material: datei, ordner } = await uhrzeit();
 		const vorher = await readFile(datei, 'utf8');
 		await oeffne(page, id, dok);
-		await aendere(
-			page,
-			(await quelle(page)).replace('<h1>Wie spät ist es?</h1>', '<h1>Wie spät ist es jetzt?</h1>'),
-		);
+		// Nicht länger als vorher: Eine zweite Zeile in der Überschrift schöbe eine Aufgabe auf eine Folgeseite (206).
+		await aendere(page, (await quelle(page)).replace('<h1>Wie spät ist es?</h1>', '<h1>Welche Uhrzeit?</h1>'));
 		await expect(page.locator('[data-speicherstand="speichert"]')).toBeVisible();
 		await gespeichert(page, datei);
-		await expect(material(page).locator('h1')).toHaveText('Wie spät ist es jetzt?');
+		await expect(material(page).locator('h1')).toHaveText('Welche Uhrzeit?');
 
 		const nachher = await readFile(datei, 'utf8');
-		expect(nachher).toBe(vorher.replace('<h1>Wie spät ist es?</h1>', '<h1>Wie spät ist es jetzt?</h1>'));
+		expect(nachher).toBe(vorher.replace('<h1>Wie spät ist es?</h1>', '<h1>Welche Uhrzeit?</h1>'));
 		expect(nachher).not.toMatch(/data-sb|<svg|<base/);
 		expect((await versionen(ordner)).some((v) => v.endsWith('_lehrkraft.html'))).toBe(true);
 	});

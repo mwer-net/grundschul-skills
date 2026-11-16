@@ -92,6 +92,9 @@ export const useText = ({
 				setZustand(s.zustand());
 				rueckrufe.current.getippt?.();
 			},
+			// Eine bewegte Schreibmarke ist kein Tippen: Prüfung und Mitlaufen warten nicht neu (das Mitlaufen setzt
+			// die Schreibmarke selbst zurück, 206-07).
+			markierungBewegt: () => setZustand(s.zustand()),
 			endet: (ergebnis) => {
 				setBearbeitet(false);
 				setZustand({ ...RUHE, fettMoeglich: s.zustand().fettMoeglich, farbe: s.zustand().farbe });

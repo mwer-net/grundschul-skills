@@ -566,7 +566,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		zerlegung,
 		auswahl,
 		nachher: () => {
-			pruefung.getippt();
+			pruefung.bildGeaendert();
 			// Die Statusleiste zählt die Seiten im Bild neu.
 			ansicht.current?.dispatchEvent(new Event('scroll'));
 		},

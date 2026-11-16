@@ -96,7 +96,8 @@ test.describe('Hover-Rahmen (205)', () => {
 
 		await zeigeAuf(page, kind);
 		await expect(rahmen(page)).toHaveAttribute('data-hover-art', 'gestaltung');
-		await expect(schild(page)).toHaveText('Gruppe');
+		// 196-15/205-03: derselbe Name wie in den Ebenen, mit der Zahl der Teile.
+		await expect(schild(page)).toHaveText('Gruppe (2)');
 		await kind.click({ button: 'right' });
 		await expect(page.locator('[data-auswahl="gruppe"]')).toBeVisible();
 	});

@@ -76,6 +76,8 @@ interface Optionen {
 	beginnt: () => void;
 	/** Getippt oder Auswahl bewegt: Panel und Rahmen auffrischen. */
 	aendert: () => void;
+	/** Nur die Markierung hat sich bewegt (`selectionchange`): Panel auffrischen; ohne Angabe wie `aendert`. */
+	markierungBewegt?: () => void;
 	/** `null`: nichts geändert. */
 	endet: (ergebnis: TextErgebnis | null) => void;
 	/** Rückgängig oder Wiederholen aus dem Menü des Browsers: Auch das geht den einen Weg über den Befehl. */
@@ -377,6 +379,7 @@ const bereich = (doc: Document, s: AbstractRange) => {
  */
 export const ruesteText = ({
 	aendert,
+	markierungBewegt = aendert,
 	baustein,
 	beginnt,
 	doc,
@@ -938,6 +941,11 @@ export const ruesteText = ({
 			aendert();
 		}
 	};
+	const beiMarkierung = () => {
+		if (sitzung) {
+			markierungBewegt();
+		}
+	};
 
 	const ablegen = (e: Event) => {
 		if (imSitzung(e.target as Node)) {
@@ -952,7 +960,7 @@ export const ruesteText = ({
 		['focusin', beiFokus, false],
 		['focusout', beiFokusWeg, false],
 		['pointerdown', beiDruck, true],
-		['selectionchange', beiAuswahl, false],
+		['selectionchange', beiMarkierung, false],
 		['input', beiAuswahl, false],
 		['drop', ablegen, false],
 	];

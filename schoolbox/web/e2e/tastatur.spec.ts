@@ -4,6 +4,10 @@ import { geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
 
 const auswahlName = (page: Page) => page.locator('[data-auswahl] h2');
+// 196-23: An der Seite zeigt der Inspektor das Blatt; dass sie gewählt ist, zeigt ihre Leiste.
+const seiteGewaehlt = (page: Page) => expect(page.getByRole('toolbar', { name: 'Leiste für Seite 1' })).toBeVisible();
+/** Eine neue Aufgabe passt nicht mehr auf die Seite: Der Fluss (206) baut sie um, unter Last bis zu 6 s. */
+const NACH_FLUSS = { timeout: 10_000 };
 const bereit = (page: Page) => expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
 
 /** Am iPad startet Antippen gleich die Textsitzung, mit der Maus erst der zweite Klick. Danach ist der Text gewählt. */
@@ -89,7 +93,7 @@ test.describe('Tastatur (069)', () => {
 		await page.keyboard.press('Escape');
 		await expect(page.locator('[data-auswahl="aufgabe"]')).toBeVisible();
 		await page.keyboard.press('Escape');
-		await expect(page.locator('[data-auswahl="seite"]')).toBeVisible();
+		await seiteGewaehlt(page);
 		await page.keyboard.press('Escape');
 		await expect(page.locator('[data-auswahlrahmen]')).toHaveCount(0);
 	});
@@ -107,7 +111,7 @@ test.describe('Tastatur (069)', () => {
 
 		await wahlAufgabe(0);
 		await page.keyboard.press('ControlOrMeta+Shift+d');
-		await expect(aufgaben).toHaveCount(anzahl + 1);
+		await expect(aufgaben).toHaveCount(anzahl + 1, NACH_FLUSS);
 		await bereit(page);
 		await page.keyboard.press('ControlOrMeta+z');
 		await expect(aufgaben).toHaveCount(anzahl);
@@ -124,14 +128,14 @@ test.describe('Tastatur (069)', () => {
 		await page.keyboard.press('ControlOrMeta+c');
 		await expect(page.getByText('kopiert')).toBeVisible();
 		await page.keyboard.press('ControlOrMeta+v');
-		await expect(aufgaben).toHaveCount(anzahl + 1);
+		await expect(aufgaben).toHaveCount(anzahl + 1, NACH_FLUSS);
 		await bereit(page);
 
 		await page.keyboard.press('ControlOrMeta+x');
 		await expect(aufgaben).toHaveCount(anzahl);
 		await bereit(page);
 		await page.keyboard.press('ControlOrMeta+v');
-		await expect(aufgaben).toHaveCount(anzahl + 1);
+		await expect(aufgaben).toHaveCount(anzahl + 1, NACH_FLUSS);
 	});
 
 	test('Feld und Dialog behalten ihre Tasten, Nicht-Löschbares meldet sich', async ({ druecke, page }) => {
@@ -142,7 +146,7 @@ test.describe('Tastatur (069)', () => {
 		await waehleText(druecke, page, seiten.first().locator('.aufgabe').first().locator('.anw .text'));
 		await page.keyboard.press('Escape');
 		await page.keyboard.press('Escape');
-		await expect(page.locator('[data-auswahl="seite"]')).toBeVisible();
+		await seiteGewaehlt(page);
 
 		// Die einzige Seite bleibt.
 		await page.keyboard.press('Backspace');
@@ -158,7 +162,7 @@ test.describe('Tastatur (069)', () => {
 		expect(await quelle(page)).toBe(vorher);
 		await page.keyboard.press('Escape');
 		await expect(uebersicht).toBeHidden();
-		await expect(page.locator('[data-auswahl="seite"]')).toBeVisible();
+		await seiteGewaehlt(page);
 
 		await page.keyboard.press('Escape');
 		const titel = page.getByLabel('Titel');

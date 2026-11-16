@@ -281,12 +281,21 @@ export const usePruefung = ({ aus, ausgang, geladen, html, zerlegung }: Optionen
 
 	useEffect(() => () => window.clearTimeout(uhr.current), []);
 
+	const zuletzt = useRef(0);
 	const getippt = useCallback(() => {
+		zuletzt.current = performance.now();
 		window.clearTimeout(uhr.current);
 		uhr.current = window.setTimeout(() => void pruefe(), RUHE_MS);
 	}, [pruefe]);
+	// 206-07: Nach dem Mitlaufen zählt die Ruhe ab dem letzten Tastendruck, nicht ab dem neuen Bild; sonst kämen die
+	// Pause des Mitlaufens und dessen Arbeit noch obendrauf (gemessen 1,3–1,6 s statt unter 1 s).
+	const bildGeaendert = useCallback(() => {
+		window.clearTimeout(uhr.current);
+		const rest = Math.max(0, RUHE_MS - (performance.now() - zuletzt.current));
+		uhr.current = window.setTimeout(() => void pruefe(), rest);
+	}, [pruefe]);
 
-	return { stand: aus ? null : stand, getippt };
+	return { stand: aus ? null : stand, getippt, bildGeaendert };
 };
 
 export type Pruefung = ReturnType<typeof usePruefung>;

@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
 
@@ -47,7 +47,8 @@ const dupliziere = async ({ aufgabe, druecke, page }: Umgebung) => {
 	await druecke(aufgabe.first().locator('.nr'));
 	const anzahl = await aufgabe.count();
 	await druecke(page.getByRole('button', { name: 'Duplizieren' }));
-	await expect(aufgabe).toHaveCount(anzahl + 1);
+	// Die Kopie passt nicht mehr auf die Seite: Der Fluss misst und baut die Seite um (206), unter Last bis zu 6 s.
+	await expect(aufgabe).toHaveCount(anzahl + 1, { timeout: 10_000 });
 	await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
 };
 
@@ -107,6 +108,10 @@ const FAELLE: Fall[] = [
 		name: 'Zahlenfeld unverändert (J)',
 		bereite: async ({ druecke, page }) => {
 			await druecke(material(page).locator('.reihe').first().locator('x-uhr').first());
+			// 196-18: Die Spalten der Reihe stehen nur an ihrem direkten Kind, dem Eintrag.
+			await druecke(
+				page.getByRole('navigation', { name: 'Wo im Blatt' }).getByRole('button', { name: 'Eintrag 1' }),
+			);
 			await druecke(page.getByRole('button', { name: 'Eine Spalte mehr' }));
 			await expect(page.locator('[data-spalten="5"]')).toBeVisible();
 			await page.getByLabel('Anzahl der Spalten').focus();
@@ -144,12 +149,13 @@ const FAELLE: Fall[] = [
 		bereite: async ({ druecke, page }) => {
 			const leiste = page.locator('[data-seitenleiste]');
 			await druecke(leiste.getByRole('button', { name: 'Seite hinzufügen' }));
-			await expect(page.locator('[data-auswahl="seite"] h2')).toHaveText('Seite 2');
+			// 196-23: An der gewählten Seite zeigt der Inspektor das Blatt; welche es ist, sagt ihre Leiste.
+			await expect(page.getByRole('toolbar', { name: 'Leiste für Seite 2' })).toBeVisible();
 			await expect(page.locator('[data-auswahlrahmen]')).toBeVisible();
 			const vorher = await quelle(page);
 			await page.keyboard.press('Alt+ArrowUp');
 			await expect.poll(() => quelle(page)).not.toBe(vorher);
-			await expect(page.locator('[data-auswahl="seite"] h2')).toHaveText('Seite 1');
+			await expect(page.getByRole('toolbar', { name: 'Leiste für Seite 1' })).toBeVisible();
 		},
 	},
 	{
@@ -248,6 +254,8 @@ test.describe('Rückgängig: Pfeil und Taste (085)', () => {
 		druecke,
 		page,
 	}) => {
+		// Zwei Mappen nacheinander, je einmal öffnen, tippen, zurück und vor.
+		test.slow();
 		for (const weg of [WEGE.taste, WEGE.pfeil]) {
 			const { dok, id } = await uhrzeit();
 			await oeffne(page, id, dok);
@@ -291,11 +299,13 @@ test.describe('Rückgängig: Pfeil und Taste (085)', () => {
 		druecke,
 		page,
 	}) => {
-		const { dok, id } = await uhrzeit();
+		const { dok, id, material: datei } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await zeigeBlatt(page, druecke);
 		await page.getByLabel('Format', { exact: true }).selectOption('a4-quer');
 		await expect.poll(() => quelle(page)).toContain('a4-quer');
+		// Quer passt nicht alles auf die Seite: Der Fluss legt danach noch eine Folgeseite an (206).
+		await gespeichert(page, datei);
 		const mitFormat = await quelle(page);
 		const titel = page.locator('[data-einstellung="titel"]');
 		const alt = await titel.inputValue();
