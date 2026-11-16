@@ -522,7 +522,7 @@ test('7b · Editor: Bilder, Uhr, Lösung', async ({ browser }) => {
 		pause: 800,
 	});
 	await szene.klicke(m.locator('.aufgabe').first().locator('.antwort').nth(2), { pause: 600 });
-	const antwort = seite.getByLabel('Richtige Antwort');
+	const antwort = seite.getByRole('textbox', { name: 'Lösung', exact: true });
 	await szene.klicke(antwort, { pause: 300 });
 	await antwort.selectText();
 	await szene.tippe('halb 9', { verzoegerung: 60, pause: 400 });
