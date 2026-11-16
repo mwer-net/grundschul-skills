@@ -2,7 +2,7 @@ import type * as SprachKern from '@schoolbox/kern/src/sprache';
 import type { Bereich, LueckenRegel, SprachErgebnis, SprachWerkzeug } from '@schoolbox/kern/src/sprache';
 import type { SilbenDarstellung, SilbenStand } from '@schoolbox/kern/src/sprachstand';
 import { leseSprachstand } from '@schoolbox/kern/src/sprachstand';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Abschnitt } from '../bausteine/Abschnitt';
 import { useHinweis } from '../bausteine/hinweis';
@@ -53,6 +53,54 @@ const eng = (t: string) => t.replace(/\s+/g, ' ').replace(/^ /, '');
 interface Markierung extends Bereich {
 	text: string;
 }
+
+/** 194-39: Der Schritt aus dem Feld „Buchstaben“: an, aus oder getauscht; `null`, wenn sich nichts ändert. */
+const buchstabenSchritt = (alt: string | null, neu: string, nr: number, bereich: Bereich | undefined) => {
+	if (!neu.trim()) {
+		return alt
+			? {
+					name: 'Buchstaben aus',
+					rechne: (s: typeof SprachKern, q: string) => s.schalteMarkierung(q, nr, alt, bereich, false),
+				}
+			: null;
+	}
+	if (neu === alt) {
+		return null;
+	}
+	return {
+		name: 'Buchstaben',
+		rechne: (s: typeof SprachKern, q: string) =>
+			s.schalteMarkierung(
+				alt ? s.schalteMarkierung(q, nr, alt, bereich, false).quelle : q,
+				nr,
+				neu,
+				bereich,
+				true,
+			),
+	};
+};
+
+/**
+ * 171: Bis das Bild des vorigen Schritts steht, zeigt das Panel den Stand davor, und geschrieben wird nicht. Was die
+ * Lehrkraft in dieser Zeit auslöst, wartet auf das Bild, statt verloren zu gehen (wie `bisBereit` in `bild-finder.ts`).
+ * `tu` läuft dann mit dem Stand dieses Bilds.
+ */
+const useMitBild = (struktur: Struktur, tu: () => void) => {
+	const gleich = struktur.gezeigt?.gleich ?? false;
+	const wartet = useRef(false);
+	useEffect(() => {
+		if (wartet.current && gleich) {
+			wartet.current = false;
+			tu();
+		}
+	});
+	return () => {
+		wartet.current = !gleich;
+		if (gleich) {
+			tu();
+		}
+	};
+};
 
 /** Lage der Markierung im sichtbaren Text, gezählt wie in `reinerText`. */
 const markierungIn = (element: Element, auswahl: Selection | null): Markierung | null => {
@@ -128,11 +176,8 @@ export const Sprachwerkzeug = ({
 		return () => doc.removeEventListener('selectionchange', merke);
 	}, [doc, ziel]);
 
-	if (!stand || nr === null) {
-		return null;
-	}
 	const bereich = markiert ? { von: markiert.von, bis: markiert.bis } : undefined;
-	const buchstaben = eingabe?.nr === nr ? eingabe.text : (stand.buchstaben ?? '');
+	const buchstaben = eingabe?.nr === nr ? eingabe.text : (stand?.buchstaben ?? '');
 
 	const wende = async (
 		name: string,
@@ -159,6 +204,20 @@ export const Sprachwerkzeug = ({
 			});
 		}
 	};
+	/**
+	 * 194-39: Nur das Feld. ⏎ oder Verlassen hebt hervor, was darin steht; ein geleertes Feld nimmt die Hervorhebung
+	 * weg. Ein Wechsel ist ein Schritt, damit Rückgängig beides zurücknimmt.
+	 */
+	const uebernimmBuchstaben = useMitBild(struktur, () => {
+		const schritt = stand && nr !== null ? buchstabenSchritt(stand.buchstaben, buchstaben, nr, bereich) : null;
+		if (schritt) {
+			void wende(schritt.name, schritt.rechne);
+		}
+	});
+
+	if (!stand || nr === null) {
+		return null;
+	}
 	const schalteVokale = () => {
 		void wende(stand.vokale ? 'Vokale aus' : 'Vokale', (s, q) => s.schalteMarkierung(q, nr, 'vokale', bereich));
 	};
@@ -174,25 +233,6 @@ export const Sprachwerkzeug = ({
 		const { setzeZeilennummern } = await import('@schoolbox/kern/src/sprache');
 		const schritt = ({ aus: null, 1: 1, 5: 5 } as const)[wert];
 		struktur.aendereAttribute('Zeilennummern', (q) => setzeZeilennummern(q, nr, schritt).quelle);
-	};
-	/**
-	 * 194-39: Nur das Feld. ⏎ oder Verlassen hebt hervor, was darin steht; ein geleertes Feld nimmt die Hervorhebung
-	 * weg. Ein Wechsel ist ein Schritt, damit Rückgängig beides zurücknimmt.
-	 */
-	const uebernimmBuchstaben = () => {
-		const alt = stand.buchstaben;
-		if (!buchstaben.trim()) {
-			if (alt) {
-				void wende('Buchstaben aus', (s, q) => s.schalteMarkierung(q, nr, alt, bereich, false));
-			}
-		} else if (!alt) {
-			void wende('Buchstaben', (s, q) => s.schalteMarkierung(q, nr, buchstaben, bereich, true));
-		} else if (buchstaben !== alt) {
-			void wende('Buchstaben', (s, q) => {
-				const ohne = s.schalteMarkierung(q, nr, alt, bereich, false);
-				return s.schalteMarkierung(ohne.quelle, nr, buchstaben, bereich, true);
-			});
-		}
 	};
 	const nummern = nummernWertVon(stand.zeilennummern);
 
