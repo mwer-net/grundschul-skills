@@ -165,9 +165,13 @@ describe('glaette', () => {
 			y: Math.cos(i / 17) * 60,
 		}));
 		glaette(lang, 2);
-		const start = performance.now();
-		glaette(lang, 2);
-		const dauer = performance.now() - start;
+		// Der beste von fünf Durchgängen: So misst der Test die Rechnung und nicht, was die Maschine nebenher tut.
+		let dauer = Infinity;
+		for (let lauf = 0; lauf < 5; lauf += 1) {
+			const start = performance.now();
+			glaette(lang, 2);
+			dauer = Math.min(dauer, performance.now() - start);
+		}
 		assert.ok(dauer < 50, `${dauer} ms`);
 	});
 });
