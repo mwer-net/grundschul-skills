@@ -138,8 +138,8 @@ const zeigeAnsicht = (doc: Document, loesung: boolean) => {
 };
 
 /**
- * Wie die Seiten eines Blatts im Bild passen: je Seite die Blöcke, wie viele davon von vorn passen und ob der erste
- * Block der nächsten Seite noch Platz hätte. Nur im unsichtbaren Rahmen, bevor er zu sehen ist. Gleich vor und nach einem Schritt heißt: Der
+ * Wie die Seiten eines Blatts im Bild passen: je Seite die Blöcke, wie viele davon von vorn passen und wie viele
+ * Blöcke der nächsten Seite von vorn noch Platz hätten. Nur im unsichtbaren Rahmen, bevor er zu sehen ist. Gleich vor und nach einem Schritt heißt: Der
  * Schritt hat an der Passung nichts geändert, auch wenn eine Seite schon vorher überstand (Nachbesserung 2).
  */
 const passungVon = (seiten: Element[]) =>
@@ -151,16 +151,24 @@ const passungVon = (seiten: Element[]) =>
 			while (passt < bloecke.length && unterkante(bloecke[passt] as Element) <= grenze + TOLERANZ) {
 				passt += 1;
 			}
-			// Ob der erste Block der nächsten Seite hier noch Platz hätte, misst der Block selbst an dieser Stelle,
-			// genau wie `fuelle` (Regel 14); danach steht er wieder, wo er stand.
+			// Wie viele Blöcke der nächsten Seite hier von vorn noch Platz hätten, messen die Blöcke selbst an dieser
+			// Stelle, genau wie `fuelle` (Regel 14); danach stehen sie wieder, wo sie standen. Alle, nicht nur der
+			// erste: Passt der erste, der Fuß dahinter aber nicht, nimmt der Fuß ihn mit (Regel 8), und erst der Fuß
+			// zeigt, ob ein kleinerer Abstand den Rückweg öffnet.
 			const naechste = seiten[j + 1];
-			const naechster = naechste ? flussKinder(naechste)[0] : undefined;
+			const kommende = naechste && passt === bloecke.length ? flussKinder(naechste) : [];
 			let platz = 0;
-			if (naechster && passt === bloecke.length) {
-				const { nextSibling, parentNode } = naechster;
-				seite.insertBefore(naechster, ankerIn(seite));
-				platz = unterkante(naechster) <= grenzeVon(seite) + TOLERANZ ? 1 : 0;
-				parentNode?.insertBefore(naechster, nextSibling);
+			if (kommende.length > 0) {
+				const stellen = kommende.map((k) => ({ k, nextSibling: k.nextSibling, parentNode: k.parentNode }));
+				const anker = ankerIn(seite);
+				kommende.forEach((k) => seite.insertBefore(k, anker));
+				const unten = grenzeVon(seite);
+				while (platz < kommende.length && unterkante(kommende[platz] as Element) <= unten + TOLERANZ) {
+					platz += 1;
+				}
+				for (const { k, nextSibling, parentNode } of stellen.reverse()) {
+					parentNode?.insertBefore(k, nextSibling);
+				}
 			}
 			return `${bloecke.length}/${passt}/${platz}`;
 		})

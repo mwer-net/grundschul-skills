@@ -210,7 +210,16 @@ test.describe('Ebenen, bis 093 „Gliederung“ (080)', () => {
 	test('Über einer eingeklappten Seite klappt sie nach kurzer Zeit auf', async ({ druecke, hasTouch, page }) => {
 		await blatt(page);
 		await neueSeite(page, druecke, 2);
+		// 195-07: Sie klappt nur auf, wenn darin ein Ziel liegt; eine leere Seite nimmt das Gezogene über ihrer Zeile ans
+		// Ende. Deshalb kommt zuerst eine Aufgabe auf Seite 2.
 		await druecke(seitenZeile(page, 2).getByRole('button', { name: 'Einklappen' }));
+		const vorab = zeiger(page, hasTouch);
+		await vorab.runter(await mitte(griffVon(aufgaben(page).nth(3))));
+		await vorab.zu(await an(seitenZeile(page, 2), 'mitte'));
+		await vorab.los();
+		await expect(page.locator('[data-gliederung-seite="2"] [data-gliederung-aufgabe]')).toHaveCount(1);
+		await druecke(seitenZeile(page, 2).getByRole('button', { name: 'Einklappen' }));
+		await expect(seitenZeile(page, 2)).toHaveAttribute('data-zu');
 		const hand = zeiger(page, hasTouch);
 		await hand.runter(await mitte(griffVon(aufgaben(page).nth(0))));
 		await hand.zu(await an(seitenZeile(page, 2), 'mitte'));
@@ -338,7 +347,9 @@ test.describe('Ebenen, bis 093 „Gliederung“ (080)', () => {
 		await druecke(seitenZeile(page, 1).getByRole('button', { name: 'Einklappen' }));
 		await expect(aufgaben(page)).toHaveCount(0);
 		await druecke(seitenZeile(page, 1).getByRole('button', { name: 'Seite 1', exact: true }));
-		await expect(page.locator('[data-auswahl="seite"]')).toBeVisible();
+		// Für eine gewählte Seite zeigt der Inspektor den Reiter „Blatt“ (196-23).
+		await expect(page.locator('[data-bausteinleiste="seite"]')).toBeVisible();
+		await expect(page.locator('[data-inspektor="blatt"]')).toBeVisible();
 		await expect(aufgaben(page)).toHaveCount(0);
 
 		await druecke(material(page).locator('.aufgabe .nr').first());
@@ -616,7 +627,7 @@ test.describe('Ebenen mit Gestaltung (101)', () => {
 
 		// Im Blatt: B gewählt, „Nach vorne“ (100) im ⋯ der Leiste am Element.
 		await druecke(zeileVon(page, 'B').locator('[data-gliederung-titel]'));
-		await druecke(page.getByRole('button', { name: 'Mehr zu B' }));
+		await druecke(page.getByRole('button', { name: 'Mehr zu diesem Element' }));
 		await druecke(page.getByRole('menuitem', { name: /^Nach vorne/ }));
 		await expect.poll(() => titel(page)).toEqual(['B', 'C', 'A', 'D']);
 	});
@@ -676,12 +687,12 @@ test.describe('Ebenen mit Gestaltung (101)', () => {
 		const auge = a.locator('[data-ebenen-zeichen="auge"]');
 		await auge.click();
 		// Vor dem Neuaufbau: Zeile und Element im Blatt zeigen den Stand schon (Abnahme: unter 150 ms).
-		await expect(a).toHaveAttribute('data-aus', '', { timeout: 300 });
+		await expect(a).toHaveAttribute('data-aus', { timeout: 300 });
 		await expect(auge).toHaveAttribute('aria-pressed', 'true', { timeout: 300 });
 		await expect(material(page).locator('[data-name="A"]')).toBeHidden({ timeout: 300 });
 		await expect.poll(() => quelle(page)).toMatch(/data-name="A"[^>]* data-aus/);
 		// Nach dem Neuaufbau bleibt es so.
-		await expect(a).toHaveAttribute('data-aus', '');
+		await expect(a).toHaveAttribute('data-aus');
 	});
 
 	test('Auge blendet aus: nicht im Blatt, nicht im Druck, die Prüfung meldet es', async ({

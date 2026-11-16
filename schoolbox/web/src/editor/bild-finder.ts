@@ -83,9 +83,22 @@ export const useBildAusFinder = (
 		};
 		const weg = () => markiereZiel(doc, null);
 
+		/**
+		 * Ein Schritt gilt erst, wenn sein Bild steht (171); bis dahin nähme die Struktur das nächste Bild nicht an. Höchstens
+		 * etwa fünf Sekunden, dann versucht es das Bild trotzdem.
+		 */
+		const bisBereit = async () => {
+			for (let i = 0; i < 250 && !jetzt.current.struktur.gezeigt?.gleich; i++) {
+				await new Promise((weiter) => setTimeout(weiter, 20));
+			}
+		};
+
 		/** `frei`: das zweite und jedes weitere Bild eines Drops, nie auf ein Ziel (sonst tauschte es das erste aus). */
 		const lege = async (datei: File, x: number, y: number, cmd: boolean, unter: Element | null, frei = false) => {
 			const geladen = await jetzt.current.bild.ladeHoch(datei);
+			if (frei) {
+				await bisBereit();
+			}
 			const t = jetzt.current;
 			// Nach jeder Änderung steht ein neues Dokument im `iframe`: immer das jüngste nehmen.
 			const blatt = t.doc;

@@ -113,7 +113,10 @@ test.describe('Reiter „Blatt“: Abstand, Punkte (082)', () => {
 		await expect(vorgabe).toHaveCount(0);
 		await expect(page.locator('[data-abstand-marke]')).toHaveAttribute('data-abstand-marke', '28');
 		await regler(page).fill('60');
+		// Mit 60 px läuft Aufgabe 4 samt Fuß auf eine Folgeseite (206); der Umbau gehört zum selben Schritt.
 		await expect.poll(() => quelle(page)).toContain('--abstand:60px');
+		await expect.poll(() => quelle(page)).toContain('data-weiter="auto"');
+		await geladen(page);
 		const gesetzt = await quelle(page);
 		await expect(vorgabe).toHaveText('Vorgabe');
 		await druecke(vorgabe);
@@ -210,6 +213,9 @@ test.describe('Reiter „Blatt“: Abstand, Punkte (082)', () => {
 		});
 		await regler(page).fill('60');
 		await expect.poll(() => quelle(page)).toContain('--abstand:60px');
+		// Seit 171 schreibt das Panel erst, wenn das Bild des Schritts zu sehen ist; hier kommt noch die Folgeseite (206).
+		await expect.poll(() => quelle(page)).toContain('data-weiter="auto"');
+		await geladen(page);
 		await druecke(page.locator('[data-palette]').getByRole('button').last());
 		await expect.poll(() => quelle(page)).toContain('palette-beere');
 		await druecke(zurueck(page));

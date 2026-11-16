@@ -272,7 +272,8 @@ test.describe('Rahmen-Stile und Bildrahmen (111)', () => {
 
 		await druecke(page.locator('[data-pruefung] > button'));
 		const hinweise = page.locator('[data-pruefliste] [data-hinweise]');
-		await druecke(hinweise.locator('summary'));
+		// 193-22: Ohne wichtige Punkte stehen die Hinweise gleich offen.
+		await expect(hinweise).toHaveAttribute('open');
 		const punkt = hinweise.locator('[data-pruefpunkt="platzhalter"]');
 		await expect(punkt).toBeVisible();
 		// 172: Ein Rahmen, ein Bild; kein Tipp, denn der Weg steht am gewählten Rahmen.
@@ -306,7 +307,7 @@ test.describe('Bildrahmen füllen wie einen Platzhalter (172)', () => {
 	const rahmenVon = (page: Page) => material(page).locator('.bildrahmen');
 	const gefuellt = /<img class="bild-frei"[^>]*data-maske="stern" src="bilder\//;
 
-	test('„Bild austauschen“ im ⋯ führt zum Bildwerkzeug, „Bilder“ füllt den Rahmen, ⌘Z holt ihn zurück', async ({
+	test('„Bild einsetzen“ im ⋯ führt zum Bildwerkzeug, „Bilder“ füllt den Rahmen, ⌘Z holt ihn zurück', async ({
 		page,
 	}) => {
 		const vorher = blattMit({ vorne: [STERN_RAHMEN] });
@@ -315,7 +316,7 @@ test.describe('Bildrahmen füllen wie einen Platzhalter (172)', () => {
 		await expect(page.locator('[data-bild-austauschen]')).toHaveCount(0);
 		// 204-12, 204-14: kein eigener Knopf in der Leiste mehr; derselbe Name in ⋯, Rechtsklick und Inspektor.
 		await expect(page.locator('[data-bild-einsetzen]')).toHaveCount(0);
-		await imMehr(page, 'Bild austauschen');
+		await imMehr(page, 'Bild einsetzen');
 		await expect
 			.poll(() => page.evaluate(() => Boolean(document.activeElement?.closest('[data-bildwerkzeug]'))))
 			.toBe(true);
@@ -374,13 +375,13 @@ test.describe('Bildrahmen füllen wie einen Platzhalter (172)', () => {
 		expect(await quelle(page)).not.toContain('bildrahmen');
 	});
 
-	test('Rechtsklick auf den leeren Rahmen bietet „Bild austauschen“', async ({ hasTouch, page }) => {
+	test('Rechtsklick auf den leeren Rahmen bietet „Bild einsetzen“', async ({ hasTouch, page }) => {
 		test.skip(hasTouch, 'Rechtsklick gibt es nur mit der Maus');
 		await oeffneMit(page, blattMit({ vorne: [STERN_RAHMEN] }));
 		const rahmen = rahmenVon(page);
 		await rahmen.evaluate((e) => e.scrollIntoView({ block: 'center' }));
 		await rahmen.click({ button: 'right' });
-		const eintrag = page.getByRole('menuitem', { name: /Bild austauschen/ });
+		const eintrag = page.getByRole('menuitem', { name: /Bild einsetzen/ });
 		await expect(eintrag).toBeVisible();
 		await eintrag.click();
 		await expect
@@ -394,7 +395,7 @@ test.describe('Bildrahmen füllen wie einen Platzhalter (172)', () => {
 		await kreis.click({ button: 'right' });
 		await expect(page.getByRole('menu')).toBeVisible();
 		await expect(page.getByRole('menuitem', { name: /Duplizieren/ })).toBeVisible();
-		await expect(page.getByRole('menuitem', { name: /Bild austauschen/ })).toHaveCount(0);
+		await expect(page.getByRole('menuitem', { name: /Bild (austauschen|einsetzen)/ })).toHaveCount(0);
 	});
 
 	test('iPad quer: Die Leiste am Rahmen ist ohne Rollen zu sehen', async ({ page }) => {

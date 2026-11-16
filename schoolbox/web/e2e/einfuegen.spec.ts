@@ -125,7 +125,8 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await druecke(material(page).locator('.aufgabe').first().locator('.nr'));
 		await expect(page.locator('[data-bausteinleiste]')).toBeVisible();
 		await expect(page.locator('[data-einfuegen-plus]')).toHaveCount(0);
-		await imMehr(page, 'Neuer Baustein');
+		// 204-09: Daneben steht „Neuer Baustein davor“.
+		await imMehr(page, /^Neuer Baustein(?! davor)/);
 		const fenster = page.locator('[data-schnellauswahl]');
 		await fenster.getByRole('searchbox').fill('Schreiblinie');
 		await fenster.locator('[data-katalog-eintrag="schreiblinie"]').click();
@@ -214,7 +215,10 @@ test.describe('Editor: Bausteine einfügen', () => {
 	}) => {
 		await oeffneBausteine(page);
 		await page.getByRole('button', { name: 'Alle', exact: true }).click();
-		const anzahlen = await page.locator('[data-bereich-anzahl]').allTextContents();
+		// 195-24: Die Zeile zeigt keine Zahl mehr, das Merkmal trägt sie für die Prüfung.
+		const anzahlen = await page
+			.locator('[data-bereich-anzahl]')
+			.evaluateAll((l) => l.map((e) => (e as HTMLElement).dataset.bereichAnzahl ?? ''));
 		const angebot = await katalog(page);
 		expect(angebot.length).toBe(102);
 		// Klasse 2, Arbeitsblatt: ohne Malkreuz und Schriftliche Rechnung, ohne die sieben Folien.
@@ -288,9 +292,16 @@ test.describe('Editor: Bausteine einfügen', () => {
 			const passt = await page.evaluate(() => {
 				const h = document.documentElement;
 				// Was höher ist als 400 px, zeigt nur seinen oberen linken Ausschnitt (203-17).
+				// Gemessen wird der Inhalt, nicht nur der Körper: Der Kartenbogen der Rhythmuskarten (203-09) ragt mit
+				// seinem negativen Rand (`.karten` in blatt.css) über den Körper hinaus.
 				if (h.dataset.ausschnitt) {
-					const r = document.querySelector('body > .koerper')?.getBoundingClientRect();
-					return Boolean(r && r.left >= 0 && r.top >= 0 && r.left < 12 && r.top < 12);
+					const koerper = document.querySelector('body > .koerper');
+					const r = [koerper, ...(koerper?.querySelectorAll('*:not(svg *)') ?? [])]
+						.flatMap((e) => (e ? [e.getBoundingClientRect()] : []))
+						.filter((f) => f.width > 0 && f.height > 0);
+					const links = Math.min(...r.map((f) => f.left));
+					const oben = Math.min(...r.map((f) => f.top));
+					return r.length > 0 && links >= 0 && oben >= 0 && links < 12 && oben < 12;
 				}
 				// Folien zeigen ihren erkennbaren Inhalt ganz, der Bildplatz darf hinausragen (203-N04).
 				if (document.body.dataset.ort === 'folie') {
@@ -351,6 +362,8 @@ test.describe('Editor: Bausteine einfügen', () => {
 		const zurueck = spalte.locator('[data-bereich-zurueck]');
 		const kopfVorher = await zurueck.boundingBox();
 		const sucheVorher = await suche(page).boundingBox();
+		// Mit dem harten Klassenfilter (203) passen die Aufgaben von Klasse 2 am Mac ganz hinein; niedriger rollt die Liste.
+		await page.setViewportSize({ ...MAC, height: 640 });
 		await inhalt(page).evaluate((e) => e.scrollTo(0, e.scrollHeight));
 		await expect.poll(() => inhalt(page).evaluate((e) => e.scrollTop)).toBeGreaterThan(0);
 		expect(await zurueck.boundingBox()).toEqual(kopfVorher);
@@ -378,17 +391,18 @@ test.describe('Editor: Bausteine einfügen', () => {
 		expect(await passtInZweiZeilen('x-dienes')).toBe(true);
 	});
 
-	test('Kopfzeile: Name und Anzahl der Kategorie, führt zurück, Rollstand von vorn', async ({ page }) => {
+	test('Kopfzeile: Name der Kategorie ohne Zahl, führt zurück, Rollstand von vorn', async ({ page }) => {
 		await page.setViewportSize({ width: 1280, height: 640 });
 		await oeffneBausteine(page);
 		await alle(page).click();
 		const zeile = page.locator('[data-bereich="Rechnen"]');
-		const anzahl = (await zeile.locator('[data-bereich-anzahl]').textContent()) ?? '';
+		await expect(zeile).toHaveText('Rechnen');
 		await zeile.click();
 		const zurueck = page.locator('[data-bereich-zurueck]');
 		await expect(zurueck).toHaveText('Rechnen');
 		await expect(zurueck).toHaveAccessibleName('Rechnen');
-		await expect(page.locator('[data-bereich-zurueck] + span')).toHaveText(anzahl);
+		// 195-24: Die Zurück-Zeile endet mit dem Namen, ohne Zahl dahinter.
+		await expect(page.locator('[data-bereich-zurueck] + *')).toHaveCount(0);
 
 		// Gerollt in der Kategorie, zurück: Der Start steht oben.
 		await inhalt(page).evaluate((e) => e.scrollTo(0, e.scrollHeight));
@@ -509,7 +523,9 @@ test.describe('Editor: Bausteine einfügen', () => {
 		await druecke(anweisung);
 		await druecke(anweisung);
 		await page.keyboard.press('End');
-		await page.keyboard.insertText(' Und dann noch ein Satz, der immer weiter geht.'.repeat(20));
+		// So lang, dass Seite 1 überläuft, aber Aufgabe 3 und 4 mit dem Fuß noch auf eine Seite passen: Mit 20 Sätzen ist
+		// Aufgabe 3 in der Schrift von Klasse 2 fast eine Seite hoch, und der Rest läuft zu Recht auf Seite 3.
+		await page.keyboard.insertText(' Und dann noch ein Satz, der immer weiter geht.'.repeat(10));
 		await material(page).locator('.kopf').first().click();
 		await expect.poll(() => quelle(page)).toContain('data-weiter="auto"');
 		await expect(material(page).locator('body > .seite')).toHaveCount(2);

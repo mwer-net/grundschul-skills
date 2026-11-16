@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { geladen, gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, MATERIAL_DIR, test } from './hilfe';
 
 /** Wie ein frei gestaltetes Blatt: eigene Klassen, Entitäten, ungewöhnliche Schreibweisen. Alles soll so bleiben. */
@@ -136,7 +136,8 @@ test.describe('Editor: frei gestaltetes Material (054)', () => {
 		const mehr = page.locator('[data-bausteinleiste]').getByRole('button', { name: 'Mehr zu diesem Baustein' });
 		await zuDenWerkzeugen(page, mehr);
 		await druecke(mehr);
-		await druecke(page.getByRole('menuitem', { name: 'Neuer Baustein' }));
+		// 204-09: Daneben steht „Neuer Baustein davor“.
+		await druecke(page.getByRole('menuitem', { name: /^Neuer Baustein(?! davor)/ }));
 		const fenster = page.locator('[data-schnellauswahl]');
 		await fenster.getByRole('searchbox').fill('Schreiblinie');
 		await druecke(fenster.locator('[data-katalog-eintrag="schreiblinie"]'));
@@ -217,6 +218,8 @@ test.describe('Freies Element von Claude (088)', () => {
 	});
 
 	test('Vorschlag annehmen, Hinweis im Inspektor, ordnen, löschen, Rückgängig', async ({ druecke, page }) => {
+		// Claude-Lauf, Annehmen und vier Schritte mit Speichern: einzeln schon 35–50 s.
+		test.slow();
 		const { dok, id, material: datei } = await uhrzeit();
 		await kiFall('frei');
 		await oeffne(page, id, dok);
@@ -246,6 +249,8 @@ test.describe('Freies Element von Claude (088)', () => {
 		await druecke(zurueck(page));
 		await gespeichert(page, datei);
 		expect(await readFile(datei, 'utf8')).toBe(stand);
+		// Gespeichert ist vor dem neuen Bild; bis es steht, träfe ein Schritt mit den alten Nummern und bleibt aus.
+		await geladen(page);
 
 		await druecke(figur.locator('svg'));
 		await zuDenWerkzeugen(page, page.getByRole('button', { name: 'Löschen' }));
