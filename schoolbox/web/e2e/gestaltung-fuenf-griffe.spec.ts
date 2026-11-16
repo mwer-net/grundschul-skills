@@ -121,7 +121,7 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 		await geladen(page);
 		await oeffnePerTaste(page, 'bausteine', 'Alt+Digit2');
 		await ziehBaustein(page, 'x-figur', 'Dreieck', aufgabe(page, 0));
-		await schritt(page, 'Figur eingefügt');
+		await schritt(page, 'Ebene Figur eingefügt'); // 203: „Figur“ heißt „Ebene Figur“
 		await ziehBaustein(page, 'aufgabe', 'Aufgabe', aufgabe(page, 1));
 		await schritt(page, 'Aufgabe eingefügt');
 		await page.getByRole('switch', { name: 'Sternchenaufgabe' }).click();
@@ -150,7 +150,8 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 		await geladen(page);
 		const sternNachher = await kasten(stern(page));
 		const wilmaNachher = await kasten(wilma(page));
-		expect(sternNachher.y - sternVorher.y).toBeGreaterThan(100);
+		// Die Sternchenaufgabe rückt um die neue Aufgabe nach unten (Bildschirm-px, je nach Maßstab der Leinwand um 90).
+		expect(sternNachher.y - sternVorher.y).toBeGreaterThan(60);
 		expect(Math.abs(wilmaNachher.y - wilmaVorher.y - (sternNachher.y - sternVorher.y))).toBeLessThanOrEqual(1);
 
 		// 4. ⌥3 Werkzeuge: Sprechblase, „Zähl genau!“, neben Wilma, an dieselbe Aufgabe, Zipfel zu Wilma.
@@ -178,6 +179,8 @@ test.describe('Abnahme E3: Ein Blatt in fünf Griffen (123, Z6)', () => {
 		await oeffnePerTaste(page, 'ebenen', 'Alt+Digit1');
 		await sperre(page, /^Sprech/);
 		await sperre(page, /^Wilma/);
+		// Beide Schritte heißen „Gesperrt“: Erst weiter, wenn auch der zweite in der Quelle steht.
+		await expect.poll(async () => /<img class="figur-frei"[^>]*data-gesperrt/.test(await quelle(page))).toBe(true);
 
 		const q = await quelle(page);
 		expect(nummern(q)).toEqual(['1', '2', '3', '★']);
