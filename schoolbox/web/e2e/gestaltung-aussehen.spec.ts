@@ -167,7 +167,7 @@ test.describe('Aussehen: Kontur, Schatten, Deckkraft', () => {
 		await abschnitt.getByRole('group', { name: 'Schatten' }).getByRole('button', { name: 'Mittel' }).click();
 		await expect(bild).toHaveAttribute('data-schatten', 'mittel');
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Schatten geändert');
-		expect(await bild.evaluate((e) => getComputedStyle(e).filter)).toContain('drop-shadow');
+		await expect(bild).toHaveCSS('filter', /drop-shadow/);
 
 		// Regler: `fill` setzt den Wert und lässt los (input, dann change), das ist genau ein Schritt.
 		const vorher = await quelle(page);
@@ -177,7 +177,8 @@ test.describe('Aussehen: Kontur, Schatten, Deckkraft', () => {
 		await expect.poll(() => quelle(page)).toContain(';opacity:0.4"');
 		expect(vorher).not.toContain('opacity');
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Deckkraft geändert');
-		expect(await bild.evaluate((e) => getComputedStyle(e).opacity)).toBe('0.4');
+		// Nach dem Schritt lädt der Rahmen neu: am neuen Bild messen.
+		await expect(bild).toHaveCSS('opacity', '0.4');
 		await zurueck(page).click();
 		await expect.poll(() => quelle(page)).not.toContain('opacity');
 	});
