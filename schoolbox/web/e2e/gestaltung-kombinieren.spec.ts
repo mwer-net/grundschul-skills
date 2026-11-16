@@ -100,7 +100,10 @@ test.describe('Kombinieren (121)', () => {
 		const gleich = RECHTECK.replace('data-name="Rechteck"', 'data-name="Gleich"');
 		await blatt(page, { vorne: [RECHTECK, gleich] });
 		const vorher = await quelle(page);
-		await waehle(page, 'Rechteck', 'Gleich');
+		// Das Rechteck liegt ganz unter „Gleich“: ⌥-Klick wählt das hinterste (205), ⇧-Klick nimmt das vordere dazu.
+		await form(page, 'Rechteck').click({ modifiers: ['Alt'], force: true });
+		await form(page, 'Gleich').click({ modifiers: ['Shift'] });
+		await expect(page.locator('[data-gestaltung-rahmen="mehrfach"]')).toHaveAttribute('data-mehrfach-anzahl', '2');
 		await page.locator('[data-kombinieren] [data-befehl="auswahl.abziehen"]').click();
 		await expect(page.locator('[data-kombi-hinweis]')).toHaveText('Das Ergebnis wäre leer.');
 		expect(await quelle(page)).toBe(vorher);
