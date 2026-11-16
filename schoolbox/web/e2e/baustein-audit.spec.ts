@@ -11,7 +11,7 @@ import path from 'node:path';
 
 import type { Frame, Page } from '@playwright/test';
 import type { AbbildungSchema, Feld, Werte } from '@schoolbox/kern/src/abbildungen';
-import { abschnittVon, schemaVon, setzeAbbildung, werteVon } from '@schoolbox/kern/src/abbildungen';
+import { abbildungsName, abschnittVon, schemaVon, setzeAbbildung, werteVon } from '@schoolbox/kern/src/abbildungen';
 import { ABSCHNITT_TITEL } from '@schoolbox/kern/src/abschnitte';
 import type { KatalogEintrag } from '@schoolbox/kern/src/katalog';
 import { ANGEBOT, gehtImBlatt } from '@schoolbox/kern/src/katalog';
@@ -116,8 +116,12 @@ const zeichneFaelle = async (
 				const folge = [...document.querySelectorAll(`.seite[data-erzeugt][data-sb="${n}"]`)]
 					.map((s) => s.innerHTML)
 					.join('|');
+				// Manche Optionen wirken nur über blatt.css am Attribut, etwa die Schreibschrift der Lineatur.
+				const schriften = [
+					...new Set([...el.querySelectorAll('text')].map((x) => getComputedStyle(x).fontFamily)),
+				];
 				// Zeichnungen zählen ihre Kennungen (Muster, Schnittpfade) je Aufruf hoch; das ist keine Wirkung.
-				return `${el.innerHTML}|${el.getAttribute('style') ?? ''}|${folge}`.replace(
+				return `${el.innerHTML}|${el.getAttribute('style') ?? ''}|${folge}|${schriften.join(',')}`.replace(
 					/(\bid="|url\(#|href="#)[^")]*/g,
 					'$1',
 				);
@@ -287,7 +291,11 @@ const kinderAufDerSeite = async (page: Page) => {
 	}
 	try {
 		const rahmen = await rahmenVon(page);
-		return await rahmen.evaluate(() => document.querySelector('.seite')?.children.length ?? -1);
+		// 203-07: „Auswertung für die Lehrkraft“ kommt auf eine neue letzte Seite, die erste bleibt leer.
+		return await rahmen.evaluate(() => {
+			const seiten = [...document.querySelectorAll('.seite')];
+			return seiten.length === 0 ? -1 : seiten.reduce((n, s) => n + s.children.length, 0);
+		});
 	} catch {
 		return -1;
 	}
@@ -389,7 +397,13 @@ const standFuer = (felder: readonly Feld[], feld: Feld, basis: Werte): Werte => 
 	const kandidaten = felder.flatMap((f) =>
 		f === feld || f.art !== 'auswahl' ? [] : f.optionen.map((o) => ({ ...basis, [f.attribut]: o.wert || null })),
 	);
-	return kandidaten.find((w) => feld.nurWenn?.(w)) ?? basis;
+	// Hängt es an einem Text (Graue Zeilen am Text zum Nachspuren), gilt es mit dessen Beispiel.
+	const mitText = felder.flatMap((f) =>
+		f === feld || f.art !== 'text' || !f.beispiel || f.quelle === 'inhalt'
+			? []
+			: [{ ...basis, [f.attribut]: f.beispiel }],
+	);
+	return [...kandidaten, ...mitText].find((w) => feld.nurWenn?.(w)) ?? basis;
 };
 
 const pruefeFelder = async (
@@ -758,9 +772,14 @@ const VOLLER_WEG: Record<
 		fokus: true,
 	},
 	zahlen: {
+		// Die letzte Zahl um eins verschieben: Eine Zahl mehr wiese der Rechenrahmen zu Recht ab (er hat zwei Reihen).
 		tu: async (k) => {
 			const e = k.locator('input').first();
-			await e.fill(`${await e.inputValue()} 1`);
+			const alt = await e.inputValue();
+			const neu = /\d/.test(alt)
+				? alt.replace(/(\d+)(?!.*\d)/, (n) => String(Number(n) > 0 ? Number(n) - 1 : Number(n) + 1))
+				: '1';
+			await e.fill(neu);
 		},
 		lese: eingabeWert,
 		fokus: true,
@@ -802,7 +821,8 @@ const stimmtAuswahl = (e: KatalogEintrag, schema: AbbildungSchema | undefined, n
 	if (soll) {
 		return soll.test(letzte);
 	}
-	return schema ? letzte === schema.name : !/^Aufgabe \d/.test(letzte);
+	// 203-15: Ebenen, Pfad und Inspektor nennen den Namen der Oberfläche, nicht den in `abbildungen.js`.
+	return schema ? letzte === abbildungsName(e.id) : !/^Aufgabe \d/.test(letzte);
 };
 
 /** G1, G4, W8, G3: Was gleich nach dem Einfügen gilt. */
@@ -822,7 +842,9 @@ const pruefeEinfuegen = (
 			text: `Nach dem Einfügen gewählt: ${pfad || '(nichts)'}`,
 		});
 	}
-	if (stand.seiten > 1 || stand.fehler.length > 0) {
+	// 203-07: Was auf eine neue Seite gehört, bringt diese eine Seite mit.
+	const seitenErlaubt = e.stelle === 'neue-seite' ? 2 : 1;
+	if (stand.seiten > seitenErlaubt || stand.fehler.length > 0) {
 		verstoesse.push({
 			regel: 'G4',
 			schluessel: e.id,
@@ -1022,10 +1044,10 @@ test.describe('Prüfmaschine', () => {
 			if (!treffer) {
 				continue;
 			}
-			const { e, feld, schema } = treffer;
+			const { e, feld } = treffer;
 			await aufLeeresBlatt(page, leer);
 			await fuegeEin(page, e);
-			const name = schema.name;
+			const name = abbildungsName(e.id);
 			const kasten = page.locator(`[data-inspektor] [data-feld="${feld.attribut}"]`);
 			await kasten.first().scrollIntoViewIfNeeded();
 			const vorher = await quelle(page);
