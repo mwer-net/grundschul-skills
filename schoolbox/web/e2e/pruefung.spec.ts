@@ -100,12 +100,13 @@ test.describe('Editor: Live-Prüfung', () => {
 		await expect.poll(() => quelle(page)).toContain('immer weiter geht');
 		const rahmen = page.locator('[data-pruefrahmen="FEHLER"][data-code="ueberlauf"]').first();
 		await expect(rahmen).toBeVisible();
-		// Gemessen im Laderahmen, gezeichnet im sichtbaren: Beide stimmen in der Lage der Seite überein.
+		// Gemessen im Laderahmen, gezeichnet im sichtbaren: Beide stimmen in der Lage der Seite überein. Der Fluss (206)
+		// legt die Aufgabe danach auf eine Folgeseite; bis die Prüfung dort neu misst, fehlt der Rahmen kurz.
 		await expect
 			.poll(async () => {
-				const seite = await box(material(page).locator('.seite').first());
-				const r = await box(rahmen);
-				return r.x >= seite.x - 4 && r.x + r.width <= seite.x + seite.width + 4;
+				const seite = await material(page).locator('.seite').first().boundingBox();
+				const r = await rahmen.boundingBox();
+				return Boolean(seite && r && r.x >= seite.x - 4 && r.x + r.width <= seite.x + seite.width + 4);
 			})
 			.toBe(true);
 	});
@@ -129,7 +130,10 @@ test.describe('Editor: Live-Prüfung', () => {
 		await expect(page.locator('[data-auswahl="blase"]')).toBeVisible();
 	});
 
-	test('Hinweise stehen grau und eingeklappt, fehlende Lösungen darunter', async ({ druecke, page }) => {
+	test('Hinweise stehen grau, ohne Fehler und Warnungen gleich offen, fehlende Lösungen darunter', async ({
+		druecke,
+		page,
+	}) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await expect(page.locator('[data-pruefung="ok"]')).toBeVisible();
@@ -144,8 +148,8 @@ test.describe('Editor: Live-Prüfung', () => {
 		await expect(zusammenfassung(page)).toContainText('Alles passt · 1 Hinweis');
 		await druecke(zusammenfassung(page));
 		const hinweise = page.locator('[data-hinweise]');
-		await expect(hinweise).not.toHaveAttribute('open');
-		await druecke(hinweise.locator('summary'));
+		// 193-22: Gibt es nur Hinweise, stehen sie gleich offen da.
+		await expect(hinweise).toHaveAttribute('open');
 		const eintrag = hinweise.locator('[data-pruefpunkt="loesung-fehlt"]');
 		await expect(eintrag).toContainText('Eine Antwortlinie hat noch keine Lösung.');
 		await druecke(eintrag);
