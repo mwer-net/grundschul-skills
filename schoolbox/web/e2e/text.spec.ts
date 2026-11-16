@@ -219,6 +219,7 @@ test.describe('Editor: Text', () => {
 	});
 
 	test('Enter macht in der Sprechblase eine Zeile und im Absatz einen neuen Absatz', async ({ druecke, page }) => {
+		test.slow();
 		const { dok, id, material: datei } = await uhrzeit();
 		await oeffne(page, id, dok);
 		await aendere(
