@@ -14,7 +14,7 @@ const GRUNDFORMEN = [
 	'Dreieck',
 	'Stern',
 	'Herz',
-	'Pfeil',
+	'Blockpfeil',
 	'Wolke',
 	'Sechseck',
 	'Raute',
@@ -28,7 +28,11 @@ const anzahl = (html: string) => html.split('<svg class="form"').length - 1;
 /** Ein Punkt auf der ersten Seite, Anteile ihrer sichtbaren Box. */
 const aufSeite = async (page: Page, ax: number, ay: number) => {
 	const seite = material(page).locator('.seite').first();
-	await seite.evaluate((s) => s.scrollIntoView({ block: 'center' }));
+	// Wechselt der Rahmen gerade, löst sich der alte; dann am neuen noch einmal ansetzen.
+	await expect(async () => {
+		await geladen(page);
+		await seite.evaluate((s) => s.scrollIntoView({ block: 'center' }));
+	}).toPass();
 	const r = await seite.boundingBox();
 	const sicht = await page.locator('main').boundingBox();
 	if (!r || !sicht) {
@@ -58,8 +62,11 @@ const legeAb = async (page: Page, name: string) => {
 
 test.describe('Formen: Grundformen ablegen', () => {
 	test('jede Grundform per Klick: ein Schritt, danach gewählt, mit Pfad', async ({ page }) => {
+		// Zehn Schritte, nach jedem lädt der Rahmen neu.
+		test.slow();
 		await oeffneFormen(page);
-		await expect(page.locator('[data-grundformen] [data-ablage-gut]')).toHaveCount(GRUNDFORMEN.length);
+		// 198-18: Linie und Pfeil stehen als zwei Kacheln hinter den Grundformen im selben Raster.
+		await expect(page.locator('[data-grundformen] [data-ablage-gut]')).toHaveCount(GRUNDFORMEN.length + 2);
 		for (const name of GRUNDFORMEN) {
 			const form = await legeAb(page, name);
 			await expect(zurueck(page)).toHaveAttribute('data-schritt', `${name} abgelegt`);
@@ -70,6 +77,7 @@ test.describe('Formen: Grundformen ablegen', () => {
 	});
 
 	test('jede Grundform per Ziehen: frei abgelegt, 120 × 120, danach gewählt', async ({ page }) => {
+		test.slow();
 		await oeffneFormen(page);
 		for (const [i, name] of GRUNDFORMEN.entries()) {
 			const vorher = anzahl(await quelle(page));
