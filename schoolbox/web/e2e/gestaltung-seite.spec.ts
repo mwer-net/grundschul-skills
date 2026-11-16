@@ -121,8 +121,9 @@ test.describe('Seitenfläche, Rahmen und Kopfband (095, 181)', () => {
 				return { links: r.left - (s?.left ?? 0), oben: r.top - (s?.top ?? 0) };
 			});
 		expect(abstand).toEqual({ links: 24, oben: 24 });
+		// Der Regler zeigt die 24 px in cm (196-28).
 		await expect(abschnitt(page, 'seitenrahmen').locator('[data-regler="abstand"] [data-regler-wert]')).toHaveText(
-			'24 px',
+			'0,6 cm',
 		);
 
 		await knopf(page, 'seitenrahmen', 'Seitenrahmen', 'Keine').click();
