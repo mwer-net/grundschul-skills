@@ -7,7 +7,7 @@ import { writeFile } from 'node:fs/promises';
 
 import type { Locator, Page } from '@playwright/test';
 
-import { material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { geladen, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { blattMit, FORM } from './gestaltung-daten';
 import { expect, test } from './hilfe';
 
@@ -34,6 +34,13 @@ const kasten = async (ziel: Locator) => {
 	}
 	return b;
 };
+
+/**
+ * Die Höhe der Fläche im sichtbaren Rahmen. Nach jedem Schritt tauscht der Editor den Rahmen (171): Wer genau dann misst,
+ * hält noch den alten, schon entfernten und bekommt kein Maß. Das ist kein Stand der Lehrkraft (alter und neuer Rahmen
+ * wechseln in einem Bild), darum misst `expect.poll` dann einfach noch einmal.
+ */
+const hoehe = async (page: Page) => (await flaeche(page).boundingBox())?.height ?? Number.NaN;
 
 /** Die Lage der Form im Blatt, relativ zur ersten Seite: unabhängig vom Rollen. */
 const imBlatt = async (page: Page) => {
@@ -121,15 +128,18 @@ test.describe('Fläche im Stapel (115)', () => {
 		await ziehe(page, g, { x: g.x, y: g.y + 60 });
 		await expect(page.locator('[data-wert-am-zeiger]')).toContainText('Höhe');
 		await page.mouse.up();
-		await expect.poll(async () => (await kasten(flaeche(page))).height).toBeGreaterThan(alt + 40);
+		await expect.poll(() => hoehe(page)).toBeGreaterThan(alt + 40);
 		await expect(zurueck(page)).toHaveAttribute('data-schritt', 'Höhe der Fläche geändert');
 		await zurueck(page).click();
-		await expect.poll(async () => (await kasten(flaeche(page))).height).toBeCloseTo(alt, 0);
+		await expect.poll(() => hoehe(page)).toBeCloseTo(alt, 0);
+		// Erst greifen, wenn das Bild nach ⌘Z steht und die Fläche daran wieder gewählt ist.
+		await geladen(page);
+		await expect(hoehenGriff(page)).toBeVisible();
 
 		const g2 = await mitteVon(hoehenGriff(page));
 		await ziehe(page, g2, { x: g2.x, y: g2.y - 2000 });
 		await page.mouse.up();
-		await expect.poll(async () => (await kasten(flaeche(page))).height).toBeLessThanOrEqual(60);
+		await expect.poll(() => hoehe(page)).toBeLessThanOrEqual(60);
 		expect(await quelle(page)).toMatch(/class="flaeche" style="--h:40px"/);
 	});
 
