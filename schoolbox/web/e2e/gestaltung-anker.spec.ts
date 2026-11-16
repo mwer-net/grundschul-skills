@@ -186,7 +186,11 @@ test.describe('Anker (106)', () => {
 		await blatt(page, blattMit({ anker: [FIGUR_ANKER] }));
 		await wilma(page).click({ force: true });
 		await page.keyboard.press('Escape');
-		await expect(page.locator('[data-bausteinleiste="aufgabe"]')).toContainText('Aufgabe 1');
+		// Die Leiste am Element trägt keinen sichtbaren Namen mehr (204, 205), nur ihre Beschriftung.
+		await expect(page.locator('[data-bausteinleiste="aufgabe"]')).toHaveAttribute(
+			'aria-label',
+			'Leiste für Aufgabe 1',
+		);
 	});
 
 	test('Aufgabe mit Wilma löschen: der Schritt nennt sie, ⌘Z bringt beide zurück', async ({ page }) => {
