@@ -145,7 +145,8 @@ test.describe('Fläche im Stapel (115)', () => {
 		await blatt(page, blattMit({ stapel: [LEER.replace('></div>', `>${FORM}</div>`)] }));
 		// Wie jeder Baustein steht die Fläche zugeklappt da.
 		await page
-			.locator('[data-zeile-nr]', { hasText: /^Fläche/ })
+			// 203-15: Der Baustein heißt „Freie Fläche“.
+			.locator('[data-zeile-nr]', { hasText: /^Freie Fläche/ })
 			.getByRole('button', { name: 'Aufklappen' })
 			.click();
 		await expect(page.locator('[data-zeilen-art="flaeche"]')).toHaveCount(1);
