@@ -22,7 +22,6 @@ export const BEKANNT: Readonly<Record<string, string>> = {
 	'W2 x-satzglieder.vorn=Akkusativobjekt': WIE_STANDARD,
 	'W2 x-schreibrahmen.lineatur=Lineatur 2': WIE_STANDARD,
 	'W2 x-skala.einheit=cm': WIE_STANDARD,
-	'W2 x-timer.skala=60 Minuten': WIE_STANDARD,
 	'W2 x-geld.stuecke=umsortieren': 'Der Starter sortiert nach Wert; die Reihenfolge wirkt erst bei „In einer Reihe“.',
 	'G4 x-malkreuz': OHNE_KOPF,
 	'G4 x-schriftlich': OHNE_KOPF,
@@ -36,12 +35,10 @@ export const BEKANNT: Readonly<Record<string, string>> = {
 	'W2 x-spielplan.inhalt=hinzufügen':
 		'Der Plan hat so viele Felder wie „Felder“ sagt; weitere Zeilen warten, bis der Plan wächst.',
 	'W2 aufgabe.afb=I': 'Der Anforderungsbereich steht nur im Erwartungshorizont der Lösung; der Starter hat keinen.',
-	'W2 tabelle.spaltenbreite=nach-inhalt':
-		'Die Zellen des Starters sind gleich kurz; „Nach Inhalt“ verteilt die Spalten dann wie „Gleich“.',
 };
 
 /**
- * Darf nur sinken. Steigt die Zahl, schlägt die Maschine an. 25 seit 142–163: Die Kit-Prüfung wartet seitdem auf den
- * neuen Rahmen und sieht die beiden letzten Einträge; vorher verglich sie oft noch den alten.
+ * Darf nur sinken. Steigt die Zahl, schlägt die Maschine an. 23 seit 186: Der Timer ist nur noch Folie (203-N02) und
+ * kommt im Arbeitsblatt nicht mehr vor; „Nach Inhalt“ an der Tabelle ändert das Bild.
  */
-export const BEKANNT_HOECHSTENS = 25;
+export const BEKANNT_HOECHSTENS = 23;

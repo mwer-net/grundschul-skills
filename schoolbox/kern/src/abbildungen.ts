@@ -3327,6 +3327,8 @@ export const ABBILDUNG_SCHEMA = {
 				min: 1,
 				max: 30,
 				standard: 1,
+				// 197: Ohne Text zum Nachspuren gibt es nichts Graues; der Starter hat seit 203-12 keinen.
+				nurWenn: (w) => Boolean(w.vorlage?.trim()),
 			},
 			{ art: 'text', attribut: 'anfang', name: 'Vorbild am Zeilenanfang', beispiel: 'Ro' },
 			{ art: 'text', attribut: 'loesung', name: 'Text in der Lösung', beispiel: 'Der Hund bellt.' },
@@ -3336,6 +3338,8 @@ export const ABBILDUNG_SCHEMA = {
 				name: 'Schrift',
 				standard: 'druck',
 				hilfe: 'Schreibschrift ist die Vereinfachte Ausgangsschrift. Im Karo bleibt es Druckschrift.',
+				// Die Schrift gilt für die Texte auf den Linien; leere Linien sehen in jeder Schrift gleich aus.
+				nurWenn: (w) => [w.vorlage, w.anfang, w.loesung].some((t) => Boolean(t?.trim())),
 				optionen: [
 					{ wert: 'druck', name: 'Druckschrift' },
 					{ wert: 'va', name: 'Schreibschrift' },
