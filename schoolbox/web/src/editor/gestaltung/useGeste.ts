@@ -490,6 +490,8 @@ export const useGeste = (o: Optionen) => {
 				oeffneFlaechen(doc, true); // 115: Beim Herausziehen aus einer Fläche soll das Element zu sehen sein
 			}
 			lauf.current = l;
+			// Wie der Klick aufs Element: Nach einem Zug am Griff gelten die Tasten dem Blatt, nicht einem Feld im Inspektor.
+			doc.defaultView?.focus();
 			return l;
 		},
 		[doc, erlaubt],
