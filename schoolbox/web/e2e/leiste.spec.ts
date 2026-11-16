@@ -45,7 +45,12 @@ test.describe('Leiste am Element (204)', () => {
 	}) => {
 		const { dok, id } = await uhrzeit();
 		await oeffne(page, id, dok);
+		// 205: In der Mitte der Namenszeile liegt der Text „Name:“; die Zeile selbst ist eine Stufe darüber.
 		await druecke(material(page).locator('.namenszeile').first());
+		await druecke(
+			page.getByRole('navigation', { name: 'Wo im Blatt' }).getByRole('button', { name: 'Namenszeile' }),
+		);
+		await expect(page.getByRole('toolbar', { name: 'Leiste für Namenszeile' })).toBeVisible();
 		await druecke(page.locator('[data-bausteinleiste]').getByRole('button', { name: /Nach unten/ }));
 		await expect
 			.poll(() =>
@@ -55,7 +60,9 @@ test.describe('Leiste am Element (204)', () => {
 					.evaluate((kopf) => {
 						const zeile = kopf.ownerDocument.querySelector('.namenszeile');
 						return Boolean(zeile && kopf.compareDocumentPosition(zeile) & Node.DOCUMENT_POSITION_FOLLOWING);
-					}),
+					})
+					// Nach dem Schritt wechselt der Rahmen; die Abfrage wiederholt sich von selbst.
+					.catch(() => false),
 			)
 			.toBe(true);
 	});
@@ -71,7 +78,8 @@ test.describe('Leiste am Element (204)', () => {
 		await page.locator('[data-bausteinleiste]').getByRole('button', { name: 'Duplizieren' }).click();
 		await expect(page.locator('[data-auswahl="aufgabe"]')).toBeVisible();
 		await page.keyboard.press('Escape');
-		await expect(page.locator('[data-auswahl="seite"]')).toBeVisible();
+		// 196-23: An der Seite zeigt der Inspektor das Blatt; die Auswahl zeigt ihre Leiste.
+		await expect(page.getByRole('toolbar', { name: /^Leiste für Seite \d$/ })).toBeVisible();
 	});
 
 	test('194-18: Eine geleerte Überschrift bleibt eine Zeile hoch und lässt sich anklicken', async ({
