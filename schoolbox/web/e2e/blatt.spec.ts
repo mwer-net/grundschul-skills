@@ -72,6 +72,9 @@ test.describe('Editor: ganzes Blatt und Einstellungen (046, 048)', () => {
 		await text.fill('Der [Hund] bellt.');
 		await text.blur();
 		await expect(element.locator('.luecke')).toHaveCount(1);
+		// Wie ein Mensch erst weiter, wenn das Blatt nach dem Schritt steht: `fill` wählt den Text und schreibt ihn in
+		// einem zweiten Zug. Fiel der Tausch des Rahmens dazwischen, kam in WebKit nichts im Feld an.
+		await geladen(page);
 		const stand = await quelle(page);
 		await text.fill('Der Hund bellt.');
 		await text.blur();
