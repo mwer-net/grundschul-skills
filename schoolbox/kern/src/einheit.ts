@@ -24,6 +24,24 @@ export const EINHEIT_LEITFIGUR = ['willi', 'wilma', 'beide', 'keine'] as const;
 /** Ein eigenes Thema von Claude oder schlicht. */
 export const EINHEIT_AUSSEHEN = ['eigen', 'schlicht'] as const;
 
+/**
+ * Bestandteile einer Einheit (Schritt „Bestandteile“). Was eine Reihe braucht, steht im Skill `unterrichtsplanung`
+ * (Reihenplanung); die Empfehlung ist der Kern daraus: Einstieg, Übung, Spiel, Überprüfung, Lösungen.
+ */
+export const EINHEIT_BESTANDTEILE = [
+	{ name: 'Einführung (Präsentation)', empfohlen: true },
+	{ name: 'Arbeitsblätter', empfohlen: true },
+	{ name: 'Lesetexte', empfohlen: false },
+	{ name: 'Lernspiel', empfohlen: true },
+	{ name: 'Bild- und Wortkarten', empfohlen: false },
+	{ name: 'Lernplakat', empfohlen: false },
+	{ name: 'Stationen', empfohlen: false },
+	{ name: 'Lernzielkontrolle', empfohlen: true },
+	{ name: 'Urkunde oder Abschluss', empfohlen: false },
+	{ name: 'Verlaufsplan für dich', empfohlen: false },
+	{ name: 'Lösungen', empfohlen: true },
+] as const;
+
 export interface EinheitAngaben {
 	titel: string;
 	fach: Fach;
@@ -130,42 +148,76 @@ export const pruefeEinheitAngaben = (roh: unknown): EinheitAngaben => {
 const KLASSE_NAME = (k: Klasse) => (k === 'gemischt' ? 'jahrgangsgemischt' : `Klasse ${k}`);
 const FIGUR = { willi: 'Willi', wilma: 'Wilma', beide: 'Willi und Wilma', keine: '' };
 
+export type Bausteine = EinheitAngaben['bausteine'];
+
+/**
+ * Was ein Baustein in der Einheit bewirkt, an wie aus (`grundschul-didaktik/references/rueckfragen.md`). Ohne den
+ * Satz griffe die Empfehlung der Skills, und Abgewähltes käme trotzdem (210).
+ */
+const EINHEIT_BAUSTEIN_SATZ: Record<keyof Bausteine, { mit: string; ohne: string }> = {
+	selbsteinschaetzung: {
+		mit: 'Mit Selbsteinschätzung: auf den Arbeitsblättern ein Fuß mit Wachstumsstufen (Samen bis Blume) und Reflexionsfrage, am Ende der Reihe eine Lernlandkarte.',
+		ohne: 'Ohne Selbsteinschätzung: kein Fuß mit Wachstumsstufen (Samen bis Blume), keine Lernlandkarte, keine Reflexionsfolie mit Wachstumsgrafik.',
+	},
+	niveaus: {
+		mit: 'Mit drei Niveaus zur Wahl (● Grundlage, ●● Kern, ●●● Herausforderung): je Niveau eine eigene Seite, die Kinder wählen.',
+		ohne: 'Ohne drei Niveaus: je Stunde ein Arbeitsblatt für alle, Aufgaben steigend im Anspruch, keine Niveau-Punkte ● ●● ●●● und keine Wahlhilfe.',
+	},
+	sternchen: {
+		mit: 'Mit Sternchenaufgabe: auf jedem Arbeitsblatt als letzte Aufgabe eine Knobelaufgabe ★, freiwillig für alle.',
+		ohne: 'Ohne Sternchenaufgabe ★.',
+	},
+};
+
 /** Der Teil der Lehrkraft am Auftrag, lesbar und in Sätzen (wie 131). Der feste Teil steht in `vorlagen/ki/einheit.md`. */
 const aussehenSatz = (wert: EinheitAngaben['aussehen']) =>
 	wert === 'eigen' ? 'Aussehen: Gestalte ein eigenes Thema in thema.css.' : 'Aussehen: schlicht, ohne thema.css.';
 
+/** Gewählte und ausdrücklich nicht gewählte Bestandteile: Was fehlt, soll Claude weglassen, nicht ergänzen (210). */
+const bestandteilSaetze = (gewaehlt: string[]) => {
+	if (gewaehlt.length === 0) {
+		return ['Bestandteile: keine ausgewählt, entscheide du.'];
+	}
+	const nicht = EINHEIT_BESTANDTEILE.map((b) => b.name).filter((name) => !gewaehlt.includes(name));
+	return [
+		`Bestandteile: ${gewaehlt.join(', ')}.`,
+		nicht.length ? `Nicht gewählt, also weglassen: ${nicht.join(', ')}.` : '',
+	];
+};
+
+const verkaufSatz = (a: EinheitAngaben) => {
+	if (!a.verkauf) {
+		return 'Nicht für den Verkauf: kein Deckblatt, kein Quellenverzeichnis, kein Angebotstext.';
+	}
+	return `Die Einheit soll auf Eduki verkauft werden, ${a.autor ? `Name auf dem Deckblatt: ${a.autor}` : 'ohne Namen auf dem Deckblatt'}.`;
+};
+
+/** Ein Freitext als Satz: kein zweites Satzzeichen, wenn er schon mit einem endet (190-21). */
+const alsSatz = (freitext: string) => (/[.!?…]$/.test(freitext) ? freitext : `${freitext}.`);
+
+/** Jede Angabe aus dem Assistenten ergibt einen Satz, auch eine leere oder abgewählte (210). */
 export const einheitAuftragAus = (a: EinheitAngaben): string => {
 	const saetze = [
 		`Erstelle eine Unterrichtseinheit „${a.titel}“ für ${FACH_NAME[a.fach]}, ${KLASSE_NAME(a.klasse)}${a.titel === a.thema ? '' : `, zum Thema „${a.thema}“`}.`,
 		`Dauer: ${a.dauer}, ${a.stundenJeWoche} Stunden je Woche. Zahl der Materialien: entscheide du.`,
-		a.ziele.length ? `Ich-kann-Ziele: ${a.ziele.join(' · ')}` : 'Formuliere die Ich-kann-Ziele selbst.',
-		a.vorwissen ? `Vorwissen der Klasse: ${a.vorwissen}` : '',
-		a.bestandteile.length ? `Bestandteile: ${a.bestandteile.join(', ')}.` : '',
-		a.nochEtwas ? `Außerdem als Bestandteil: ${a.nochEtwas}` : '',
-		`Mit Rahmengeschichte${a.idee ? `, Idee: ${a.idee}` : ''}.`,
+		a.ziele.length
+			? `Ich-kann-Ziele: ${a.ziele.join(' · ')}`
+			: 'Ich-kann-Ziele: nicht angegeben, formuliere sie selbst.',
+		`Vorwissen der Klasse: ${a.vorwissen ? alsSatz(a.vorwissen) : 'nicht angegeben, nimm es nach Klasse und Thema an.'}`,
+		...bestandteilSaetze(a.bestandteile),
+		a.nochEtwas ? `Außerdem als Bestandteil: ${alsSatz(a.nochEtwas)}` : '',
+		`Mit Rahmengeschichte, Idee: ${a.idee ? alsSatz(a.idee) : 'nicht angegeben, erfinde sie selbst.'}`,
 		a.leitfigur === 'keine' ? 'Ohne Leitfigur.' : `Leitfigur: ${FIGUR[a.leitfigur]}.`,
 		aussehenSatz(a.aussehen),
 		a.bilder
 			? 'Neue Bilder mit Canva sind erlaubt (bilder.json).'
 			: 'Keine neuen Bilder: nur Willi, Wilma und berechnete Abbildungen.',
-		[
-			a.bausteine.selbsteinschaetzung ? 'Selbsteinschätzung' : '',
-			a.bausteine.niveaus ? 'drei Niveaus' : '',
-			a.bausteine.sternchen ? 'Sternchenaufgabe' : '',
-		].filter(Boolean).length
-			? `Auf allen Blättern: ${[
-					a.bausteine.selbsteinschaetzung ? 'Selbsteinschätzung' : '',
-					a.bausteine.niveaus ? 'drei Niveaus' : '',
-					a.bausteine.sternchen ? 'Sternchenaufgabe' : '',
-				]
-					.filter(Boolean)
-					.join(', ')}.`
-			: '',
-		a.lerngruppe.length ? `Lerngruppe: ${a.lerngruppe.join(', ')}.` : '',
-		a.klasseText ? `Zur Klasse: ${a.klasseText}` : '',
-		a.verkauf
-			? `Die Einheit soll auf Eduki verkauft werden${a.autor ? `, Name auf dem Deckblatt: ${a.autor}` : ''}.`
-			: '',
+		...(Object.keys(EINHEIT_BAUSTEIN_SATZ) as (keyof Bausteine)[]).map((b) =>
+			a.bausteine[b] ? EINHEIT_BAUSTEIN_SATZ[b].mit : EINHEIT_BAUSTEIN_SATZ[b].ohne,
+		),
+		`Lerngruppe: ${a.lerngruppe.length ? a.lerngruppe.join(', ') : 'keine Besonderheiten angegeben'}.`,
+		`Zur Klasse: ${a.klasseText ? alsSatz(a.klasseText) : 'nichts weiter angegeben.'}`,
+		verkaufSatz(a),
 	];
 	return saetze.filter(Boolean).join('\n');
 };
@@ -254,6 +306,58 @@ export const themaBefund = (css: string): string | null => {
 	return null;
 };
 
+// ——— Wächter: Abgewähltes steht nicht im Material (210) ———
+
+const KLASSE_ATTR = /\bclass\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+const WACHSTUM_BILD = /<img\b[^>]*\bsrc\s*=\s*["'][^"']*\bwachstum(?:-strich)?\.png["']/gi;
+const LERNLANDKARTE = /<x-spielplan\b[^>]*\bart\s*=\s*["']lernlandkarte["']/gi;
+
+const stellen = (n: number) => (n === 1 ? 'eine Stelle' : `${n} Stellen`);
+
+/**
+ * Was die Lehrkraft abgewählt hat und trotzdem im Material steht, als Befund für die Korrekturrunde. Nur ein Baustein
+ * mit `false` zählt: Fragt der Assistent ihn bei der Art nicht ab, gilt der Skill. Die Kennzeichen sind die Bausteine
+ * aus `html-materialerstellung/assets/blatt.css`; Kommentare zählen nicht.
+ */
+export const bausteinVerstoesse = (html: string, bausteine: Partial<Bausteine>): string[] => {
+	const quelle = html.replace(/<!--[\s\S]*?-->/g, '');
+	const klassen = [...quelle.matchAll(KLASSE_ATTR)].map((t) => (t[1] ?? t[2] ?? '').split(/\s+/));
+	const zahl = (passt: (k: string[]) => boolean) => klassen.filter(passt).length;
+	const befunde: string[] = [];
+	if (bausteine.niveaus === false) {
+		const n = zahl((k) => k.includes('niveau') || k.includes('wahlhilfe'));
+		if (n) {
+			befunde.push(
+				`Laut Auftrag ohne drei Niveaus, das Material hat aber Niveau-Punkte oder Wahlhilfe (${stellen(n)} mit .niveau oder .wahlhilfe). Entferne sie und die getrennten Niveau-Seiten: alle Kinder bearbeiten dieselben Aufgaben, steigend im Anspruch.`,
+			);
+		}
+	}
+	if (bausteine.selbsteinschaetzung === false) {
+		const wachstum = zahl((k) => k.includes('wachstum')) + [...quelle.matchAll(WACHSTUM_BILD)].length;
+		const karten = [...quelle.matchAll(LERNLANDKARTE)].length;
+		const was = [
+			wachstum ? 'die Wachstumsgrafik (.wachstum, wachstum.png)' : '',
+			karten ? 'eine Lernlandkarte' : '',
+		]
+			.filter(Boolean)
+			.join(' und ');
+		if (was) {
+			befunde.push(
+				`Laut Auftrag ohne Selbsteinschätzung, das Material hat aber ${was}. Entferne sie samt Reflexionsfrage; der Platz geht an Aufgaben.`,
+			);
+		}
+	}
+	if (bausteine.sternchen === false) {
+		const n = zahl((k) => k.includes('nr') && k.includes('stern'));
+		if (n) {
+			befunde.push(
+				`Laut Auftrag ohne Sternchenaufgabe, das Material hat aber ${n === 1 ? 'eine' : n} (.nr.stern). Entferne sie.`,
+			);
+		}
+	}
+	return befunde;
+};
+
 // ——— Stand (Server und Oberfläche) ———
 
 /** `plan`: Claude hat den Plan gezeigt und wartet auf die Freigabe der Lehrkraft. */
@@ -287,6 +391,8 @@ export interface EinheitStand {
 	bilder: boolean;
 	/** Verkauf: `bauen` legt die Seitenbilder für das Deckblatt ab. */
 	verkauf?: boolean;
+	/** Die Wahl der Lehrkraft; der Server meldet Abgewähltes im Material als Befund (210). Fehlt bei alten Einheiten. */
+	bausteine?: Bausteine;
 	geladeneBilder: number;
 	fehlgeschlageneBilder: number;
 	/** Claudes Plan als Text: Geschichte, Rätselkette, Materialien. Die Lehrkraft gibt ihn frei, bevor gebaut wird. */

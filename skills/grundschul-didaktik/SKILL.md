@@ -28,7 +28,7 @@ Alle Materialien sind für Grundschulen in Baden-Württemberg; das Bundesland wi
 
 Ungenaue Anfragen sind der Normalfall ("Mach mir ein Arbeitsblatt zu Tieren"). Erstelle dann **nichts**, sondern kläre gezielt nach dem Protokoll in `references/rueckfragen.md`:
 
-0. **Start-Abfrage zuerst:** Materialart, Medium/Format, dann je nach Materialart Selbsteinschätzung, Churer Modell und Sternchenaufgabe – einzeln nacheinander, jeweils mit Empfehlung (`references/rueckfragen.md`). Die Antworten bestimmen Material-Skill, Format und Bausteine und gelten für die ganze Unterhaltung.
+0. **Start-Abfrage zuerst:** Materialart, Medium/Format, dann je nach Materialart Selbsteinschätzung, Churer Modell und Sternchenaufgabe – einzeln nacheinander, jeweils mit Empfehlung (`references/rueckfragen.md`). Die Antworten bestimmen Material-Skill, Format und Bausteine und gelten für die ganze Unterhaltung. Steht eine Antwort schon im Auftrag, wird sie nicht gefragt und geht den Empfehlungen vor, auch wenn sie „ohne“ lautet (`references/kernkonzepte.md`).
 1. **Abgleichen:** Was ist schon bekannt (Anfrage, Gesprächsverlauf, frühere Materialien)? Was fehlt aus der Pflichtliste unten und aus der Rückfrageliste des jeweiligen Material- und Fach-Skills?
 2. **Eine Frage pro Nachricht**, in Abhängigkeitsreihenfolge (Start-Abfrage → Klasse → Thema/Ziel → Lerngruppe → Materialspezifisches). Jede Frage mit 2–4 konkreten Antwortoptionen und **deiner Empfehlung samt kurzer Begründung**.
 3. **Nicht fragen, was du selbst herleiten kannst** (z. B. Zahlenraum aus der Klassenstufe), sondern als Annahme nennen.
@@ -82,7 +82,7 @@ Ausführlich in `references/gestaltung.md`. Die wichtigsten Werte:
 - Eine Palette als Akzent an Nummernkreisen, Überschrift, Linien, Figur und Bildern; Text schwarz; keine Farbflächen hinter Aufgaben. Aufgaben ohne Kasten mit hängender Nummer, getrennt durch Abstand. Niveaus (falls gewählt) nur mit Punkten kennzeichnen (`references/druck-und-platz.md`).
 - Linksbündiger Flattersatz, keine Silbentrennung, Zeilenumbruch nach Sinneinheiten.
 - Seitenränder ≥ 1,5 cm, ausreichende Schreibflächen; Lineatur passend zur Klassenstufe. Platz geht an Übung, nicht an Rahmen: schlanker Kopf und Fuß. Die Menge folgt dem Zeitziel (Standard 20 Minuten Arbeit je Kind und Niveau), nicht der Seitenzahl (`references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“).
-- Klare Aufgaben mit Nummer, in Kl. 1/2 und bei eingeführtem Symbolset mit Arbeitsanweisungs-Symbol (`references/gestaltung.md`).
+- Klare Aufgaben mit Nummer; Arbeitsanweisungs-Symbole nur auf Wunsch oder bei eingeführtem Symbolset (`references/gestaltung.md`).
 - Kontrast mindestens 4,5:1; Farbe als einzige Information: siehe `references/gestaltung.md`, Abschnitt „Farbe“.
 
 ## 4. Qualitätscheck vor der Ausgabe
@@ -91,7 +91,7 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 
 - [ ] Lernziel klar und zum Material passend
 - [ ] Klassenstufe: Schriftgröße, Textmenge, Zahlenraum, Wortschatz stimmen
-- [ ] Jede Aufgabe hat Nummer und eine kurze Anweisung mit einem Verb (Symbol, wo die Klasse eines nutzt)
+- [ ] Jede Aufgabe hat Nummer und eine kurze Anweisung mit einem Verb (Symbol nur, wo die Klasse eines nutzt)
 - [ ] Bausteine wie in der Start-Abfrage gewählt (Selbsteinschätzung, Niveaus, Sternchenaufgabe) – nicht mehr, nicht weniger
 - [ ] Ich-kann-Ziel oben; falls gewählt, bezieht sich die Wachstums-Selbsteinschätzung genau darauf
 - [ ] Falls Niveaus gewählt: ● / ●● / ●●● zur Selbstwahl mit Wahlhilfe, gleiche Optik auf allen Niveaus; sonst Aufgaben steigend im Anspruch ohne Punkte

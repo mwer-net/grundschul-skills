@@ -101,6 +101,8 @@ Kl. 1/2 unbenotet (`lernzielkontrolle`), Kl. 3/4 höchstens 6 Arbeiten im Schulj
 - [ ] Mindestens eine Aufgabe zum Entdecken/Erklären
 - [ ] Domino/Bingo: kein Ergebnis doppelt
 - [ ] Uhren, Zahlenstrahl, Felder und Mengen berechnet statt generiert (Abbildungen unten)
+- [ ] Jedes Zählwort im Text („die beiden“, „nur ein“, „alle drei“) gegen die Items gezählt, auf die es sich bezieht; jedes Beispiel auf Plakat, Folie und Merkkasten durchgerechnet
+- [ ] Wahrscheinlichkeitswörter genau wie unten verwendet; jede Einordnung an der Zahl der günstigen Möglichkeiten geprüft
 
 ## Abbildungen
 
@@ -150,6 +152,19 @@ Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abb
 Zur Leitidee „Raum und Form“: Kl. 1/2 Formen (`x-figur`), Wege und Auslegen (`x-gitter`), Tangram, Ansichten zum Würfelgebäude (`x-wuerfelbau`), Körper benennen (`x-koerper`); Kl. 3/4 Spiegeln, Fortsetzen, Vergrößern, Fläche und Umfang (`x-gitter`), Eigenschaften (`x-figur`), Baupläne (`x-wuerfelbau`), Netze (`x-wuerfelnetz`), Ecken, Kanten, Flächen (`x-koerper`).
 
 Zur Leitidee „Daten, Häufigkeit, Wahrscheinlichkeit“: Kl. 1/2 Strichliste, Würfel, Glücksrad; Kl. 3/4 Diagramm, Wahrscheinlichkeit, Möglichkeiten.
+
+**Wahrscheinlichkeitswörter genau verwenden.** Kinder lernen sie an Beispielen; ein falsch eingeordnetes Beispiel auf dem Plakat lernen sie mit. Maßstab ist der Anteil der günstigen Möglichkeiten (bei gleich großen Feldern, gleichen Kugeln, fairem Würfel):
+
+| Wort | bedeutet | Beispiel (Würfel 1–6) |
+|---|---|---|
+| sicher | tritt immer ein, alle Möglichkeiten günstig | eine Zahl kleiner als 7 |
+| unmöglich | tritt nie ein, keine Möglichkeit günstig | eine 7 |
+| möglich | kann eintreten, mindestens eine Möglichkeit günstig; Oberbegriff für alles zwischen unmöglich und sicher | eine 6 |
+| wahrscheinlich | mehr als die Hälfte der Möglichkeiten günstig | eine Zahl größer als 2 (4 von 6) |
+| unwahrscheinlich | weniger als die Hälfte günstig, aber möglich | eine 6 (1 von 6) |
+| gleich wahrscheinlich | zwei Ereignisse haben gleich viele günstige Möglichkeiten | gerade oder ungerade (je 3 von 6); eine 1 oder eine 6 |
+
+Genau die Hälfte ist weder wahrscheinlich noch unwahrscheinlich: „gerade Zahl“ ist so wahrscheinlich wie „ungerade Zahl“. „Sicher“ ist nicht „sehr wahrscheinlich“. Bei Glücksrädern zählen gleich große Felder, nicht Farben; ungleich große Felder erst ab Kl. 4 und dann über die Fläche. Jedes Beispiel vor dem Bauen auszählen: günstige Möglichkeiten von allen.
 
 Fehlt eine andere Darstellung, nie absagen und nie per KI: `html-materialerstellung/SKILL.md`, Abschnitt „Neues Element“.
 

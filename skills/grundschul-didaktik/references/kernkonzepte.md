@@ -10,6 +10,8 @@ Beide Konzepte prägen, wie Aufgaben formuliert, angeboten und reflektiert werde
 
 Immer gelten, unabhängig von der Wahl: Ich-kann-Ziel oben, „noch"-Sprache, Strategietipps, lautes Denken der Leitfigur, Fehler als Lernchance, Herausforderung positiv rahmen, Selbstständigkeit (Beispiel, Tipps, Selbstkontrolle). In Klassenarbeiten und Lernzielkontrollen entfallen Beispiel, Lösungstipps und Selbstkontrolle, weil sie zeigen, was das Kind allein kann; Haltung und Sprache bleiben. Fragt die Start-Abfrage einen Baustein nicht ab (z. B. bei Karten, Plakat), entfällt er. Sagt die Lehrkraft „mach einfach", gelten die Empfehlungen aus `rueckfragen.md`: Selbsteinschätzung ja, Niveaus ja, Sternchenaufgabe nur ohne Niveaus.
 
+**Was im Auftrag steht, geht vor.** Kommt die Wahl schon mit dem Auftrag (etwa aus dem Assistenten der Schoolbox: „ohne Selbsteinschätzung“, „ohne drei Niveaus“), gilt sie für jedes Material des Auftrags, auch gegen Empfehlungen, Muster und Prüffragen der Skills. „Ohne Selbsteinschätzung“ heißt dann auch: keine Lernlandkarte, keine Wachstumsgrafik auf Folien, kein „Wie weit bist du?“. „Ohne Niveaus“ heißt: keine Punkte ● / ●● / ●●●, keine Wahl zwischen Blättern, keine Wahlhilfe.
+
 ---
 
 ## A. Growth Mindset (dynamisches Selbstbild)

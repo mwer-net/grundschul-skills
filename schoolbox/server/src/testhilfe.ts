@@ -102,7 +102,9 @@ process.stdin.on('end', () => {
 			plan(1);
 			await warte(2500);
 			if (fall === 'einheit-haenger') { setInterval(() => {}, 1000); return; }
-			fs.writeFileSync('dokumente/fall-2/material.html', blatt('Fall 2', fall === 'einheit-skript' ? '<script>window.boese = 1</script>' : ''));
+			// „einheit-niveau“: Niveau-Punkte, obwohl der Auftrag ohne Niveaus ist (210).
+			const extra = { 'einheit-skript': '<script>window.boese = 1</script>', 'einheit-niveau': '<span class="niveau"><i></i><i></i></span>' }[fall] ?? '';
+			fs.writeFileSync('dokumente/fall-2/material.html', blatt('Fall 2', extra));
 			plan(2);
 			ende({ result: 'Zwei Fälle gebaut.' });
 		})();
@@ -154,6 +156,9 @@ process.stdin.on('end', () => {
 	const FREI = '<figure data-frei data-frei-titel="Tangram Waschbär"><svg viewBox="0 0 100 100" width="300" height="300"><polygon points="0,0 100,0 50,50" fill="none" stroke="#000" stroke-width="2"/><text x="50" y="90">Waschbär</text></svg><figcaption>Lege den Waschbären.</figcaption></figure>';
 	const SPERRE = { 'frei-skript': '<script>window.boese = 1</script>', 'frei-ereignis': '<svg onload="window.boese = 1"></svg>', 'frei-extern': '<img src="https://boese.example/x.png">', 'frei-use': '<svg><use href="https://boese.example/x.svg#a"/></svg>', 'frei-absage': '<script>window.boese = 1</script>', 'frei-nachgebessert': '<script>window.boese = 1</script>' };
 	const baue = (html) => { const d = 'material.html'; const alt = fs.readFileSync(d, 'utf8'); fs.writeFileSync(d, /<html/i.test(alt) ? alt.replace('</section>', html + '</section>') : html); };
+	// 210: eine Sternchenaufgabe, obwohl der Auftrag ohne ist; die Korrekturrunde nimmt sie heraus.
+	const STERN = '<div class="aufgabe"><span class="nr stern">★</span><div class="anw"><span class="text">Knobel</span></div></div>';
+	if (fall === 'stern-trotzdem') { if (eingabe.includes('Laut Auftrag ohne Sternchenaufgabe')) { fs.writeFileSync('material.html', fs.readFileSync('material.html', 'utf8').replace(STERN, '').replaceAll('class="nr stern"', 'class="nr"')); } else { baue(STERN); } ende({}); return; }
 	// Gestaltung von Claude: Wilma frei vorne, ein Stern ohne Pfad, eine Sprechblase ohne SVG am Anker der ersten Aufgabe
 	const GESTALTUNG_VORNE = '<div class="ebene vorne"><img class="figur-frei" data-lage="frei" data-figur="wilma" src="bilder/wilma.png" alt="Wilma" style="--x:560px;--y:300px;--b:150px;--spiegeln:-1"><svg class="form" data-lage="frei" data-form="stern" data-zacken="5" style="--x:620px;--y:90px;--b:110px;--h:110px"></svg></div>';
 	const BLASE_AM_ANKER = '<div class="form-text" data-lage="frei" data-anker data-form="sprechblase" data-zipfel="200,60" style="--x:440px;--y:-30px;--b:180px;--h:84px"><div class="form-inhalt">Zähl genau!</div></div>';

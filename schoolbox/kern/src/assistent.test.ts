@@ -9,7 +9,6 @@ import {
 	auftragAus,
 	auftragSaetze,
 	bausteinSchalter,
-	EINHEIT_BESTANDTEILE,
 	einheitAngabenAus,
 	einheitBestandteile,
 	formatOptionen,
@@ -24,7 +23,8 @@ import {
 	titelVorschlag,
 	WEGE,
 } from './assistent';
-import { einheitAuftragAus, pruefeEinheitAngaben } from './einheit';
+import type { EinheitAngaben } from './einheit';
+import { EINHEIT_BESTANDTEILE, einheitAuftragAus, pruefeEinheitAngaben } from './einheit';
 import { SchoolboxFehler } from './fehler';
 import { WURZEL } from './konfig';
 import { MAX_NAME } from './ordner';
@@ -230,7 +230,9 @@ describe('Assistent: Auftrag (131)', () => {
 			[
 				'Erstelle ein Arbeitsblatt für Mathematik, Klasse 2, Format A4 hoch, Arbeitszeit je Kind 20 Minuten.',
 				'Thema: „Uhrzeit: volle und halbe Stunden“. Formuliere das Ich-kann-Ziel selbst. Das Material dient zum Üben.',
-				'Mit Selbsteinschätzung und drei Niveaus zur Wahl, ohne Sternchenaufgabe.',
+				'Mit Selbsteinschätzung: Wachstumsstufen Samen → Keimling → Pflanze → Blume zum Ankreuzen und eine Reflexionsfrage.',
+				'Mit drei Niveaus zur Wahl: ● Grundlage, ●● Kern, ●●● Herausforderung, die Kinder wählen.',
+				'Ohne Sternchenaufgabe ★.',
 				'Lerngruppe: große Leistungsspanne, Kinder mit Deutsch als Zweitsprache.',
 				'Außerdem: „Bitte keine Digitaluhren. Willi darf bei Aufgabe 1 einen Tipp geben.“',
 			].join('\n'),
@@ -251,7 +253,10 @@ describe('Assistent: Auftrag (131)', () => {
 			[
 				'Erstelle eine Präsentation für Englisch, Klasse 3, Format Folien 16:9 für Beamer, Smartboard oder Display.',
 				'Thema: „Colours“. Formuliere das Ich-kann-Ziel selbst. Das Material dient zur Einführung.',
-				'Mit Selbsteinschätzung und Sternchenaufgabe, ohne Niveaus.',
+				'Mit Selbsteinschätzung: Wachstumsstufen Samen → Keimling → Pflanze → Blume zum Ankreuzen und eine Reflexionsfrage.',
+				'Ohne drei Niveaus zur Wahl: alle Kinder bearbeiten dieselben Aufgaben, steigend im Anspruch; keine Niveau-Punkte ● ●● ●●●, keine Wahlhilfe.',
+				'Mit Sternchenaufgabe: eine Knobelaufgabe ★ als letzte Aufgabe, freiwillig für alle.',
+				'Lerngruppe: keine Besonderheiten angegeben.',
 			].join('\n'),
 		);
 	});
@@ -291,6 +296,144 @@ describe('Assistent: Auftrag (131)', () => {
 			() => pruefeAntworten({ sonst: 'x'.repeat(FREITEXT.sonst.zeichen + 1) }, mit({})),
 			/höchstens 1000 Zeichen/,
 		);
+	});
+});
+
+describe('Assistent: jede Einstellung steht im Auftrag (210)', () => {
+	type Paar<T> = [Partial<T>, Partial<T>];
+
+	it('einzelnes Material: jedes Feld ändert den Auftrag, an wie aus', () => {
+		const formate = formatOptionen({ art: 'arbeitsblatt', weg: 'claude' });
+		// `null`: kein Teil dieses Auftrags, mit Grund. Ein neues Feld muss hier stehen, sonst schlägt `tsc` an.
+		const paare: Record<keyof Antworten, Paar<Antworten> | null> = {
+			weg: null, // Nur der Weg mit Claude hat einen Auftrag.
+			einheit: null, // Die Einheit hat ihren eigenen Auftrag, siehe unten.
+			eh: null,
+			titel: null, // Steht als Titel des Dokuments im Kopf des Prompts.
+			art: [{ art: 'arbeitsblatt' }, { art: 'lesetext' }],
+			artText: [
+				{ art: 'sonstiges', artText: '' },
+				{ art: 'sonstiges', artText: 'Rätselheft' },
+			],
+			format: [{ format: '' }, { format: formate[1]?.wert ?? '' }],
+			formatText: [{ formatText: '' }, { formatText: 'A5 quer' }],
+			fach: [{ fach: 'mathematik' }, { fach: 'deutsch' }],
+			klasse: [{ klasse: 2 }, { klasse: 'gemischt' }],
+			thema: [{ thema: 'Uhrzeit' }, { thema: 'Igel' }],
+			ziel: [{ ziel: '' }, { ziel: 'Ich kann die Uhr lesen.' }],
+			funktion: [{ funktion: null }, { funktion: 'vertiefung' }],
+			funktionText: [{ funktionText: '' }, { funktionText: 'Wiederholung' }],
+			bausteine: [{ bausteine: {} }, { bausteine: { selbsteinschaetzung: false } }],
+			umfang: [{ umfang: null }, { umfang: 'claude' }],
+			umfangText: [{ umfangText: '' }, { umfangText: 'zwei Schulstunden' }],
+			lerngruppe: [{ lerngruppe: [] }, { lerngruppe: ['daz'] }],
+			sonst: [{ sonst: '' }, { sonst: 'Keine Digitaluhren.' }],
+		};
+		for (const [feld, paar] of Object.entries(paare)) {
+			if (paar) {
+				const [a, b] = paar.map((teil) => auftragAus(mit({ thema: 'Uhrzeit', ...teil })));
+				assert.notEqual(a, b, feld);
+			}
+		}
+	});
+
+	it('einzelnes Material: jeder angebotene Baustein steht mit seiner Wirkung da, an wie aus', () => {
+		for (const art of ARTEN) {
+			for (const s of bausteinSchalter({ art, bausteine: {} })) {
+				const text = (an: boolean) => auftragAus(mit({ art, thema: 'Uhr', bausteine: { [s.wert]: an } }));
+				assert.notEqual(text(true), text(false), `${art} ${s.wert}`);
+				assert.match(text(false), /^Ohne [^:\n]+(:| ★)/m, `${art} ${s.wert}`);
+				assert.match(text(true), /^Mit [^:\n]+: /m, `${art} ${s.wert}`);
+			}
+		}
+		const aus = auftragAus(
+			mit({ thema: 'Uhr', bausteine: { selbsteinschaetzung: false, niveaus: false, sternchen: false } }),
+		);
+		assert.match(aus, /^Ohne Selbsteinschätzung: keine Wachstumsstufen/m);
+		assert.match(aus, /^Ohne drei Niveaus zur Wahl: alle Kinder bearbeiten dieselben Aufgaben/m);
+		assert.match(aus, /^Ohne Sternchenaufgabe ★\.$/m);
+	});
+
+	it('einzelnes Material: „Claude entscheidet“ und leere Lerngruppe stehen ausdrücklich da', () => {
+		const text = auftragAus(mit({ thema: 'Uhr', umfang: 'claude' }));
+		assert.match(text, /Arbeitszeit je Kind nicht festgelegt, entscheide du\./);
+		assert.match(text, /^Lerngruppe: keine Besonderheiten angegeben\.$/m);
+		// In der Vorschau ist die Wahl hervorgehoben, die Wirkung nicht.
+		const saetze = auftragSaetze(mit({ thema: 'Uhr', bausteine: { niveaus: false } }));
+		const niveaus = saetze.find((satz) => satz.some((t) => t.text === 'drei Niveaus zur Wahl'));
+		assert.deepEqual(
+			niveaus?.map((t) => t.art),
+			['fest', 'antwort', 'fest'],
+		);
+	});
+
+	it('Einheit: jedes Feld ändert den Auftrag, an wie aus', () => {
+		const basis = { thema: 'Uhrzeit', fach: 'mathematik', klasse: 2 };
+		const text = (teil: Partial<EinheitAngaben>) => einheitAuftragAus(pruefeEinheitAngaben({ ...basis, ...teil }));
+		const paare: Record<keyof EinheitAngaben, Paar<EinheitAngaben>> = {
+			titel: [{ titel: '' }, { titel: 'Die Rathausuhr' }],
+			fach: [{ fach: 'mathematik' }, { fach: 'deutsch' }],
+			klasse: [{ klasse: 2 }, { klasse: 'gemischt' }],
+			thema: [{ thema: 'Uhrzeit' }, { thema: 'Geld' }],
+			ziele: [{ ziele: [] }, { ziele: ['Ich kann volle Stunden ablesen.'] }],
+			vorwissen: [{ vorwissen: '' }, { vorwissen: 'Zahlen bis 12' }],
+			dauer: [{ dauer: '1 Woche' }, { dauer: '2 Wochen' }],
+			stundenJeWoche: [{ stundenJeWoche: 2 }, { stundenJeWoche: 4 }],
+			bestandteile: [{ bestandteile: [] }, { bestandteile: ['Lernspiel'] }],
+			nochEtwas: [{ nochEtwas: '' }, { nochEtwas: 'ein Elternbrief' }],
+			idee: [{ idee: '' }, { idee: 'Detektive' }],
+			leitfigur: [{ leitfigur: 'willi' }, { leitfigur: 'wilma' }],
+			aussehen: [{ aussehen: 'eigen' }, { aussehen: 'schlicht' }],
+			bilder: [{ bilder: true }, { bilder: false }],
+			verkauf: [{ verkauf: false }, { verkauf: true }],
+			autor: [
+				{ verkauf: true, autor: '' },
+				{ verkauf: true, autor: 'Lernwerkstatt Muster' },
+			],
+			bausteine: [
+				{ bausteine: { selbsteinschaetzung: false, niveaus: false, sternchen: false } },
+				{ bausteine: { selbsteinschaetzung: true, niveaus: true, sternchen: true } },
+			],
+			lerngruppe: [{ lerngruppe: [] }, { lerngruppe: ['große Leistungsspanne'] }],
+			klasseText: [{ klasseText: '' }, { klasseText: 'Viele lieben Detektivgeschichten.' }],
+		};
+		for (const [feld, [a, b]] of Object.entries(paare)) {
+			assert.notEqual(text(a), text(b), feld);
+		}
+		for (const b of ['selbsteinschaetzung', 'niveaus', 'sternchen'] as const) {
+			const aus = { selbsteinschaetzung: false, niveaus: false, sternchen: false };
+			assert.notEqual(text({ bausteine: aus }), text({ bausteine: { ...aus, [b]: true } }), b);
+		}
+	});
+
+	it('Einheit: alles aus oder leer ergibt je Feld einen ausdrücklichen Satz', () => {
+		const text = einheitAuftragAus(pruefeEinheitAngaben({ thema: 'Uhrzeit', fach: 'mathematik', klasse: 2 }));
+		for (const zeile of [
+			/^Ich-kann-Ziele: nicht angegeben, formuliere sie selbst\.$/m,
+			/^Vorwissen der Klasse: nicht angegeben/m,
+			/^Bestandteile: keine ausgewählt, entscheide du\.$/m,
+			/^Mit Rahmengeschichte, Idee: nicht angegeben/m,
+			/^Ohne Selbsteinschätzung: kein Fuß mit Wachstumsstufen \(Samen bis Blume\), keine Lernlandkarte/m,
+			/^Ohne drei Niveaus: je Stunde ein Arbeitsblatt für alle/m,
+			/^Ohne Sternchenaufgabe ★\.$/m,
+			/^Lerngruppe: keine Besonderheiten angegeben\.$/m,
+			/^Zur Klasse: nichts weiter angegeben\.$/m,
+			/^Nicht für den Verkauf: /m,
+		]) {
+			assert.match(text, zeile);
+		}
+		const an = einheitAuftragAus(
+			pruefeEinheitAngaben({
+				thema: 'Uhrzeit',
+				fach: 'mathematik',
+				klasse: 2,
+				bausteine: { selbsteinschaetzung: true, niveaus: true, sternchen: true },
+			}),
+		);
+		assert.match(an, /^Mit Selbsteinschätzung: /m);
+		assert.match(an, /^Mit drei Niveaus zur Wahl /m);
+		assert.match(an, /^Mit Sternchenaufgabe: /m);
+		assert.doesNotMatch(an, /^Ohne (Selbst|drei|Stern)/m);
 	});
 });
 
@@ -399,7 +542,10 @@ describe('Assistent: Unterrichtseinheit (140)', () => {
 		assert.match(text, /Lesetexte/);
 		assert.match(text, /ein Elternbrief/);
 		assert.match(text, /5 Wochen/);
-		assert.doesNotMatch(text, /Lernzielkontrolle/);
+		assert.match(text, /^Bestandteile: Lernspiel, Lesetexte\.$/m);
+		// Was nicht gewählt ist, steht ausdrücklich da: Sonst ergänzt Claude es nach dem Skill (210).
+		assert.match(text, /^Nicht gewählt, also weglassen: .*Lernzielkontrolle.*\.$/m);
+		assert.doesNotMatch(text, /weglassen: .*Lernspiel/);
 	});
 
 	it('Verkauf auf Eduki steht nur im Auftrag, wenn er gewählt ist', () => {
@@ -408,8 +554,15 @@ describe('Assistent: Unterrichtseinheit (140)', () => {
 				pruefeEinheitAngaben(einheitAngabenAus(einheit({ titel: 'Geld', eh: { ...leereEinheit(), ...eh } }))),
 			);
 		assert.doesNotMatch(auftrag({}), /Eduki/);
+		assert.match(
+			auftrag({}),
+			/Nicht für den Verkauf: kein Deckblatt, kein Quellenverzeichnis, kein Angebotstext\.$/,
+		);
 		assert.doesNotMatch(auftrag({ autor: 'Lernwerkstatt Muster' }), /Eduki|Lernwerkstatt/);
-		assert.match(auftrag({ verkauf: true }), /Die Einheit soll auf Eduki verkauft werden\.$/);
+		assert.match(
+			auftrag({ verkauf: true }),
+			/Die Einheit soll auf Eduki verkauft werden, ohne Namen auf dem Deckblatt\.$/,
+		);
 		assert.match(
 			auftrag({ verkauf: true, autor: ' Lernwerkstatt Muster ' }),
 			/auf Eduki verkauft werden, Name auf dem Deckblatt: Lernwerkstatt Muster\.$/,

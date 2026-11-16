@@ -21,7 +21,8 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 | `assets/vorlage-minibuch.html` | Faltbuch aus einem A4-Blatt, acht Seiten mit Satzmuster, Faltanleitung auf dem Lösungsblatt (Abschnitt „Mini-Book“) |
 | `assets/vorlage-forscherbogen-12.html`, `assets/vorlage-forscherbogen-34.html` | Forscherbogen bildgestützt (Kl. 1/2) und schriftlich (Kl. 3/4); Sicherheitshinweise als `.nur-loesung` im Kopf, Malfläche `.malfeld` |
 | `assets/beispiel-zehner-einer-kl2.html` | geprüftes Beispiel in s/w (Bündeln, Stellentafel, Sternchenaufgabe, Lösungen) |
-| `assets/beispiel-reihe-kapitel.html` | geprüftes Kapitel einer Reihe: Seite für die Lehrkraft, Fall-Karte, Niveau-Seite mit Rahmen, Kapitel-Marke, Symbolen, Beweis-Rätsel und Fußzeile |
+| `assets/beispiel-reihe-kapitel.html` | geprüftes Kapitel einer Reihe: Fall-Karte, Arbeitsblatt mit Kapitel-Marke, Beweis-Rätsel und Fußzeile; zeigt die Technik, keine Schablone |
+| `assets/beispiel-lehrkraft-hinweise.html` | geprüfte Hinweise für die Lehrkraft (`body.lehrkraft`): Überblick der Reihe und je Stunde ein kurzer Block; Muster für jede Seite, die nur die Lehrkraft liest (Handreichung, Verlaufsplan) |
 | `assets/beispiel-deckblatt-formen.html` | geprüftes Deckblatt mit frei liegender Gestaltung: Seitenfläche, Formen, Schmuckschrift, Figur am Anker, Sprechblase, Konfetti (`references/gestaltung.md`) |
 | `assets/fonts/` | Fredoka (Überschrift), Andika (Text, einstöckiges a/g, Schulziffern), Playwrite DE VA (Vereinfachte Ausgangsschrift für Schreibvorlagen), OFL-Lizenz |
 | `assets/bilder/` | Willi, Wilma, Wachstumsgrafik farbig und als Strichzeichnung (`references/bilder.md`) |
@@ -75,8 +76,9 @@ Ist im Projekt eine Schoolbox eingerichtet (Ordner `schoolbox/`, Projektanweisun
 - Aufgabe: `.aufgabe` > `.nr` (oder `.nr.stern`) + `.anw` (`.text` + `.niveau` mit `<i>` je Punkt, in Klassenarbeiten stattdessen `.punkte`) + `.koerper`.
 - Items: `.reihe` mit `--spalten`, darin `.zelle` (`.links` für linksbündig), `.zeile` für Rechenzeilen, `.antwort` (`.kurz`, `.breit`, `.lang`), `.schreiblinie`, `.box` (Ankreuzkästchen).
 - Fuß (nur mit Selbsteinschätzung): `.fuss` mit Text, Wachstumsgrafik, `.reflexion`.
-- Anweisungs-Symbol: `<span class="sym" data-sym="schreiben"></span>` in `.anw` vor `.text`, genau eines je Aufgabe: `schreiben`, `malen`, `lesen`, `sprechen`, `schneiden`, `kleben`, `verbinden`, `ankreuzen`, `rechnen`, `suchen`, `partner`, `wuerfeln`, `legen`.
-- Reihe: `.seite.lk` (Seite für die Lehrkraft mit `.lk-kopf`, `.lk-leiste`, `.phase`, `.kasten`), `.seite.fall` (Fall-Karte mit `.fall-bild`, `.fall-band`, `.fall-innen`, `.fall-frage`), `.kapitel-marke` in der Namenszeile, `.aufgabe.beweis` mit `.beweis-marke`, `.fuss-zeile`. Abschauen in `assets/beispiel-reihe-kapitel.html`.
+- Anweisungs-Symbol, nur wenn der Auftrag Symbole nennt (Standard: keine): `<span class="sym" data-sym="schreiben"></span>` in `.anw` vor `.text`, dann genau eines je Aufgabe: `schreiben`, `malen`, `lesen`, `sprechen`, `schneiden`, `kleben`, `verbinden`, `ankreuzen`, `rechnen`, `suchen`, `partner`, `wuerfeln`, `legen`.
+- Seiten für die Lehrkraft: eigenes Dokument mit `<body class="kl… lehrkraft">` (Arial, 13 px, schlichte `h1`/`h2`, `.kit-tabelle`, `.lk-unter`, `.lk-stunde`), ohne Figuren und Farbflächen. Abschauen in `assets/beispiel-lehrkraft-hinweise.html`. `.seite.lk` gibt es nur noch für ältere Mappen.
+- Reihe: `.seite.fall` (Fall-Karte mit `.fall-bild`, `.fall-band`, `.fall-innen`, `.fall-frage`), `.kapitel-marke` in der Namenszeile, `.aufgabe.beweis` mit `.beweis-marke`, `.fuss-zeile`. Abschauen in `assets/beispiel-reihe-kapitel.html`.
 - Karten: `.karten` mit `--spalten`, `.karte`, `.kartentext`, `.ecke`.
 - Folien: Abschnitt „Folien“.
 - Eigene Gestaltung kommt als Thema über die Kit-Bausteine, nicht als eigene Struktur: `references/layout.md`, Abschnitt „Baukasten und Thema“. Eigene Klassen und `<style>` sind die begründete Ausnahme.

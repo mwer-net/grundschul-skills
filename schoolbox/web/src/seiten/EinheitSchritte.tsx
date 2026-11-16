@@ -1,7 +1,6 @@
 import type { Antworten, EinheitWahl } from '@schoolbox/kern/src/assistent';
 import {
 	EINHEIT_AUSSEHEN_WAHL,
-	EINHEIT_BESTANDTEILE,
 	EINHEIT_FELDER,
 	EINHEIT_LEITFIGUR_NAME,
 	EINHEIT_LEITFIGUR_WAHL,
@@ -10,7 +9,7 @@ import {
 	ZIEL_ANFAENGE,
 } from '@schoolbox/kern/src/assistent';
 import type { EINHEIT_LEITFIGUR } from '@schoolbox/kern/src/einheit';
-import { EINHEIT_AUSSEHEN, EINHEIT_DAUER, EINHEIT_VERBRAUCH } from '@schoolbox/kern/src/einheit';
+import { EINHEIT_AUSSEHEN, EINHEIT_BESTANDTEILE, EINHEIT_DAUER, EINHEIT_VERBRAUCH } from '@schoolbox/kern/src/einheit';
 import type { ReactNode } from 'react';
 
 import { Chip } from '../bausteine/Chip';

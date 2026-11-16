@@ -7,9 +7,10 @@ import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 
-import type { Ansicht, Fund, KiAktion, Konfig, Meldung, Pruefbericht } from '@schoolbox/kern';
+import type { Ansicht, Bausteine, Fund, KiAktion, Konfig, Meldung, Pruefbericht } from '@schoolbox/kern';
 import {
 	ANSICHT_ORDNER,
+	bausteinVerstoesse,
 	dokumentDir,
 	formatBefund,
 	ID_MUSTER,
@@ -241,6 +242,8 @@ export interface KiWunsch {
 	eingabe?: string;
 	/** Vom Server angehängt, nicht von der Lehrkraft getippt: zählt nicht zur Länge des Auftrags. */
 	anhang?: string;
+	/** Neues Blatt: die Wahl bei den Bausteinen. Abgewähltes im Ergebnis ist ein Fehler wie aus der Prüfung (210). */
+	bausteine?: Partial<Bausteine>;
 }
 
 export type KiPruefer = (dokDir: string, html: string) => Promise<Pruefbericht>;
@@ -1374,6 +1377,21 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			: bericht;
 	};
 
+	/** Abgewählte Bausteine im Ergebnis eines neuen Blatts: Die Korrekturrunde bekommt sie wie Prüffehler (210). */
+	const mitBausteinen = (html: string, bericht: Pruefbericht, bausteine: Partial<Bausteine> | undefined) => {
+		const verstoesse = bausteinVerstoesse(html, bausteine ?? {});
+		return verstoesse.length
+			? {
+					...bericht,
+					fehler: bericht.fehler + verstoesse.length,
+					meldungen: [
+						...bericht.meldungen,
+						...verstoesse.map((text): Meldung => ({ stufe: 'FEHLER', seite: 1, text })),
+					],
+				}
+			: bericht;
+	};
+
 	/** Ein einzelner Lauf ohne Gedächtnis: alles wird gleich danach gelöscht. */
 	const einmalPlatz = async () => {
 		const tmp = await mkdtemp(path.join(wurzelTmp, 'lauf-'));
@@ -1398,7 +1416,14 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 	 * Blatt. Die Sperre zuerst: Was nicht ins Material darf, soll auch hier nie im Browser laufen.
 	 */
 	const bauenFuer =
-		(arbeit: string, dir: string, quelle: string, ausschnitt: Ausschnitt, bilder: BlattBilder | null): Bauen =>
+		(
+			arbeit: string,
+			dir: string,
+			quelle: string,
+			ausschnitt: Ausschnitt,
+			bilder: BlattBilder | null,
+			bausteine: Partial<Bausteine> | undefined,
+		): Bauen =>
 		async () => {
 			const neu = await leseErgebnis(arbeit);
 			const funde = sperrFunde(quelle, ausschnitt, neu);
@@ -1409,7 +1434,10 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			const ganz = bilder ? await bilder.einsetzen(eingesetzt) : eingesetzt;
 			const gebaut = await ansicht(dir, ganz, path.join(arbeit, ANSICHT_ORDNER));
 			const format = formatBefund(ganz);
-			return { text: [ansichtText(gebaut), format ? `FEHLER: ${format}` : null].filter(Boolean).join('\n') };
+			const auftrag = bausteinVerstoesse(ganz, bausteine ?? {}).map((t) => `FEHLER: ${t}`);
+			return {
+				text: [ansichtText(gebaut), format ? `FEHLER: ${format}` : null, ...auftrag].filter(Boolean).join('\n'),
+			};
 		};
 
 	/** Neue Bilder gibt es nur beim Bau eines neuen Blatts: Der freigegebene Plan nennt sie. */
@@ -1465,12 +1493,13 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 		const gross = w.neuesBlatt === true;
 		const blattBilder = bilderFuer(w, arbeit);
 		const mitBildern = async (html: string) => blattBilder?.einsetzen(html) ?? html;
-		const werkzeug = await starteWerkzeug(wurzelTmp, bauenFuer(arbeit, dir, quelle, ausschnitt, blattBilder)).catch(
-			(fehler: unknown) => {
-				console.error('Werkzeug für Claude:', fehler);
-				return null;
-			},
-		);
+		const werkzeug = await starteWerkzeug(
+			wurzelTmp,
+			bauenFuer(arbeit, dir, quelle, ausschnitt, blattBilder, w.bausteine),
+		).catch((fehler: unknown) => {
+			console.error('Werkzeug für Claude:', fehler);
+			return null;
+		});
 		const mit = { gross, mcpDatei: werkzeug?.mcpDatei ?? null, mitCanva: blattBilder !== null };
 		let verbrauch: Record<string, unknown> = {};
 		let ende: KiStatus = 'fehler';
@@ -1504,7 +1533,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			// Die Sperre zuerst: Die Blattprüfung öffnet das Ergebnis im Browser, und was hier hängen bleibt, soll dort nie laufen.
 			const blattPruefung = async (html: string) => {
 				const ganz = await mitBildern(ausschnitt.einsetzen(html));
-				return mitFormat(ganz, await pruefeSicher(dir, ganz));
+				return mitBausteinen(ganz, mitFormat(ganz, await pruefeSicher(dir, ganz)), w.bausteine);
 			};
 			let neu = erstesErgebnis;
 			let funde = sperrFunde(quelle, ausschnitt, neu);

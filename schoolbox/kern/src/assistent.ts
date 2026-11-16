@@ -5,7 +5,7 @@
  * Ohne Node-Abhängigkeiten, damit auch die Oberfläche sie nutzen kann.
  */
 import type { EinheitAngaben } from './einheit';
-import { EINHEIT_AUSSEHEN, EINHEIT_DAUER, EINHEIT_LEITFIGUR, EINHEIT_ZEICHEN } from './einheit';
+import { EINHEIT_AUSSEHEN, EINHEIT_BESTANDTEILE, EINHEIT_DAUER, EINHEIT_LEITFIGUR, EINHEIT_ZEICHEN } from './einheit';
 import { SchoolboxFehler } from './fehler';
 import { ART_NAME, FACH_NAME } from './namen';
 import type { Art, Fach, Format, Klasse } from './werte';
@@ -91,18 +91,22 @@ export const UMFAENGE = [
 	{ wert: '20', name: '20 min', satz: 'Arbeitszeit je Kind 20 Minuten' },
 	{ wert: '30', name: '30 min', satz: 'Arbeitszeit je Kind 30 Minuten' },
 	{ wert: '45', name: '45 min', satz: 'Arbeitszeit je Kind 45 Minuten' },
-	{ wert: 'claude', name: 'Claude entscheidet', satz: '' },
+	{ wert: 'claude', name: 'Claude entscheidet', satz: 'Arbeitszeit je Kind nicht festgelegt, entscheide du' },
 ] as const satisfies readonly (Wert<string> & { satz: string })[];
 export type Umfang = (typeof UMFAENGE)[number]['wert'];
 
-/** Fragen 3 bis 5 der Start-Abfrage; ob sie kommen, sagt `ART_ANGABEN[art].bausteine`. */
+/**
+ * Fragen 3 bis 5 der Start-Abfrage; ob sie kommen, sagt `ART_ANGABEN[art].bausteine`. `mit` und `ohne` sagen im
+ * Auftrag, was die Wahl bewirkt (`rueckfragen.md`): Ohne den Satz griffe die Empfehlung des Skills (210).
+ */
 export const ZUSATZ_BAUSTEINE = [
 	{
 		wert: 'selbsteinschaetzung',
 		name: 'Selbsteinschätzung',
 		kurz: 'Selbsteinschätzung',
 		satz: 'Selbsteinschätzung',
-		ohne: 'Selbsteinschätzung',
+		mit: ': Wachstumsstufen Samen → Keimling → Pflanze → Blume zum Ankreuzen und eine Reflexionsfrage.',
+		ohne: ': keine Wachstumsstufen (Samen bis Blume), keine Reflexionsfrage dazu, keine Lernlandkarte; der Platz geht an Aufgaben.',
 		hinweis: 'Unten: Samen → Keimling → Pflanze → Blume und eine Reflexionsfrage',
 	},
 	{
@@ -110,7 +114,8 @@ export const ZUSATZ_BAUSTEINE = [
 		name: 'Drei Niveaus zur Wahl',
 		kurz: 'Niveaus',
 		satz: 'drei Niveaus zur Wahl',
-		ohne: 'Niveaus',
+		mit: ': ● Grundlage, ●● Kern, ●●● Herausforderung, die Kinder wählen.',
+		ohne: ': alle Kinder bearbeiten dieselben Aufgaben, steigend im Anspruch; keine Niveau-Punkte ● ●● ●●●, keine Wahlhilfe.',
 		hinweis: '● Grundlage · ●● Kern · ●●● Herausforderung (Churer Modell)',
 	},
 	{
@@ -118,7 +123,8 @@ export const ZUSATZ_BAUSTEINE = [
 		name: 'Sternchenaufgabe ★',
 		kurz: 'Sternchen',
 		satz: 'Sternchenaufgabe',
-		ohne: 'Sternchenaufgabe',
+		mit: ': eine Knobelaufgabe ★ als letzte Aufgabe, freiwillig für alle.',
+		ohne: ' ★.',
 		hinweis: 'Eine Knobelaufgabe für alle, die mögen. Mit Niveaus nicht nötig, weil ●●● schon fordert.',
 	},
 ] as const;
@@ -147,24 +153,6 @@ export type FreitextFeld = keyof typeof FREITEXT;
 export const AUFTRAG_ZEICHEN = 3000;
 
 // ——— Unterrichtseinheit (140) ———
-
-/**
- * Bestandteile einer Einheit (Schritt „Bestandteile“). Was eine Reihe braucht, steht im Skill `unterrichtsplanung`
- * (Reihenplanung); die Empfehlung ist der Kern daraus: Einstieg, Übung, Spiel, Überprüfung, Lösungen.
- */
-export const EINHEIT_BESTANDTEILE = [
-	{ name: 'Einführung (Präsentation)', empfohlen: true },
-	{ name: 'Arbeitsblätter', empfohlen: true },
-	{ name: 'Lesetexte', empfohlen: false },
-	{ name: 'Lernspiel', empfohlen: true },
-	{ name: 'Bild- und Wortkarten', empfohlen: false },
-	{ name: 'Lernplakat', empfohlen: false },
-	{ name: 'Stationen', empfohlen: false },
-	{ name: 'Lernzielkontrolle', empfohlen: true },
-	{ name: 'Urkunde oder Abschluss', empfohlen: false },
-	{ name: 'Verlaufsplan für dich', empfohlen: false },
-	{ name: 'Lösungen', empfohlen: true },
-] as const;
 
 export const EINHEIT_LEITFIGUR_NAME: Record<(typeof EINHEIT_LEITFIGUR)[number], string> = {
 	willi: 'Willi',
@@ -643,9 +631,6 @@ const fest = (text: string): Teil => ({ text, art: 'fest' });
 const antwort = (text: string): Teil => ({ text, art: 'antwort' });
 const frei = (text: string): Teil => ({ text: text.trim(), art: 'freitext' });
 
-const aufzaehlung = (teile: string[]) =>
-	teile.length < 2 ? (teile[0] ?? '') : `${teile.slice(0, -1).join(', ')} und ${teile.at(-1) ?? ''}`;
-
 const umfangTeile = (a: Antworten): Teil[] => {
 	if (umfangEmpfehlung(a.art) === null) {
 		return [];
@@ -696,26 +681,12 @@ const themaSatz = (a: Antworten): Teil[] => {
 	];
 };
 
-const bausteinSatz = (a: Antworten): Teil[][] => {
-	const schalter = bausteinSchalter(a);
-	const text = (s: BausteinSchalter, als: 'satz' | 'ohne') =>
-		ZUSATZ_BAUSTEINE.find((b) => b.wert === s.wert)?.[als] ?? s.name;
-	const an = schalter.filter((s) => s.an).map((s) => text(s, 'satz'));
-	const aus = schalter.filter((s) => !s.an).map((s) => text(s, 'ohne'));
-	if (an.length === 0 && aus.length === 0) {
-		return [];
-	}
-	const satz: Teil[] =
-		an.length === 0
-			? [fest('Ohne '), antwort(aufzaehlung(aus)), fest('.')]
-			: [
-					fest('Mit '),
-					antwort(aufzaehlung(an)),
-					...(aus.length > 0 ? [fest(', ohne '), antwort(aufzaehlung(aus))] : []),
-					fest('.'),
-				];
-	return [satz];
-};
+/** Je angebotenem Baustein ein Satz, an wie aus, mit seiner Wirkung (210). */
+const bausteinSaetze = (a: Antworten): Teil[][] =>
+	bausteinSchalter(a).map((s) => {
+		const b = ZUSATZ_BAUSTEINE.find((x) => x.wert === s.wert);
+		return [fest(s.an ? 'Mit ' : 'Ohne '), antwort(b?.satz ?? s.name), fest((s.an ? b?.mit : b?.ohne) ?? '.')];
+	});
 
 /** Der Auftrag aus A1 S. 9, Satz für Satz. Fett in der Vorschau ist, was aus den Fragen kommt. */
 export const auftragSaetze = (a: Antworten): Teil[][] => {
@@ -723,8 +694,12 @@ export const auftragSaetze = (a: Antworten): Teil[][] => {
 	const saetze: Teil[][] = [
 		ersterSatz(a),
 		themaSatz(a),
-		...bausteinSatz(a),
-		lerngruppe.length > 0 ? [fest('Lerngruppe: '), antwort(lerngruppe.join(', ')), fest('.')] : [],
+		...bausteinSaetze(a),
+		[
+			fest('Lerngruppe: '),
+			antwort(lerngruppe.length > 0 ? lerngruppe.join(', ') : 'keine Besonderheiten angegeben'),
+			fest('.'),
+		],
 		voll(a.sonst) ? [fest('Außerdem: '), frei(a.sonst)] : [],
 	];
 	return saetze.filter((satz) => satz.length > 0);

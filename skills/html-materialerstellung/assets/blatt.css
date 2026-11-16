@@ -521,6 +521,25 @@ body.ohne-punkte .punkte,body.ohne-punkte x-gesamtpunkte{display:none}
 .kasten>:last-child{margin-bottom:0}
 .lk-spalten{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .lk-spalten>.kasten{margin-top:0}
+/* Hinweise für die Lehrkraft (210): ein eigenes Dokument mit body.lehrkraft, nüchtern und zum Überfliegen.
+   Ältere Lehrkraft-Seiten (.seite.lk ohne body.lehrkraft) bleiben unverändert. */
+body.lehrkraft{--fs:13px;--abstand:10px;--text:#1d1d1b;font-family:Arial,Helvetica,"Liberation Sans",sans-serif;font-feature-settings:normal;line-height:1.35}
+body.lehrkraft .seite{font-size:13px}
+body.lehrkraft h1,body.lehrkraft h2,body.lehrkraft h3{font-family:Arial,Helvetica,"Liberation Sans",sans-serif;font-weight:700;color:#1d1d1b}
+body.lehrkraft h1{font-size:20px;line-height:1.2;margin:0 0 2px}
+body.lehrkraft h2{font-size:15px;line-height:1.25;margin:14px 0 5px;padding-bottom:2px;border-bottom:1px solid #b5b5b5}
+body.lehrkraft h3{font-size:13px;line-height:1.3;margin:8px 0 2px}
+body.lehrkraft p{margin:0 0 6px}
+body.lehrkraft ul,body.lehrkraft ol{margin:0 0 6px;padding-left:18px}
+body.lehrkraft li{margin-bottom:2px}
+body.lehrkraft .kit-tabelle{font-size:12.5px;line-height:1.3;margin-bottom:6px;table-layout:auto}
+body.lehrkraft .kit-tabelle th,body.lehrkraft .kit-tabelle td:first-child{white-space:nowrap}
+body.lehrkraft .kit-tabelle th,body.lehrkraft .kit-tabelle td{border:1px solid #9a9a9a;padding:3px 6px;vertical-align:top}
+body.lehrkraft .kit-tabelle thead th{border-bottom-width:1px;background:#ececec}
+body.lehrkraft .fuss-zeile{font:400 10px/1 Arial,Helvetica,"Liberation Sans",sans-serif}
+.lk-unter{color:#555;margin:0 0 10px}
+.lk-stunde{break-inside:avoid;margin-top:12px}
+.lk-stunde>h2{margin-top:0}
 
 .kapitel-marke{flex:none;align-self:center;font:600 18px/1.2 Fredoka,sans-serif;color:var(--dunkel);
   border:2.5px solid var(--dunkel);border-radius:22px;padding:2px 14px;white-space:nowrap;background:#fff}

@@ -235,7 +235,7 @@
     const walker = document.createTreeWalker(S, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) {
       const t = walker.currentNode, p = t.parentElement;
-      if (!t.textContent.trim() || !p || p.closest("svg,.nr,.namenszeile,.platzhalter,.loesung-marke,.fuss-zeile,.zeilennummer,.seite.lk,[data-klein-ok]") || !sichtbar(p)) continue;
+      if (!t.textContent.trim() || !p || p.closest("svg,.nr,.namenszeile,.platzhalter,.loesung-marke,.fuss-zeile,.zeilennummer,.seite.lk,.lehrkraft,[data-klein-ok]") || !sichtbar(p)) continue;
       const text = `„${t.textContent.trim().slice(0, 30)}“ (${getComputedStyle(p).fontSize})`;
       if (parseFloat(getComputedStyle(p).fontSize) < min - 0.5 && !klein.has(text)) klein.set(text, p);
     }

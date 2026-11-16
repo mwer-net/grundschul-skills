@@ -178,7 +178,8 @@ Gemessen wird das Rechteck nach dem Drehen. `data-rand-ok` schaltet `druckrand` 
 
 ## Seitenfläche, Seitenrahmen und Kopfband
 
-Eine Seite bekommt einen Grund (Farbe, Verlauf oder Muster), einen Rahmen und ein Kopfband, von jedem höchstens eins.
+Eine Seite bekommt einen Grund (Farbe, Verlauf oder Muster), einen Rahmen und ein Kopfband, von jedem höchstens eins. Das gilt für Schauseiten (Deckblatt, Plakat, Pass, Urkunde, Spielplan); Arbeitsseiten mit Aufgaben bekommen in der Regel keinen Rahmen, er kostet
+Platz, den die Aufgaben brauchen (`grundschul-didaktik/references/kindgerecht-gestalten.md`).
 Sie stehen **zuunterst in `.ebene.hinten`**, erst die Fläche, dann der Rahmen, dann das Kopfband. Sie haben kein
 `data-lage`: Sie füllen die Seite oder ihren oberen Rand und lassen sich nicht ziehen. Das Kopfband liegt über allem
 anderen in `.ebene.hinten` und unter dem Inhalt. Sollen mehrere Seiten gleich aussehen, steht auf jeder Seite dasselbe.

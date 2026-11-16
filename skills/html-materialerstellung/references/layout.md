@@ -55,6 +55,12 @@ Eine Reihe bekommt ihr eigenes Aussehen über eine Datei `thema.css` im Mappenor
 
 `thema.css` setzt nur Variablen und Schmuck an Kit-Klassen, Farben unter `body.farbe`. Struktur bleibt beim Kit; für Titel und Bänder gibt es `.thema-kopf` und `.thema-band`. Ein Beispiel steht in `assets/thema-beispiel.css`.
 
+Das Thema schmückt Schauseiten (Deckblatt, Fall-Karte, Plakat, Spielplan, Urkunde) und Überschriften. Auf
+Arbeitsseiten setzt es keinen Rahmen um `.seite` und keine Linie direkt an Text (etwa `border-left` an `.ziel` oder
+einer Überschrift): Beides kostet Platz und klebt an der Schrift. Wiedererkennung entsteht dort über Farbe der
+Überschrift, `.thema-kopf` und die Figur, nicht über Rahmen. Wie viel Schmuck eine Seite verträgt, steht in
+`grundschul-didaktik/references/kindgerecht-gestalten.md` (Arbeitsseite, Schauseite, Seite für die Lehrkraft).
+
 <!-- erzeugt: thema-regeln -->
 Erlaubte Variablen: `--haupt`, `--akzent`, `--dunkel`, `--linie`, `--fuell`, `--text`, `--strich`.
 

@@ -18,6 +18,7 @@ import type { Aktion, EinheitAngaben, EinheitBefund, EinheitStand, PlanDokument,
 import {
 	ANSICHT_ORDNER,
 	baueAnsichtAus,
+	bausteinVerstoesse,
 	dokKnotenSchluessel,
 	dokumentDir,
 	EINHEIT_PLAN,
@@ -316,12 +317,11 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			fehler: 0,
 			meldungen: [],
 		}));
-		befund(
-			s,
-			d.slug,
-			dok,
-			bericht.meldungen.filter((m) => m.stufe === 'FEHLER').map((m) => `Seite ${m.seite}: ${m.text}`),
-		);
+		// Abgewähltes im Material zählt wie ein Prüffehler: Die Korrekturrunde nimmt es heraus (210).
+		befund(s, d.slug, dok, [
+			...bericht.meldungen.filter((m) => m.stufe === 'FEHLER').map((m) => `Seite ${m.seite}: ${m.text}`),
+			...bausteinVerstoesse(roh, s.bausteine ?? {}),
+		]);
 	};
 
 	const stoppe = (grund: string) => {
@@ -423,8 +423,11 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 				path.join(arbeitDir(s.id), ANSICHT_ORDNER, dokument),
 			);
 			const vorschau = s.verkauf ? await legeVorschauAb(arbeitDir(s.id), dokument, ansicht.bilder) : null;
+			const auftrag = bausteinVerstoesse(roh, s.bausteine ?? {}).map((t) => `FEHLER: ${t}`);
 			return {
-				text: [ansichtText(ansicht, `${ANSICHT_ORDNER}/${dokument}`), vorschau].filter(Boolean).join('\n'),
+				text: [ansichtText(ansicht, `${ANSICHT_ORDNER}/${dokument}`), ...auftrag, vorschau]
+					.filter(Boolean)
+					.join('\n'),
 			};
 		};
 
@@ -698,6 +701,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			auftrag: teil,
 			bilder: angaben.bilder,
 			verkauf: angaben.verkauf,
+			bausteine: angaben.bausteine,
 			geladeneBilder: 0,
 			fehlgeschlageneBilder: 0,
 			planText: null,

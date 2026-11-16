@@ -12,7 +12,7 @@ Vor dem ersten Material steht der Plan der ganzen Geschichte:
 - **Der Ort und die Figuren:** Willi und Wilma, wie im Auftrag gewählt, mit festen Rollen (einer zeigt das Beispiel und denkt laut, die andere schreibt auf und gibt Tipps), dazu höchstens zwei Nebenfiguren mit fester Beschreibung.
 - **Je Stunde ein Kapitel:** ein Satz, was geschieht; das Rätsel des Kapitels ist das Ich-kann-Ziel der Stunde. Die Kapitel bauen aufeinander auf wie die Ziele (Einführung → Übung → Vertiefung → Anwendung → Überprüfung).
 - **Die Rätselkette:** Jedes Kapitel endet mit einem Beweis-Rätsel, das nur löst, wer die Aufgaben der Stunde gelöst hat. Es liefert ein Stück der Lösung (Buchstabe, Zahl, Puzzleteil, Stempel), das die Kinder auf einer Sammelkarte eintragen. Alle Stücke zusammen lösen das Problem.
-- **Wer dahintersteckt:** Hinter dem Problem steht jemand mit einem freundlichen Grund (die Elster sammelt Glänzendes für ihr Nest, der Uhrmacher wollte einmal ausschlafen). Die Kinder kennen ihn bis zum letzten Kapitel nicht. Jedes Kapitel bringt eine Spur näher, und in jedem Szenenbild ist diese Spur zu entdecken (eine Feder, ein Abdruck, ein offenes Fenster). Welche Spur das ist, steht auf der Seite für die Lehrkraft.
+- **Wer dahintersteckt:** Hinter dem Problem steht jemand mit einem freundlichen Grund (die Elster sammelt Glänzendes für ihr Nest, der Uhrmacher wollte einmal ausschlafen). Die Kinder kennen ihn bis zum letzten Kapitel nicht. Jedes Kapitel bringt eine Spur näher, und in jedem Szenenbild ist diese Spur zu entdecken (eine Feder, ein Abdruck, ein offenes Fenster). Welche Spur das ist, steht in den Hinweisen für die Lehrkraft.
 - **Die Kinder gehören dazu:** Sie sind Detektive, Forscherinnen oder Lehrlinge der Werkstatt, mit einem Namen für die Gruppe, einem Ausweis oder Pass und einem kurzen Ritual zu Beginn jeder Stunde (Ausweis zeigen, Losung sagen).
 - **Je Kapitel eine eigene Idee:** Auf jedem Niveau steht mindestens eine Aufgabe, die es nur in dieser Geschichte gibt und die die Handlung voranbringt: Zeugen befragen und ihre Aussagen ordnen, eine Geheimschrift entschlüsseln, den Bauplan einer Maschine ergänzen, ein Phantombild nach Beschreibung zeichnen, eine eigene Spur für ein anderes Kind legen. Eine übliche Aufgabe mit dem Namen der Figur im Satz zählt nicht. Kein Kapitel wiederholt die Idee eines anderen. Die übrigen Aufgaben üben, wie es das Ziel verlangt.
 - **Die Auflösung:** Das letzte Kapitel löst alles auf, freundlich und ohne Schuldige, die bloßgestellt werden. Es ist zugleich die Lernzielkontrolle („Prüfung der Detektive“) und endet mit einer Urkunde.
@@ -21,30 +21,34 @@ Die Rätselkette vor dem Bauen einmal durchrechnen: Ergeben die Stücke wirklich
 
 ## 2. Was zum Paket gehört
 
+Was der Auftrag nennt, wird gebaut; was er abwählt, entfällt. Die Tabelle zeigt den üblichen Aufbau.
+
 | Dokument | Inhalt |
 |---|---|
-| Einführung und Überblick | Deckblatt; für die Lehrkraft: so funktioniert die Reihe, die Figuren, der Ablauf jeder Stunde, Reihenübersicht als Tabelle (Stunde, Kapitel, Ich-kann-Ziel, Material), Bezug zum Bildungsplan, was auf keinen Fall vorab gezeigt wird |
-| Je Stunde ein Dokument („Fall 1 …“, „Kapitel 1 …“) | Seite für die Lehrkraft, Fall-Karte, Arbeitsblätter der Stunde (Abschnitt 3) |
+| Hinweise für die Lehrkraft | **ein** Dokument für die ganze Reihe, nüchtern im Stil `body.lehrkraft` (Muster: `html-materialerstellung/assets/beispiel-lehrkraft-hinweise.html`): Seite 1 mit Worum es geht, Zielen, Überblickstabelle (Stunde, Kapitel, Inhalt, Material) und Vorbereitung; danach je Stunde ein kurzer Block mit Ziel, Ablauf als Tabelle (Phase, Minuten, was passiert), Lösung des Beweis-Rätsels und höchstens einem typischen Fehler. Ohne „Verlaufsplan für dich“ im Auftrag nur Seite 1 und, bei Verkauf, der allgemeine Ablauf einer Stunde (verkauf.md, Abschnitt 2); Lösungswort und Spuren stehen dann bei den Lösungen. |
+| Je Stunde ein Dokument („Kapitel 1 …“) | Fall-Karte und Arbeitsblatt der Stunde (Abschnitt 3), keine eigene Lehrkraft-Seite |
 | Begleitmaterial | Sammelkarte für die Rätselkette, Ausweis oder Forscherpass, Plakate, Wort- und Bildkarten, Lernspiel, soweit der Auftrag sie nennt |
-| Abschluss | Lernzielkontrolle im Gewand der Geschichte, Erwartungshorizont, Urkunde |
+| Abschluss | Lernzielkontrolle im Gewand der Geschichte in **einer** Fassung für alle (keine Niveau-Wahl), Erwartungshorizont, Urkunde, soweit der Auftrag sie nennt |
 | Lösungen | zu allen Blättern, wenn sie nicht schon in den Dokumenten stehen |
 
-Soll die Reihe verkauft werden, kommen Deckblatt, Handreichung, Quellenverzeichnis und Angebotstext dazu: `html-materialerstellung/references/verkauf.md`.
+Soll die Reihe verkauft werden, kommen Deckblatt, Quellenverzeichnis und Angebotstext dazu; die Handreichung sind die Hinweise für die Lehrkraft: `html-materialerstellung/references/verkauf.md`.
 
 Wie viele Stunden die Reihe hat, folgt aus Dauer und Stunden je Woche im Auftrag. Reicht die erlaubte Zahl der Dokumente nicht für jede Stunde, fasst ein Dokument zwei Stunden zusammen; es fällt keine Stunde weg.
 
 ## 3. Ein Kapitel-Dokument
 
-Jedes Kapitel ist ein Dokument mit denselben Seiten in derselben Reihenfolge. Die Seiten sind feste Bausteine des Kits; das geprüfte Muster mit allen vier Seitenarten ist `html-materialerstellung/assets/beispiel-reihe-kapitel.html`. Übernimm seinen Aufbau Klasse für Klasse und ändere nur Inhalt und Thema.
+Jedes Kapitel ist ein Dokument. Es soll zwei Dinge leisten: neugierig machen und gründlich üben. Dafür gibt es zwei Arten von Seiten, die verschieden gestaltet werden (`grundschul-didaktik/references/kindgerecht-gestalten.md`, „Wie viel Gestaltung eine Seite verträgt“):
 
-1. **Seite für die Lehrkraft** (`seite lk`): Titel des Kapitels, Stunde und Thema, Ich-kann-Ziel, Material, dann der Churer Ablauf mit Minuten: Kreisinput (Geschichte vorlesen, Handlung mit echtem Material, lautes Vordenken wörtlich), Lernaufgaben (die drei Blätter mit je einem Satz), Reflexion (Beweis-Rätsel, Reflexionsfrage). Dazu „Gut zu wissen“ (typische Fehlvorstellung) und „Wenn die Zeit knapp ist“.
-2. **Fall-Karte** (`seite fall`) für den Kreisinput: Szenenbild randlos über die volle Breite mit der Kapitel-Marke im Bild, darunter das Kapitel der Geschichte zum Vorlesen (Kl. 1/2 etwa 60–90 Wörter, Kl. 3/4 bis 150), am Ende die Frage, die in die Stunde führt (`fall-frage`).
-3. **Arbeitsblätter ●, ●●, ●●●:** je Niveau eine eigene Seite zum selben Ziel, jede mit dem ganzen Zeitziel (`grundschul-didaktik/references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“; in der Reihe sind das die Minuten der Lernaufgaben-Phase, meist 20–25). Der Titel greift das Kapitel auf, die Aufgaben stehen in der Geschichte („Hilf Wilma, die Spur zu lesen“), bleiben aber ruhig: keine Szenenbilder zwischen den Aufgaben. Jede Seite trägt den gestrichelten Rahmen, die Kapitel-Marke in der Namenszeile und genau ein Anweisungs-Symbol je Aufgabe; im Tipp steht die Figur in einer Pose, die zum Kapitel passt.
-4. **Beweis-Rätsel** (`aufgabe beweis`) am Ende jeder Niveau-Seite, für alle drei Niveaus mit demselben Ergebnis, damit jedes Kind sein Stück der Lösung bekommt.
-5. Braucht der Kreisinput ein eigenes Material (Geheimbotschaft, Legevorlage, Bildkarten), steht es als eigene Seite vor den Arbeitsblättern.
-6. **Fußzeile der Reihe** (`fuss-zeile`) auf jeder Seite: Titel der Reihe und Kapitel; die Seitenzahl setzt das Kit dazu. Auf sie beziehen sich die Seitenverweise der Lehrkraft-Seite.
+1. **Fall-Karte** (`seite fall`, Schauseite) für den Kreisinput: großes Szenenbild über die volle Breite, darunter ein kurzes Stück Geschichte zum Vorlesen und die Frage der Stunde (`fall-frage`). Kurz heißt: Kl. 1/2 etwa 40–70 Wörter, Kl. 3/4 etwa 60–100, mit wörtlicher Rede. Das Bild trägt die Szene, der Text nur den Auftrag; lieber das Bild größer (`--h`) als den Text länger. Hier darf das Thema zeigen, was es kann.
+2. **Arbeitsblatt** (Arbeitsseite) mit dem ganzen Zeitziel der Lernaufgaben-Phase (meist 20–25 Minuten; `grundschul-didaktik/references/druck-und-platz.md`, „Menge nach Arbeitszeit“), meist Vorder- und Rückseite. Der Titel greift das Kapitel auf, die Aufgaben stehen in der Geschichte („Hilf Wilma, die Spur zu lesen“). Gestaltung tritt zurück: kein Rahmen um die Seite, keine Szenenbilder zwischen den Aufgaben, Symbole hinter den Nummern nur, wenn der Auftrag sie nennt. Wiedererkennung entsteht über Überschrift, Kapitel-Marke in der Namenszeile und die Figur im Tipp. Wenige Aufgaben auf der Seite lassen Raum für ein Bild, viele Aufgaben brauchen ihn selbst.
+3. **Beweis-Rätsel** (`aufgabe beweis`) am Ende des Arbeitsblatts; es liefert das Stück der Lösung.
+4. **Differenzierung nach Auftrag.** Nennt der Auftrag drei Niveaus, gibt es je Niveau eine eigene, gefüllte Seite (●, ●●, ●●●) mit demselben Beweis-Rätsel. Nennt er sie nicht, gibt es ein Blatt für alle, das von leicht nach schwer ansteigt, ohne Niveau-Punkte und ohne Wahl; eine Sternchenaufgabe nur, wenn der Auftrag sie nennt. Eine Selbsteinschätzung steht nur auf dem Blatt, wenn der Auftrag sie nennt.
+5. Braucht der Kreisinput ein eigenes Material (Geheimbotschaft, Legevorlage, Bildkarten), steht es als eigene Seite vor dem Arbeitsblatt.
+6. **Fußzeile der Reihe** (`fuss-zeile`) auf jeder Seite: Titel der Reihe und Kapitel; die Seitenzahl setzt das Kit dazu.
 
-Die Lösung jeder Seite entsteht wie immer mit; das Beweis-Rätsel hat seine Lösung auf der Lehrkraft-Seite.
+Das Muster `html-materialerstellung/assets/beispiel-reihe-kapitel.html` zeigt die Technik dieser Seiten (Klassen, Bild, Marke, Beweis-Rätsel). Es ist ein Beispiel, keine Schablone: Aufbau der Aufgaben, Bildideen und Schmuck folgen dem Thema und dem Auftrag.
+
+Die Lösung jeder Seite entsteht wie immer mit; die Lösung des Beweis-Rätsels steht in den Hinweisen für die Lehrkraft.
 
 ## 4. Reihenfolge beim Bauen
 
@@ -58,11 +62,12 @@ Die Lösung jeder Seite entsteht wie immer mit; das Beweis-Rätsel hat seine Lö
 
 - [ ] Die Geschichte hat Anfang, Spannung und Auflösung; jedes Kapitel bringt sie voran
 - [ ] Jedes Rätsel ist das Ich-kann-Ziel seiner Stunde, nicht bloß Verpackung
-- [ ] Jedes Niveau jedes Kapitels hat eine Aufgabe, die es nur in dieser Geschichte gibt; keine Idee kommt zweimal vor
+- [ ] Jedes Kapitel hat eine Aufgabe, die es nur in dieser Geschichte gibt; keine Idee kommt zweimal vor
 - [ ] Jedes Szenenbild zeigt die Spur seines Kapitels; wer dahintersteckt, erfährt man erst am Ende
-- [ ] Jedes Kapitel ist aus den Bausteinen des Musters gebaut: Lehrkraft-Seite, Fall-Karte, Rahmen, Kapitel-Marke, Symbole, Beweis-Rätsel, Fußzeile
+- [ ] Alles, was der Auftrag abwählt (Niveaus, Selbsteinschätzung, Sternchen, Symbole, Bestandteile), fehlt wirklich, auch auf Deckblatt, Folien und in den Hinweisen
 - [ ] Die Rätselkette geht auf; die Sammelkarte hat für jedes Stück einen Platz
-- [ ] Jede Stunde hat Lehrkraft-Seite, Fall-Karte und drei gefüllte Niveau-Seiten
-- [ ] Jede Niveau-Seite trägt das Zeitziel; kein Kind ist nach fünf Minuten fertig
+- [ ] Ein Dokument „Hinweise für die Lehrkraft“, nüchtern und knapp; keine Lehrkraft-Seite in den Kapiteln
+- [ ] Fall-Karten kurz mit großem Bild; Arbeitsblätter ohne Seitenrahmen und gefüllt bis zum Zeitziel
+- [ ] Zahlen, Zählwörter und Beispiele nachgerechnet (`html-materialerstellung/references/visuelle-endkontrolle.md`, „Inhalt nachrechnen“)
 - [ ] Dieselben Figuren in jedem Bild, die Auflösung wird vorher nirgends verraten
 - [ ] Die Reihe deckt die Ziele aus dem Auftrag und den Bildungsplan ab

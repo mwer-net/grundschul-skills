@@ -6,7 +6,14 @@ import path from 'node:path';
 import { after, afterEach, before, describe, it } from 'node:test';
 
 import type { EinheitStand, Pruefbericht } from '@schoolbox/kern';
-import { einheitAuftragAus, lesePlan, mappenDir, pruefeEinheitAngaben, themaBefund } from '@schoolbox/kern';
+import {
+	bausteinVerstoesse,
+	einheitAuftragAus,
+	lesePlan,
+	mappenDir,
+	pruefeEinheitAngaben,
+	themaBefund,
+} from '@schoolbox/kern';
 
 import { einheitenWurzel } from './einheit';
 import { CANVA_MCP, VERBRAUCH_DATEI } from './ki';
@@ -97,6 +104,50 @@ describe('Plan und Thema der Einheit (139)', () => {
 		]) {
 			assert.ok(themaBefund(css), css);
 		}
+	});
+});
+
+describe('Wächter: Abgewähltes im Material (210)', () => {
+	const AUS = { selbsteinschaetzung: false, niveaus: false, sternchen: false };
+	const AN = { selbsteinschaetzung: true, niveaus: true, sternchen: true };
+	const blatt = (inhalt: string) => `<body class="kl2 a4-hoch"><section class="seite">${inhalt}</section></body>`;
+	const NIVEAU = '<div class="namenszeile"><span class="name">Name:</span><span class="niveau"><i></i></span></div>';
+	const WAHLHILFE = '<div class="wahlhilfe">Wähle deine Aufgaben.</div>';
+	const WACHSTUM =
+		'<div class="fuss"><div class="wachstum"><img src="bilder/wachstum.png" alt=""><i></i></div></div>';
+	// Einfache Anführungszeichen im Attribut: Der Wächter muss auch diese Schreibweise finden.
+	const BILD = '<img src="../../bilder/wachstum-strich.png" alt="">'.replaceAll('"', String.fromCharCode(39));
+	const KARTE = '<x-spielplan art="lernlandkarte" inhalt="Ich kann …"></x-spielplan>';
+	const STERN = '<div class="aufgabe"><span class="nr stern">★</span><div class="anw">Knobel</div></div>';
+	const SAUBER = blatt(
+		'<div class="aufgabe"><span class="nr">1</span><div class="anw"><span class="text">Rechne.</span></div></div>',
+	);
+
+	it('schlägt an, wenn ein abgewählter Baustein im Material steht', () => {
+		const befund = (inhalt: string, aus: Partial<typeof AUS>) => bausteinVerstoesse(blatt(inhalt), aus);
+		assert.match(befund(NIVEAU, { niveaus: false }).join(), /ohne drei Niveaus.*eine Stelle mit \.niveau/);
+		assert.match(befund(NIVEAU + WAHLHILFE, { niveaus: false }).join(), /2 Stellen/);
+		assert.match(
+			befund(WACHSTUM, { selbsteinschaetzung: false }).join(),
+			/ohne Selbsteinschätzung.*Wachstumsgrafik/,
+		);
+		assert.match(befund(BILD, { selbsteinschaetzung: false }).join(), /Wachstumsgrafik/);
+		assert.match(befund(KARTE, { selbsteinschaetzung: false }).join(), /Lernlandkarte/);
+		assert.match(befund(STERN, { sternchen: false }).join(), /ohne Sternchenaufgabe.*Entferne sie/);
+		assert.equal(befund(NIVEAU + WACHSTUM + STERN, AUS).length, 3);
+	});
+
+	it('Gegenprobe: schweigt bei gewählten Bausteinen, ohne Angabe und bei sauberem Material', () => {
+		const alles = blatt(NIVEAU + WAHLHILFE + WACHSTUM + KARTE + STERN);
+		assert.deepEqual(bausteinVerstoesse(alles, AN), []);
+		// Fragt der Assistent einen Baustein bei der Art nicht ab, fehlt er: Dann gilt der Skill.
+		assert.deepEqual(bausteinVerstoesse(alles, {}), []);
+		assert.deepEqual(bausteinVerstoesse(SAUBER, AUS), []);
+		// Kommentare, Wörter im Text und ähnliche Klassen zählen nicht.
+		const aehnlich = blatt(
+			'<!-- <span class="niveau"></span> --><p>Ein Stern und eine Pflanze im Wachstum.</p><span class="nr">2</span><svg class="form" data-form="stern"></svg><span class="niveau-text">x</span><x-beschriften bild="bilder/wachstum.png"></x-beschriften>',
+		);
+		assert.deepEqual(bausteinVerstoesse(aehnlich, AUS), []);
 	});
 });
 
@@ -197,6 +248,23 @@ describe('Lauf einer Einheit (139)', () => {
 			'utf8',
 		);
 		assert.doesNotMatch(quelle, /<script/);
+	});
+
+	it('Niveau-Punkte, obwohl der Auftrag ohne Niveaus ist: eine Korrekturrunde, die sagt, was weg muss (210)', async () => {
+		await fall('einheit-niveau');
+		const { id } = await starte();
+		const s = await bis(id, 'fertig');
+		assert.deepEqual(s.bausteine, { selbsteinschaetzung: false, niveaus: false, sternchen: false });
+		assert.equal(s.korrigiert, true);
+		assert.deepEqual(s.befunde, []);
+		const prompts = (await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8')).split('\n---\n');
+		const korrektur = prompts.filter((p) => p.includes('Korrekturrunde')).at(-1) ?? '';
+		assert.match(korrektur, /dokumente\/fall-2\/material\.html: Laut Auftrag ohne drei Niveaus/);
+		// Gegenprobe: Mit Niveaus ist dasselbe Material richtig.
+		const mit = await starte({ ...ANGABEN, bausteine: { niveaus: true } });
+		const t = await bis(mit.id, 'fertig');
+		assert.equal(t.korrigiert, false);
+		assert.deepEqual(t.befunde, []);
 	});
 
 	it('Nur eine Einheit zur Zeit; Abbrechen lässt das Fertige stehen, Weiterbauen setzt fort', async () => {

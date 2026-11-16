@@ -72,7 +72,9 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 - Niveaus (falls gewählt) nie farblich unterscheiden, nur mit Punkten (gleiche Optik auf allen Niveaus).
 - Farbcodes der Klasse (Klassenkonvention prüfen): Wortarten (oft Nomen blau, Verben rot, Adjektive grün), Artikel (der blau, die rot, das grün, DaZ), Stellenwerte (oft Einer blau, Zehner rot, Hunderter grün). Farbcodes werden direkt farbig gesetzt; die Kategorie steht zusätzlich als Buchstabe, Wort oder Symbol dabei (E/Z/H, „Nomen"), damit sie auch in s/w lesbar bleibt.
 
-## Arbeitsanweisungs-Symbole (Vorschlag für einheitliches Set)
+## Arbeitsanweisungs-Symbole (nur auf Wunsch)
+
+**Standard: keine Symbole.** Ein Symbol hinter jeder Aufgabennummer kostet Platz und macht die Zeile unruhig, ohne dass Kinder ab dem Lesealter es brauchen. Symbole kommen nur aufs Blatt, wenn der Auftrag sie verlangt oder die Klasse ein eingeführtes Symbolset nutzt (Lehrwerk, Metacom). Dann gilt diese Liste:
 
 | Symbol | Bedeutung |
 |---|---|
@@ -90,7 +92,7 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 | ● ●● ●●● | Niveau: Grundlage / Kern / Herausforderung (falls Churer Modell gewählt) |
 | ★ | Sternchenaufgabe, freiwillig für alle (falls gewählt) |
 
-Grundsatz: Ist in der Klasse schon ein Symbolset eingeführt (Lehrwerk, Metacom), immer dieses verwenden. Symbole immer gleich groß, nach der Nummer direkt vor dem Anweisungstext. **Genau ein Symbol pro Aufgabe**, das für die Haupthandlung; mehrere Symbole nebeneinander machen die Anweisung unruhiger statt klarer. Im Material als schwarze Linien-Icons, nie als farbige Emojis; die Emojis oben stehen nur für die Bedeutung. Am wichtigsten sind sie in Kl. 1/2 und für leseschwache Kinder.
+Wenn Symbole: Ist in der Klasse schon ein Symbolset eingeführt, immer dieses verwenden. Symbole immer gleich groß, nach der Nummer direkt vor dem Anweisungstext, **genau eines pro Aufgabe** für die Haupthandlung. Im Material als schwarze Linien-Icons, nie als farbige Emojis; die Emojis oben stehen nur für die Bedeutung. Niveau-Punkte und ★ sind keine Anweisungs-Symbole; sie stehen nur, wenn Niveaus oder Sternchenaufgabe gewählt sind.
 
 ## Arbeitsanweisungen formulieren
 
@@ -102,6 +104,6 @@ Grundsatz: Ist in der Klasse schon ein Symbolset eingeführt (Lehrwerk, Metacom)
 
 ## Barrierearme Zusatzhinweise
 
-- Leseschwache Kinder: Anweisung zusätzlich als Symbol, Text kurz, ggf. QR-Code zu einer Audio-Anweisung.
+- Leseschwache Kinder: Text kurz, Beispiel vorgeben, ggf. Symbole auf Wunsch der Lehrkraft oder QR-Code zu einer Audio-Anweisung.
 - Sehbeeinträchtigung: größere Variante (A3 oder 1,4-fach), hohe Kontraste.
 - Feinmotorik: größere Schreib-/Schneideflächen, dicke Schneidelinien.

@@ -9,6 +9,18 @@ Zwei Befunde scheinen sich zu widersprechen, passen aber zusammen:
 
 **Daraus folgt die Grundregel: Das schön machen, was ohnehin da ist – nicht etwas dazustellen.** Form und Figuren kommen an Elemente mit Funktion (Aufgabennummer, Beispiel, Tipp, Lernobjekt), nicht als Füllung.
 
+## Arbeitsseiten und Schauseiten: wie viel Gestaltung wohin
+
+Wie viel gestaltet wird, folgt dem Zweck der Seite, nicht einer Vorlage. Die Muster in `html-materialerstellung/assets/` zeigen, was technisch geht, nicht wie eine Seite aussehen muss. Entscheide für jede Reihe neu, was sie zusammenhält (Farben, Marke, Kopf, Bildsprache), und entscheide auf jeder Seite, wie viel Gestaltung der Platz verträgt.
+
+| Seitenart | Beispiele | Gestaltung |
+|---|---|---|
+| **Arbeitsseite** | Arbeitsblatt, Lernzielkontrolle, Klassenarbeit, Lesetext mit Aufgaben, Aufgabenkarte mit viel Inhalt | Der Platz gehört den Aufgaben. Gestaltet wird nur, was ohnehin da ist und kaum Fläche kostet: Titel, Farbakzent, Nummernkreise, Leitfigur mit Tipp, eine Marke in der Namenszeile. Kein Seitenrahmen, keine Symbole hinter der Aufgabennummer, keine Linien oder Balken am Text, keine Kästen um Aufgaben. Je weniger Aufgaben eine Seite trägt (Kl. 1, Forscherbogen, Malseite), desto mehr Spielraum. |
+| **Schauseite** | Deckblatt, Fall- oder Szenenkarte, Plakat, Ausweis oder Pass, Sammelkarte, Urkunde, Spielplan, Spielkarten, Folien, Titel eines Hefts | Hier wird gestaltet und Platz ist zweitrangig: Szenenbild, Seitenfläche, Rahmen, Formen, Schmuckschrift, Streuung (`html-materialerstellung/references/gestaltung.md`). Eigene Ideen statt Nachbau des Musters. Maßstab: Würde ein Kind sie gern behalten, würde eine Lehrkraft in der Vorschau hängen bleiben? |
+| **Seite für die Lehrkraft** | Hinweise zur Reihe, Ablauf der Stunden, Lösungen, Erwartungshorizont | Nüchtern und schnell zu überfliegen: `<body class="… lehrkraft">` (Arial, kleine Schrift), Stichpunkte und Tabellen statt Fließtext, keine Kästen, keine Kinderschrift. |
+
+Im Zweifel bei Arbeitsseiten weglassen, bei Schauseiten mutiger sein.
+
 **Farbe:** Material wird in Farbe angelegt, s/w ist eine Ansicht davon (`gestaltung.md`, Abschnitt „Farbe“). Emotional Design wirkt über Farbe als Akzent, Form, Schrift und Figur. Es gibt keine Farbflächen hinter Aufgaben und keine Aufgabenkästen – das Blatt soll Platz für Übung haben.
 
 ## Die fünf Hebel
@@ -128,8 +140,8 @@ Geprüft wird jedes KI-Bild in voller Auflösung, Figur für Figur (`html-materi
 Eine durchgehende Geschichte trägt eine ganze Unterrichtsreihe besser als einzelne Blätter: Die Kinder wollen wissen, wie es weitergeht, und jede Stunde hat einen Anlass. Die Geschichte ist der Impuls des Kreisinputs, nicht Deko auf dem Arbeitsblatt.
 
 - **Rahmen:** ein Problem, das sich nur mit dem Lernziel der Reihe lösen lässt (etwas ist verschwunden, kaputt, verzaubert); jede Stunde ein Kapitel oder Fall, dessen Rätsel genau das Ich-kann-Ziel der Stunde ist. Die letzte Stunde löst den Rahmen auf (Überprüfung als „Prüfung“, Fest, Urkunde).
-- **Szenenkarte je Stunde** (Karte, Plakat oder Folie für den Kreisinput): Szenenbild über die volle Breite, Titel des Kapitels, kurze Geschichte (Kl. 1/2: drei bis fünf kurze Sätze zum Vorlesen), darunter die Frage der Stunde in einem Rätselkasten. Das Szenenbild ist hier Erzählanlass mit Funktion; der Weglass-Test gilt weiter für die Arbeitsblätter.
-- **Arbeitsblätter bleiben ruhig:** Sie greifen das Kapitel im Titel auf („Fall 3: …“) und haben höchstens die Leitfigur mit Tipp, keine Szenenbilder. Rahmen, Kapitel-Marke und Fußzeile halten die Blätter einer Reihe zusammen (`unterrichtsplanung/references/reihe-als-geschichte.md`, Abschnitt 3).
+- **Szenenkarte je Stunde** (Karte, Plakat oder Folie für den Kreisinput, eine Schauseite): Das Szenenbild trägt die Seite (etwa zwei Drittel der Höhe), dazu Titel des Kapitels, eine kurze Geschichte und die Frage der Stunde. Die Geschichte ist kurz: Kl. 1/2 höchstens 40 Wörter, Kl. 3/4 höchstens 60. Lieber zwei, drei Sätze wörtliche Rede der Figuren (auch als Sprechblasen) als Erzählprosa; was das Bild zeigt, muss der Text nicht beschreiben. Das Szenenbild ist hier Erzählanlass mit Funktion; der Weglass-Test gilt weiter für die Arbeitsblätter.
+- **Arbeitsblätter bleiben ruhig:** Sie sind Arbeitsseiten. Sie greifen das Kapitel im Titel auf („Fall 3: …“) und haben höchstens die Leitfigur mit Tipp, keine Szenenbilder. Was die Blätter einer Reihe zusammenhält (Kapitel-Marke, Farbe, Fußzeile), kostet keinen Platz; ein Seitenrahmen gehört nicht dazu (`unterrichtsplanung/references/reihe-als-geschichte.md`, Abschnitt 3).
 - **Leitfigur in Bewegung:** Willi oder Wilma zeigt in jeder Szene eine andere Handlung und Pose passend zur Geschichte (rennt, kniet und misst, staunt, zeigt auf eine Spur, jubelt). Immer dieselbe Standardpose wirkt langweilig und erzählt nichts.
 - **Wiedererkennbar:** Leitfigur und höchstens ein bis zwei Nebenfiguren mit fester Aussehen-Beschreibung und denselben Referenzbildern in allen Szenen; der Szenen-Stil-Satz ist für die ganze Reihe gleich.
 - Szenen erst erzeugen, wenn alle Geschichten der Reihe stehen; danach jede Szene gegen ihren Text prüfen.
@@ -143,5 +155,6 @@ Eine durchgehende Geschichte trägt eine ganze Unterrichtsreihe besser als einze
 - [ ] Höchstens zwei Schriften, Fließtext in klarer Druckschrift
 - [ ] Nichts Dekoratives zwischen Anweisung und Arbeitsfläche
 - [ ] Aufgaben ohne Kasten, Platz für Übung statt für Rahmen (`druck-und-platz.md`)
-- [ ] Höchstens ein Figurenauftritt pro Seite, ein Arbeitsanweisungs-Symbol pro Aufgabe, keine selbst gezeichneten Hände oder Körperteile
+- [ ] Höchstens ein Figurenauftritt pro Seite, keine Symbole hinter der Aufgabennummer (außer die Klasse nutzt ein Symbolset), keine selbst gezeichneten Hände oder Körperteile
+- [ ] Arbeitsseiten ohne Seitenrahmen und ohne Linien am Text; Schauseiten wirklich gestaltet
 - [ ] Jedes KI-Bild in voller Auflösung geprüft (Augen, Pfoten, Gegenstände, jede Figur einmal, keine Schrift) und passend zum Text

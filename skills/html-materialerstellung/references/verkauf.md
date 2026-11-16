@@ -7,7 +7,7 @@ Verkauft wird an fremde Lehrkräfte. Sie sehen zuerst nur das Deckblatt als klei
 | Was | Wo | Slug, Art |
 |---|---|---|
 | Deckblatt | eigenes Dokument, eine Seite, das erste der Reihe | `deckblatt`, `sonstiges` |
-| Handreichung | Teil von „Einführung und Überblick“ (Abschnitt 2) | – |
+| Handreichung | die „Hinweise für die Lehrkraft“ der Reihe (Abschnitt 2) | – |
 | Quellenverzeichnis | eigenes Dokument, eine Seite, das letzte zum Verkauf | `quellen`, `sonstiges` |
 | Angebot für Eduki | eigenes Dokument, nur für die Autorin, wird nicht mitverkauft | `eduki-angebot`, `unterrichtsplanung` |
 
@@ -31,7 +31,7 @@ Das Deckblatt ist ein fester Baustein in `blatt.css`. Die Farben kommen aus dem 
   <div class="db-chips">
     <span class="db-chip">4 Stunden</span>
     <span class="db-chip" style="--c:var(--haupt)">12 Arbeitsblätter</span>
-    <span class="db-chip" style="--c:#C4620A">3 Niveaus</span>
+    <span class="db-chip" style="--c:#C4620A">Lernspiel</span>
     <span class="db-chip" style="--c:#B5483A">mit Lösungen</span>
   </div>
   <div class="db-faecher" data-ueberlagert-ok data-rand-ok>
@@ -49,7 +49,7 @@ Das Deckblatt ist ein fester Baustein in `blatt.css`. Die Farben kommen aus dem 
 - **Marke:** der Name aus dem Auftrag („Name auf dem Deckblatt“). Nennt der Auftrag keinen, entfällt die Zeile. Kein Name von Eduki, kein Preis, kein Logo.
 - **Klasse:** eine Zahl oder eine Spanne („1/2“). Jahrgangsgemischt: die Spanne.
 - **Bild:** das stärkste Szenenbild der Reihe, bei einer Reihe das Titelbild. Ohne neue Bilder entfällt `db-bild`; dann steht die Leitfigur größer (`style="height:300px"` an `db-figur`) und der Fächer rückt nach oben.
-- **Inhalt:** drei oder vier Schilder mit dem, was wirklich im Paket ist. Jede Zahl am fertigen Material nachzählen: Stunden, Seiten für Kinder, Niveaus, Lösungen, Lernzielkontrolle, Spiel. Keine Werbewörter („mega“, „toll“).
+- **Inhalt:** drei oder vier Schilder mit dem, was wirklich im Paket ist. Jede Zahl am fertigen Material nachzählen: Stunden, Seiten für Kinder, Lösungen, Lernzielkontrolle, Spiel; „3 Niveaus“ nur, wenn der Auftrag Niveaus nennt und sie gebaut sind. Deckblatt, Handreichung und Angebotstext nennen dieselben Zahlen. Keine Werbewörter („mega“, „toll“).
 - **Seitenvorschau:** vier echte Seiten, jede von anderer Art (Fall-Karte, Arbeitsblatt, Spiel oder Plakat, Lernzielkontrolle). Keine Lösungsseite, keine Seite, die die Auflösung verrät. In der Schoolbox nennt `bauen` nach jedem Material die Bilder (`../../bilder/v-<slug>-<Seite>.png`). In der Claude-App die Seitenbilder aus `blatt.py bauen` nach `bilder/` der Mappe kopieren.
 - **Figur:** die Leitfigur der Reihe unten rechts. Ohne Leitfigur entfällt sie.
 - Das Deckblatt hat keine Namenszeile, keine Aufgabe und keine Lösung. Es ist nur im Profil `farbe` gedacht.
@@ -58,14 +58,14 @@ Nach dem Bauen das Seitenbild ansehen, einmal in voller Größe und einmal in Ge
 
 ## 2. Handreichung
 
-„Einführung und Überblick“ (`unterrichtsplanung/references/reihe-als-geschichte.md`, Abschnitt 2) richtet sich jetzt an eine Lehrkraft, die das Material zum ersten Mal sieht. Es bekommt kein eigenes Deckblatt mehr und beginnt mit dem Inhalt. Dazu kommen:
+Die „Hinweise für die Lehrkraft“ (`unterrichtsplanung/references/reihe-als-geschichte.md`, Abschnitt 2) richten sich jetzt an eine Lehrkraft, die das Material zum ersten Mal sieht. Sie bekommen kein eigenes Deckblatt und beginnen mit dem Inhalt. Gestaltung wie im Muster `assets/beispiel-lehrkraft-hinweise.html`: `body.lehrkraft`, Arial, kleine Schrift, Überschriften, Tabellen und Stichpunkte, keine Figuren und Farbflächen. Wer kauft, will in zwei Minuten wissen, was drin ist und wie eine Stunde läuft; lange Absätze schrecken ab. Je Punkt unten also ein bis drei Sätze oder eine Tabelle. Dazu kommen:
 
 - **Inhalt des Pakets:** Tabelle mit jedem Dokument, was es ist und wie viele Seiten es hat.
 - **Lernziele:** die Ich-kann-Ziele der Reihe, jedes mit dem Satz, woran man es am Kind erkennt („legt 65 ct mit höchstens vier Münzen“). Eduki bewertet nur, was im Material steht, nicht die Beschreibung im Shop.
 - **So setzt du das Material ein:** Ablauf einer Stunde in Schritten, Zeitbedarf, Sozialform. In jeder Stunde steht eine Phase, in der Kinder aufeinander angewiesen sind (Partnerkontrolle mit getauschten Blättern, gemeinsames Beweis-Rätsel mit verteilten Rollen), und eine Frage für die Reflexion.
 - **Vorbereiten und drucken:** was vor der ersten Stunde zu tun ist; welche Seiten wie oft kopiert werden; A4, „tatsächliche Größe“; was laminiert oder geschnitten wird; welches Material aus dem Klassenzimmer gebraucht wird.
-- **Differenzierung:** was die drei Niveaus unterscheidet und wie Kinder ihr Niveau wählen.
-- **Warum so:** zwei bis drei Sätze zur Methode (Geschichte als Rahmen, Beispiel vor der Aufgabe, Selbsteinschätzung).
+- **Differenzierung:** wie das Material unterschiedlichen Kindern gerecht wird. Mit Niveaus im Auftrag: was die drei Niveaus unterscheidet und wie Kinder wählen. Ohne: wie die Aufgaben ansteigen, welche Hilfen es gibt (Beispiel, Tipp, Sternchenaufgabe, falls gewählt).
+- **Warum so:** zwei bis drei Sätze zur Methode (Geschichte als Rahmen, Beispiel vor der Aufgabe; Selbsteinschätzung nur, wenn es sie gibt).
 - **Bezug zum Lehrplan:** der Kompetenzbereich in Worten, die in jedem Bundesland gelten (Bildungsstandards der KMK), dazu der Bildungsplan Baden-Württemberg.
 
 Prüffragen nach den Qualitätsmerkmalen von Eduki:
@@ -144,19 +144,20 @@ Einen Preis schlägst du nicht vor.
 
 ## 5. Gestaltung, die sich verkauft
 
-Die Reihe folgt `unterrichtsplanung/references/reihe-als-geschichte.md` und dem Muster `assets/beispiel-reihe-kapitel.html`. Für den Verkauf kommt dazu:
+Die Reihe folgt `unterrichtsplanung/references/reihe-als-geschichte.md`. Gekauft wird, was in der Vorschau liebevoll aussieht und im Unterricht trägt. Beides gelingt, wenn jede Seite nach ihrer Art gestaltet ist (`grundschul-didaktik/references/kindgerecht-gestalten.md`, „Wie viel Gestaltung eine Seite verträgt“): Schauseiten (Deckblatt, Fall-Karte, Plakat, Spielplan, Pass, Urkunde) dürfen mutig und eigen sein, Arbeitsseiten bleiben ruhig und voller Aufgaben, die Hinweise für die Lehrkraft nüchtern. Die Muster zeigen Technik, keine Schablone; suche für jede Reihe ein eigenes Aussehen, das zum Thema passt. Für den Verkauf kommt dazu:
 
-- **Posen der Figuren:** Vor dem ersten Kapitel entstehen drei bis vier Posen der Leitfiguren im Kostüm der Geschichte (mit Lupe, schreibt ins Notizbuch, zeigt, staunt, jubelt), jede freigestellt und zweimal: farbig als `<figur>-<pose>.png` und als Strichzeichnung im selben Format als `<figur>-<pose>-strich.png`. Die Strichfassung druckt in s/w von selbst. Jede Niveau-Seite zeigt im Tipp die Pose, die zu ihrem Tipp passt; auf zwei Seiten hintereinander steht nie dieselbe. Erlaubt der Auftrag keine neuen Bilder, bleibt es bei den vorhandenen Figuren.
+- **Posen der Figuren:** Vor dem ersten Kapitel entstehen drei bis vier Posen der Leitfiguren im Kostüm der Geschichte (mit Lupe, schreibt ins Notizbuch, zeigt, staunt, jubelt), jede freigestellt und zweimal: farbig als `<figur>-<pose>.png` und als Strichzeichnung im selben Format als `<figur>-<pose>-strich.png`. Die Strichfassung druckt in s/w von selbst. Jedes Arbeitsblatt zeigt im Tipp die Pose, die zu seinem Tipp passt; auf zwei Seiten hintereinander steht nie dieselbe. Erlaubt der Auftrag keine neuen Bilder, bleibt es bei den vorhandenen Figuren.
 - **Wer dahintersteckt, bekommt ein Gesicht:** Die Figur aus der Auflösung hat ein eigenes Bild, das erst im letzten Kapitel und auf der Urkunde vorkommt.
-- **Requisiten in Farbe:** Ausweis oder Pass, Sammelkarte, Plakat mit dem Merkwissen der Reihe und Urkunde sind farbige Seiten mit Seitenfläche, Rahmen, Schmuckschrift und Streuung (`references/gestaltung.md`, Muster `assets/beispiel-deckblatt-formen.html`). Die Arbeitsblätter bleiben Kopiervorlagen, die in s/w gut aussehen: Rahmen, Kapitel-Marke, Symbol, Strichfigur.
+- **Requisiten in Farbe:** Ausweis oder Pass, Sammelkarte, Plakat mit dem Merkwissen der Reihe und Urkunde sind farbige Seiten mit Seitenfläche, Rahmen, Schmuckschrift und Streuung (`references/gestaltung.md`, Muster `assets/beispiel-deckblatt-formen.html`). Doppelseitige Bögen (Ausweis vorn und hinten, Karten mit Rückseite) passen nach dem Wenden genau aufeinander. Die Arbeitsblätter bleiben Kopiervorlagen, die in s/w gut aussehen: Kapitel-Marke, Überschrift, Strichfigur, kein Seitenrahmen und keine Symbole, die Platz kosten.
 - **Fußzeile mit Namen:** „Titel der Reihe · Kapitel 2 · Name aus dem Auftrag“ auf jeder Seite, auch auf Requisiten und Lösungen. Auf Bögen mit Karten zum Schneiden blendet das Kit sie aus.
-- **Eine Reihe, ein Bild:** dieselben zwei Farben, dieselbe Marke und derselbe Rahmen vom Deckblatt bis zur Urkunde.
+- **Eine Reihe, ein Bild:** dieselben zwei Farben, dieselbe Schmuckschrift und dieselbe Marke vom Deckblatt bis zur Urkunde.
 
 **Gestaltungs-Durchgang am Ende:** Sind alle Dokumente gebaut, sieh dir von jedem die Seitenbilder noch einmal an, diesmal wie eine Käuferin, die durch die Vorschau blättert. Je Seitenart eine Frage:
 
 - [ ] Fall-Karte: Füllt das Bild die Breite, steht die Marke im Bild, passt der Text ohne Lücke bis zur Frage?
-- [ ] Lehrkraft-Seite: Findet man in zehn Sekunden Ziel, Material, Ablauf und Lösung des Beweis-Rätsels?
-- [ ] Niveau-Seite: Rahmen, Marke, Symbole und Figur da? Sieht man die eigene Idee des Kapitels auf den ersten Blick, oder wirkt die Seite wie ein beliebiges Übungsblatt?
+- [ ] Hinweise für die Lehrkraft: Findet man in zehn Sekunden Ziel, Material, Ablauf und Lösung des Beweis-Rätsels? Wirkt nichts erschlagend?
+- [ ] Arbeitsblatt: Ist die Seite gefüllt mit Aufgaben, ohne Rahmen und Schmuck, der Platz nimmt? Sieht man trotzdem die eigene Idee des Kapitels, oder wirkt sie wie ein beliebiges Übungsblatt?
+- [ ] Zahlen: Stimmen Stunden, Seiten, Karten und Bestandteile auf Deckblatt, in der Handreichung und im Angebotstext mit dem Paket überein?
 - [ ] Requisiten: Würde ein Kind sie gern behalten?
 - [ ] Alle Seiten nebeneinander: Sieht man, dass sie zusammengehören?
 

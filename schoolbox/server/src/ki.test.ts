@@ -620,8 +620,15 @@ describe('Aufträge an Claude', () => {
 		};
 		const verwerfen = () => api(`${pfad}/vorschlag/verwerfen`, { method: 'POST' });
 
-		// Fach und Klasse bestimmt der Behälter, nicht der Browser.
-		const antworten = { thema: 'Igel im Herbst', lerngruppe: ['daz' as const], fach: 'englisch', klasse: 4 };
+		// Fach und Klasse bestimmt der Behälter, nicht der Browser. Das Beispielblatt hat eine Sternchenaufgabe: Mit ihr
+		// gewählt bleibt der Wächter still (210).
+		const antworten = {
+			thema: 'Igel im Herbst',
+			lerngruppe: ['daz' as const],
+			fach: 'englisch',
+			klasse: 4,
+			bausteine: { sternchen: true },
+		};
 		const erwartet = auftragAus({
 			...leereAntworten({ fach: 'mathematik', klasse: 2 }),
 			...antworten,
@@ -677,6 +684,42 @@ describe('Aufträge an Claude', () => {
 		}
 	});
 
+	it('Neues Blatt: Abgewähltes im Ergebnis geht in die Korrekturrunde, Gewähltes nicht (210)', async () => {
+		const blatt = await legeDokumentAn(server.materialDir, { beispiel: true });
+		const pfad = `/dokumente/${blatt.mappe}/${blatt.dok}`;
+		const durch = async (sternchen: boolean) => {
+			const antworten = { thema: 'Igel', bausteine: { niveaus: true, sternchen } };
+			const res = await api(`${pfad}/ki`, {
+				method: 'POST',
+				body: JSON.stringify({ aktion: 'neu-entwurf', antworten }),
+			});
+			assert.equal(res.status, 202);
+			assert.equal(
+				(await fertig(((await res.json()) as { auftrag: { id: string } }).auftrag.id)).status,
+				'fertig',
+			);
+			const prompts = (await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8')).split('---');
+			const { vorschlag: v } = (await (await api(`${pfad}/vorschlag?quelle=1`)).json()) as {
+				vorschlag: { quelle: string; fehler: number };
+			};
+			await api(`${pfad}/vorschlag/verwerfen`, { method: 'POST' });
+			return { letzter: prompts.at(-2) ?? '', v };
+		};
+		try {
+			await fall('stern-trotzdem');
+			const ohne = await durch(false);
+			assert.match(ohne.letzter, /Die Prüfung der Schoolbox meldet[\s\S]*Laut Auftrag ohne Sternchenaufgabe/);
+			assert.doesNotMatch(ohne.v.quelle, /nr stern/);
+			assert.equal(ohne.v.fehler, 0);
+			// Gegenprobe: Mit Sternchenaufgabe bleibt sie, und es gibt keine Korrekturrunde.
+			const mit = await durch(true);
+			assert.doesNotMatch(mit.letzter, /Laut Auftrag/);
+			assert.match(mit.v.quelle, /nr stern/);
+		} finally {
+			await fall('gut');
+		}
+	});
+
 	it('Neues Blatt (133): gekennzeichnet, nach dem Neuladen wiederzufinden, Nachbessern und Nochmal am Server', async () => {
 		const blatt = await legeDokumentAn(server.materialDir, { beispiel: true });
 		const pfad = `/dokumente/${blatt.mappe}/${blatt.dok}`;
@@ -701,7 +744,11 @@ describe('Aufträge an Claude', () => {
 		assert.equal((await vorschlagHier())?.neuesBlatt, undefined);
 		await api(`${pfad}/vorschlag/verwerfen`, { method: 'POST' });
 
-		const erst = await starteHier({ aktion: 'neu-entwurf', antworten: { thema: 'Igel' } });
+		// Mit Sternchenaufgabe wie im Beispielblatt: keine Korrekturrunde durch den Wächter (210).
+		const erst = await starteHier({
+			aktion: 'neu-entwurf',
+			antworten: { thema: 'Igel', bausteine: { sternchen: true } },
+		});
 		assert.equal(erst.neuesBlatt, true);
 		assert.ok(erst.seit);
 		assert.equal((await stand()).entwurf?.id, erst.id);

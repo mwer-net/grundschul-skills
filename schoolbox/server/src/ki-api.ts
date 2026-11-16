@@ -1,6 +1,7 @@
-import type { Antworten } from '@schoolbox/kern';
+import type { Antworten, Bausteine } from '@schoolbox/kern';
 import {
 	auftragAus,
+	bausteinSchalter,
 	KI_AKTIONEN,
 	leseMappe,
 	leseMeta,
@@ -69,7 +70,12 @@ const eingabeVon = (body: Record<string, unknown>, dokument: Pick<Antworten, 'ar
 	if (fehlt) {
 		throw new HttpFehler(400, fehlt);
 	}
-	return `Antworten der Lehrkraft aus dem Assistenten (sie ersetzen die Start-Abfrage):\n${auftragAus(antworten)}`;
+	// Die Wahl bei den Bausteinen prüft der Server am fertigen Blatt noch einmal (210).
+	const bausteine: Partial<Bausteine> = Object.fromEntries(bausteinSchalter(antworten).map((b) => [b.wert, b.an]));
+	return {
+		text: `Antworten der Lehrkraft aus dem Assistenten (sie ersetzen die Start-Abfrage):\n${auftragAus(antworten)}`,
+		bausteine,
+	};
 };
 
 /** Aufträge an Claude (057). Hängt am `apiRouter`: nur mit Sitzung, nie über Teilen-Links. */
@@ -111,7 +117,7 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 		const eingabe = aktion?.eingabe ? eingabeVon(body, { art, fach, klasse }) : undefined;
 		const auftrag = await ki.starte({
 			...inhalt,
-			auftrag: eingabe ? `${inhalt.auftrag}\n\n${eingabe}` : inhalt.auftrag,
+			auftrag: eingabe ? `${inhalt.auftrag}\n\n${eingabe.text}` : inhalt.auftrag,
 			mappe,
 			dok,
 			referenz: text(body.referenz),
@@ -123,7 +129,9 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 			ohneRueckfragen: aktion !== undefined,
 			neuesBlatt: aktion?.id === 'neu-entwurf',
 			// Ein neues Blatt beginnt wie in der Claude-App mit dem Aufgabenplan; gebaut wird nach der Freigabe.
-			...(aktion?.id === 'neu-entwurf' && eingabe ? { phase: 'plan' as const, eingabe } : {}),
+			...(aktion?.id === 'neu-entwurf' && eingabe
+				? { phase: 'plan' as const, eingabe: eingabe.text, bausteine: eingabe.bausteine }
+				: {}),
 		});
 		res.status(202).json({ auftrag });
 	});

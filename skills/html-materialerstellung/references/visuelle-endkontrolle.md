@@ -63,6 +63,15 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 - [ ] Keine Buchstaben, Ziffern oder Schriftreste, auch nicht klein an Häusern, Schildern, Kisten oder Kleidung.
 - [ ] Bild und Text passen: dieselbe Figur tut, was die Geschichte sagt; jede Anzahl, die der Text nennt, stimmt im Bild (Würfelaugen, Fächer, Häuser, Reihen); Gegenstände und Ort stimmen.
 
+**H. Inhalt nachrechnen (einmal je Dokument, nicht je Ausschnitt)**
+
+Der Prüfbericht sieht keine inhaltlichen Fehler. Deshalb jede Aussage, die man nachzählen oder nachrechnen kann, wirklich nachzählen:
+- [ ] Jedes Zählwort im Text („die beiden“, „nur ein“, „drei Kinder“, „alle vier“) gegen die Items, Bilder und Karten zählen, auf die es sich bezieht.
+- [ ] Jedes Beispiel auf Plakaten, Folien und Merkkästen durchrechnen; jede Lösung gegen ihre Aufgabe rechnen.
+- [ ] Fachbegriffe genau so verwenden, wie das Fach-Skill sie erklärt (in Mathematik etwa „wahrscheinlich“, „gleich wahrscheinlich“, „sicher“: `fach-mathematik`).
+- [ ] Zahlen, die an mehreren Stellen stehen (Seitenzahl, Anzahl der Karten, Stunden, Bestandteile auf Deckblatt und im Angebotstext), stimmen überall mit dem überein, was das Paket wirklich enthält.
+- [ ] Vorder- und Rückseite eines doppelseitigen Bogens passen zueinander (gleiche Reihenfolge, gespiegelt, wo geschnitten wird).
+
 ## Befund → Korrektur
 
 | Befund | Korrektur |
@@ -79,7 +88,8 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 | Fehler im KI-Bild (Auge, Pfote, doppelte Figur, Schleier, Buchstabe) | Bearbeiten mit dem Bild als einziger Referenz und „behalte alles andere genau gleich, korrigiere nur …“, danach neu prüfen (`bilder.md`, Abschnitt 2a) |
 | Anzahl im KI-Bild passt nicht zum Text | Text an das Bild anpassen oder die Menge als SVG berechnen; nicht neu würfeln, bis es zufällig passt (`bilder.md`, Abschnitt 3) |
 | Im Bild handelt eine andere Figur als im Text | Text an das Bild anpassen, wenn das Bild sonst gut ist; sonst Bild bearbeiten |
-| Seite wirkt überladen | Zweite Figur, zusätzliche Symbole und Deko streichen (eine Figur je Seite, ein Symbol je Aufgabe), dann Items kürzen |
+| Seite wirkt überladen | Zweite Figur, Symbole, Rahmen und Deko streichen (höchstens eine Figur je Arbeitsseite), dann Items kürzen |
+| Zahl oder Zählwort stimmt nicht (Abschnitt H) | Text an den Inhalt anpassen, nicht umgekehrt; Lösung und alle Stellen, die dieselbe Zahl nennen, mitziehen |
 
 ## Beispiel aus dem Test (Kl. 2, Zehner und Einer)
 

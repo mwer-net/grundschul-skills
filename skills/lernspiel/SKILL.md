@@ -56,6 +56,9 @@ Satzstreifen zum Legen und Umstellen: `x-satzglieder` mit `ausschneiden="ja"` (`
 - Niveaus (falls gewählt) nur mit Punkten ● / ●● / ●●● in der Kartenecke, nicht mit Farbe; Farbe nur zur Unterscheidung verschiedener Spiele.
 - Rückseiten gestalten (Muster + Spielname), damit Sets nicht vermischt werden.
 - Kein Gewinnen durch reines Glück: Inhalt entscheidet.
+- Der Spielplan ist eine Schauseite (`grundschul-didaktik/references/kindgerecht-gestalten.md`): Er soll aussehen wie ein Spiel, das man gern aufklappt, mit Weg, Start und Ziel, Bild oder Szene zum Thema und Farbe, über den ganzen Bogen (`x-spielplan`). Ein Tabellenraster mit Kästchen ist kein Spielplan.
+- Karten so groß wie ihr Inhalt es braucht und so viele je Bogen, dass der Bogen gefüllt ist; kein halbleerer Bogen, keine Riesenkarte mit einem Wort. Vorder- und Rückseite liegen nach dem Wenden genau aufeinander.
+- Die Kurzinfo für die Lehrkraft ist nüchtern (`body.lehrkraft`, Muster `html-materialerstellung/assets/beispiel-lehrkraft-hinweise.html`); in einer Reihe steht sie in den Hinweisen für die Lehrkraft statt im Spiel.
 - Wenn möglich eine kooperative Variante anbieten (gemeinsam gegen die Zeit, Klassenziel). Keine Ranglisten über mehrere Runden; wer eine Aufgabe nicht weiß, darf eine Tippkarte nehmen.
 
 Würfel für Spielregeln und Spielkarten kommen aus `<x-wuerfel>` (`html-materialerstellung/references/abbildungen.md`), nie als Bild. Spielwürfel mit eigenen Seiten: `<x-wuerfelnetz flaechen="…" bastel="ja">`, Druckhinweis „Originalgröße, festes Papier“.

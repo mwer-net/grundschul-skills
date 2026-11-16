@@ -43,6 +43,9 @@ Diagramm lesen und zeichnen ist ein eigener Aufgabentyp: `<x-diagramm werte="…
 
 ## Lernlandkarte und Selbsteinschätzungsbogen
 
+In einer Reihe gibt es eine Lernlandkarte oder einen Selbsteinschätzungsbogen nur, wenn der Auftrag sie oder die Selbsteinschätzung nennt. Die Lernzielkontrolle der Reihe hat eine Fassung für alle.
+
+
 - „Ich kann …"-Sätze aus Kindersicht, je Lernziel eine Zeile, mit Beispielaufgabe: „Ich kann Zahlen bis 100 am Hunderterfeld zeigen. (z. B. 47)".
 - Skala mit den Wachstumsstufen Samen / Keimling / Pflanze / Blume (`grundschul-didaktik/references/kernkonzepte.md`), dazu eine Spalte für die Einschätzung der Lehrkraft. Keine Smileys, keine Ampel.
 - Die Beispielaufgabe ist der Prüfstein: Das Kind löst sie, kontrolliert und schätzt sich danach ein. Kinder in Klasse 1/2 überschätzen sich oft; der Vergleich mit der Lehrkraft-Spalte wird im Gespräch besprochen, nicht bewertet.
