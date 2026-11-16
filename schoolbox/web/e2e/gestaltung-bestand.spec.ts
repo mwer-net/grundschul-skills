@@ -10,7 +10,7 @@ import path from 'node:path';
 
 import type { Page } from '@playwright/test';
 
-import { gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
+import { geladen, gespeichert, material, oeffne, quelle, uhrzeit } from './editorhilfe';
 import { expect, test } from './hilfe';
 import { oeffneSchublade } from './schubladen-hilfe';
 
@@ -36,12 +36,17 @@ const bandKnopf = (page: Page, gruppe: string, name: string) =>
 const gesperrteStreuungen = async (page: Page) =>
 	(await quelle(page)).match(/<svg class="streuung"[^>]*data-gesperrt/g)?.length ?? 0;
 
-/** Das Kopfband ist `::before` am `.kopf`, nur aus `blatt.css`. */
+/**
+ * Das Kopfband ist `::before` am `.kopf`, nur aus `blatt.css`. Nach einem Schritt lädt der Rahmen neu und der alte löst
+ * sich; dann `null`, damit `expect.poll` am neuen weiterfragt.
+ */
 const kopfband = (page: Page) =>
 	material(page)
 		.locator('.kopf')
 		.first()
-		.evaluate((kopf) => getComputedStyle(kopf, '::before').content);
+		.evaluate((kopf) => getComputedStyle(kopf, '::before').content)
+		.catch(() => null);
+const mitBand = async (page: Page) => ![null, 'none'].includes(await kopfband(page));
 
 test.describe('Ältere Blätter mit Rezept (180)', () => {
 	test.describe('am Mac', () => {
@@ -96,7 +101,7 @@ test.describe('Ältere Blätter mit Rezept (180)', () => {
 
 		test('Reiter „Blatt“: Fläche frei änderbar, die Datei ändert sich nur an dieser Stelle', async ({ page }) => {
 			const { material: datei, probe } = await blatt(page);
-			expect(await kopfband(page)).not.toBe('none');
+			await expect.poll(() => mitBand(page)).toBe(true);
 
 			await reiterBlatt(page);
 			await expect(flaeche(page)).toBeVisible();
@@ -110,7 +115,7 @@ test.describe('Ältere Blätter mit Rezept (180)', () => {
 			expect(bodyTag(neu)).toBe(bodyTag(probe));
 			expect(neu).toBe(probe.replace('style="--f1:var(--a-flaeche)"', 'style="--f1:var(--haupt)"'));
 			// Das Kopfband steht weiter da: Es hängt nur an den Werten am body und an blatt.css.
-			expect(await kopfband(page)).not.toBe('none');
+			await expect.poll(() => mitBand(page)).toBe(true);
 		});
 
 		test('Kopfband (181): zeigt das alte Band, die Datei bleibt beim Öffnen gleich', async ({ page }) => {
@@ -161,6 +166,7 @@ test.describe('Ältere Blätter mit Rezept (180)', () => {
 			expect(bodyTag(ohne)).not.toContain('--a-titel');
 			expect(bodyTag(ohne)).toContain('data-aufmachung="detektiv"');
 			await expect.poll(() => kopfband(page)).toBe('none');
+			await geladen(page);
 			// Die h1 steht in --dunkel der Palette (Hex am body, die h1 meldet rgb).
 			const [farbe, dunkel] = await material(page)
 				.locator('.kopf h1')
@@ -174,7 +180,8 @@ test.describe('Ältere Blätter mit Rezept (180)', () => {
 
 			await page.keyboard.press('ControlOrMeta+z');
 			await expect.poll(() => quelle(page)).toBe(probe);
-			expect(await kopfband(page)).not.toBe('none');
+			// Der Rahmen lädt nach dem Schritt neu; erst am neuen messen.
+			await expect.poll(() => mitBand(page)).toBe(true);
 		});
 
 		test('ein alter Speicherwert `rezepte` öffnet die Ebenen', async ({ page }) => {
@@ -190,7 +197,7 @@ test.describe('Ältere Blätter mit Rezept (180)', () => {
 	test('iPad quer: Kopfband sichtbar, keine Rezepte-Schublade, kein Rezept-Zeichen', async ({ page }) => {
 		test.skip(test.info().project.name !== 'ipad-quer', 'nur am iPad quer');
 		await blatt(page);
-		expect(await kopfband(page)).not.toBe('none');
+		await expect.poll(() => mitBand(page)).toBe(true);
 		await expect(page.locator('[data-schublade-knopf="rezepte"]')).toHaveCount(0);
 		await oeffneSchublade(page, 'ebenen');
 		await expect(ebenen(page).locator('[data-ebenen-zeichen="rezept"]')).toHaveCount(0);
