@@ -34,7 +34,11 @@ const skala = async (page: Page) => {
 /** Ein Punkt auf der ersten Seite, Anteile ihrer sichtbaren Box. */
 const aufSeite = async (page: Page, ax: number, ay: number) => {
 	const seite = material(page).locator('.seite').first();
-	await seite.evaluate((s) => s.scrollIntoView({ block: 'center' }));
+	// Wechselt der Rahmen gerade, löst sich der alte; dann am neuen noch einmal ansetzen.
+	await expect(async () => {
+		await geladen(page);
+		await seite.evaluate((s) => s.scrollIntoView({ block: 'center' }));
+	}).toPass();
 	const r = await seite.boundingBox();
 	const sicht = await page.locator('main').boundingBox();
 	if (!r || !sicht) {
@@ -232,7 +236,7 @@ test.describe('Gestaltung ablegen (098)', () => {
 			await page.mouse.up();
 			// Das Blatt lädt nach jedem Strich neu; erst danach den nächsten ansetzen.
 			await expect.poll(async () => anzahl(await quelle(page), 'testform')).toBe(i + 1);
-			await expect(page.locator('[data-leinwand][data-geladen]')).toBeVisible();
+			await geladen(page);
 		}
 		await expect.poll(async () => anzahl(await quelle(page), 'testform')).toBe(2);
 		await expect(flaeche(page)).toHaveCount(1);
