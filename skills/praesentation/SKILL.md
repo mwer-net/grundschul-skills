@@ -119,7 +119,7 @@ Impuls:
 
 ## Umsetzung (`html-materialerstellung`)
 
-- Impuls: Ausgangspunkt `assets/vorlage-praesentation.html` (`<body class="kl3 farbe palette-wiese folie">`, je Folie eine `<section class="seite">`). Bausteine und Markup: `html-materialerstellung`, Abschnitt „Folien“.
+- Impuls: Ausgangspunkt `assets/vorlage-praesentation.html` (`<body class="kl3 farbe palette-wiese folie">`, je Folie eine `<section class="seite">`). Bausteine und Markup: `html-materialerstellung/references/folien.md`.
 - Mit Schoolbox: `schoolbox/bin/schoolbox dokument <mappe> --titel … --art praesentation --format folie --vorlage praesentation`.
 - Bauen mit `blatt.py bauen --notizen`. Das PDF hat eine Seite je Folie und zeigt alle Schritte und Lösungen aufgedeckt (zum Drucken). `--notizen` baut und prüft zusätzlich „Folien mit Notizen“ (A4 hoch, je Blatt zwei Folien mit ihren Notizen): Meldet die Prüfung „Notiz kürzen“, passt eine Notiz auch allein nicht aufs Blatt.
 - Ohne Internet präsentieren: `NAME.html` ist bei Folien die Offline-Präsentation (für den Mac, startet mit „Präsentation starten“), `--schritte` baut das PDF zum Präsentieren (fürs iPad, eine Seite je Schritt). Mit Schoolbox entsteht beides auf Knopfdruck, nicht von Hand.

@@ -124,7 +124,7 @@ Liefere immer:
 3. Die Lösung oder den Erwartungshorizont.
 4. Annahmen, die du getroffen hast.
 
-Ist eine Schoolbox eingerichtet (siehe Projektanweisungen), bekommt die Lehrkraft statt der Dateien aus Punkt 1 den Link in die Schoolbox (`html-materialerstellung`, Abschnitt „Mit Schoolbox“). Dort sieht sie Material und Lösung an, lädt das PDF und druckt. Kurz-Info und Annahmen stehen weiter in der Nachricht.
+Ist eine Schoolbox eingerichtet (siehe Projektanweisungen), bekommt die Lehrkraft statt der Dateien aus Punkt 1 den Link in die Schoolbox (`html-materialerstellung/references/schoolbox-befehle.md`). Dort sieht sie Material und Lösung an, lädt das PDF und druckt. Kurz-Info und Annahmen stehen weiter in der Nachricht.
 
 ## Referenzen
 
