@@ -77,12 +77,12 @@ Ausführlich in `references/gestaltung.md`. Die wichtigsten Werte:
 | 3 | 2–3 Sätze |
 | 4 | bis 4 Sätze |
 
-Neues Material ist gesetzt wie ein Schulbuch der Klasse: Lesetext in Buchgröße, vier bis sechs Aufgaben je Seite, viele Items in Reihen. Schriftgröße, Abstand und Zeilenhöhe je Klasse setzt `blatt.css` (Tabelle in `references/druck-und-platz.md`, „Schrift und Abstand je Klasse“). Klein wird nur der Lesetext: Antwortlinien, Lineatur und Rechenkästchen behalten das Maß für Kinderhände, Schauseiten (Karten, Spiele, Plakat, Folien) ihre große Schrift.
+Neues Material ist gesetzt wie ein Schulbuch der Klasse: Lesetext in Buchgröße, Aufgaben je Seite nach der Tabelle in `references/druck-und-platz.md` („Menge nach Arbeitszeit“), viele Items in Reihen. Schriftgröße, Abstand und Zeilenhöhe je Klasse setzt `blatt.css` (Tabelle in `references/druck-und-platz.md`, „Schrift und Abstand je Klasse“). Klein wird nur der Lesetext: Antwortlinien, Lineatur und Schreibflächen behalten das Maß für Kinderhände, Rechenkästchen haben das Maß des Rechenhefts (0,7 cm in Kl. 1, 0,5 cm ab Kl. 2; `html-materialerstellung/references/abbildungen.md`, `x-gitter`), Schauseiten (Karten, Spiele, Plakat, Folien) ihre große Schrift.
 
 - Fließtext: serifenlose, kindgerechte Schrift mit eindeutigen Formen (I/l unterscheidbar, in Klasse 1/2 einstöckiges a und g). Bevorzugt die Druckschrift der Klasse (Lehrwerk), sonst Andika mit l mit Bogen. Überschriften und Nummern auf Arbeitsseiten in derselben Schrift, fett. Die runde Schmuckschrift (Fredoka) nur auf Deckblatt, Szenenkarte, Plakat und als Schmucktext.
 - Eine Palette als Akzent an Nummernkreisen, Überschrift, Linien, Figur und Bildern; Text schwarz; keine Farbflächen hinter Aufgaben. Aufgaben ohne Kasten mit hängender Nummer, getrennt durch Abstand. Niveaus (falls gewählt) nur mit Punkten kennzeichnen (`references/druck-und-platz.md`).
 - Linksbündiger Flattersatz, keine Silbentrennung, Zeilenumbruch nach Sinneinheiten.
-- Seitenränder ≥ 1,5 cm, ausreichende Schreibflächen; Lineatur passend zur Klassenstufe. Platz geht an Übung, nicht an Rahmen: Kopf in einer Zeile, schlanker Fuß, kurze Anweisungen in normaler Stärke. Die Menge folgt dem Zeitziel (Standard 20 Minuten Arbeit je Kind und Niveau), nicht der Seitenzahl (`references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“).
+- Seitenränder setzt `blatt.css` (`html-materialerstellung/references/layout.md`, „Raster“), ausreichende Schreibflächen; Lineatur passend zur Klassenstufe. Platz geht an Übung, nicht an Rahmen: Kopf in einer Zeile, schlanker Fuß, kurze Anweisungen in normaler Stärke. Die Menge folgt dem Zeitziel (Standard 20 Minuten Arbeit je Kind und Niveau), nicht der Seitenzahl (`references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“).
 - Klare Aufgaben mit Nummer; Arbeitsanweisungs-Symbole nur auf Wunsch oder bei eingeführtem Symbolset (`references/gestaltung.md`).
 - Kontrast mindestens 4,5:1; Farbe als einzige Information: siehe `references/gestaltung.md`, Abschnitt „Farbe“.
 
@@ -100,7 +100,7 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 - [ ] Ohne Lehrkraft bearbeitbar: Beispiel mit lautem Denken der Leitfigur, Tipps mit Strategie, Selbstkontrolle (vor der Selbsteinschätzung); in Klassenarbeit und Lernzielkontrolle stattdessen bekannte, eindeutige Aufgabenformate
 - [ ] „Noch"-Sprache, keine Wertung von Begabung, keine Rankings, keine Smileys oder Ampeln
 - [ ] Falls Selbsteinschätzung gewählt: Reflexionsfrage am Ende (Kl. 1/2 mündlich oder zum Ankreuzen, ab Kl. 3 schriftlich)
-- [ ] Ansprechend: runde Formen und Überschrift, Farbe als Akzent, Willi oder Wilma Waschbär mit Funktion
+- [ ] Ansprechend: runde Formen, farbige Überschrift (Schmuckschrift nur auf Schauseiten), Farbe als Akzent, Willi oder Wilma Waschbär mit Funktion
 - [ ] Keine rein dekorativen Bilder (Weglass-Test); alle Bilder eindeutig erkennbar
 - [ ] Genug Platz zum Schreiben/Zeichnen
 - [ ] Rechtschreibung, Zeichensetzung, Rechnungen und Lösungen geprüft

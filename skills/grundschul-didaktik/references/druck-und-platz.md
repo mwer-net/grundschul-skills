@@ -29,19 +29,19 @@ Farbe ist **Akzent**, das Layout bleibt kompakt:
 2. **Eine Palette** (Hauptfarbe + Akzent, Tabelle in `kindgerecht-gestalten.md`). Farbe bekommen:
    - Nummernkreise: gefüllt in der dunklen Variante der Hauptfarbe, weiße fette Ziffer,
    - Überschrift in der dunklen Variante der Hauptfarbe (Kontrast zu Weiß ≥ 3:1, Spalte in der Palettentabelle),
-   - Kontur der Tipp-Sprechblase, Unterstreichung im Beispiel in der Akzentfarbe,
+   - Kontur der Tipp-Sprechblase in der Hauptfarbe (setzt `blatt.css`; im Beispiel steht die Lösung fett und schwarz auf der Antwortlinie),
    - Willi oder Wilma, Wachstumsgrafik und Abbildungen in der farbigen Version,
    - Farbcodes der Klasse (Wortarten, Stellenwerte, Wendeplättchen) direkt farbig.
 3. **Text bleibt schwarz** (`#1D1D1B`). Farbige Schrift nur für die Überschrift und kurze Hervorhebungen, nie für Anweisungen oder Fließtext. Einzige Ausnahme: Silbenfarben aus `x-silben`, wenn die Klasse damit arbeitet (Kontrast mindestens 4,5:1).
 4. **Kleine Tönungen nur mit Funktion:** Füllung der Tipp-Sprechblase oder eines Wortspeichers in sehr hellem Ton (Helligkeit ≥ 90 %) ist erlaubt; ganze Aufgaben werden nicht hinterlegt.
-5. **Lösungsblatt:** Lösungen fett, unterstrichen und in der Akzentfarbe.
+5. **Lösungsblatt:** Lösungen fett, unterstrichen und in der dunklen Variante der Hauptfarbe (setzt `blatt.css`).
 6. **Prüfen:** `blatt.py bauen` (meldet Flächen hinter Aufgaben) und Vorschau ansehen: Farbe nur als Akzent.
 
 **Präsentation/Whiteboard:** Farbe uneingeschränkt nach diesem Abschnitt, aber auch hier keine vollflächigen Bilder hinter Text. **Plakat und laminierte Karten:** Kartenrahmen dürfen farbig sein, weil sie Karten unterscheiden (Funktion).
 
-## 4. Übersichtlich und platzsparend gestalten (beide Profile)
+## 4. Übersichtlich und platzsparend gestalten (in Farbe und in der s/w-Ansicht)
 
-Ziel: **Übersicht und genug zu tun.** Ein Kind muss jede Aufgabe auf einen Blick verstehen: was zu tun ist, wo es schreibt, wie das Beispiel geht. Und das Blatt muss die Arbeitszeit tragen, für die es gedacht ist (Abschnitt „Menge nach Arbeitszeit“). Übersicht entsteht durch Ordnung: gleiche Abstände, eine Handlung je Aufgabe, ein Beispiel, klare Reihen. Sie entsteht nicht durch leere Fläche und nicht durch große Schrift. Maß ist die Schulbuchseite der Klasse: Lesetext in Buchgröße, vier bis sechs Aufgaben je Seite, viele Items in Reihen. Gespart wird an Rahmen, Innenabständen, Kopf, Fuß, Deko und an Wörtern in der Anweisung, nie an der Schreibfläche oder am Beispiel.
+Ziel: **Übersicht und genug zu tun.** Ein Kind muss jede Aufgabe auf einen Blick verstehen: was zu tun ist, wo es schreibt, wie das Beispiel geht. Und das Blatt muss die Arbeitszeit tragen, für die es gedacht ist (Abschnitt „Menge nach Arbeitszeit“). Übersicht entsteht durch Ordnung: gleiche Abstände, eine Handlung je Aufgabe, ein Beispiel, klare Reihen. Sie entsteht nicht durch leere Fläche und nicht durch große Schrift. Maß ist die Schulbuchseite der Klasse: Lesetext in Buchgröße, Aufgaben je Seite nach der Tabelle in „Menge nach Arbeitszeit“, viele Items in Reihen. Gespart wird an Rahmen, Innenabständen, Kopf, Fuß, Deko und an Wörtern in der Anweisung, nie an der Schreibfläche oder am Beispiel.
 
 ### Aufbau einer Aufgabe ohne Kasten
 
@@ -173,7 +173,7 @@ Daraus folgt, wie viel auf ein Blatt gehört. Für 20 Minuten sind das etwa:
 
 Für ein anderes Zeitziel im selben Verhältnis rechnen. Ein Blatt mit drei Aufgaben zu je vier Items ist in jeder Klasse nach fünf Minuten fertig.
 
-Passt der Inhalt nicht auf die Seite: erst die Anweisungen kürzen und die Reihen füllen (mehr Spalten), dann geht er auf die Rückseite. Schrift, Abstände und Schreibflächen aus `blatt.css` werden nie von Hand verkleinert. Für Kinder mit Konzentrationsschwierigkeiten dieselben Aufgaben auf mehr Seiten verteilen (weniger pro Seite) und je Aufgabe ein Abhak-Kästchen setzen (`differenzierung.md`).
+Passt der Inhalt nicht auf die Seite: erst die Anweisungen kürzen und die Reihen füllen (mehr Spalten), dann geht er auf die Rückseite (`data-weiter`). Ein Item streichen ist erlaubt, solange `blatt.py` danach kein `zeit-knapp` meldet. Schrift, Abstände und Schreibflächen aus `blatt.css` werden nie von Hand verkleinert. Für Kinder mit Konzentrationsschwierigkeiten dieselben Aufgaben auf mehr Seiten verteilen (weniger pro Seite) und je Aufgabe ein Abhak-Kästchen setzen (`differenzierung.md`).
 
 ### Platzbudget (A4, Satzspiegel 1036 px)
 
@@ -222,7 +222,7 @@ Karten, Dominosteine, Legeteile und Schneidebögen sind Schauseiten (`kindgerech
 
 - [ ] Eine Palette, Farbe nur an Nummern, Überschrift, Linien, Figur, Bildern und Farbcodes
 - [ ] Fließtext und Anweisungen schwarz
-- [ ] Graustufen-Vorschau noch lesbar; `blatt.py` ohne Warnungen
+- [ ] Graustufen-Vorschau noch lesbar; `blatt.py` ohne FEHLER, WARNUNGEN geprüft
 
 ## Quellen
 

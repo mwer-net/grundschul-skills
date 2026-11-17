@@ -1,6 +1,6 @@
 # Layout-Regeln für HTML-Material
 
-Ziel: übersichtlich, ohne Darstellungsfehler (abgeschnitten, überlappend, verrutscht), druckfertig in beiden Profilen (`grundschul-didaktik/references/druck-und-platz.md`). `blatt.css` setzt die meisten Regeln schon um; diese Datei sagt, was beim Schreiben des HTML zu beachten ist.
+Ziel: übersichtlich, ohne Darstellungsfehler (abgeschnitten, überlappend, verrutscht), druckfertig in Farbe und in der s/w-Ansicht (`grundschul-didaktik/references/druck-und-platz.md`). `blatt.css` setzt die meisten Regeln schon um; diese Datei sagt, was beim Schreiben des HTML zu beachten ist.
 
 Maße in CSS-px (96 dpi): A4 = 794 × 1123 px, 1 cm ≈ 38 px.
 
@@ -21,9 +21,9 @@ Maße in CSS-px (96 dpi): A4 = 794 × 1123 px, 1 cm ≈ 38 px.
 
 ## 2. Platzbudget
 
-Satzspiegel 1036 px Höhe: Kopf ca. 70 px, Fuß ca. 95 px (nur mit Selbsteinschätzung), Rest für Aufgaben. Eine Arbeitsseite trägt mindestens vier Aufgaben und zwölf Teilaufgaben. Die Menge folgt dem Zeitziel (`grundschul-didaktik/references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“): `data-zeit` am `<body>`, `data-min` an jeder `.aufgabe`, je Niveau eine eigene `.seite`, Folgeseiten mit `data-weiter` und ohne Kopf. `blatt.py` meldet Überlauf (FEHLER mit px), zu wenig Arbeitszeit, zu wenig Inhalt (`inhalt-wenig`), zu hohen Kopf oder Fuß und Leerraum (WARNUNG). Passt es nicht: Rückseite. Bleibt Platz: Item, Reihe oder Aufgabe ergänzen. Muster: `assets/beispiel-niveaublatt-kl2.html`.
+Satzspiegel 1036 px Höhe: Kopf ca. 70 px, Fuß ca. 95 px (nur mit Selbsteinschätzung), Rest für Aufgaben. Eine Arbeitsseite trägt mindestens vier Aufgaben und zwölf Teilaufgaben. Die Menge folgt dem Zeitziel (`grundschul-didaktik/references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“): `data-zeit` am `<body>`, `data-min` an jeder `.aufgabe`, je Niveau eine eigene `.seite`, Folgeseiten mit `data-weiter` und ohne Kopf. `blatt.py` meldet Überlauf (FEHLER mit px), zu wenig Arbeitszeit, zu wenig Inhalt (`inhalt-wenig`), zu hohen Kopf oder Fuß und Leerraum (WARNUNG). Passt es nicht: Reihenfolge nach `grundschul-didaktik/references/druck-und-platz.md`, Ende von „Menge nach Arbeitszeit“. Bleibt Platz: Item, Reihe oder Aufgabe ergänzen. Muster: `assets/beispiel-niveaublatt-kl2.html`.
 
-Faustwerte Kl. 2 (16 px Schrift): Anweisungszeile 21 px, Uhr 84 px + Antwortlinie ≈ 120 px, Rechenzeile mit Antwortlinie 31 px, Schreiblinie 46 px, Leitfigur mit Sprechblase ≈ 64 px. Schreibflächen sind so hoch wie im älteren Satz; nur Lesetext ist kleiner.
+Faustwerte Kl. 2 (16 px Schrift): Anweisungszeile 21 px, Uhr 84 px + Antwortlinie ≈ 120 px, Rechenzeile mit Antwortlinie 31 px, Schreiblinie 46 px, Leitfigur mit Sprechblase ≈ 64 px. Schreibflächen sind so hoch wie im älteren Satz; nur Lesetext ist kleiner. Rechenkästchen haben das Maß des Rechenhefts (`references/abbildungen.md`, `x-gitter`).
 
 **Folien** (`folie`): 1280 × 720 px, Rand 48 px, Satzspiegel 1184 × 624 px. Kopf mit Überschrift und Ziel ≈ 150 px, zweizeilige Überschrift ohne Ziel ≈ 175 px; den Rest füllt `.buehne`. Text 40 px (Kl. 1/2: 48 px), eine Textzeile ≈ 56 px, Nummernkreis 52 px, Abstand zwischen Aufgaben 32 px. Kein Fuß und keine Namenszeile; Platz bleibt frei, statt ihn zu füllen. Ein Auftakt (`folie auftakt`) ist davon frei: Szenen über die ganze Folie bis an den Rand, Schmuckschrift frei; die Prüfung meldet dort keinen Druckrand und keinen Kit-Anteil, Überlauf und Schriftgröße prüft sie wie sonst (`praesentation/SKILL.md`, „Auftakt“).
 
@@ -36,7 +36,7 @@ Faustwerte Kl. 2 (16 px Schrift): Anweisungszeile 21 px, Uhr 84 px + Antwortlini
 5. **Bilder mit `alt`** und fester Breite (`style="--figur:72px"` bzw. `width`), nie über die Spalte hinaus.
 6. **Lösungen im selben Dokument** (`data-l`, `loesung=`, `nur-loesung`); keine zweite Kopie pflegen.
 7. **Varianten** (Niveau-Blätter) als weitere `.seite` in derselben Datei; Titel nach Schema `Kl2_Mathe_Uhrzeit_AB1`.
-8. **Leitfigur-Tipp** neben seiner Aufgabe, wenn die Reihe Platz hat (`.tipp` ans Reihenende), sonst in den Kopf (`.kopf .tipp`, „Zu 1: …"); nie zwischen Anweisung und Arbeitsfläche.
+8. **Leitfigur-Tipp** (`.tipp`) im `.koerper` seiner Aufgabe über der Item-Reihe, nie mitten in einer Reihe, nicht im Kopf (`grundschul-didaktik/references/druck-und-platz.md`, „Kopf und Fuß schlank“). `.kopf .tipp` gibt es nur noch für ältere Blätter.
 9. **Gewollte Ausnahmen markieren**, damit die Prüfung sie nicht meldet; nur dort, wo das Blatt angesehen und für richtig befunden ist:
    - `data-rand-ok`: Element darf in den Seitenrand (Seitenzahl, Fußzeile, Deko am Rand).
    - `data-ueberlagert-ok`: Element darf andere überlagern (Würfelaugen auf einem Würfel, Etikett auf einem Bild).

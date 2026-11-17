@@ -78,13 +78,13 @@ Der Prüfbericht sieht keine inhaltlichen Fehler. Deshalb jede Aussage, die man 
 
 | Befund | Korrektur |
 |---|---|
-| Abbildung ungenau (Anzahl falsch, Kreise schneiden sich, Menge gestreut) | Attribute des `x-…`-Elements prüfen (`n`, `z`, `e`, `zeit`); fehlt eine Darstellung, `abbildungen.js` erweitern statt freihand zeichnen |
-| Beispiel gequetscht | Beispiel auf Item-Größe bringen, Abstand zu den Nachbarn wie in der Reihe; reicht die Breite nicht, ein Item der Reihe streichen |
+| Abbildung ungenau (Anzahl falsch, Kreise schneiden sich, Menge gestreut) | Attribute des `x-…`-Elements prüfen (`n`, `z`, `e`, `zeit`); fehlt eine Darstellung, ein freies Element mit `data-frei` bauen statt freihand zeichnen (`SKILL.md`, „Neues Element“) |
+| Beispiel gequetscht | Beispiel auf Item-Größe bringen, Abstand zu den Nachbarn wie in der Reihe; reicht die Breite nicht, ein Item der Reihe streichen, solange `zeit-knapp` nicht meldet (`grundschul-didaktik/references/druck-und-platz.md`, Ende von „Menge nach Arbeitszeit“) |
 | Hinweis `kit-anteil`, `thema-layout` oder `thema-klasse` beim Bauen | Eigene Klassen durch Kit-Bausteine ersetzen, Aussehen in `thema.css` (`references/layout.md`, „Baukasten und Thema“) |
-| Seite zu voll oder Aufgabe unklar | Aufgabe auf die Rückseite verschieben (`data-weiter`) und beide Seiten füllen; unklare Aufgabe vereinfachen oder ein Beispiel ergänzen; nie Schrift, Abstände oder Schreibflächen von Hand verkleinern, nie unter das Zeitziel streichen |
+| Seite zu voll oder Aufgabe unklar | Zu voll: Reihenfolge nach `grundschul-didaktik/references/druck-und-platz.md`, Ende von „Menge nach Arbeitszeit“, auf der Rückseite (`data-weiter`) beide Seiten füllen; unklare Aufgabe vereinfachen oder ein Beispiel ergänzen; nie Schrift, Abstände oder Schreibflächen von Hand verkleinern |
 | Aufgabe mit zwei Darstellungsformen in einer Reihe | Auf eine Form reduzieren oder in zwei Aufgaben teilen (wenn der Richtwert es zulässt) |
 | Ungewollter Umbruch | Anweisung kürzen, `--spalten` senken oder `white-space:nowrap` für Rechenzeilen (`.zeile`); nie Schrift unter die Mindestgröße |
-| Tipp unterbricht die Reihe oder steht zwischen Anweisung und Arbeitsfläche | Tipp in den Kopf (`.kopf .tipp`, „Zu 1: …“) oder ans Reihenende |
+| Tipp unterbricht die Reihe oder steht im Kopf | Tipp in den `.koerper` seiner Aufgabe über die Item-Reihe (`references/layout.md`, Abschnitt 3, Punkt 8) |
 | Bild zu groß oder unscharf | Breite setzen, Original in voller Auflösung (`bilder.md`) |
 | Lösung fehlt oder steht falsch | `data-l`, `loesung=`, `buendel-loesung`, `nur-loesung` im HTML ergänzen und neu bauen |
 | Fehler im KI-Bild (Auge, Pfote, doppelte Figur, Schleier, Buchstabe) | Bearbeiten mit dem Bild als einziger Referenz und „behalte alles andere genau gleich, korrigiere nur …“, danach neu prüfen (`bilder.md`, Abschnitt 2a) |
@@ -95,7 +95,7 @@ Der Prüfbericht sieht keine inhaltlichen Fehler. Deshalb jede Aussage, die man 
 
 ## Beispiel aus dem Test (Kl. 2, Zehner und Einer)
 
-Ein Blatt bestand die automatische Prüfung ohne Fehler und war trotzdem unbrauchbar: Die Kreise um die Zehner schnitten sich, die Murmeln lagen gestreut, das Beispiel klebte an der Abbildung, und fünf Aufgaben mit je drei Darstellungsformen überforderten ein Zweitklasskind. Am HTML-Blatt fand die Endkontrolle danach noch sich berührende Bündelrahmen (Zeilenabstand in `x-menge` vergrößert), eine Sprechblase zwischen Anweisung und Items (in den Kopf verschoben) und eine zu breite Antwortzeile (auf zwei Zeilen verteilt). Alles das war nur im vergrößerten Ausschnitt zu sehen.
+Ein Blatt bestand die automatische Prüfung ohne Fehler und war trotzdem unbrauchbar: Die Kreise um die Zehner schnitten sich, die Murmeln lagen gestreut, das Beispiel klebte an der Abbildung, und fünf Aufgaben mit je drei Darstellungsformen überforderten ein Zweitklasskind. Am HTML-Blatt fand die Endkontrolle danach noch sich berührende Bündelrahmen (Zeilenabstand in `x-menge` vergrößert), eine Sprechblase, die die Aufgabe störte (damals in den Kopf verschoben; heute steht der Tipp im Körper seiner Aufgabe über der Item-Reihe, `references/layout.md`, Abschnitt 3, Punkt 8) und eine zu breite Antwortzeile (auf zwei Zeilen verteilt). Alles das war nur im vergrößerten Ausschnitt zu sehen.
 
 ## Beispiel aus der Erprobung (Kl. 1, Reihen mit Szenenbildern)
 

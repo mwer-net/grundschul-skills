@@ -37,7 +37,7 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
    - Willi oder Wilma gibt einen Strategietipp direkt bei der Aufgabe, zu der er gehört; Tipps und Rückmeldungen in „noch"-Sprache.
    - Falls gewählt: **Sternchenaufgabe ★** als letzte Aufgabe, freiwillig für alle („Wer mag, knobelt hier."), offen oder knobelnd, keine „mehr vom Gleichen". ★ statt Nummernkreis bzw. vor der Nummer.
 4. Fußzeile (nur wenn Selbsteinschätzung gewählt), schlank und ohne Fläche: Ich-kann-Satz mit „So gut kann ich das schon. Kreuze an:“ + Wachstumsgrafik mit vier Kreisen zum Ankreuzen (Samen → Keimling → Pflanze → Blume; Baustein `.wachstum` in der Vorlage) und Reflexionsfrage („Was hat dir geholfen?"; Kl. 1/2 zum Ankreuzen oder mündlich im Kreis, ab Kl. 3 schriftlich). Die Ankreuzwörter nennen nur Hilfen von den Seiten dieses Niveaus. Optional ein Rückmeldefeld für die Lehrkraft. Ohne Selbsteinschätzung entfällt der Fuß, der Platz geht an Aufgaben.
-5. Separates Lösungsblatt zur Selbstkontrolle (gleiches Layout, Lösungen fett, unterstrichen und in der Akzentfarbe).
+5. Separates Lösungsblatt zur Selbstkontrolle (gleiches Layout, Lösungen fett, unterstrichen und in der dunklen Variante der Hauptfarbe; setzt `blatt.css`).
 
 ## Bewährte Aufgabenformate
 
@@ -67,7 +67,7 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
 
 Mathe-Rechenformate (`x-zahlenmauer`, `x-rechendreieck`, `x-zahlenhaus`) als Item-Reihen in `.reihe`, alle gleich groß.
 
-**Abwechslung über mehrere Blätter.** Gehört das Blatt zu einer Reihe oder Mappe, zählt die ganze Reihe: Ein Aufgabenformat kommt höchstens zweimal vor, beim zweiten Mal mit erkennbar höherem Anspruch (andere Achse, größerer Zahlenraum, ohne Hilfe). Dieselbe Figur, dasselbe Bild, dieselben Zahlen oder Wörter kommen nie zweimal vor. Lernzielkontrolle und Wiederholung nutzen bekannte Formate, aber neue Items. Ein Format zählt nach seinem Namen in der Tabelle; fehlt es dort, bekommt es einen kurzen eigenen Namen, der in der ganzen Reihe gleich bleibt. Vor dem Bau die Formate der anderen Blätter ansehen.
+**Abwechslung über mehrere Blätter.** Gehört das Blatt zu einer Reihe oder Mappe, zählt die ganze Reihe: Ein Aufgabenformat kommt höchstens zweimal vor, beim zweiten Mal mit erkennbar höherem Anspruch (andere Achse, größerer Zahlenraum, ohne Hilfe). Dieselbe Form (in der Geometrie) und dasselbe Bild kommen nie zweimal vor, dieselbe Aufgabe auch nicht: gleiche Zahlen oder Wörter im gleichen Format. Eine Uhrzeit oder Zahl darf in Beispiel und Aufgabe vorkommen. Lernzielkontrolle und Wiederholung nutzen bekannte Formate, aber neue Items. Ein Format zählt nach seinem Namen in der Tabelle; fehlt es dort, bekommt es einen kurzen eigenen Namen, der in der ganzen Reihe gleich bleibt. Vor dem Bau die Formate der anderen Blätter ansehen.
 
 Die Elemente beschreibt `html-materialerstellung/references/abbildungen.md`, Abschnitt „Aufgabenformate“; eigenes Aussehen einer Reihe: `html-materialerstellung/references/layout.md`, Abschnitt „Baukasten und Thema“.
 
@@ -86,7 +86,7 @@ Zusätzlich zur Basis-Checkliste:
 - [ ] Erstes Item jeder neuen Aufgabenart vorgelöst
 - [ ] Aufgaben steigen im Anspruch; Anforderungsbereiche I–III gemischt, in Kl. 1/2 höchstens eine Erklär- oder Schreibaufgabe
 - [ ] Anweisungen: kurze Sätze, ein Verb je Satz, Reihenfolge wie das Tun, Fachwort wie im Wortspeicher
-- [ ] In einer Reihe: kein Format öfter als zweimal, keine Figur und keine Zahlen doppelt, mindestens eine Aufgabe mit Material oder fürs Heft
+- [ ] In einer Reihe: kein Format öfter als zweimal, keine Form und keine Aufgabe doppelt, mindestens eine Aufgabe mit Material oder fürs Heft
 - [ ] Platz reicht für Kinderschrift (Mindestgrößen eingehalten), keine Kästen, schlanker Kopf und Fuß, keine Leerstreifen
 - [ ] Zeitziel erreicht: Minuten je Aufgabe geschätzt, Summe je Niveau stimmt, jedes Niveau auf eigener Seite, Formate wechseln
 - [ ] Keine Flächen hinter Aufgaben, Text schwarz, Farbe nur als Akzent und nie als einzige Information (`grundschul-didaktik/references/gestaltung.md`)

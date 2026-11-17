@@ -28,13 +28,13 @@ Im Zweifel bei Arbeitsseiten weglassen, bei Schauseiten mutiger sein.
 ### 1. Freundliche Formen für die Struktur
 
 - Aufgaben **ohne Kasten und ohne Flächenfüllung**: hängende Nummer, Abstand zur nächsten Aufgabe (`druck-und-platz.md`, Abschnitt 4).
-- Aufgabennummern in **kleinen gefüllten Kreisen** (32–36 px, weiße fette Ziffer, in der Hauptfarbe): starker Anker, kaum Fläche.
-- Die wenigen Rahmen mit Funktion (Sprechblase, Wortspeicher, Antwortkästchen) als dünne Kontur mit **gerundeten Ecken** (Rundung ca. 8–16 px); Kontur in der Akzentfarbe und ggf. sehr helle Füllung.
+- Aufgabennummern in **kleinen gefüllten Kreisen** (Größe setzt `blatt.css`, `html-materialerstellung/references/layout.md`; weiße fette Ziffer, in der Hauptfarbe): starker Anker, kaum Fläche.
+- Die wenigen Rahmen mit Funktion (Sprechblase, Wortspeicher, Antwortkästchen) als dünne Kontur mit **gerundeten Ecken** (Rundung ca. 8–16 px); Kontur in der Hauptfarbe (setzt `blatt.css`, nie Gelb) und ggf. sehr helle Füllung.
 - Schreiblinien und Antwortkästen schlicht (schwarz/dunkelgrau, 1,5–2 px), damit Kinderschrift lesbar bleibt.
 
 ### 2. Farbe als Akzent
 
-Wurde in der Start-Abfrage Farbe gewählt:
+Material wird immer in Farbe angelegt (oben, „Farbe“). Dabei gilt:
 
 - **1 Hauptfarbe + 1 Akzentfarbe** aus derselben Familie, warme, freundliche Töne; keine Neonfarben. Farbe auf Nummernkreise, Überschrift, Sprechblase, Leitfigur und Bilder, **keine Flächen hinter Aufgaben, Kopf oder Fuß**. Details: `druck-und-platz.md`, Abschnitt 3.
 - Farbe bedeutet überall dasselbe: z. B. jede Station eine Farbe; Klassenkonventionen (Wortarten, Stellenwerte) haben Vorrang. Niveaus bekommen keine eigene Farbe, nur Punkte ● / ●● / ●●●.
@@ -70,7 +70,7 @@ Canva-Media-IDs und Technik: `html-materialerstellung/references/bilder.md`.
 - **Wiederverwenden statt neu erzeugen:** Die vorhandenen Dateien einsetzen. Für eine andere Pose (zeigt nach links, freut sich, denkt nach) `generate-image` mit dem Original als `imageReferences` und der Aussehen-Beschreibung oben aufrufen, danach `remove-background`; neue Posen als Datei ergänzen.
 - **Wer wann:** Pro Material eine Figur, abwechselnd über die Materialien einer Reihe; bei Partner- oder Dialogaufgaben auch beide.
 - **Immer mit Funktion:** Die Figur gibt einen Strategietipp in einer Sprechblase, zeigt auf das Beispiel und denkt dort laut vor („So geht's: Zuerst … dann … zum Schluss prüfe ich …"), stellt die Herausforderung ●●●, hat sich bei „Finde den Fehler" vertan oder stellt die Reflexionsfrage. Sie spricht in „noch"-Sprache und lobt Strategie und Ausdauer, nie Begabung. Ohne Funktion keine Figur.
-- Höchstens ein Auftritt pro Seite (Figur mit Tipp oder Figur in der Ecke, nie beides), zwei nur bei Partner- oder Dialogaufgaben; klein (ca. 15 % der Seitenbreite), am Rand, nie zwischen Anweisung und Arbeitsfläche. Zwei Figuren auf einer Seite wirkten in der Erprobung sofort überladen.
+- Höchstens ein Auftritt pro Seite (Figur mit Tipp oder Figur in der Ecke, nie beides), zwei nur bei Partner- oder Dialogaufgaben; klein (Maß setzt `blatt.css`, Faustwert in `html-materialerstellung/references/layout.md`). Die Figur in der Ecke steht am Rand; der Tipp steht im Körper seiner Aufgabe über der Item-Reihe, nie mitten in einer Reihe und nicht im Kopf (`druck-und-platz.md`, „Kopf und Fuß schlank“). Zwei Figuren auf einer Seite wirkten in der Erprobung sofort überladen.
 
 ### 4. Bilder nur mit Mehrwert
 
@@ -91,7 +91,7 @@ Dosierung: Leitfigur plus nur die Bilder, die die Aufgaben brauchen.
 
 ### 5. Kindgerechte Schrift
 
-- **Fließtext:** klare Druckschrift mit eindeutigen Formen. In Klasse 1/2 mit einstöckigem a und g, weil es der Form entspricht, die die Kinder schreiben (Lesetests zeigen keinen Nachteil des zweistöckigen a – entscheidend ist die Passung zur Schrift der Klasse). Standard: **Andika** (für Leseanfänger entwickelt, einstöckiges a und g; im HTML eingebettet). Ab Klasse 3 auch andere klare serifenlose Schriften wie **Nunito**.
+- **Fließtext:** klare Druckschrift mit eindeutigen Formen. In Klasse 1/2 mit einstöckigem a und g, weil es der Form entspricht, die die Kinder schreiben (Lesetests zeigen keinen Nachteil des zweistöckigen a – entscheidend ist die Passung zur Schrift der Klasse). Standard: **Andika** (für Leseanfänger entwickelt, einstöckiges a und g; im HTML eingebettet), auch ab Klasse 3. Nur eingebettete Schriften (`html-materialerstellung/assets/fonts/`).
 - **Überschriften auf Arbeitsseiten:** die Leseschrift in fett, wie im Schulbuch. Eine runde, fröhliche Schmuckschrift (**Fredoka**) nur auf Schauseiten: Deckblatt, Szenenkarte, Plakat, Pass, Urkunde und Schmucktext.
 - Höchstens diese zwei Schriften. Keine Schreibschrift- oder Schmuckschriften für Lesetext, keine Großbuchstaben-Texte.
 - Ziffern in Schulform (1 ohne Fuß, offene 4, 7 mit Querstrich): `blatt.css` setzt sie von selbst.
@@ -120,12 +120,12 @@ Eine durchgehende Geschichte trägt eine ganze Unterrichtsreihe besser als einze
 
 ## Prüffragen „ansprechend, aber nicht überladen"
 
-- [ ] Würde ein Kind das Blatt gern in die Hand nehmen? (runde Überschrift, Nummernkreise, Farbakzente, Willi oder Wilma mit Funktion)
+- [ ] Würde ein Kind das Blatt gern in die Hand nehmen? (farbige Überschrift, Schmuckschrift nur auf Schauseiten, Nummernkreise, Farbakzente, Willi oder Wilma mit Funktion)
 - [ ] Jedes Bild besteht den Weglass-Test
 - [ ] Nur Bilder, die zum Lösen gebraucht werden, plus Leitfigur
 - [ ] Keine Flächen hinter Aufgaben, Text schwarz, Information nie nur über Farbe
 - [ ] Höchstens zwei Schriften, Fließtext in klarer Druckschrift
-- [ ] Nichts Dekoratives zwischen Anweisung und Arbeitsfläche
+- [ ] Nichts Dekoratives zwischen Anweisung und Arbeitsfläche; der Tipp der Leitfigur steht im Körper seiner Aufgabe über der Item-Reihe
 - [ ] Aufgaben ohne Kasten, Platz für Übung statt für Rahmen (`druck-und-platz.md`)
 - [ ] Höchstens ein Figurenauftritt pro Seite, keine Symbole hinter der Aufgabennummer (außer die Klasse nutzt ein Symbolset), keine selbst gezeichneten Hände oder Körperteile
 - [ ] Arbeitsseiten ohne Seitenrahmen und ohne Linien am Text; Schauseiten wirklich gestaltet

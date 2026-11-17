@@ -49,8 +49,10 @@
 
 <!-- Seite 2: Arbeitsblatt für alle, Vorderseite (Arbeitsseite, gefüllt wie im Schulbuch). Kein Rahmen: Der Platz
      gehört den Aufgaben. Wiedererkennung über Kapitel-Marke in der Namenszeile, Überschrift und die Figur in ihrer
-     Pose im Tipp bei der Aufgabe. Anweisungen: kurze Sätze, ein Satz Geschichte, dann was zu tun ist. Jedes
-     Aufgabenformat kommt in der ganzen Reihe höchstens zweimal vor, keine Figur und keine Zahl doppelt. -->
+     Pose im Tipp bei der Aufgabe. Anweisungen: höchstens zwei kurze Sätze, ein Satz Geschichte nur in der
+     Geschichten-Aufgabe, eine Handlung je Schritt. Jedes Aufgabenformat kommt in der ganzen Reihe höchstens zweimal
+     vor, keine Aufgabe doppelt (gleiche Zahlen im gleichen Format); eine Uhrzeit darf in Beispiel und Aufgabe
+     vorkommen. -->
 <section class="seite">
   <div class="namenszeile"><span class="kapitel-marke">Kapitel 1</span><span class="name">Name:</span><span class="datum">Datum:</span></div>
   <span class="loesung-marke">Lösung</span>
@@ -63,7 +65,7 @@
 
   <div class="aufgabe" data-min="5">
     <span class="nr">1</span>
-    <div class="anw"><span class="text">Der Turm hat acht Uhren. Jede zeigt eine andere Zeit. Lies ab.</span></div>
+    <div class="anw"><span class="text">Lies die acht Uhren am Turm ab.</span></div>
     <div class="koerper">
       <div class="tipp"><!-- in der Reihe die Pose der Figur zur Geschichte (Willi mit Lupe) aus dem Ordner bilder der Mappe -->
         <img class="figur" src="bilder/willi.png" alt="Willi"><div class="blase">Erst der kleine Zeiger. Er zeigt die Stunde.</div></div>
@@ -161,8 +163,15 @@
        Anweisung nur, wenn der Auftrag sie nennt. -->
   <div class="aufgabe" data-min="6">
     <span class="nr">6</span>
-    <div class="anw"><span class="text">Zu zweit: Ein Kind stellt die Lernuhr. Das andere liest ab. Zeichnet drei eurer Uhren.</span></div>
+    <div class="anw"><span class="text">Zu zweit mit der Lernuhr. Macht es dreimal.</span></div>
     <div class="koerper">
+      <!-- Mehrere Schritte und ein Darstellungswechsel: nummerierte Schritte, eine Handlung je Schritt -->
+      <div class="reihe" style="--spalten:4">
+        <div class="zelle links"><span><b>1.</b> Ein Kind stellt eine Zeit ein.</span></div>
+        <div class="zelle links"><span><b>2.</b> Das andere liest sie ab.</span></div>
+        <div class="zelle links"><span><b>3.</b> Zeichnet die Zeiger ein.</span></div>
+        <div class="zelle links"><span><b>4.</b> Schreibt die Zeit darunter.</span></div>
+      </div>
       <div class="reihe" style="--spalten:3">
         <div class="zelle"><x-uhr groesse="84"></x-uhr><span class="antwort breit"></span></div>
         <div class="zelle"><x-uhr groesse="84"></x-uhr><span class="antwort breit"></span></div>
@@ -173,13 +182,13 @@
 
   <div class="aufgabe" data-min="4">
     <span class="nr">7</span>
-    <div class="anw"><span class="text">Willi stellt die Turmuhr wieder. Zeichne beide Zeiger ein.</span></div>
+    <div class="anw"><span class="text">Zeichne die Zeiger für die Turmuhr ein.</span></div>
     <div class="koerper">
       <div class="reihe" style="--spalten:6">
-        <div class="zelle"><x-uhr loesung="8:00" groesse="84"></x-uhr><span>8 Uhr</span></div>
+        <div class="zelle"><x-uhr loesung="4:00" groesse="84"></x-uhr><span>4 Uhr</span></div>
         <div class="zelle"><x-uhr loesung="2:30" groesse="84"></x-uhr><span>halb 3</span></div>
         <div class="zelle"><x-uhr loesung="11:00" groesse="84"></x-uhr><span>11 Uhr</span></div>
-        <div class="zelle"><x-uhr loesung="7:30" groesse="84"></x-uhr><span>halb 8</span></div>
+        <div class="zelle"><x-uhr loesung="12:30" groesse="84"></x-uhr><span>halb 1</span></div>
         <div class="zelle"><x-uhr loesung="1:00" groesse="84"></x-uhr><span>1 Uhr</span></div>
         <div class="zelle"><x-uhr loesung="10:30" groesse="84"></x-uhr><span>halb 11</span></div>
       </div>
@@ -188,7 +197,7 @@
 
   <div class="aufgabe" data-min="4">
     <span class="nr">8</span>
-    <div class="anw"><span class="text">Zu Hause stehen alle Uhren still. Was geht schief? Schreibe ins Heft.</span></div>
+    <div class="anw"><span class="text">Was geht schief, wenn alle Uhren stehen? Schreibe ins Heft.</span></div>
     <div class="koerper">
       <!-- Heft-Beispiel wie im Schulbuch: So fängt der Eintrag an -->
       <div class="kasten"><b>Im Heft:</b> Ohne Uhr komme ich zu spät …</div>
@@ -197,7 +206,7 @@
 
   <div class="aufgabe" data-min="4">
     <span class="nr">9</span>
-    <div class="anw"><span class="text">Wilma schreibt in ihr Notizbuch. Ergänze. Schau auf Seite 2 nach.</span></div>
+    <div class="anw"><span class="text">Ergänze Wilmas Notizbuch. Schau auf Seite 2 nach.</span></div>
     <div class="koerper">
       <x-lueckentext>Zuerst merkt es die [Eule]. Da ist es [halb 4]. Um 5 Uhr kommt der [Milchmann]. Eine Stunde später merkt es der [Bäcker]. Zuletzt merkt es der [Postbote]. Da ist es schon [8 Uhr].</x-lueckentext>
     </div>
@@ -206,7 +215,7 @@
   <div class="aufgabe beweis" data-min="3">
     <span class="beweis-marke">Beweis-Rätsel</span>
     <span class="nr">10</span>
-    <div class="anw"><span class="text">Die Eule hat es zuerst gemerkt: um halb 4. Welche Uhr zeigt halb 4? Ihr Buchstabe ist euer Beweis.</span></div>
+    <div class="anw"><span class="text">Welche Uhr zeigt halb 4? Ihr Buchstabe ist euer Beweis.</span></div>
     <div class="koerper">
       <div class="reihe" style="--spalten:4">
         <div class="zelle"><x-uhr zeit="4:30" groesse="84"></x-uhr><b>A</b></div>
