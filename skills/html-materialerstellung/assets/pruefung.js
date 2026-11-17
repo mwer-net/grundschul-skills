@@ -78,9 +78,13 @@
   // zu voll; Folien, Plakate (A3) und Seiten für die Lehrkraft setzt der Satz nicht dichter.
   const satz2 = B.dataset.satz === "2" && !B.matches(".folie,.a3-hoch,.lehrkraft");
   const RICHTWERT = satz2 ? { 1: 6, 2: 8, 3: 9, 4: 10 }[kl] || 8 : zeitziel ? { 1: 5, 2: 6, 3: 7, 4: 8 }[kl] || 8 : { 1: 3, 2: 4, 3: 5, 4: 6 }[kl] || 6;
-  const KOPF_MAX = 210, FUSS_MAX = 150, FREI_MAX = 90;
+  // Die Schwellen sind die Quelle für den erzeugten Abschnitt pruef-schwellen in grundschul-didaktik/references/druck-und-platz.md.
+  const KOPF_MAX = 210, FUSS_MAX = 150, FREI_MAX = 90, FREI_HINWEIS = 150;
   const ZEIT_KNAPP = 0.85, ZEIT_VIEL = 1.25; // Anteil am Zeitziel: darunter zu wenig, darüber zu viel
   const AUFGABEN_MIN = 4, TEILE_MIN = 12, LEER_MAX = 35, ABSTAND_MIN = satz2 ? 10 : 20;
+  const SCHRIFT_MIN = 0.8; // Anteil an der Schrift der Klasse
+  const FLAECHE_HELL = 245, FLAECHE_MIN = 4000; // Grauwert von 255, px²
+  const DPI_MIN = 150, BILD_SPANNE_MIN = 40; // Spanne der Grauwerte von 255
   // Woran ein Kind auf der Seite etwas tut: Items einer Reihe oder Stellen zum Schreiben, je Aufgabe mindestens eine.
   const TEIL = ".antwort,.schreiblinie,.luecke,.platz,.malfeld,td[data-l],x-ankreuzen .ankreuzen,x-richtigfalsch tbody tr,.zeile-frei";
   const teilaufgaben = (a) => Math.max(1, a.querySelectorAll(".reihe > .zelle").length, a.querySelectorAll(TEIL).length);
@@ -249,7 +253,7 @@
     });
 
     // 4. Schriftgröße nach Klasse
-    const min = Math.round(fs * 0.8), klein = new Map();
+    const min = Math.round(fs * SCHRIFT_MIN), klein = new Map();
     const walker = document.createTreeWalker(S, NodeFilter.SHOW_TEXT);
     while (walker.nextNode()) {
       const t = walker.currentNode, p = t.parentElement;
@@ -279,7 +283,7 @@
     alle.filter((e) => e.tagName === "DIV" || e.tagName === "SECTION").forEach((e) => {
       const c = getComputedStyle(e), r = e.getBoundingClientRect();
       const [R, G, Bl, a = 1] = rgb(c.backgroundColor);
-      if (a > 0.05 && (R + G + Bl) / 3 < 245 && r.width * r.height > 4000 && !e.closest(`.karten,.seite.fall,[data-flaeche-ok],${GESTALTUNG}`))
+      if (a > 0.05 && (R + G + Bl) / 3 < FLAECHE_HELL && r.width * r.height > FLAECHE_MIN && !e.closest(`.karten,.seite.fall,[data-flaeche-ok],${GESTALTUNG}`))
         melde("WARNUNG", nr, "flaeche", `Fläche hinter „${kurz(e)}“ (${c.backgroundColor}) → Aufgaben ohne Kasten und Fläche`, [ziel(e)]);
     });
 
@@ -295,10 +299,10 @@
           for (let i = 0; i < d.length; i += 4) y.push(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
           y.sort((a, b) => a - b);
           // Spanne zwischen 1 und 99 % der Grauwerte (dünne Striche zählen noch); unter 40 von 255 verschwimmen die Formen im Druck.
-          if (y[Math.floor(y.length * 0.99)] - y[Math.floor(y.length * 0.01)] < 40) melde("HINWEIS", nr, "bild-kontrast-sw", `Bild „${im.alt || im.getAttribute("src").slice(0, 30)}“ hat in s/w kaum Kontrast`, [ziel(im)]);
+          if (y[Math.floor(y.length * 0.99)] - y[Math.floor(y.length * 0.01)] < BILD_SPANNE_MIN) melde("HINWEIS", nr, "bild-kontrast-sw", `Bild „${im.alt || im.getAttribute("src").slice(0, 30)}“ hat in s/w kaum Kontrast`, [ziel(im)]);
         } catch (e) { /* fremde Quelle */ }
       }
-      if (dpi < 150) melde("HINWEIS", nr, "bild-unscharf", `Bild „${im.alt || "ohne alt"}“ hat im Druck nur ${dpi} dpi (unscharf) → Original in voller Größe einsetzen`, [ziel(im)]);
+      if (dpi < DPI_MIN) melde("HINWEIS", nr, "bild-unscharf", `Bild „${im.alt || "ohne alt"}“ hat im Druck nur ${dpi} dpi (unscharf) → Original in voller Größe einsetzen`, [ziel(im)]);
     });
 
     // 7. Aufgaben: Anzahl, Abstände, Ausschnitte für die visuelle Endkontrolle
@@ -342,7 +346,7 @@
       melde("WARNUNG", nr, "platz-frei", `${rest} px frei unten → Item, Reihe oder Aufgabe ergänzen (Menge nach Arbeitszeit)`, [ziel(S)]);
     else if (arbeitsseite && rest > FREI_MAX)
       melde("WARNUNG", nr, "platz-frei", `${rest} px frei unten → Item, Reihe oder Aufgabe ergänzen (eine Arbeitsseite ist gefüllt wie im Schulbuch)`, [ziel(S)]);
-    else if (rest > 150 && freiZaehlt)
+    else if (rest > FREI_HINWEIS && freiZaehlt)
       melde("HINWEIS", nr, "platz-frei", `${rest} px frei unten → Item, Reihe oder Aufgabe ergänzen`, [ziel(S)]);
     // 8b. Satz 2: zu wenig auf einer Arbeitsseite. Die Fläche zählt in Feldern von 6 px; jedes Stück Inhalt belegt sich
     // selbst und eine halbe Schrifthöhe ringsum, damit Wort- und Zeilenabstände nicht als leer gelten. Ist unten ohnehin
@@ -376,19 +380,20 @@
     // Schneidebogen die Kinder. Maße: grundschul-didaktik/references/druck-und-platz.md, „Ausschneide- und Legematerial“.
     if (satz2) {
       const MM = 96 / 25.4, mm = (px) => Math.round(px / MM);
+      const TEILE_MAX = 9, KANTE_MIN = { karte: 50, stein: 50, kind: 40 }, STEIN_LANG_MIN = 105, MOTIV_MIN = 0.5, SCHNITT_MIN = 5; // mm
       const stuecke = [
         ...[...S.querySelectorAll(".karten > .karte:not(.pass)")].map((e) => ["karte", e]),
         ...[...S.querySelectorAll(".domino-stein")].map((e) => ["stein", e]),
         ...[...S.querySelectorAll(".schneidebogen > *")].map((e) => ["kind", e]),
       ].filter(([, e]) => !ausgeblendet(e) && sichtbar(e));
-      if (stuecke.length > 9 && !B.classList.contains("a5-hoch"))
-        melde("WARNUNG", nr, "teile-viele", `${stuecke.length} Teile zum Ausschneiden auf der Seite (höchstens 9 je A4, lieber 4–6) → größere Teile: weniger Spalten und Zeilen, der Rest auf die nächste Seite`, stuecke.slice(0, 3).map(([, e]) => ziel(e)));
+      if (stuecke.length > TEILE_MAX && !B.classList.contains("a5-hoch"))
+        melde("WARNUNG", nr, "teile-viele", `${stuecke.length} Teile zum Ausschneiden auf der Seite (höchstens ${TEILE_MAX} je A4, lieber 4–6) → größere Teile: weniger Spalten und Zeilen, der Rest auf die nächste Seite`, stuecke.slice(0, 3).map(([, e]) => ziel(e)));
       const NAME = { karte: ["Karte", "Karten"], stein: ["Dominostein", "Dominosteine"], kind: ["Teil zum Selbstschneiden", "Teile zum Selbstschneiden"] };
       const anzahl = (art, n) => `${n} ${NAME[art][n === 1 ? 0 : 1]}`;
       const RAT_KLEIN = {
-        karte: "kurze Kante unter 50 mm → weniger Spalten oder Zeilen in .karten (Standard 70 × 100 mm, höchstens 9 je A4)",
-        stein: "kleiner als 105 × 50 mm → je-seite weglassen, bei vielen Steinen a4-quer",
-        kind: "kurze Kante unter 40 mm → --teil-b und --teil-h auf 40–50 mm, weniger Teile je Bogen",
+        karte: `kurze Kante unter ${KANTE_MIN.karte} mm → weniger Spalten oder Zeilen in .karten (Standard 70 × 100 mm, höchstens ${TEILE_MAX} je A4)`,
+        stein: `kleiner als ${STEIN_LANG_MIN} × ${KANTE_MIN.stein} mm → je-seite weglassen, bei vielen Steinen a4-quer`,
+        kind: `kurze Kante unter ${KANTE_MIN.kind} mm → --teil-b und --teil-h auf 40–50 mm, weniger Teile je Bogen`,
       };
       for (const art of ["karte", "stein", "kind"]) {
         const eigene = stuecke.filter(([a]) => a === art).map(([, e]) => e);
@@ -396,7 +401,7 @@
         const mass = (e) => { const r = e.getBoundingClientRect(); return [r.width / MM, r.height / MM]; };
         const klein = eigene.filter((e) => {
           const [b, h] = mass(e), kurz = Math.min(b, h), lang = Math.max(b, h);
-          return art === "stein" ? kurz < 49.5 || lang < 104.5 : kurz < (art === "kind" ? 39.5 : 49.5);
+          return art === "stein" ? kurz < KANTE_MIN.stein - 0.5 || lang < STEIN_LANG_MIN - 0.5 : kurz < KANTE_MIN[art] - 0.5;
         });
         if (klein.length) {
           const [b, h] = mass(klein[0]);
@@ -412,8 +417,8 @@
             const K = e.getBoundingClientRect(), rs = motive.map((m) => m.getBoundingClientRect());
             const flaeche = (Math.max(...rs.map((r) => r.right)) - Math.min(...rs.map((r) => r.left))) * (Math.max(...rs.map((r) => r.bottom)) - Math.min(...rs.map((r) => r.top)));
             const anteil = flaeche / Math.max(1, (K.width - 10 * MM) * (K.height - 10 * MM));
-            if (anteil < 0.5) kleinstes = Math.min(kleinstes, anteil);
-            return anteil < 0.5;
+            if (anteil < MOTIV_MIN) kleinstes = Math.min(kleinstes, anteil);
+            return anteil < MOTIV_MIN;
           });
           if (motivKlein.length)
             melde("WARNUNG", nr, "motiv-klein", `${anzahl(art, motivKlein.length)} mit kleinem Motiv (${Math.round(kleinstes * 100)} % der Fläche, Ziel 60–70 %) → Motiv größer: Bild ohne feste Größe, x-gitter ohne kaestchen (füllt die Karte von selbst), oder die Karte kleiner`, motivKlein.slice(0, 3).map(ziel));
@@ -431,11 +436,11 @@
           }
           [...e.querySelectorAll("img,svg,canvas")].filter((m) => !m.parentElement.closest("svg") && sichtbar(m)).forEach((m) => rechtecke.push(m.getBoundingClientRect()));
           const abstand = Math.min(Infinity, ...rechtecke.filter((r) => r.width > 0 && r.height > 0).map((r) => Math.min(r.left - K.left, r.top - K.top, K.right - r.right, K.bottom - r.bottom)));
-          if (abstand < 5 * MM - 1) naechster = Math.min(naechster, abstand);
-          return abstand < 5 * MM - 1;
+          if (abstand < SCHNITT_MIN * MM - 1) naechster = Math.min(naechster, abstand);
+          return abstand < SCHNITT_MIN * MM - 1;
         });
         if (knapp.length)
-          melde("WARNUNG", nr, "schnitt-knapp", `${anzahl(art, knapp.length)} mit Inhalt nur ${Math.max(0, mm(naechster))} mm an der Schnittkante (mindestens 5 mm) → Innenabstand aus blatt.css lassen, Text kürzen oder Motiv kleiner`, knapp.slice(0, 3).map(ziel));
+          melde("WARNUNG", nr, "schnitt-knapp", `${anzahl(art, knapp.length)} mit Inhalt nur ${Math.max(0, mm(naechster))} mm an der Schnittkante (mindestens ${SCHNITT_MIN} mm) → Innenabstand aus blatt.css lassen, Text kürzen oder Motiv kleiner`, knapp.slice(0, 3).map(ziel));
       }
     }
     if (folie && mitNotizen && !S.querySelector(".notiz")) melde("HINWEIS", nr, "notiz-fehlt", "Folie ohne Notiz für die Lehrkraft", [ziel(S)]);

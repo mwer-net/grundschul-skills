@@ -16,12 +16,12 @@ Maße in CSS-px (96 dpi): A4 = 794 × 1123 px, 1 cm ≈ 38 px.
 | Nummernkreis | gefüllt, weiße Ziffer, so hoch wie 1,3 × Schrift (Kl. 2: 21 px); ★ für die Sternchenaufgabe | `.nr`, `.nr.stern` |
 | Rahmen mit Funktion | nur Sprechblase, Wortspeicher, Antwortkasten: Kontur 2 px, Ecken gerundet | `.blase`, `.box` |
 | Zeilenlänge | höchstens ca. 60 Zeichen je Zeile | breite Textblöcke schmaler setzen; die Länge der Anweisung regelt `grundschul-didaktik/references/druck-und-platz.md`, „Aufgaben auf einen Blick verständlich“ |
-| Schriftgrößen | höchstens drei: Überschrift (1,5 × Text, fette Leseschrift), Text, Beschriftung; Mindestgröße der Klasse (Prüfung meldet < 80 % der Textgröße) | nur `.namenszeile` darf kleiner sein |
+| Schriftgrößen | höchstens drei: Überschrift (1,5 × Text, fette Leseschrift), Text, Beschriftung; Mindestgröße der Klasse (Prüfung `schrift-klein`) | Ausnahmen kennt die Prüfung; eigene Ausnahme nur mit `data-klein-ok` |
 | Reihen gleichartiger Elemente | gleiche Größe, gleicher Abstand | `.reihe` mit `--spalten`, eine Abbildungsgröße je Reihe |
 
 ## 2. Platzbudget
 
-Satzspiegel 1036 px Höhe: Kopf ca. 70 px, Fuß ca. 95 px (nur mit Selbsteinschätzung), Rest für Aufgaben. Eine Arbeitsseite trägt mindestens vier Aufgaben und zwölf Teilaufgaben. Die Menge folgt dem Zeitziel (`grundschul-didaktik/references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“): `data-zeit` am `<body>`, `data-min` an jeder `.aufgabe`, je Niveau eine eigene `.seite`, Folgeseiten mit `data-weiter` und ohne Kopf. `blatt.py` meldet Überlauf (FEHLER mit px), zu wenig Arbeitszeit, zu wenig Inhalt (`inhalt-wenig`), zu hohen Kopf oder Fuß und Leerraum (WARNUNG). Passt es nicht: Reihenfolge nach `grundschul-didaktik/references/druck-und-platz.md`, Ende von „Menge nach Arbeitszeit“. Bleibt Platz: Item, Reihe oder Aufgabe ergänzen. Muster: `assets/beispiel-niveaublatt-kl2.html`.
+Satzspiegel 1036 px Höhe: Kopf ca. 70 px, Fuß ca. 95 px (nur mit Selbsteinschätzung), Rest für Aufgaben. Eine Arbeitsseite ist gefüllt wie im Schulbuch (sonst `inhalt-wenig`). Die Menge folgt dem Zeitziel (`grundschul-didaktik/references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“): `data-zeit` am `<body>`, `data-min` an jeder `.aufgabe`, je Niveau eine eigene `.seite`, Folgeseiten mit `data-weiter` und ohne Kopf. `blatt.py` meldet Überlauf als FEHLER, Zeit, Menge, Kopf, Fuß und freien Platz als WARNUNG; welche Meldung wann kommt, steht in `grundschul-didaktik/references/druck-und-platz.md`, „Was die Prüfung meldet“. Passt es nicht: Reihenfolge nach `grundschul-didaktik/references/druck-und-platz.md`, Ende von „Menge nach Arbeitszeit“. Bleibt Platz: Item, Reihe oder Aufgabe ergänzen. Muster: `assets/beispiel-niveaublatt-kl2.html`.
 
 Faustwerte Kl. 2 (16 px Schrift): Anweisungszeile 21 px, Uhr 84 px + Antwortlinie ≈ 120 px, Rechenzeile mit Antwortlinie 31 px, Schreiblinie 46 px, Leitfigur mit Sprechblase ≈ 64 px. Schreibflächen sind so hoch wie im älteren Satz; nur Lesetext ist kleiner. Rechenkästchen haben das Maß des Rechenhefts (`references/abbildungen.md`, `x-gitter`).
 
@@ -69,7 +69,7 @@ Erlaubte Eigenschaften (auch ihre Unterformen wie `border-radius`): `color`, `ba
 Der Kit-Anteil eines Blatts soll mindestens 90 % sein.
 <!-- /erzeugt: thema-regeln -->
 
-Das Bauen meldet Abweichungen als Hinweis (`thema-layout`, `thema-klasse`, `kit-anteil`).
+Das Bauen meldet Abweichungen vom Kit als Hinweis (`thema-layout`, `thema-klasse`, `kit-anteil`). Im Lauf der Schoolbox stehen `thema-layout` und `thema-klasse` im Prüfbericht unter „Hinweise“; `kit-anteil` wird dort vorerst nicht gemeldet.
 
 ## 5. Checkliste
 
@@ -82,6 +82,6 @@ Das Bauen meldet Abweichungen als Hinweis (`thema-layout`, `thema-klasse`, `kit-
 
 **Hervorheben im Text:** `<mark>…</mark>` (Palettenfarbe; in s/w fett und unterstrichen).
 
-**Karten und Ausschneidematerial:** `.karten` füllt die Seite mit `--spalten` × `--zeilen` gleich großen Karten; Größe und Zahl je A4 nicht frei wählen, sondern nach `grundschul-didaktik/references/druck-und-platz.md`, „Ausschneide- und Legematerial“. Den Innenabstand der Karte (5 mm zur Schnittkante) nicht überschreiben; Bilder ohne feste Größe und `x-gitter` ohne `kaestchen` füllen die Karte selbst. Muster: `assets/beispiel-kartensatz.html`.
+**Karten und Ausschneidematerial:** `.karten` füllt die Seite mit `--spalten` × `--zeilen` gleich großen Karten; Größe und Zahl je A4 nicht frei wählen, sondern nach `grundschul-didaktik/references/druck-und-platz.md`, „Ausschneide- und Legematerial“. Den Innenabstand der Karte (Abstand zur Schnittkante, `schnitt-knapp`) nicht überschreiben; Bilder ohne feste Größe und `x-gitter` ohne `kaestchen` füllen die Karte selbst. Muster: `assets/beispiel-kartensatz.html`.
 
 **Tabellen:** `<table class="kit-tabelle">` mit `thead`/`tbody`; Varianten `kopfspalte`, `schreibzeilen`, `kompakt`, `nach-inhalt`, `erste-schmal`, `ohne-linien-innen`. Lösung je Zelle über `data-l`, Beispielzeile mit `.beispiel`. Maße stehen in `blatt.css`. Muster: `assets/muster/tabellen.html`.

@@ -160,6 +160,8 @@ describe('Erzeugte Abschnitte', () => {
 			...new Set(ABSCHNITTE.map((a) => a.datei)),
 			'skills/html-materialerstellung/assets/blatt.css',
 			'skills/html-materialerstellung/assets/pruefung.js',
+			'schoolbox/kern/src/einheit.ts',
+			'schoolbox/server/src/ki-werkzeug.ts',
 		]) {
 			mkdirSync(path.dirname(path.join(ziel, datei)), { recursive: true });
 			cpSync(path.join(WURZEL, datei), path.join(ziel, datei));
@@ -198,6 +200,30 @@ describe('Erzeugte Abschnitte', () => {
 		]);
 		abgleichen(wurzel, true);
 		assert.match(readFileSync(datei, 'utf8'), /\*\*A3\*\*/);
+	});
+
+	it('Probe: Eine geänderte Schwelle in pruefung.js schlägt an, Schreiben behebt es', () => {
+		const wurzel = kopie('schwelle');
+		const js = path.join(wurzel, 'skills/html-materialerstellung/assets/pruefung.js');
+		writeFileSync(js, readFileSync(js, 'utf8').replace('FREI_MAX = 90,', 'FREI_MAX = 120,'));
+		assert.deepEqual(abgleichen(wurzel, false), [
+			'skills/grundschul-didaktik/references/druck-und-platz.md: pruef-schwellen',
+		]);
+		abgleichen(wurzel, true);
+		assert.match(
+			readFileSync(path.join(wurzel, 'skills/grundschul-didaktik/references/druck-und-platz.md'), 'utf8'),
+			/\| `platz-frei` \| WARNUNG, HINWEIS \| mehr als 120 px/,
+		);
+	});
+
+	it('Probe: Eine neue Meldung ohne Zeile in pruef-schwellen ist ein Fehler', () => {
+		const wurzel = kopie('code');
+		const js = path.join(wurzel, 'skills/html-materialerstellung/assets/pruefung.js');
+		writeFileSync(
+			js,
+			readFileSync(js, 'utf8').replace('melde("HINWEIS", nr, "platzhalter",', 'melde("HINWEIS", nr, "neu-code",'),
+		);
+		assert.throws(() => abgleichen(wurzel, false), /neu-code/);
 	});
 
 	it('Probe: Eine fehlende Markierung ist ein Fehler, nicht „aktuell“', () => {

@@ -105,7 +105,7 @@ Seite ●● (… min)   …
 Seite ●●● (… min)  …
 
 Fuß (letzte Seite jedes Niveaus): Ich kann … So gut kann ich das schon. Kreuze an: (Wachstumsgrafik mit 4 Kreisen) · Was hat dir geholfen? ● ☐ … ☐ … · ●● ☐ … ☐ … · ●●● ☐ … ☐ … (je Niveau nur, was dort vorkommt)
-Lösungsblatt zu jeder Seite (Lösungen fett, unterstrichen)
+Lösungsblatt zu jeder Seite (Lösungen fett auf der Antwortlinie)
 Passt das so? Danach baue ich die Endfassung als PDF; der Inhalt ändert sich dann nicht mehr.
 ```
 

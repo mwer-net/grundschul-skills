@@ -353,8 +353,8 @@ kein Schmuck, sondern ein Baustein im Stapel.
 
 - **Nicht für Inhalt.** Steht die Information auch in der Lösung oder ist sie Teil der Aufgabe, gehört sie in einen
   Baustein. Ein Titel aus Schmuckschrift ersetzt nicht das `h1` im Kopf, wenn das Blatt einen Kopf hat.
-- **Größe:** nie unter `0.8 × --fs` der Klasse (Klasse 1: 22 px, Klasse 2: 19 px). Die Prüfung `schrift-klein` gilt
-  auch für Schmuckschrift.
+- **Größe:** nie unter der Grenze von `schrift-klein` (`grundschul-didaktik/references/druck-und-platz.md`, „Was die Prüfung meldet“; Schrift je Klasse:
+  „Schrift und Abstand je Klasse“). Die Prüfung gilt auch für Schmuckschrift.
 - **Zwei Farben:** einzelne Wörter in `<span style="color:var(--akzent)">`. Nur in Schmuckschrift, nie im Inhalt.
   Sonst steht darin nur Text, `<br>`, `<b>`, `<u>`, `<mark>`.
 - Nur die eingebetteten Schriften (Fredoka 600, Andika 400/700). Eine Schrift aus dem Netz fehlt im Druck.

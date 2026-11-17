@@ -37,7 +37,7 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
    - Willi oder Wilma gibt einen Strategietipp direkt bei der Aufgabe, zu der er gehört; Tipps und Rückmeldungen in „noch"-Sprache.
    - Falls gewählt: **Sternchenaufgabe ★** als letzte Aufgabe, freiwillig für alle („Wer mag, knobelt hier."), offen oder knobelnd, keine „mehr vom Gleichen". ★ statt Nummernkreis bzw. vor der Nummer.
 4. Fußzeile (nur wenn Selbsteinschätzung gewählt), schlank und ohne Fläche: Ich-kann-Satz mit „So gut kann ich das schon. Kreuze an:“ + Wachstumsgrafik mit vier Kreisen zum Ankreuzen (Samen → Keimling → Pflanze → Blume; Baustein `.wachstum` in der Vorlage) und Reflexionsfrage („Was hat dir geholfen?"; Kl. 1/2 zum Ankreuzen oder mündlich im Kreis, ab Kl. 3 schriftlich). Die Ankreuzwörter nennen nur Hilfen von den Seiten dieses Niveaus. Optional ein Rückmeldefeld für die Lehrkraft. Ohne Selbsteinschätzung entfällt der Fuß, der Platz geht an Aufgaben.
-5. Separates Lösungsblatt zur Selbstkontrolle (gleiches Layout, Lösungen fett, unterstrichen und in der dunklen Variante der Hauptfarbe; setzt `blatt.css`).
+5. Separates Lösungsblatt zur Selbstkontrolle (gleiches Layout, Lösungen fett und in der dunklen Variante der Hauptfarbe auf der Antwortlinie; setzt `blatt.css`).
 
 ## Bewährte Aufgabenformate
 

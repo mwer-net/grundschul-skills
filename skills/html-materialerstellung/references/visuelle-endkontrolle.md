@@ -49,7 +49,7 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 - [ ] Das Auge wandert ruhig von oben nach unten; nichts lenkt ab (Deko, Fremdelemente).
 
 **F. Druck und Seiten**
-- [ ] Auch in der s/w-Ansicht lesbar (`blatt.py bauen --profil sw`); Information nie nur über Farbe.
+- [ ] Auch in der s/w-Ansicht lesbar; Information nie nur über Farbe. Die s/w-Hinweise (`kontrast-sw`, `farbwort-sw`, `bild-kontrast-sw`) stehen im Lauf der Schoolbox von selbst im Prüfbericht, in der Claude-App mit Bash über `blatt.py bauen --profil sw`; sie sind Hinweise, keine Sperre.
 - [ ] Lösungsblatt hat dasselbe Layout, alle Lösungen stehen an der richtigen Stelle.
 - [ ] Bilder scharf (kein dpi-Hinweis).
 
@@ -80,7 +80,7 @@ Der Prüfbericht sieht keine inhaltlichen Fehler. Deshalb jede Aussage, die man 
 |---|---|
 | Abbildung ungenau (Anzahl falsch, Kreise schneiden sich, Menge gestreut) | Attribute des `x-…`-Elements prüfen (`n`, `z`, `e`, `zeit`); fehlt eine Darstellung, ein freies Element mit `data-frei` bauen statt freihand zeichnen (`SKILL.md`, „Neues Element“) |
 | Beispiel gequetscht | Beispiel auf Item-Größe bringen, Abstand zu den Nachbarn wie in der Reihe; reicht die Breite nicht, ein Item der Reihe streichen, solange `zeit-knapp` nicht meldet (`grundschul-didaktik/references/druck-und-platz.md`, Ende von „Menge nach Arbeitszeit“) |
-| Hinweis `kit-anteil`, `thema-layout` oder `thema-klasse` beim Bauen | Eigene Klassen durch Kit-Bausteine ersetzen, Aussehen in `thema.css` (`references/layout.md`, „Baukasten und Thema“) |
+| Hinweis `thema-layout` oder `thema-klasse` beim Bauen | Eigene Klassen durch Kit-Bausteine ersetzen, Aussehen in `thema.css` (`references/layout.md`, „Baukasten und Thema“) |
 | Seite zu voll oder Aufgabe unklar | Zu voll: Reihenfolge nach `grundschul-didaktik/references/druck-und-platz.md`, Ende von „Menge nach Arbeitszeit“, auf der Rückseite (`data-weiter`) beide Seiten füllen; unklare Aufgabe vereinfachen oder ein Beispiel ergänzen; nie Schrift, Abstände oder Schreibflächen von Hand verkleinern |
 | Aufgabe mit zwei Darstellungsformen in einer Reihe | Auf eine Form reduzieren, als nummerierte Schritte schreiben oder in zwei Aufgaben teilen (wenn der Richtwert es zulässt) |
 | Ungewollter Umbruch | Anweisung kürzen, `--spalten` senken oder `white-space:nowrap` für Rechenzeilen (`.zeile`); nie Schrift unter die Mindestgröße |

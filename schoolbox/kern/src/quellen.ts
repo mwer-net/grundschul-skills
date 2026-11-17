@@ -15,7 +15,7 @@ import { pflichtTabelle } from './einheit-bau';
 import { figurenListe } from './figuren';
 import { formenTabelle } from './formen';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
-import type { ArtAngaben } from './werte';
+import type { Art, ArtAngaben } from './werte';
 import { ART_ANGABEN, ARTEN, VORLAGE_FORMAT } from './werte';
 
 const WURZEL = path.resolve(__dirname, '..', '..', '..');
@@ -145,6 +145,124 @@ const themaRegeln = (wurzel: string) => {
 	].join('\n');
 };
 
+const LAUF_MELDUNGEN = 'schoolbox/kern/src/einheit.ts';
+const KI_WERKZEUG = 'schoolbox/server/src/ki-werkzeug.ts';
+const STUFEN = ['FEHLER', 'WARNUNG', 'HINWEIS'];
+
+/** Liest eine Zahl oder Liste aus dem Quelltext; fehlt sie, ist der Erzeuger veraltet, nicht die Tabelle. */
+const leser = (datei: string, text: string) => ({
+	zahl: (name: string) => {
+		const wert = new RegExp(`\\b${name} = ([\\d.]+)`).exec(text)?.[1];
+		if (wert === undefined) {
+			throw new Error(`${datei}: ${name} nicht gefunden.`);
+		}
+		return Number(wert);
+	},
+	treffer: (muster: RegExp) => {
+		const t = muster.exec(text);
+		if (!t) {
+			throw new Error(`${datei}: ${muster.source} nicht gefunden.`);
+		}
+		return t.slice(1).map((w) => w ?? '');
+	},
+});
+
+const prozent = (anteil: number) => `${Math.round(anteil * 100)} %`;
+const zahlen = (objekt: string) => [...objekt.matchAll(/\d: (\d+)/g)].map((t) => t[1]).join('/');
+const codeListe = (text: string) => [...text.matchAll(/['"]([a-z-]+)['"]/g)].map((t) => t[1] ?? '');
+
+/**
+ * Wann jede Meldung kommt, mit den Schwellen aus `pruefung.js` und den Meldungen, die nur der Lauf der Schoolbox
+ * kennt (224). Stufen und Codes liest sie aus den Aufrufen; ein neuer Code ohne Zeile hier bricht ab.
+ */
+const pruefSchwellen = (wurzel: string) => {
+	const js = readFileSync(path.join(wurzel, PRUEFUNG_JS), 'utf8');
+	const lauf = readFileSync(path.join(wurzel, LAUF_MELDUNGEN), 'utf8');
+	const werkzeug = readFileSync(path.join(wurzel, KI_WERKZEUG), 'utf8');
+	const { treffer, zahl } = leser(PRUEFUNG_JS, js);
+	const [satz2, mitZeit, aelter] = treffer(
+		/const RICHTWERT = satz2 \? (\{[^}]+\})\[kl\] \|\| \d+ : zeitziel \? (\{[^}]+\})\[kl\] \|\| \d+ : (\{[^}]+\})/,
+	);
+	const [abstandSatz2, abstandAelter] = treffer(/ABSTAND_MIN = satz2 \? (\d+) : (\d+)/);
+	const [karte, stein, kind] = treffer(/KANTE_MIN = \{ karte: (\d+), stein: (\d+), kind: (\d+) \}/);
+	const [zeitArten] = leser(LAUF_MELDUNGEN, lauf).treffer(/const MIT_ZEITZIEL[^=]*= \[([^\]]*)\]/);
+	const [ohne] = leser(KI_WERKZEUG, werkzeug).treffer(/const HINWEIS_OHNE[^=]*= \[([^\]]*)\]/);
+	const druckrand = zahl('DRUCKRAND');
+	const satz = '`data-satz="2"`';
+	const WANN: Record<string, string> = {
+		'schrift-fehlt': 'Andika, Fredoka oder die Schreibschrift ist nicht geladen',
+		'minibuch-seiten': 'Mini-Book ohne genau acht Seiten',
+		abbildung: 'eine Abbildung lässt sich nicht zeichnen; der Grund steht im Text',
+		'ueberlauf, rand': 'Inhalt ragt aus der Seite (`ueberlauf`) oder in den Seitenrand (`rand`)',
+		abgeschnitten: 'Text ist abgeschnitten oder ragt über den Rand seiner Fläche',
+		ueberlappung: 'zwei Inhalte überlappen sich',
+		aussen: 'ein Gestaltungselement liegt zu mehr als der Hälfte außerhalb der Seite',
+		'bild-fehlt': 'ein Bild ist nicht geladen',
+		pruefskript: 'die Prüfung selbst ist abgebrochen',
+		'zeit-fehlt': 'mit Zeitziel: eine Aufgabe ohne `data-min`',
+		'zeit-knapp': `mit Zeitziel: das kürzeste Niveau unter ${prozent(zahl('ZEIT_KNAPP'))} des Ziels`,
+		'zeit-viel': `nur beim Bauen, mit Zeitziel: das längste Niveau über ${prozent(zahl('ZEIT_VIEL'))} des Ziels`,
+		zahlenraum: 'eine Abbildung geht über den Zahlenraum der Klasse (erlaubt, nur prüfen)',
+		druckrand: `Gestaltung mit Text oder Bild näher als ${druckrand} px (${Math.round((druckrand * 25.4) / 96)} mm) am Blattrand`,
+		'schrift-klein': `Schrift unter ${prozent(zahl('SCHRIFT_MIN'))} der Schrift der Klasse, auf Folien der Folienschrift`,
+		flaeche: `Fläche hinter Inhalt dunkler als ${zahl('FLAECHE_HELL')} von 255 und größer als ${zahl('FLAECHE_MIN')} px²`,
+		'aufgaben-viele': `mehr Aufgaben (ohne ★) auf einer Seite als in Kl. 1/2/3/4: ${zahlen(satz2 ?? '')} mit ${satz}, ${zahlen(mitZeit ?? '')} mit Zeitziel im älteren Satz, sonst ${zahlen(aelter ?? '')}`,
+		'rahmen-gross': `mit Zeitziel: Kopf höher als ${zahl('KOPF_MAX')} px oder Fuß höher als ${zahl('FUSS_MAX')} px`,
+		'abstand-knapp': `weniger als ${abstandSatz2} px zwischen zwei Aufgaben mit ${satz}, sonst ${abstandAelter} px`,
+		'platz-frei': `mehr als ${zahl('FREI_MAX')} px frei unten mit Zeitziel oder auf einer Arbeitsseite mit ${satz} (WARNUNG), sonst ab ${zahl('FREI_HINWEIS')} px (HINWEIS); nicht auf Folien, Karten und Mini-Books`,
+		'inhalt-wenig': `Arbeitsseite mit ${satz}: weniger als ${zahl('AUFGABEN_MIN')} Aufgaben oder ${zahl('TEILE_MIN')} Teilaufgaben, oder mehr als ${zahl('LEER_MAX')} % der Fläche leer; \`data-dicht-ok\` nimmt die Seite aus`,
+		'teile-viele': `${satz}: mehr als ${zahl('TEILE_MAX')} Teile zum Ausschneiden auf einer A4-Seite`,
+		'teil-klein': `${satz}: kurze Kante einer Karte unter ${karte} mm, Dominostein kleiner als ${zahl('STEIN_LANG_MIN')} × ${stein} mm, Teil zum Selbstschneiden unter ${kind} mm`,
+		'motiv-klein': `${satz}: das Motiv füllt weniger als ${prozent(zahl('MOTIV_MIN'))} der Karte innerhalb ihres Rands`,
+		'schnitt-knapp': `${satz}: Text oder Bild näher als ${zahl('SCHNITT_MIN')} mm an der Schnittkante`,
+		'thema-klasse': 'nur beim Bauen: `thema.css` nennt eine Klasse, die `blatt.css` nicht kennt',
+		'thema-layout': 'nur beim Bauen: `thema.css` setzt Layout statt Aussehen',
+		'kit-anteil': `nur beim Bauen: weniger als ${zahl('KIT_MINDEST')} % der Elemente mit Klasse nutzen nur Kit-Klassen`,
+		masstab: 'Abbildungen mit echten Maßen: in Originalgröße drucken',
+		verdeckt: `Gestaltung vorne oder am Anker verdeckt Inhalt um mehr als ${zahl('VERDECKT_MIN')} px²`,
+		'kontrast-sw': `in s/w: Text mit Kontrast unter ${zahl('KONTRAST_MIN')}:1 zu seiner Fläche`,
+		'farbwort-sw': 'in s/w: der Text nennt Farben',
+		'bild-kontrast-sw': `in s/w: ein Bild, dessen Grauwerte weniger als ${zahl('BILD_SPANNE_MIN')} von 255 auseinanderliegen`,
+		'bild-unscharf': `ein Bild hat im Druck unter ${zahl('DPI_MIN')} dpi`,
+		'notiz-fehlt': 'eine Folie ohne Notiz, wenn eine andere Folie eine hat',
+		platzhalter: 'Platzhalter auf der Seite (Entwurf)',
+		ausgeblendet: 'einmal je Material: Elemente mit `data-aus` werden nicht gedruckt',
+		'zeitziel-fehlt': `nur im Lauf der Schoolbox: ${codeListe(zeitArten ?? '')
+			.map((a) => (a in ART_ANGABEN ? ART_ANGABEN[a as Art].name : a))
+			.join(', ')} mit ${satz} und Aufgaben, aber ohne \`data-zeit\` am \`<body>\``,
+		'loesung-fehlt': 'nur im Lauf der Schoolbox: je Aufgabe, deren Antwortlinien keine Lösung haben',
+	};
+	const stufen = new Map<string, Set<string>>();
+	const neben = (code: string, stufe: string) => stufen.set(code, (stufen.get(code) ?? new Set()).add(stufe));
+	for (const t of js.matchAll(/melde\("([A-Z]+)", [^,]+, ([^,]+),/g)) {
+		const codes = codeListe(t[2] ?? '');
+		neben(codes.join(', '), t[1] ?? '');
+	}
+	for (const t of js.matchAll(/stufe: "([A-Z]+)", seite: \d+, code: "([a-z-]+)"/g)) {
+		neben(t[2] ?? '', t[1] ?? '');
+	}
+	for (const t of lauf.matchAll(/stufe: '([A-Z]+)',\s*seite: [^,]+,\s*code: '([a-z-]+)'/g)) {
+		neben(t[2] ?? '', t[1] ?? '');
+	}
+	const ohneLauf = codeListe(ohne ?? '');
+	const fehlt = [...stufen.keys()].filter((c) => !WANN[c]);
+	if (fehlt.length > 0) {
+		throw new Error(`${PRUEFUNG_JS}: Meldung ohne Zeile in pruef-schwellen (quellen.ts): ${fehlt.join(', ')}.`);
+	}
+	const erste = (s: Set<string>) => Math.min(...[...s].map((x) => STUFEN.indexOf(x)));
+	const zeilen = [...stufen]
+		.sort(([, a], [, b]) => erste(a) - erste(b))
+		.map(([code, s]) => [
+			code
+				.split(', ')
+				.map((c) => `\`${c}\``)
+				.join(', '),
+			STUFEN.filter((x) => s.has(x)).join(', '),
+			`${WANN[code]}${ohneLauf.includes(code) ? '; im Lauf der Schoolbox nicht im Bericht' : ''}`,
+		]);
+	return tabelle(['Code', 'Stufe', 'Wann'], zeilen);
+};
+
 const GROESSE: Record<string, string> = {
 	proportional: 'Ecken halten das Verhältnis',
 	frei: 'frei',
@@ -178,6 +296,7 @@ export const ABSCHNITTE: Abschnitt[] = [
 	{ datei: RUECKFRAGEN, marke: 'bausteine-je-art', inhalt: bausteineJeArt },
 	{ datei: DRUCK, marke: 'schrift-und-abstand', inhalt: klassenWerte },
 	{ datei: DRUCK, marke: 'luecken-breite', inhalt: lueckenBreite },
+	{ datei: DRUCK, marke: 'pruef-schwellen', inhalt: pruefSchwellen },
 	{ datei: LAYOUT, marke: 'thema-regeln', inhalt: themaRegeln },
 	// Gestaltung (Phase 12): Arten, Figuren, Formen, Farben des Blatts
 	{ datei: GESTALTUNG, marke: 'gestaltung-arten', inhalt: gestaltungArten },

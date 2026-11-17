@@ -50,7 +50,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 2. Bilder einsetzen: vorhandene aus `assets/bilder/`, alle anderen Motive der Bildliste mit Canva-KI erzeugen, jedes in vier Vierteln gegen seinen Bildvertrag prüfen und Fehler reparieren, dann als Datei einbauen; Figur, Zettel und Zahlen kommen als Ebenen darüber (`references/bilder.md`, Abschnitte 2 bis 4).
 3. Vor dem ersten Bau die Pflichtlektüre der Materialart lesen (Abschnitt „Vor dem Bau lesen“), dann bauen und prüfen:
    `python3 scripts/blatt.py bauen Kl2_Mathe_Uhrzeit_AB1.html -o ausgabe/`
-   Ergebnis: eigenständige `.html` (alles eingebettet), `.pdf`, `-loesung.pdf`, Vorschau je Seite (`-s1.png`) und Ausschnitt je Aufgabe (`-s1-a1.png` …). Der Prüfbericht meldet FEHLER (Seitenrand, abgeschnitten, Überlappung, Schrift oder Bild fehlt; Lösungsblatt wird mitgeprüft), WARNUNGEN (Schrift zu klein für die Klasse, zu viele Aufgaben, Aufgaben zu dicht) und HINWEISE (unscharfe Bilder, viel Leerraum, Platzhalter; mit `--profil sw` auch Kontrast, Farbwörter und Bilder in s/w).
+   Ergebnis: eigenständige `.html` (alles eingebettet), `.pdf`, `-loesung.pdf`, Vorschau je Seite (`-s1.png`) und Ausschnitt je Aufgabe (`-s1-a1.png` …). Der Prüfbericht meldet FEHLER, WARNUNGEN und HINWEISE; das Lösungsblatt wird mitgeprüft. Welche Meldung wann kommt, steht in `grundschul-didaktik/references/druck-und-platz.md`, „Was die Prüfung meldet“. Die s/w-Hinweise stehen im Lauf der Schoolbox von selbst im Bericht, sonst mit `--profil sw`.
 4. FEHLER beheben und neu bauen, bis keiner bleibt. Passt der Inhalt nicht: Reihenfolge nach `grundschul-didaktik/references/druck-und-platz.md`, Ende von „Menge nach Arbeitszeit“; nie Schrift, Rand oder Schreibfläche von Hand verkleinern. Meldet der Bericht `inhalt-wenig` oder `platz-frei`: Items, Reihen oder eine Aufgabe ergänzen, bis die Seite gefüllt ist wie im Schulbuch.
 5. **Visuelle Endkontrolle** (`references/visuelle-endkontrolle.md`): Seitenvorschau, jeden Aufgaben-Ausschnitt und das Lösungsblatt ansehen, Befunde beheben, neu bauen.
 6. Der Lehrkraft geben: PDF (Arbeitsblatt und Lösung) und die eigenständige HTML-Datei, mit einem Satz, was die Endkontrolle korrigiert hat. Mit Schoolbox stattdessen den Link (Abschnitt „Mit Schoolbox“).
@@ -100,7 +100,7 @@ Ist im Projekt eine Schoolbox eingerichtet (Ordner `schoolbox/`, Projektanweisun
 ## Gestaltungssystem kurz
 
 - `<body class="kl2 farbe palette-himmel" data-satz="2">` (Paletten: sonnig, himmel, wiese, beere). `data-satz="2"` steht an jedem neuen Material: Es setzt Schrift, Abstände und Rechenkästchen wie im Schulbuch der Klasse (Werte: `grundschul-didaktik/references/druck-und-platz.md`, „Schrift und Abstand je Klasse“); ohne die Angabe gilt der ältere, große Satz, in dem bestehende Blätter bleiben. Die Klasse setzt Schriftgröße und Aufgabenabstand; die Palette Farben. s/w ist eine Ansicht davon, nicht `class="sw"` setzen (`grundschul-didaktik/references/gestaltung.md`). Text bleibt immer schwarz.
-- Seite: `<section class="seite">`, mehrere Seiten = mehrere Sections. Eine Arbeitsseite trägt mindestens vier Aufgaben; `data-dicht-ok` an der Section nimmt eine Seite davon aus, die mit Absicht wenig trägt (Forscherbogen, Bastelvorlage).
+- Seite: `<section class="seite">`, mehrere Seiten = mehrere Sections. Eine Arbeitsseite ist gefüllt (sonst `inhalt-wenig`); `data-dicht-ok` an der Section nimmt eine Seite davon aus, die mit Absicht wenig trägt (Forscherbogen, Bastelvorlage).
 - Kopf: `.namenszeile`, dann `.kopf` mit `.titel` (h1, `.ziel`, `.wahlhilfe`), `.loesung-marke`. Die Namenszeile steht im HTML vor dem Kopf und erscheint rechts neben der Überschrift. Der Tipp der Leitfigur (`.tipp`) steht im `.koerper` seiner Aufgabe, nicht im Kopf.
 - Aufgabe: `.aufgabe` > `.nr` (oder `.nr.stern`) + `.anw` (`.text` + `.niveau` mit `<i>` je Punkt, in Klassenarbeiten stattdessen `.punkte`) + `.koerper`.
 - Items: `.reihe` mit `--spalten`, darin `.zelle` (`.links` für linksbündig), `.zeile` für Rechenzeilen, `.antwort` (`.kurz`, `.breit`, `.lang`), `.schreiblinie`, `.box` (Ankreuzkästchen).
@@ -126,7 +126,7 @@ Für Präsentationen (Skill `praesentation`), Ausgangspunkt `assets/vorlage-prae
 | Leerstelle | `<span class="leerstelle" style="--h:120px"></span>` (Höhe über `--h`, sonst volle Breite oder `width`) für Antworten oder Wortkarten, die die Lehrkraft am Board ergänzt | gestrichelter Rahmen | gestrichelter Rahmen |
 | Notiz | `<aside class="notiz"><p>…</p></aside>` am Ende jeder Folie | nie zu sehen | fehlt; steht in „Folien mit Notizen“ (`--notizen`) |
 
-Präsentiert wird mit `assets/praesentation.js`: Mit `?praesentation=1` in der Adresse (oder `class="praesentieren"` am `<body>`) zeigt es eine Folie nach der anderen bildschirmfüllend und verhält sich wie in der vorletzten Spalte; ohne den Schalter bleibt das Dokument wie in der letzten Spalte. In der Schoolbox heißt das Knopf **Präsentieren**, sie fügt das Skript selbst ein; ins Material gehört es nicht. Niveau-Punkte, ★ und `.tipp` funktionieren wie auf dem Arbeitsblatt. Die Prüfung meldet auf Folien keinen freien Platz (eine Aussage je Folie ist gewollt), warnt bei Schrift unter 80 % der Folienschrift (32 px, Kl. 1/2: 38 px) und weist auf Folien ohne Notiz hin, sobald eine Folie eine hat.
+Präsentiert wird mit `assets/praesentation.js`: Mit `?praesentation=1` in der Adresse (oder `class="praesentieren"` am `<body>`) zeigt es eine Folie nach der anderen bildschirmfüllend und verhält sich wie in der vorletzten Spalte; ohne den Schalter bleibt das Dokument wie in der letzten Spalte. In der Schoolbox heißt das Knopf **Präsentieren**, sie fügt das Skript selbst ein; ins Material gehört es nicht. Niveau-Punkte, ★ und `.tipp` funktionieren wie auf dem Arbeitsblatt. Die Prüfung meldet auf Folien keinen freien Platz (eine Aussage je Folie ist gewollt), warnt bei zu kleiner Schrift (`schrift-klein`, gemessen an der Folienschrift) und weist auf Folien ohne Notiz hin, sobald eine Folie eine hat.
 
 Ausgaben von `blatt.py bauen` für Folien, zum Präsentieren ohne Internet und zum Ausdrucken:
 
@@ -153,7 +153,7 @@ Fehlt eine Darstellung, kommt es darauf an, wo du arbeitest. Nie gilt: von Hand 
 **Im Repo:** als neues Element. **Neues Element = Zeichenfunktion in `abbildungen.js` + Eintrag in `ABBILDUNG_SCHEMA` (`schoolbox/kern/src/abbildungen.ts`) + Katalogeintrag + Musterblatt.** Ohne Schema lässt es sich im Editor nicht einstellen, und der Test dazu schlägt fehl.
 
 1. Zeichenfunktion im passenden Abschnitt, nur mit den Helfern aus dem Kern.
-2. Palette, Gelb nie für Linien oder Schrift, Unterschiede auch über Form und Muster. Text immer schwarz. Linien ≥ 1,5 px.
+2. Palette, Gelb nie für Linien oder Schrift, Unterschiede auch über Form und Muster. Text immer schwarz. Eigene Linien ≥ 1,5 px, die Linien des Kits setzt `blatt.css`.
 3. Lösung nur über `loesungSichtbar` (Lösungsblatt, `.beispiel`).
 4. Unzulässige Angaben → `meldeFehler` (in der Zeichenfunktion: `abbruch("Satz für die Lehrkraft")`).
 5. Mindestgrößen nach `grundschul-didaktik/references/druck-und-platz.md`; fehlt das Element dort, Zeile ergänzen.

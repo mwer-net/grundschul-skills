@@ -16,10 +16,10 @@ Material wird in Farbe angelegt, s/w ist eine Ansicht davon; die Regel dazu steh
 
 Die s/w-Ansicht rechnet alles um: helle bunte Flächen werden weiß, Text und Linien behalten ihre Helligkeit. Beim Anlegen zählt nur:
 
-1. **Linien nicht heller als `#808080`** in Grau gerechnet, mindestens 1,5 px (≈ 1 pt), sonst fallen sie beim Kopieren weg. Die Nachspurvorlage in `x-lineatur` ist bewusst grau.
+1. **Linien nicht heller als `#808080`** in Grau gerechnet; eigene Linien mindestens 1,5 px (≈ 1 pt), sonst fallen sie beim Kopieren weg. Die Linien des Kits setzt `blatt.css`. Die Nachspurvorlage in `x-lineatur` ist bewusst grau.
 2. **Unterschiede nicht nur über Farbe** (`gestaltung.md`): fett oder normal, durchgezogen oder gestrichelt, gefüllt oder leer, Symbol, Buchstabe, Beschriftung. Die Abbildungen (`x-…`) bringen das selbst mit.
 3. **Bilder zum Anmalen** als `name-strich.png` neben `name.png`: Die s/w-Ausgabe nimmt sie von selbst.
-4. **Prüfen:** `blatt.py bauen --profil sw` und die s/w-Hinweise im Bericht ansehen (`kontrast-sw`, `farbwort-sw`, `bild-kontrast-sw`). Sie sind Hinweise, keine Sperre.
+4. **Prüfen:** die s/w-Hinweise im Bericht ansehen (`kontrast-sw`, `farbwort-sw`, `bild-kontrast-sw`). Im Lauf der Schoolbox stehen sie von selbst im Prüfbericht; in der Claude-App mit Bash kommt man mit `blatt.py bauen --profil sw` daran. Sie sind Hinweise, keine Sperre.
 
 ## 3. Farbe als Akzent
 
@@ -33,15 +33,15 @@ Farbe ist **Akzent**, das Layout bleibt kompakt:
    - Willi oder Wilma, Wachstumsgrafik und Abbildungen in der farbigen Version,
    - Farbcodes der Klasse (Wortarten, Stellenwerte, Wendeplättchen) direkt farbig.
 3. **Text bleibt schwarz** (`#1D1D1B`). Farbige Schrift nur für die Überschrift und kurze Hervorhebungen, nie für Anweisungen oder Fließtext. Einzige Ausnahme: Silbenfarben aus `x-silben`, wenn die Klasse damit arbeitet (Kontrast mindestens 4,5:1).
-4. **Kleine Tönungen nur mit Funktion:** Füllung der Tipp-Sprechblase oder eines Wortspeichers in sehr hellem Ton (Helligkeit ≥ 90 %) ist erlaubt; ganze Aufgaben werden nicht hinterlegt.
-5. **Lösungsblatt:** Lösungen fett, unterstrichen und in der dunklen Variante der Hauptfarbe (setzt `blatt.css`).
+4. **Kleine Tönungen nur mit Funktion:** Füllung der Tipp-Sprechblase oder eines Wortspeichers in sehr hellem Ton ist erlaubt (die Prüfung meldet dunklere Flächen, `flaeche`); ganze Aufgaben werden nicht hinterlegt.
+5. **Lösungsblatt:** Lösungen fett und in der dunklen Variante der Hauptfarbe auf der Antwortlinie (setzt `blatt.css`).
 6. **Prüfen:** `blatt.py bauen` (meldet Flächen hinter Aufgaben) und Vorschau ansehen: Farbe nur als Akzent.
 
 **Präsentation/Whiteboard:** Farbe uneingeschränkt nach diesem Abschnitt, aber auch hier keine vollflächigen Bilder hinter Text. **Plakat und laminierte Karten:** Kartenrahmen dürfen farbig sein, weil sie Karten unterscheiden (Funktion).
 
 ## 4. Übersichtlich und platzsparend gestalten (in Farbe und in der s/w-Ansicht)
 
-Ziel: **Übersicht und genug zu tun.** Ein Kind muss jede Aufgabe auf einen Blick verstehen: was zu tun ist, wo es schreibt, wie das Beispiel geht. Und das Blatt muss die Arbeitszeit tragen, für die es gedacht ist (Abschnitt „Menge nach Arbeitszeit“). Übersicht entsteht durch Ordnung: gleiche Abstände, eine Handlung je Schritt, ein Beispiel, klare Reihen. Sie entsteht nicht durch leere Fläche und nicht durch große Schrift. Maß ist die Schulbuchseite der Klasse: Lesetext in Buchgröße, Aufgaben je Seite nach der Tabelle in „Menge nach Arbeitszeit“, viele Items in Reihen. Gespart wird an Rahmen, Innenabständen, Kopf, Fuß, Deko und an Wörtern in der Anweisung, nie an der Schreibfläche oder am Beispiel.
+Ziel: **Übersicht und genug zu tun.** Ein Kind muss jede Aufgabe auf einen Blick verstehen: was zu tun ist, wo es schreibt, wie das Beispiel geht. Und das Blatt muss die Arbeitszeit tragen, für die es gedacht ist (Abschnitt „Menge nach Arbeitszeit“). Übersicht entsteht durch Ordnung: gleiche Abstände, eine Handlung je Schritt, ein Beispiel, klare Reihen. Sie entsteht nicht durch leere Fläche und nicht durch große Schrift. Maß ist die Schulbuchseite der Klasse: Lesetext in Buchgröße, Aufgaben je Seite nach der Tabelle in „Menge nach Arbeitszeit“ (die Prüfung warnt erst darüber, `aufgaben-viele` in der Tabelle „Was die Prüfung meldet“), viele Items in Reihen. Gespart wird an Rahmen, Innenabständen, Kopf, Fuß, Deko und an Wörtern in der Anweisung, nie an der Schreibfläche oder am Beispiel.
 
 ### Aufbau einer Aufgabe ohne Kasten
 
@@ -60,9 +60,9 @@ Ziel: **Übersicht und genug zu tun.** Ein Kind muss jede Aufgabe auf einen Blic
 
 ### Kopf und Fuß schlank
 
-- **Kopf** in einer Zeile wie im Schulbuch: Überschrift links, Name und Datum rechts, darunter das Ich-kann-Ziel in einer Zeile; zusammen ca. 70 px. Im HTML bleibt die Namenszeile vor dem Kopf, `blatt.css` stellt sie neben die Überschrift. `blatt.py` meldet einen Kopf ab 210 px. Eine Wahlhilfe braucht nur ein Blatt, auf dem sich die Niveaus eine Seite teilen. Auf einer Folgeseite (`data-weiter`) entfällt der Kopf.
+- **Kopf** in einer Zeile wie im Schulbuch: Überschrift links, Name und Datum rechts, darunter das Ich-kann-Ziel in einer Zeile; zusammen ca. 70 px. Im HTML bleibt die Namenszeile vor dem Kopf, `blatt.css` stellt sie neben die Überschrift. Einen zu hohen Kopf meldet `blatt.py` als `rahmen-gross`. Eine Wahlhilfe braucht nur ein Blatt, auf dem sich die Niveaus eine Seite teilen. Auf einer Folgeseite (`data-weiter`) entfällt der Kopf.
 - **Tipp der Leitfigur** im Körper der Aufgabe, zu der er gehört, über ihrer Item-Reihe (Muster: `html-materialerstellung/assets/vorlage-arbeitsblatt.html`). Nicht im Kopf, nie mitten in einer Item-Reihe.
-- **Fuß** (nur wenn Selbsteinschätzung gewählt, sonst entfällt er und der Platz geht an Aufgaben) als schmaler Streifen von ca. 95 px; `blatt.py` meldet ihn ab 150 px. Links der Ich-kann-Satz mit „So gut kann ich das schon. Kreuze an:“, rechts die Wachstumsgrafik mit vier Kreisen zum Ankreuzen darunter (Baustein `.wachstum` in der Vorlage), darunter die Reflexionsfrage mit Ankreuzfeldern. Abgegrenzt durch eine Linie, nicht durch eine Fläche. Nie „Male an“ ohne Kreise: Die Pflanzen sind schon farbig, das Kind wüsste nicht, was es anmalen soll.
+- **Fuß** (nur wenn Selbsteinschätzung gewählt, sonst entfällt er und der Platz geht an Aufgaben) als schmaler Streifen von ca. 95 px; einen zu hohen Fuß meldet `blatt.py` als `rahmen-gross`. Links der Ich-kann-Satz mit „So gut kann ich das schon. Kreuze an:“, rechts die Wachstumsgrafik mit vier Kreisen zum Ankreuzen darunter (Baustein `.wachstum` in der Vorlage), darunter die Reflexionsfrage mit Ankreuzfeldern. Abgegrenzt durch eine Linie, nicht durch eine Fläche. Nie „Male an“ ohne Kreise: Die Pflanzen sind schon farbig, das Kind wüsste nicht, was es anmalen soll.
 
 ### Aufgaben auf einen Blick verständlich
 
@@ -101,7 +101,7 @@ Lücken müssen breit genug sein, damit Kinder der Klasse darin schreiben könne
 
 | Element | Kl. 1 | Kl. 2 | Kl. 3/4 |
 |---|---|---|---|
-| Uhr zum Ablesen | 100 px (2,6 cm) | 84 px (2,2 cm) | 76 px (2 cm) |
+| Uhr zum Ablesen | 100 px (2,6 cm), `groesse="100"` setzen | 84 px (2,2 cm) | 76 px (2 cm) |
 | Uhr zum Zeiger-Einzeichnen | 120 px (3,2 cm) | 84 px (2,2 cm) | 84 px (2,2 cm) |
 | Antwortlinie für eine Zahl/Uhrzeit | 100 px | 88 px | 80 px |
 | Zeilenhöhe Schreiblinie (`x-lineatur`, Maße in `gestaltung.md`) | Lineatur 1 | Lineatur 2 | Lineatur 3/4 |
@@ -137,12 +137,12 @@ Ein Blatt ist dann richtig gefüllt, wenn ein Kind des Niveaus daran so lange ar
 **So wird geplant:**
 
 1. **Jedes Niveau bekommt seine eigene Seite** mit dem ganzen Zeitziel: Seite ●, Seite ●●, Seite ●●●, die Punkte stehen in der Namenszeile. Die Lehrkraft kopiert je Kind die passende Seite, oder das Kind wählt. Teilen sich drei Niveaus eine Seite, arbeitet jedes Kind nur ein Drittel davon und ist nach wenigen Minuten fertig; das ist nur richtig, wenn die Lehrkraft es ausdrücklich so wünscht („alle Niveaus auf einem Blatt“) oder das Zeitziel bei höchstens 10 Minuten liegt.
-2. **Jede Aufgabe bekommt eine Minutenangabe** aus dem Zeitmodell unten. Die Summe je Niveau erreicht das Zeitziel (höchstens 15 % darunter, bis 25 % darüber). Die Sternchenaufgabe zählt nicht mit, sie ist Reserve für schnelle Kinder.
+2. **Jede Aufgabe bekommt eine Minutenangabe** aus dem Zeitmodell unten. Die Summe je Niveau erreicht das Zeitziel und geht nicht weit darüber; wie weit, sagen `zeit-knapp` und `zeit-viel` (Tabelle „Was die Prüfung meldet“). Die Sternchenaufgabe zählt nicht mit, sie ist Reserve für schnelle Kinder.
 3. **Reicht eine Seite nicht für das Zeitziel, geht es auf der Rückseite weiter** (`<section class="seite" data-weiter>`, ohne Kopf). Vorder- und Rückseite sind ein Blatt Papier. Bei 20 Minuten trägt ab Kl. 2 meist eine Seite; in Kl. 1 und bei längeren Zeitzielen geht es auf der Rückseite weiter.
-4. **Die Seite ist gefüllt wie im Schulbuch.** Eine Arbeitsseite trägt mindestens vier Aufgaben und zwölf Teilaufgaben (Antworten, Lücken, Zeilen); sonst meldet `blatt.py` `inhalt-wenig`. Bleibt unten Platz, kommt ein Item, eine Reihe oder eine Aufgabe dazu, in jeder Klasse. Nie mit Leerraum, größerer Schrift oder Deko füllen. Trägt eine Seite mit Absicht wenig (Forscherbogen, Bastelvorlage, freie Schreibseite), steht `data-dicht-ok` an ihrer `<section class="seite">`.
+4. **Die Seite ist gefüllt wie im Schulbuch.** Eine Arbeitsseite trägt genug Aufgaben und Teilaufgaben (Antworten, Lücken, Zeilen); sonst meldet `blatt.py` `inhalt-wenig` (Grenzen in der Tabelle „Was die Prüfung meldet“). Bleibt unten Platz, kommt ein Item, eine Reihe oder eine Aufgabe dazu, in jeder Klasse. Nie mit Leerraum, größerer Schrift oder Deko füllen. Trägt eine Seite mit Absicht wenig (Forscherbogen, Bastelvorlage, freie Schreibseite), steht `data-dicht-ok` an ihrer `<section class="seite">`.
 5. **Mehr Zeit kommt aus mehr Denk- und Schreibarbeit, nicht aus mehr vom Gleichen.** Nach 6–8 gleichen Items wechselt das Format: erst ablesen, dann selbst eintragen, dann anwenden, dann erklären oder selbst eine Aufgabe erfinden. So üben die Kinder dasselbe Ziel auf mehreren Wegen und bleiben dran. Dazu gehören Aufgaben mit Material („Lege mit Plättchen. Zeichne dann.“), zu zweit („Zu zweit: …“) und fürs Heft („Zeichne ins Heft.“ mit Heft-Beispiel); das Heft ist normale Arbeit, nicht nur die Sternchenaufgabe. Wie die Anforderungsbereiche verteilt sind: `differenzierung.md`, „Anforderungsbereiche auf jedem Arbeitsblatt“.
 
-**Im HTML** steht am `<body>` `data-satz="2"` (gesetzt wie ein Schulbuch; ohne die Angabe gilt der ältere, große Satz) und das Zeitziel (`data-zeit="20"`), die Minuten an jeder Aufgabe (`<div class="aufgabe" data-min="5">`). `blatt.py` rechnet je Niveau nach und meldet `zeit-knapp`, `zeit-fehlt`, `inhalt-wenig`, einen zu hohen Kopf oder Fuß und freien Platz. Geprüftes Muster: `html-materialerstellung/assets/beispiel-niveaublatt-kl2.html`.
+**Im HTML** steht am `<body>` `data-satz="2"` (gesetzt wie ein Schulbuch; ohne die Angabe gilt der ältere, große Satz) und das Zeitziel (`data-zeit="20"`), die Minuten an jeder Aufgabe (`<div class="aufgabe" data-min="5">`). `blatt.py` rechnet je Niveau nach und meldet zu wenig oder zu viel Zeit, fehlende Minuten, zu wenig Inhalt, einen zu hohen Kopf oder Fuß und freien Platz (Tabelle „Was die Prüfung meldet“). Geprüftes Muster: `html-materialerstellung/assets/beispiel-niveaublatt-kl2.html`.
 
 **Zeitmodell** (Richtwerte für ein Kind im mittleren Niveau, aus Unterrichtserfahrung; ● rechnet mit dem oberen, ●●● mit dem unteren Wert und bekommt dafür anspruchsvollere Items):
 
@@ -179,11 +179,11 @@ Passt der Inhalt nicht auf die Seite: erst die Anweisungen kürzen und die Reihe
 
 | Bereich | Höhe |
 |---|---|
-| Kopf | ca. 70 px, höchstens 210 px; auf Folgeseiten keiner |
+| Kopf | ca. 70 px; auf Folgeseiten keiner |
 | Aufgaben inkl. Abstände | Rest, ca. 860–950 px, auf Folgeseiten bis 1030 px |
-| Fuß | ca. 95 px, höchstens 150 px; nur auf der letzten Seite des Niveaus |
+| Fuß | ca. 95 px; nur auf der letzten Seite des Niveaus |
 
-Bleiben unten mehr als ca. 90 px frei, meldet `blatt.py` das; dann Item, Reihe oder Aufgabe ergänzen.
+Bleibt unten Platz frei, meldet `blatt.py` `platz-frei`; dann Item, Reihe oder Aufgabe ergänzen. Die Grenzen für Kopf, Fuß und freien Platz stehen in der Tabelle „Was die Prüfung meldet“.
 
 ### Ausschneide- und Legematerial
 
@@ -191,21 +191,69 @@ Karten, Dominosteine, Legeteile und Schneidebögen sind Schauseiten (`kindgerech
 
 | Teil | Maß | Je A4 |
 |---|---|---|
-| Spiel- und Lernkarte (Memory, Quartett, Zuordnen, Lösungskarte) | kurze Kante mindestens 50 mm, Standard 70 × 100 mm; im Raster 3 × 3 sind es 65 × 94 mm | höchstens 9, lieber 4–6 |
-| Dominostein | mindestens 105 × 50 mm, Kl. 1 etwa 150 × 75 mm | 4 (hoch) oder 6 (`a4-quer`) |
+| Spiel- und Lernkarte (Memory, Quartett, Zuordnen, Lösungskarte) | Standard 70 × 100 mm; im Raster 3 × 3 sind es 65 × 94 mm | lieber 4–6 |
+| Dominostein | Kl. 1 etwa 150 × 75 mm | 4 (hoch) oder 6 (`a4-quer`) |
 | Streifenkarte (Satzstreifen, Zahlenstrahl-Abschnitt) | 65–75 × 195 mm | 3 |
 | Tafelkarte (Wortkarte, Bildkarte für die Tafel) | Großbuchstaben mindestens 25 mm hoch | 2–4 |
-| Teil, das die Kinder selbst schneiden (Kl. 1/2) | 40–50 mm, nur gerade Schnitte | so viele, wie der Bogen bei diesem Maß trägt |
+| Teil, das die Kinder selbst schneiden (Kl. 1/2) | bis 50 mm, nur gerade Schnitte | so viele, wie der Bogen bei diesem Maß trägt |
 
 - **Das Motiv füllt die Karte:** 60–70 % der Fläche, ein Bild oder ein Wort je Karte. Geometrische Motive groß und farbig, Kästchen 8–10 mm; `x-gitter` ohne `kaestchen` füllt die Karte von selbst.
-- **Schnitt:** Karten teilen sich die Schnittlinien (ein Schnitt trennt zwei Karten) oder haben 6–10 mm Abstand (`--fuge`). Text und Bild bleiben mindestens 5 mm von der Schnittkante; den Innenabstand setzt `blatt.css`.
+- **Schnitt:** Karten teilen sich die Schnittlinien (ein Schnitt trennt zwei Karten) oder haben 6–10 mm Abstand (`--fuge`). Text und Bild halten Abstand zur Schnittkante; den Innenabstand setzt `blatt.css`.
 - **Schneidebogen für die Kinder:** gerade, gestrichelte Linien (mindestens 1 pt), Schere an der ersten Linie (`.schneidebogen`). Keine Rundungen, keine Umrisse ausschneiden lassen.
 - **Ein Set, eine Farbe:** Rahmen oder Grund der Karten in einer Setfarbe (`--set`), je Set eine eigene. Kartensätze je Niveau dürfen eigene Setfarben haben, damit sie beim Aufräumen getrennt bleiben; das Niveau steht trotzdem als Punkte ● / ●● / ●●● in der Ecke (`.ecke`), nie nur als Farbe. Innen ein weißes Feld für Bild und Text. In s/w bleibt der Rahmen grau.
 - **Zum Set gehören** eine Deckkarte (Titel, Spielidee, Zahl der Karten), eine gestaltete Rückseite (Muster in der Setfarbe, nicht leer), bei Domino Start und Ziel, und eine Selbstkontrolle (Lösung auf der Rückseite, Lösungskarte oder Bildpaar). Rückseiten stehen auf der nächsten Seite in derselben Reihenfolge; `.karten.rueckseiten` spiegelt die Spalten für den Duplexdruck.
 - **Schmuck** aus der Figurenbibliothek ist erlaubt, nie Pflicht. KI-Bilder für Karten: `html-materialerstellung/references/bilder.md`.
 - **Drucken und Basteln** steht in den Hinweisen für die Lehrkraft als eigener Abschnitt: doppelseitig über die lange Kante (Hochformat) oder die kurze Kante (`a4-quer`), Schneiden mit Hebelschneider, Laminieren mit 3–5 mm Folienrand um jede Karte, Zubehör (Würfel, Spielfiguren, Klammern, Umschlag oder Dose je Set). Muster: `html-materialerstellung/assets/beispiel-lehrkraft-hinweise.html`.
 
-`blatt.py` meldet mit `data-satz="2"` als WARNUNG: mehr als 9 Teile je Seite (`teile-viele`), zu kleine Teile (`teil-klein`), ein Motiv unter der Hälfte der Karte (`motiv-klein`) und Inhalt näher als 5 mm an der Schnittkante (`schnitt-knapp`).
+Mindestmaße, die höchste Zahl je A4 und den Abstand zur Schnittkante prüft `blatt.py` mit `data-satz="2"` (`teile-viele`, `teil-klein`, `motiv-klein`, `schnitt-knapp`); die Grenzen stehen in der Tabelle „Was die Prüfung meldet“.
+
+### Was die Prüfung meldet
+
+`blatt.py bauen` prüft jedes Blatt und meldet FEHLER (beheben, bis keiner bleibt), WARNUNGEN (beheben oder begründet stehen lassen) und HINWEISE (ansehen, kein Zwang). Die Tabelle entsteht aus `pruefung.js` und der Schoolbox; ihre Zahlen sind die Schwellen der Prüfung, nicht das Ziel. Die s/w-Hinweise stehen im Lauf der Schoolbox von selbst im Bericht, sonst mit `--profil sw`.
+
+<!-- erzeugt: pruef-schwellen -->
+| Code | Stufe | Wann |
+|---|---|---|
+| `schrift-fehlt` | FEHLER | Andika, Fredoka oder die Schreibschrift ist nicht geladen |
+| `minibuch-seiten` | FEHLER | Mini-Book ohne genau acht Seiten |
+| `abbildung` | FEHLER | eine Abbildung lässt sich nicht zeichnen; der Grund steht im Text |
+| `ueberlauf`, `rand` | FEHLER | Inhalt ragt aus der Seite (`ueberlauf`) oder in den Seitenrand (`rand`) |
+| `abgeschnitten` | FEHLER | Text ist abgeschnitten oder ragt über den Rand seiner Fläche |
+| `ueberlappung` | FEHLER | zwei Inhalte überlappen sich |
+| `aussen` | FEHLER | ein Gestaltungselement liegt zu mehr als der Hälfte außerhalb der Seite |
+| `bild-fehlt` | FEHLER | ein Bild ist nicht geladen |
+| `pruefskript` | FEHLER | die Prüfung selbst ist abgebrochen |
+| `zeit-fehlt` | WARNUNG | mit Zeitziel: eine Aufgabe ohne `data-min` |
+| `zeit-knapp` | WARNUNG | mit Zeitziel: das kürzeste Niveau unter 85 % des Ziels |
+| `zeit-viel` | WARNUNG | nur beim Bauen, mit Zeitziel: das längste Niveau über 125 % des Ziels |
+| `zahlenraum` | WARNUNG | eine Abbildung geht über den Zahlenraum der Klasse (erlaubt, nur prüfen) |
+| `druckrand` | WARNUNG | Gestaltung mit Text oder Bild näher als 19 px (5 mm) am Blattrand |
+| `schrift-klein` | WARNUNG | Schrift unter 80 % der Schrift der Klasse, auf Folien der Folienschrift |
+| `flaeche` | WARNUNG | Fläche hinter Inhalt dunkler als 245 von 255 und größer als 4000 px² |
+| `aufgaben-viele` | WARNUNG | mehr Aufgaben (ohne ★) auf einer Seite als in Kl. 1/2/3/4: 6/8/9/10 mit `data-satz="2"`, 5/6/7/8 mit Zeitziel im älteren Satz, sonst 3/4/5/6 |
+| `rahmen-gross` | WARNUNG | mit Zeitziel: Kopf höher als 210 px oder Fuß höher als 150 px |
+| `abstand-knapp` | WARNUNG | weniger als 10 px zwischen zwei Aufgaben mit `data-satz="2"`, sonst 20 px |
+| `platz-frei` | WARNUNG, HINWEIS | mehr als 90 px frei unten mit Zeitziel oder auf einer Arbeitsseite mit `data-satz="2"` (WARNUNG), sonst ab 150 px (HINWEIS); nicht auf Folien, Karten und Mini-Books |
+| `inhalt-wenig` | WARNUNG | Arbeitsseite mit `data-satz="2"`: weniger als 4 Aufgaben oder 12 Teilaufgaben, oder mehr als 35 % der Fläche leer; `data-dicht-ok` nimmt die Seite aus |
+| `teile-viele` | WARNUNG | `data-satz="2"`: mehr als 9 Teile zum Ausschneiden auf einer A4-Seite |
+| `teil-klein` | WARNUNG | `data-satz="2"`: kurze Kante einer Karte unter 50 mm, Dominostein kleiner als 105 × 50 mm, Teil zum Selbstschneiden unter 40 mm |
+| `motiv-klein` | WARNUNG | `data-satz="2"`: das Motiv füllt weniger als 50 % der Karte innerhalb ihres Rands |
+| `schnitt-knapp` | WARNUNG | `data-satz="2"`: Text oder Bild näher als 5 mm an der Schnittkante |
+| `zeitziel-fehlt` | WARNUNG | nur im Lauf der Schoolbox: Arbeitsblatt, Stationenlernen, Lernzielkontrolle, Klassenarbeit mit `data-satz="2"` und Aufgaben, aber ohne `data-zeit` am `<body>` |
+| `loesung-fehlt` | WARNUNG | nur im Lauf der Schoolbox: je Aufgabe, deren Antwortlinien keine Lösung haben |
+| `thema-klasse` | HINWEIS | nur beim Bauen: `thema.css` nennt eine Klasse, die `blatt.css` nicht kennt |
+| `thema-layout` | HINWEIS | nur beim Bauen: `thema.css` setzt Layout statt Aussehen |
+| `kit-anteil` | HINWEIS | nur beim Bauen: weniger als 90 % der Elemente mit Klasse nutzen nur Kit-Klassen; im Lauf der Schoolbox nicht im Bericht |
+| `masstab` | HINWEIS | Abbildungen mit echten Maßen: in Originalgröße drucken |
+| `verdeckt` | HINWEIS | Gestaltung vorne oder am Anker verdeckt Inhalt um mehr als 400 px² |
+| `kontrast-sw` | HINWEIS | in s/w: Text mit Kontrast unter 3:1 zu seiner Fläche |
+| `farbwort-sw` | HINWEIS | in s/w: der Text nennt Farben |
+| `bild-kontrast-sw` | HINWEIS | in s/w: ein Bild, dessen Grauwerte weniger als 40 von 255 auseinanderliegen |
+| `bild-unscharf` | HINWEIS | ein Bild hat im Druck unter 150 dpi |
+| `notiz-fehlt` | HINWEIS | eine Folie ohne Notiz, wenn eine andere Folie eine hat |
+| `platzhalter` | HINWEIS | Platzhalter auf der Seite (Entwurf) |
+| `ausgeblendet` | HINWEIS | einmal je Material: Elemente mit `data-aus` werden nicht gedruckt; im Lauf der Schoolbox nicht im Bericht |
+<!-- /erzeugt: pruef-schwellen -->
 
 
 ## 5. Checkliste
@@ -215,7 +263,7 @@ Karten, Dominosteine, Legeteile und Schneidebögen sind Schauseiten (`kindgerech
 - [ ] Rahmen nur mit Funktion
 - [ ] `data-satz="2"` am Body; Kopf in einer Zeile, Fuß ca. 95 px, Tipp im Körper seiner Aufgabe
 - [ ] Zeitziel erreicht: `data-zeit` am Body, `data-min` an jeder Aufgabe, Summe je Niveau stimmt
-- [ ] Jedes Niveau auf eigener Seite, jede Arbeitsseite mit mindestens vier Aufgaben und gefüllt, Formate wechseln
+- [ ] Jedes Niveau auf eigener Seite, jede Arbeitsseite gefüllt (kein `inhalt-wenig`), Formate wechseln
 - [ ] Jede Aufgabe auf einen Blick verständlich, Beispiel nicht gequetscht
 - [ ] Mindestgrößen eingehalten, keine ungenutzten Leerstreifen
 - [ ] Keine Information nur über Farbe
