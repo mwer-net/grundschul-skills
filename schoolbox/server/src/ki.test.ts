@@ -901,7 +901,7 @@ describe('Aufträge an Claude', () => {
 			assert.deepEqual(bau?.bauen[1]?.fehlend, []);
 		});
 
-		it('bauen mit <x-gitter>: abgewiesen, solange mathe-geometrie.md fehlt, danach gebaut (226)', async () => {
+		it('bauen mit <x-gitter>: abgewiesen, solange mathe-geometrie.md nicht ganz gelesen ist, danach gebaut (226)', async () => {
 			const jsonl = path.join(path.dirname(bin), 'bauen.jsonl');
 			const vorher = (await readFile(jsonl, 'utf8').catch(() => '')).trim().split('\n').filter(Boolean).length;
 			const { protokoll } = await baue('plan-gitter', true);
@@ -911,16 +911,15 @@ describe('Aufträge an Claude', () => {
 				.slice(vorher)
 				.map((z) => JSON.parse(z) as { text?: string; fehler?: boolean });
 			const geometrie = 'html-materialerstellung/references/abbildungen/mathe-geometrie.md';
-			assert.equal(antworten.length, 3);
+			const text = `Nicht gebaut: Du verwendest <x-gitter>. Lies zuerst ganz, ohne offset und limit:\n- Read ${geometrie}\nRufe bauen danach wieder auf.`;
+			assert.equal(antworten.length, 4);
 			assert.equal(antworten[1]?.fehler, true);
-			assert.equal(
-				antworten[1]?.text,
-				`Nicht gebaut: Du verwendest <x-gitter>. Lies zuerst ganz:\n- Read ${geometrie}\nRufe bauen danach wieder auf.`,
-			);
-			assert.notEqual(antworten[2]?.fehler, true);
+			assert.equal(antworten[1]?.text, text);
+			assert.equal(antworten[2]?.text, text, 'Read mit limit zählt nicht');
+			assert.notEqual(antworten[3]?.fehler, true);
 			const bau = protokoll.laeufe.find((e) => e.art === 'bau');
-			assert.deepEqual(bau?.bauen[1]?.fehlend, [geometrie]);
-			assert.deepEqual(bau?.bauen[2]?.fehlend, []);
+			assert.deepEqual(bau?.bauen[2]?.fehlend, [geometrie]);
+			assert.deepEqual(bau?.bauen[3]?.fehlend, []);
 			assert.ok(bau?.gelesen.includes(geometrie));
 		});
 

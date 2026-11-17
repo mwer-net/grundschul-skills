@@ -279,7 +279,8 @@ process.stdin.on('end', () => {
 			})();
 			return;
 		}
-		// 226: „plan-gitter“ setzt ein x-gitter ein und liest alles außer mathe-geometrie.md; bauen weist ab, bis es gelesen ist.
+		// 226: „plan-gitter“ setzt ein x-gitter ein und liest alles außer mathe-geometrie.md, dann ein Stück davon, dann die
+		// ganze Datei; bauen weist ab, bis sie ganz gelesen ist.
 		if (fall === 'plan-gitter' && !(eingabe.includes('Aufgabenplan') && !eingabe.includes('freigegeben'))) {
 			const GEOMETRIE = 'html-materialerstellung/references/abbildungen/mathe-geometrie.md';
 			const d = 'material.html';
@@ -287,6 +288,10 @@ process.stdin.on('end', () => {
 			(async () => {
 				const a = await ruf();
 				sag({ type: 'assistant', message: { content: [...leseAus(eingabe), ...leseAus(a.text ?? '')].filter((t) => !String(t.input.file_path ?? '').endsWith(GEOMETRIE)) } });
+				await new Promise((r) => setTimeout(r, 200));
+				await ruf();
+				// Ein Stück der Datei zählt nicht als gelesen.
+				sag({ type: 'assistant', message: { content: [leseDatei(GEOMETRIE, { limit: 50 })] } });
 				await new Promise((r) => setTimeout(r, 200));
 				await ruf();
 				sag({ type: 'assistant', message: { content: [leseDatei(GEOMETRIE)] } });

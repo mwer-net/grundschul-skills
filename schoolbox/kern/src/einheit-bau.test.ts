@@ -81,6 +81,18 @@ describe('Pflichtlektüre (220)', () => {
 		assert.equal(lektuereZeile('skill:lernspiel'), 'Skill lernspiel laden');
 		assert.equal(lektuereZeile('lernspiel/references/x.md'), 'Read lernspiel/references/x.md');
 	});
+
+	it('ein Read zählt nur, wenn er die Datei ganz abdeckt (226)', () => {
+		const file_path = '/tmp/x/.claude/skills/html-materialerstellung/references/abbildungen.md';
+		const eintrag = 'html-materialerstellung/references/abbildungen.md';
+		assert.equal(gelesenAus('Read', { file_path }), eintrag);
+		assert.equal(gelesenAus('Read', { file_path, limit: 50 }), null);
+		assert.equal(gelesenAus('Read', { file_path, offset: 200 }), null);
+		assert.equal(gelesenAus('Read', { file_path, offset: 200, limit: 2000 }), null);
+		assert.equal(gelesenAus('Read', { file_path, offset: 1, limit: 2000 }), eintrag);
+		assert.equal(gelesenAus('Read', { file_path, limit: 5000 }), eintrag);
+		assert.equal(gelesenAus('Read', { file_path: '/tmp/x/.claude/skills/lernspiel/SKILL.md', limit: 20 }), null);
+	});
 });
 
 describe('Reihenfolge und fertige Materialien (220)', () => {
@@ -183,7 +195,7 @@ describe('Katalog der Abbildungen je Element (226)', () => {
 	it('die Antwort von bauen nennt alles Fehlende auf einmal', () => {
 		assert.equal(
 			lektuereFehltText([], [{ datei: GEOMETRIE, elemente: ['x-gitter'] }]),
-			`Nicht gebaut: Du verwendest <x-gitter>. Lies zuerst ganz:\n- Read ${GEOMETRIE}\nRufe bauen danach wieder auf.`,
+			`Nicht gebaut: Du verwendest <x-gitter>. Lies zuerst ganz, ohne offset und limit:\n- Read ${GEOMETRIE}\nRufe bauen danach wieder auf.`,
 		);
 		const beides = lektuereFehltText(
 			[EINSTIEG, 'skill:fach-mathematik'],
@@ -196,7 +208,7 @@ describe('Katalog der Abbildungen je Element (226)', () => {
 		assert.equal(
 			beides,
 			[
-				'Nicht gebaut: Die Pflichtlektüre fehlt noch. Du verwendest <x-gitter>, <x-uhr>. Lies zuerst ganz:',
+				'Nicht gebaut: Die Pflichtlektüre fehlt noch. Du verwendest <x-gitter>, <x-uhr>. Lies zuerst ganz, ohne offset und limit:',
 				`- Read ${EINSTIEG}`,
 				'- Skill fach-mathematik laden',
 				`- Read ${GEOMETRIE}`,

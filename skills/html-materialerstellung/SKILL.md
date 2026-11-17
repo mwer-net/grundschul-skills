@@ -57,7 +57,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 
 ### Vor dem Bau lesen
 
-Bevor ein Material zum ersten Mal gebaut wird, sind die Skills und Dateien seiner Art gelesen, ganz und in diesem Lauf, auch wenn sie früher im Gespräch schon dran waren. Die Schoolbox prüft dieselbe Liste und baut erst danach. „Fach-Skill“ ist der Skill des Fachs (`fach-mathematik` …); „in einer Reihe“ gilt für Materialien einer Unterrichtseinheit mit Geschichte, „beim Verkauf“ für Eduki.
+Bevor ein Material zum ersten Mal gebaut wird, sind die Skills und Dateien seiner Art gelesen, ganz (Read ohne `offset` und `limit`) und in diesem Lauf, auch wenn sie früher im Gespräch schon dran waren. Die Schoolbox prüft dieselbe Liste und baut erst danach. „Fach-Skill“ ist der Skill des Fachs (`fach-mathematik` …); „in einer Reihe“ gilt für Materialien einer Unterrichtseinheit mit Geschichte, „beim Verkauf“ für Eduki.
 
 <!-- erzeugt: pflichtlektuere -->
 | Materialart | Skills | Dateien | in einer Reihe | beim Verkauf |

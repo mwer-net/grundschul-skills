@@ -227,15 +227,29 @@ export const pflichtFuer = (rolle: string, o: { fach: Fach; reihe: boolean; verk
 const SKILL_PFAD = /(?:^|\/)skills\/([a-z0-9-]+)\/([^\s]+)$/;
 
 /**
- * Was ein Werkzeugaufruf aus dem Strom von `claude` gelesen hat, als Eintrag wie in `pflichtFuer`: ein geladener Skill,
- * eine gelesene `SKILL.md` oder eine Datei aus einem Skill. Sonst `null`.
+ * So viele Zeilen liefert Read ohne `limit`. Der Strom zeigt nur den Aufruf, nicht die Länge der Datei: Ein `limit` ab
+ * dieser Zahl gilt darum als ganz, und keine Datei der Pflichtlektüre und des Katalogs ist länger (Test in
+ * `einheit-bau.test.ts`).
  */
-export const gelesenAus = (name: string, eingabe: { skill?: unknown; file_path?: unknown }): string | null => {
+export const READ_ZEILEN = 2000;
+
+/** Ein Read deckt die Datei ganz ab: ohne `offset` (oder ab Zeile 1) und ohne `limit` oder mit einem ab `READ_ZEILEN`. */
+const ganzGelesen = ({ offset, limit }: { offset?: unknown; limit?: unknown }) =>
+	(offset == null || Number(offset) <= 1) && (limit == null || Number(limit) >= READ_ZEILEN);
+
+/**
+ * Was ein Werkzeugaufruf aus dem Strom von `claude` gelesen hat, als Eintrag wie in `pflichtFuer`: ein geladener Skill,
+ * eine ganz gelesene `SKILL.md` oder eine ganz gelesene Datei aus einem Skill (226). Sonst `null`.
+ */
+export const gelesenAus = (
+	name: string,
+	eingabe: { skill?: unknown; file_path?: unknown; offset?: unknown; limit?: unknown },
+): string | null => {
 	if (name === 'Skill' && typeof eingabe.skill === 'string') {
 		const skill = eingabe.skill.split(':').at(-1)?.trim() ?? '';
 		return skill ? `${SKILL_PRAEFIX}${skill}` : null;
 	}
-	if (name === 'Read' && typeof eingabe.file_path === 'string') {
+	if (name === 'Read' && typeof eingabe.file_path === 'string' && ganzGelesen(eingabe)) {
 		const t = SKILL_PFAD.exec(eingabe.file_path.replace(/\\/g, '/'));
 		if (!t) {
 			return null;
@@ -252,7 +266,7 @@ export const lektuereZeile = (eintrag: string) =>
 /** Der Abschnitt „Pflichtlektüre“ im Auftrag eines Baulaufs, für Einheit und neues Blatt. */
 export const pflichtAbschnitt = (pflicht: readonly string[], wann: string) =>
 	[
-		`Pflichtlektüre, ganz und ${wann} (Pfade ab dem Ordner der Skills):`,
+		`Pflichtlektüre, ganz und ${wann} (Pfade ab dem Ordner der Skills; Read ohne offset und limit):`,
 		...pflicht.map((p) => `- ${lektuereZeile(p)}`),
 	].join('\n');
 
@@ -273,7 +287,7 @@ export const lektuereFehltText = (fehlend: readonly string[], teile: readonly Te
 		...(elemente.length ? [`Du verwendest ${elemente.map((e) => `<${e}>`).join(', ')}.`] : []),
 	];
 	return [
-		`Nicht gebaut: ${grund.join(' ')} Lies zuerst ganz:`,
+		`Nicht gebaut: ${grund.join(' ')} Lies zuerst ganz, ohne offset und limit:`,
 		...[...new Set([...fehlend, ...teile.map((t) => t.datei)])].map((f) => `- ${lektuereZeile(f)}`),
 		'Rufe bauen danach wieder auf.',
 	].join('\n');

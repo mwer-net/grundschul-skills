@@ -1477,7 +1477,7 @@ export const erstelleEinheiten = (
 				: 'Doppelte Abbildungen: Der Server hat keine gefunden.',
 			offen.length ? ['Was die Prüfläufe offen ließen:', ...offen].join('\n') : '',
 			[
-				'Pflichtlektüre je Material, ganz und vor dem ersten Aufruf von bauen für dieses Material (Pfade ab dem Ordner der Skills):',
+				'Pflichtlektüre je Material, ganz und vor dem ersten Aufruf von bauen für dieses Material (Pfade ab dem Ordner der Skills; Read ohne offset und limit):',
 				...plan.dokumente.map(
 					(d) => `- ${d.slug}: ${lektuereFuer(s, rolleVon(d)).map(lektuereZeile).join(' · ')}`,
 				),
