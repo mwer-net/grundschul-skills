@@ -1,1 +1,1 @@
-Ergänze eine weitere Aufgabe, die zu Thema, Klasse und den vorhandenen Aufgaben passt, im selben Stil. Nimm dafür die Bausteine aus html-materialerstellung (references/abbildungen.md, falls ein Element nötig ist).
+Ergänze eine weitere Aufgabe, die zu Thema, Klasse und den vorhandenen Aufgaben passt, im selben Stil. Nimm dafür die Bausteine aus html-materialerstellung (falls ein Element nötig ist: references/abbildungen.md, dort nennt der Index die Datei des Elements).

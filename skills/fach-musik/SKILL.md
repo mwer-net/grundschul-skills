@@ -40,7 +40,7 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 
 ## Abbildungen
 
-Rhythmen und Noten kommen als Elemente aus `html-materialerstellung/assets/abbildungen.js` ins HTML, nie als Text oder KI-Bild. Attribute: `html-materialerstellung/references/abbildungen.md`, Abschnitt „Musik“. Muster: `assets/muster/musik.html`.
+Rhythmen und Noten kommen als Elemente aus `html-materialerstellung/assets/abbildungen.js` ins HTML, nie als Text oder KI-Bild. Attribute: `html-materialerstellung/references/abbildungen/musik.md`. Muster: `assets/muster/musik.html`.
 
 | Element | Darstellung | Klasse |
 |---|---|---|

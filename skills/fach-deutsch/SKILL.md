@@ -65,7 +65,7 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 
 ## Abbildungen
 
-Schreibzeilen und Silben kommen als Elemente aus `html-materialerstellung/assets/abbildungen.js` ins HTML. Attribute: `html-materialerstellung/references/abbildungen.md`, Abschnitt „Deutsch“.
+Schreibzeilen und Silben kommen als Elemente aus `html-materialerstellung/assets/abbildungen.js` ins HTML. Attribute: `html-materialerstellung/references/abbildungen/deutsch.md`.
 
 | Element | Darstellung |
 |---|---|
@@ -81,7 +81,7 @@ Silbenbögen und -farben nur, wenn die Klasse damit arbeitet (Rückfrage oben: M
 
 **Wortarten und Satzglieder markierst du selbst**, ein Programm bestimmt sie nicht. Kl. 2: nur Nomen, Verb, Adjektiv (`nur="N V A"`). Kl. 3/4 nach Rückfrage, nur Eingeführtes. Weicht die Klasse von den Montessori-Farben ab, setze `farben`.
 
-Rätsel (Abschnitt „Rätsel“ im Katalog): `x-suchsel` in Kl. 1 nur mit eingeführten Buchstaben; Lernwörter als `x-kreuzwort`.
+Rätsel (Abschnitt „Rätsel“ in `html-materialerstellung/references/abbildungen/spiele-raetsel.md`): `x-suchsel` in Kl. 1 nur mit eingeführten Buchstaben; Lernwörter als `x-kreuzwort`.
 
 ## Leistung überprüfen
 

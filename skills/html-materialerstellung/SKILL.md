@@ -15,7 +15,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 |---|---|
 | `assets/blatt.css` | Gestaltungssystem: A4-Seite, 60 px Rand (oben und unten weniger), Satz wie im Schulbuch (`data-satz="2"`), Kopf, Aufgaben mit hängender Nummer, Niveau-Punkte, Punktfelder, Antwortlinien, Sprechblase, Fuß, Karten, Platzhalter, Folien. Profile über Klassen am `<body>`. |
 | `assets/praesentation.js` | Präsentationsmodus für Folien: blättern, Schritte und Aufdecken, Timer, Schwarzbild; nur mit `?praesentation=1` aktiv. `blatt.py` bettet es in die Offline-Präsentation ein und baut damit `--schritte` und `--notizen` (Abschnitt „Folien“) |
-| `assets/abbildungen.js` | Exakte Abbildungen als SVG (`x-…`-Elemente), berechnet statt gezeichnet. Welche es gibt, wie man sie schreibt und welche Mindestgrößen gelten, steht im Katalog: `references/abbildungen.md`. Musterblätter: `assets/muster/`. |
+| `assets/abbildungen.js` | Exakte Abbildungen als SVG (`x-…`-Elemente), berechnet statt gezeichnet. Welche es gibt, wie man sie schreibt und welche Mindestgrößen gelten, steht im Katalog: `references/abbildungen.md`, mit einem Index der Teil-Dateien in `references/abbildungen/`. Musterblätter: `assets/muster/`. |
 | `assets/vorlage-arbeitsblatt.html` | Muster mit allen Bausteinen; Ausgangspunkt für jedes Blatt |
 | `assets/vorlage-praesentation.html` | Kreisinput mit sechs Folien und allen Folien-Bausteinen; Ausgangspunkt für Präsentationen der Art „Impuls“ (Abschnitt „Folien“) |
 | `assets/beispiel-auftakt.html` | geprüfter Auftakt einer Reihe (`body.folie.auftakt`): Szenen als SVG, Schmuckschrift, Wetten und Mitmachen, Aufdecken im Bild, Bewegung, Bildfolien und Kapitelfolgen (`praesentation/SKILL.md`, „Auftakt“); zeigt die Technik, keine Schablone |
@@ -158,7 +158,7 @@ Fehlt eine Darstellung, kommt es darauf an, wo du arbeitest. Nie gilt: von Hand 
 4. Unzulässige Angaben → `meldeFehler` (in der Zeichenfunktion: `abbruch("Satz für die Lehrkraft")`).
 5. Mindestgrößen nach `grundschul-didaktik/references/druck-und-platz.md`; fehlt das Element dort, Zeile ergänzen.
 6. Eintrag in `ABBILDUNG_SCHEMA` mit deutschem Namen, Feldern, Grenzen und Regeln, derselbe Name in `NAMEN`.
-7. Abschnitt in `references/abbildungen.md` (der Test meldet fehlende Abschnitte, Attribute und falsche Beispiele), Zeile in der Tabelle des Fach-Skills. Zeichnet das Element HTML statt SVG: `INHALT` in `pruefung.js`. Immer: Elementliste in `blatt.css`; hat es keine Lösungsangabe, auch `OHNE_LOESUNGSANGABE` in `blatt.py`.
+7. Abschnitt in der Teil-Datei seines Bereichs unter `references/abbildungen/` (der Test meldet fehlende Abschnitte, Attribute und falsche Beispiele; den Index schreibt `pnpm run quellen`), Zeile in der Tabelle des Fach-Skills. Zeichnet das Element HTML statt SVG: `INHALT` in `pruefung.js`. Immer: Elementliste in `blatt.css`; hat es keine Lösungsangabe, auch `OHNE_LOESUNGSANGABE` in `blatt.py`.
 8. Im Musterblatt des Bereichs (`assets/muster/`); `blatt.py bauen` in sw und farbe ohne FEHLER, Lösungsblatt stimmt.
 9. e2e: ein Feld im Panel ändern → ein Rückgängig-Schritt, die Quelle ändert nur dieses Attribut.
 10. Skill-Anbindung mit einem `claude -p`-Lauf je Issue prüfen; Fehler danach an einer Kopie nachbauen.

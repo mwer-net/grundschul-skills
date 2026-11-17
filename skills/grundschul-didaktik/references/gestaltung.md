@@ -39,7 +39,7 @@ Die Bausteine (Selbsteinschätzung, Niveaus, Sternchenaufgabe) legt die Start-Ab
 
 ## Lineatur und Schreibflächen
 
-Schreibzeilen immer mit `x-lineatur` (Katalog `html-materialerstellung/references/abbildungen.md`), nie von Hand zeichnen. Originalgröße drucken.
+Schreibzeilen immer mit `x-lineatur` (Katalog `html-materialerstellung/references/abbildungen/deutsch.md`), nie von Hand zeichnen. Originalgröße drucken.
 
 | Klasse | Lineatur | Aufbau |
 |---|---|---|

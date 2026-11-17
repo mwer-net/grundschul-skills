@@ -32,7 +32,7 @@ Ablauf nach `grundschul-didaktik/references/entwurf-und-aufgabenplan.md`.
 3. Keine Punkte und keine Note. Ausgewertet wird je Ich-kann-Ziel: „sicher", „teilweise", „noch nicht".
 4. Abschluss: falls gewählt, Selbsteinschätzung je Ich-kann-Ziel mit Wachstumsstufen (vor Abgabe ausfüllen; nach der Rückgabe mit dem Ergebnis vergleichen: „Stimmt meine Einschätzung?"); immer ein Rückmeldefeld mit Prozess-Satzanfängen („Du hast geschafft, …", „Als Nächstes übst du …").
 
-Diagramm lesen und zeichnen ist ein eigener Aufgabentyp: `<x-diagramm werte="…">` zum Ablesen, mit `offen="…"` zum Zeichnen; die Lösung steht dann auf dem Lösungsblatt (`html-materialerstellung/references/abbildungen.md`).
+Diagramm lesen und zeichnen ist ein eigener Aufgabentyp: `<x-diagramm werte="…">` zum Ablesen, mit `offen="…"` zum Zeichnen; die Lösung steht dann auf dem Lösungsblatt (`html-materialerstellung/references/abbildungen/mathe-groessen-daten.md`).
 
 ## Erwartungshorizont (immer mitliefern)
 

@@ -264,6 +264,41 @@ export const lektuereFehltText = (fehlend: readonly string[]) =>
 		'Rufe bauen danach wieder auf.',
 	].join('\n');
 
+// ——— Katalog der Abbildungen ———
+
+/**
+ * Der Katalog der Abbildungen (226): der Einstieg mit Kopf, Index, Aufgabenformaten und freiem Element, dazu je Bereich
+ * eine Teil-Datei. Wo ein Element steht, sagt allein seine Überschrift (`beschreibungenAus`); daraus entstehen der Index
+ * und die Lektüre je Element.
+ */
+export const ABBILDUNGEN_DATEIEN: readonly string[] = [
+	ABBILDUNGEN,
+	...[
+		'mathe-zahlen',
+		'mathe-geometrie',
+		'mathe-groessen-daten',
+		'deutsch',
+		'klassenarbeit',
+		'sachunterricht',
+		'spiele-raetsel',
+		'musik',
+	].map((n) => `${HTML}/references/abbildungen/${n}.md`),
+	`${HTML}/references/folien.md`,
+];
+
+/** `wofuer`: der Text hinter dem Namen in der Überschrift, leer, wenn sie nur den Namen nennt. */
+export interface ElementBeschreibung {
+	element: string;
+	wofuer: string;
+	datei: string;
+}
+
+const ELEMENT_UEBERSCHRIFT = /^#{2,4} `(x-[a-z0-9-]+)`(?::[ \t]*(.*\S))?[ \t]*$/gm;
+
+/** Die Elemente, die eine Datei des Katalogs mit eigener Überschrift beschreibt; eine bloße Erwähnung zählt nicht. */
+export const beschreibungenAus = (datei: string, text: string): ElementBeschreibung[] =>
+	[...text.matchAll(ELEMENT_UEBERSCHRIFT)].map((t) => ({ element: t[1] ?? '', wofuer: t[2] ?? '', datei }));
+
 const tabellenZelle = (eintraege: readonly string[]) => eintraege.map((e) => `\`${e}\``).join(', ');
 
 /** Die Tabelle „Vor dem Bau lesen“ in `html-materialerstellung/SKILL.md` (`quellen.ts`). */

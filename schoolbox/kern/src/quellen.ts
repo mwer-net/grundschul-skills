@@ -9,9 +9,13 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
+import type { AbbildungSchema } from './abbildungen';
+import { ABBILDUNG_SCHEMA } from './abbildungen';
+import { leseAbbildungsKatalog } from './abbildungen-katalog';
 import { blattFarbenListe } from './blatt-farben';
 import { LAUF_MELDUNGEN, MIT_ZEITZIEL } from './einheit';
 import { formateFuerAuftrag, formateTabelle } from './einheit-aufgaben';
+import type { ElementBeschreibung } from './einheit-bau';
 import { pflichtTabelle } from './einheit-bau';
 import { figurenListe } from './figuren';
 import { formenTabelle } from './formen';
@@ -31,6 +35,7 @@ const ARBEITSBLATT = 'skills/arbeitsblatt/SKILL.md';
 const EINHEIT_AUFTRAG = 'schoolbox/vorlagen/ki/einheit.md';
 const HTML_SKILL = 'skills/html-materialerstellung/SKILL.md';
 const AELTERER_SATZ = 'skills/html-materialerstellung/references/aelterer-satz.md';
+const ABBILDUNGEN = 'skills/html-materialerstellung/references/abbildungen.md';
 
 const tabelle = (kopf: string[], zeilen: string[][]) =>
 	[
@@ -332,6 +337,44 @@ const gestaltungArten = () =>
 		]),
 	);
 
+/** Nur für die Tests der Feldtypen im Panel (023), nie im Material: braucht keine Beschreibung im Katalog. */
+const OHNE_BESCHREIBUNG = new Set(['x-probe']);
+
+/** Was am Katalog der Abbildungen nicht stimmt: Jedes Element des Schemas hat genau eine Überschrift, keine ist fremd. */
+export const katalogFehler = (beschreibungen: readonly ElementBeschreibung[], schema: readonly string[]) => {
+	const dateien = new Map<string, string[]>();
+	for (const b of beschreibungen) {
+		dateien.set(b.element, [...(dateien.get(b.element) ?? []), b.datei]);
+	}
+	return [
+		...schema
+			.filter((e) => !OHNE_BESCHREIBUNG.has(e) && !dateien.has(e))
+			.map((e) => `${e} ist in keiner Datei des Katalogs beschrieben.`),
+		...[...dateien]
+			.filter(([, d]) => d.length > 1)
+			.map(([e, d]) => `${e} ist mehrfach beschrieben: ${d.join(', ')}.`),
+		...[...dateien.keys()].filter((e) => !schema.includes(e)).map((e) => `${e} steht nicht im Schema.`),
+	];
+};
+
+/** Der Index im Einstieg `abbildungen.md` (226): je Element, wofür es da ist und welche Datei es beschreibt. */
+export const abbildungenIndex = (wurzel: string) => {
+	const beschreibungen = leseAbbildungsKatalog(path.join(wurzel, 'skills'));
+	const schema = ABBILDUNG_SCHEMA as Record<string, AbbildungSchema>;
+	const fehler = katalogFehler(beschreibungen, Object.keys(schema));
+	if (fehler.length > 0) {
+		throw new Error(`Katalog der Abbildungen: ${fehler.join(' ')}`);
+	}
+	return tabelle(
+		['Element', 'Wofür', 'Datei'],
+		beschreibungen.map((b) => [
+			`\`${b.element}\``,
+			b.wofuer || (schema[b.element]?.name ?? ''),
+			`\`${b.datei.replace(/^html-materialerstellung\//, '')}\``,
+		]),
+	);
+};
+
 interface Abschnitt {
 	datei: string;
 	marke: string;
@@ -358,6 +401,8 @@ export const ABSCHNITTE: Abschnitt[] = [
 	// Älterer Satz (228): nur für vorhandene Blätter ohne `data-satz="2"`
 	{ datei: AELTERER_SATZ, marke: 'aelterer-satz-schrift', inhalt: aeltereKlassenWerte },
 	{ datei: AELTERER_SATZ, marke: 'aelterer-satz-schwellen', inhalt: aeltereSchwellen },
+	// Katalog der Abbildungen (226): Index aus den Überschriften der Teil-Dateien
+	{ datei: ABBILDUNGEN, marke: 'abbildungen-index', inhalt: abbildungenIndex },
 ];
 
 /** Setzt den Inhalt zwischen `<!-- erzeugt: marke -->` und `<!-- /erzeugt: marke -->`. */

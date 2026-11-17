@@ -4,7 +4,7 @@ Jedes Wissen hat genau eine Quelle. Bei einem Widerspruch gilt die Quelle aus di
 
 | Wissen | Einzige Quelle | Alle anderen Orte |
 |---|---|---|
-| Elemente, Attribute, Grenzen, Standardwerte, Namen | `ABBILDUNG_SCHEMA` (`schoolbox/kern/src/abbildungen.ts`) | `abbildungen.js`, `references/abbildungen.md`: von Tests bewacht |
+| Elemente, Attribute, Grenzen, Standardwerte, Namen | `ABBILDUNG_SCHEMA` (`schoolbox/kern/src/abbildungen.ts`) | `abbildungen.js`, `references/abbildungen.md` mit den Teil-Dateien in `references/abbildungen/` und `references/folien.md`: von Tests bewacht, der Index erzeugt |
 | Arten, Formate, Empfehlung und Zusatzbausteine je Art | `ART_ANGABEN` (`schoolbox/kern/src/werte.ts`) | `standardFormat` liest sie; Tabellen in `grundschul-didaktik/references/rueckfragen.md` erzeugt |
 | Schrift und Abstände je Klasse | `assets/blatt.css` | Tabelle in `grundschul-didaktik/references/druck-und-platz.md` erzeugt, `references/layout.md` verweist |
 | Meldungen | `schoolbox/kern/src/meldungen.ts` | Jede ID aus `assets/pruefung.js` bewacht |

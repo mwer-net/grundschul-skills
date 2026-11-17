@@ -75,7 +75,7 @@ Die Elemente beschreibt `html-materialerstellung/references/abbildungen.md`, Abs
 
 ## Kontrolle durch Kinder (Selbstkontrolle)
 
-- Lösungswort aus Buchstaben der Ergebnisse: `x-loesungswort` mit `bezug` auf die Aufgabe (Abschnitt „Rätsel“ in `html-materialerstellung/references/abbildungen.md`), meldet geänderte Lösungen
+- Lösungswort aus Buchstaben der Ergebnisse: `x-loesungswort` mit `bezug` auf die Aufgabe (Abschnitt „Rätsel“ in `html-materialerstellung/references/abbildungen/spiele-raetsel.md`), meldet geänderte Lösungen
 - Summe aller Ergebnisse als Kontrollzahl
 - Bild entsteht beim Ausmalen
 - Lösungsstreifen zum Umklappen am Rand

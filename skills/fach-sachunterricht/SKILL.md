@@ -55,14 +55,14 @@ Sicherheitshinweise (Feuer, Strom, Glas, Lebensmittel, Allergien) immer für die
 - Steckbriefe (Tiere, Pflanzen) als Rechercheraster.
 - Zeitleisten, Karten, Lagepläne.
 - Stromkreis und Leiterprobe, Wasserkreislauf, Wetter und Verkehr: Naturwissenschaft und Technik, siehe „Abbildungen“.
-- Thermometer (`x-skala art="thermometer"`), Kalender (`x-kalender`) und Uhr mit Digitalanzeige (`x-uhr digital="ja"`) für Wetter und „Zeit und Zeitrhythmen“; Katalog in `html-materialerstellung`, Abschnitt „Größen“.
+- Thermometer (`x-skala art="thermometer"`), Kalender (`x-kalender`) und Uhr mit Digitalanzeige (`x-uhr digital="ja"`) für Wetter und „Zeit und Zeitrhythmen“; Katalog: `html-materialerstellung/references/abbildungen/mathe-groessen-daten.md`, Abschnitt „Größen“, die Uhr in `mathe-zahlen.md`.
 - Bauanleitungen in Bildschritten.
 - Lerngang-/Beobachtungsbögen.
 - Folien für den Kreisinput (`praesentation`): Bildimpuls oder Phänomen, Vermutungen sammeln und abstimmen, Auflösung neben der Vermutung, Merksatz zur Ergebnissicherung. Echtes hat Vorrang (originale Begegnung); die Folie zeigt, was sich nicht in den Kreis holen lässt (Feld, Tier im Bau, Vorgang unter der Erde, früher).
 
 ## Abbildungen
 
-Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abbildungen.js` ins HTML. Attribute: `html-materialerstellung/references/abbildungen.md`, Abschnitt „Sachunterricht“. Bilder beschriften (Pflanze, Körper, Fahrrad) macht `x-beschriften`, Abschnitt „Aufgabenformate“.
+Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abbildungen.js` ins HTML. Attribute: `html-materialerstellung/references/abbildungen/sachunterricht.md`. Bilder beschriften (Pflanze, Körper, Fahrrad) macht `x-beschriften`, Abschnitt „Aufgabenformate“.
 
 | Element | Darstellung | Klasse |
 |---|---|---|

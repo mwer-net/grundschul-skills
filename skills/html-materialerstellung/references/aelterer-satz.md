@@ -18,7 +18,7 @@ Ohne die Angabe gilt der ältere, große Satz, in dem bestehende Blätter bleibe
 <!-- /erzeugt: aelterer-satz-schrift -->
 
 - **Seitenrand** (`references/layout.md`, „Raster“): ältere Blätter ringsum 60 px.
-- **Rechenkästchen** (`x-gitter`, `kaestchen` ohne Angabe, `references/abbildungen.md`): ältere Blätter ohne `data-satz`: 1 cm in Kl. 1/2, 0,5 cm ab Kl. 3.
+- **Rechenkästchen** (`x-gitter`, `kaestchen` ohne Angabe, `references/abbildungen/mathe-geometrie.md`): ältere Blätter ohne `data-satz`: 1 cm in Kl. 1/2, 0,5 cm ab Kl. 3.
 - **Tipp im Kopf:** `.kopf .tipp` gibt es nur noch für ältere Blätter.
 - **Seiten für die Lehrkraft:** `.seite.lk` gibt es nur noch für ältere Mappen.
 - **Muster:** `assets/beispiel-zehner-einer-kl2.html` steht im älteren, großen Satz ohne `data-satz`.

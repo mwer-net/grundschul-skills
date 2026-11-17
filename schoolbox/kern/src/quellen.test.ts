@@ -21,14 +21,19 @@ import {
 	zahlStandard,
 } from './abbildungen';
 import { browserSkip } from './browsertest';
+import { leseAbbildungsKatalog } from './abbildungen-katalog';
 import { LAUF_MELDUNGEN } from './einheit';
+import { ABBILDUNGEN_DATEIEN } from './einheit-bau';
 import { ASSETS, BLATT_PY, SKILL_DIR, WURZEL } from './konfig';
 import { MELDUNG_CODES } from './meldungen';
-import { abgleichen, ABSCHNITTE, setzeAbschnitt } from './quellen';
+import { abgleichen, ABSCHNITTE, katalogFehler, setzeAbschnitt } from './quellen';
 import type { Format } from './werte';
 import { ART_ANGABEN, ART_FORMATE, ARTEN, FORMATE, STANDARD_FORMAT, standardFormat, VORLAGE_FORMAT } from './werte';
 
-const KATALOG = readFileSync(path.join(SKILL_DIR, 'references', 'abbildungen.md'), 'utf8');
+const SKILLS = path.dirname(SKILL_DIR);
+/** Der Katalog der Abbildungen (226): Einstieg und Teil-Dateien, je Datei ihr Text. */
+const KATALOG_DATEIEN = new Map(ABBILDUNGEN_DATEIEN.map((d) => [d, readFileSync(path.join(SKILLS, d), 'utf8')]));
+const KATALOG = [...KATALOG_DATEIEN.values()].join('\n');
 const JS = readFileSync(path.join(ASSETS, 'abbildungen.js'), 'utf8');
 const schemata = Object.entries(ABBILDUNG_SCHEMA) as [string, AbbildungSchema][];
 /** Nur für die Tests der Feldtypen im Panel, nie im Material. */
@@ -92,6 +97,14 @@ const fehlendeAttribute = (katalog: string, tag: string, s: AbbildungSchema) => 
 describe('Katalog gegen Schema', () => {
 	it('jedes Element hat einen Abschnitt mit allen Attributen', () => {
 		const fehlt = imKatalog.flatMap(([tag, s]) => fehlendeAttribute(KATALOG, tag, s).map((a) => `${tag}.${a}`));
+		assert.deepEqual(fehlt, []);
+	});
+
+	it('jedes Element nennt alle Attribute in der Datei, die es beschreibt (226)', () => {
+		const datei = new Map(leseAbbildungsKatalog(SKILLS).map((b) => [b.element, b.datei]));
+		const fehlt = imKatalog.flatMap(([tag, s]) =>
+			fehlendeAttribute(KATALOG_DATEIEN.get(datei.get(tag) ?? '') ?? '', tag, s).map((a) => `${tag}.${a}`),
+		);
 		assert.deepEqual(fehlt, []);
 	});
 
@@ -159,6 +172,7 @@ describe('Erzeugte Abschnitte', () => {
 		const ziel = path.join(ordner, name);
 		for (const datei of [
 			...new Set(ABSCHNITTE.map((a) => a.datei)),
+			...ABBILDUNGEN_DATEIEN.map((d) => `skills/${d}`),
 			'skills/html-materialerstellung/assets/blatt.css',
 			'skills/html-materialerstellung/assets/pruefung.js',
 		]) {
@@ -254,6 +268,43 @@ describe('Erzeugte Abschnitte', () => {
 			readFileSync(js, 'utf8').replace('melde("HINWEIS", nr, "platzhalter",', 'melde("HINWEIS", nr, "neu-code",'),
 		);
 		assert.throws(() => abgleichen(wurzel, false), /neu-code/);
+	});
+
+	it('Index der Abbildungen: jedes Element mit seiner Datei, der Text hinter dem Namen oder die Beschriftung', () => {
+		const text = readFileSync(path.join(SKILL_DIR, 'references', 'abbildungen.md'), 'utf8');
+		const index = text.split('<!-- erzeugt: abbildungen-index -->')[1]?.split('<!-- /erzeugt')[0] ?? '';
+		assert.match(index, /\| `x-zeitspanne` \| Zeitspanne am Zeitstrahl \| `references\/abbildungen\/mathe-groessen-daten\.md` \|/);
+		assert.match(index, /\| `x-lueckentext` \| Lückentext \| `references\/abbildungen\.md` \|/);
+		assert.match(index, /\| `x-timer` \| Zeitscheibe \| `references\/folien\.md` \|/);
+		assert.doesNotMatch(index, /x-probe/);
+	});
+
+	it('Probe: Ein Element ohne Überschrift, doppelt oder außerhalb des Schemas ist ein Fehler (226)', () => {
+		const schema = Object.keys(ABBILDUNG_SCHEMA);
+		const alle = leseAbbildungsKatalog(SKILLS);
+		assert.deepEqual(katalogFehler(alle, schema), []);
+		const ohne = alle.filter((b) => b.element !== 'x-gitter');
+		assert.deepEqual(katalogFehler(ohne, schema), ['x-gitter ist in keiner Datei des Katalogs beschrieben.']);
+		const doppelt = [...alle, { element: 'x-gitter', wofuer: '', datei: 'b.md' }];
+		assert.match(katalogFehler(doppelt, schema).join(), /x-gitter ist mehrfach beschrieben: .*mathe-geometrie\.md, b\.md/);
+		assert.deepEqual(katalogFehler([...alle, { element: 'x-neu', wofuer: '', datei: 'b.md' }], schema), [
+			'x-neu steht nicht im Schema.',
+		]);
+		const wurzel = kopie('index');
+		const geometrie = path.join(wurzel, 'skills/html-materialerstellung/references/abbildungen/mathe-geometrie.md');
+		writeFileSync(geometrie, readFileSync(geometrie, 'utf8').replace('### `x-gitter`:', '### Gitter mit `x-gitter`:'));
+		assert.throws(() => abgleichen(wurzel, false), /x-gitter ist in keiner Datei/);
+	});
+
+	it('Probe: Eine neue Überschrift in einer Teil-Datei schlägt im Index an, Schreiben behebt es (226)', () => {
+		const wurzel = kopie('index-neu');
+		const geometrie = path.join(wurzel, 'skills/html-materialerstellung/references/abbildungen/mathe-geometrie.md');
+		writeFileSync(geometrie, readFileSync(geometrie, 'utf8').replace('### `x-figur`: Ebene Figur', '### `x-figur`: Vieleck'));
+		assert.deepEqual(abgleichen(wurzel, false), [
+			'skills/html-materialerstellung/references/abbildungen.md: abbildungen-index',
+		]);
+		abgleichen(wurzel, true);
+		assert.match(readFileSync(path.join(wurzel, 'skills/html-materialerstellung/references/abbildungen.md'), 'utf8'), /\| `x-figur` \| Vieleck \|/);
 	});
 
 	it('Probe: Eine fehlende Markierung ist ein Fehler, nicht „aktuell“', () => {

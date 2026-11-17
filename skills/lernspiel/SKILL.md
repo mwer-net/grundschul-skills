@@ -61,12 +61,12 @@ Satzstreifen zum Legen und Umstellen: `x-satzglieder` mit `ausschneiden="ja"` (`
 - Die Kurzinfo für die Lehrkraft ist nüchtern (`body.lehrkraft`, Muster `html-materialerstellung/assets/beispiel-lehrkraft-hinweise.html`); in einer Reihe steht sie in den Hinweisen für die Lehrkraft statt im Spiel. Zu jedem Spiel zum Ausschneiden gehört dort ein Abschnitt „Drucken und Basteln“ (Inhalt: `druck-und-platz.md`, „Ausschneide- und Legematerial“).
 - Wenn möglich eine kooperative Variante anbieten (gemeinsam gegen die Zeit, Klassenziel). Keine Ranglisten über mehrere Runden; wer eine Aufgabe nicht weiß, darf eine Tippkarte nehmen.
 
-Würfel für Spielregeln und Spielkarten kommen aus `<x-wuerfel>` (`html-materialerstellung/references/abbildungen.md`), nie als Bild. Spielwürfel mit eigenen Seiten: `<x-wuerfelnetz flaechen="…" bastel="ja">`, Druckhinweis „Originalgröße, festes Papier“.
+Würfel für Spielregeln und Spielkarten kommen aus `<x-wuerfel>` (`html-materialerstellung/references/abbildungen/mathe-groessen-daten.md`), nie als Bild. Spielwürfel mit eigenen Seiten: `<x-wuerfelnetz flaechen="…" bastel="ja">`, Druckhinweis „Originalgröße, festes Papier“.
 
 ## Qualitätscheck
 
 - [ ] Jede Aufgabe hat genau eine eindeutige Lösung im Spiel. Domino: Kein Ergebnis doppelt und die Kette schließt sich prüft `x-domino`
-- [ ] Rätsel als Spiel oder Station: `x-suchsel`, `x-kreuzwort`, zur Kontrolle `x-loesungswort` (Abschnitt „Rätsel“ im Katalog)
+- [ ] Rätsel als Spiel oder Station: `x-suchsel`, `x-kreuzwort`, zur Kontrolle `x-loesungswort` (Abschnitt „Rätsel“ in `html-materialerstellung/references/abbildungen/spiele-raetsel.md`)
 - [ ] Bingo: Verschiedene Karten und die vollständige Rufliste prüft `x-bingo`
 - [ ] FEHLER aus `blatt.py` ernst nehmen: Sie heißen, dass das Spiel so nicht funktioniert
 - [ ] Anleitung von Kindern ohne Erwachsene verständlich
@@ -74,7 +74,7 @@ Würfel für Spielregeln und Spielkarten kommen aus `<x-wuerfel>` (`html-materia
 
 ## Umsetzung (`html-materialerstellung`)
 
-- Bingo, Domino, Würfel-/Laufspiel und Leiterspiel über die Elemente, Abschnitt „Spiele“ in `html-materialerstellung/references/abbildungen.md`. `x-domino` setzt mit `data-satz="2"` Größe, Start und Ziel selbst (`je-seite` weglassen); Bingo 1–2 Karten pro A4.
+- Bingo, Domino, Würfel-/Laufspiel und Leiterspiel über die Elemente, Abschnitt „Spiele“ in `html-materialerstellung/references/abbildungen/spiele-raetsel.md`. `x-domino` setzt mit `data-satz="2"` Größe, Start und Ziel selbst (`je-seite` weglassen); Bingo 1–2 Karten pro A4.
 - Spielwürfel mit eigenen Seiten über `x-wuerfelnetz`. Druckhinweise: festes Papier, laminieren, ausschneiden.
 - Kartenraster mit `.karten` (`--spalten`, `--zeilen`, `--set`), vorn die `.karte.deckkarte`. Abschauen in `html-materialerstellung/assets/beispiel-kartensatz.html`.
 - Rückseiten als eigene `.seite` mit `.karten.rueckseiten` in derselben Reihenfolge wie vorn; die Klasse spiegelt die Spalten für den Duplexdruck.
