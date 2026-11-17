@@ -108,18 +108,23 @@ Die Skills gelten für Grundschulen in Baden-Württemberg.
 - **Piktogramme für Arbeitsaufträge** unterstützen leseschwache Kinder, wenn sie eingeführt und einheitlich sind (z. B. Metacom).
   - https://www.lesen.bayern.de/fileadmin/user_upload/Lesen/Methoden/gesamter_Leseprozesse/Methode_Piktogramme.pdf
 
-- **Emotional Design:** Freundliche Gesichter an Lernobjekten und angenehme Farben verbessern Behalten, Verstehen und Motivation (Meta-Analyse Brom et al. 2018, d ≈ 0,3–0,4).
+- **Emotional Design:** Freundliche Gesichter an Lernobjekten und angenehme Farben verbessern Behalten, Verstehen und Motivation und senken die empfundene Schwierigkeit (Meta-Analyse Brom et al. 2018, d ≈ 0,3–0,4; Wong & Adesope 2021; Um, Plass et al. 2012).
   - https://artemis.ms.mff.cuni.cz/main/papers/emodesign_manuscript_1rev_180928_FINAL_norev.pdf
   - https://link.springer.com/article/10.1186/s40561-024-00332-7
-- **Seductive Details bei Kindern:** Negativer Effekt v. a. bei geringer Impulskontrolle; bunte irrelevante Bilder neben dem Text stören Leseanfänger.
+- **Seductive Details bei Kindern:** Irrelevante Bilder und Details verschlechtern Behalten und Transfer (Sundararajan & Adesope 2020). Negativer Effekt v. a. bei geringer Impulskontrolle; bunte irrelevante Bilder neben dem Text stören Leseanfänger.
   - https://en.wikipedia.org/wiki/Seductive_details
   - https://www.learningscientists.org/blog/2019/6/20-1
-- **Visuelle Umgebung:** Stark dekorierte Lernräume senken Aufmerksamkeit und Lernzuwachs bei 5–6-Jährigen (Fisher, Godwin & Seltman 2014, Psychological Science).
+- **Visuelle Umgebung:** Stark dekorierte Lernräume senken Aufmerksamkeit und Lernzuwachs bei 5–6-Jährigen (Fisher, A. V., Godwin, K. E. & Seltman, H. (2014). Visual environment, attention allocation, and learning in young children. Psychological Science, 25(7)).
   - https://www.psychologicalscience.org/news/releases/heavily-decorated-classrooms-disrupt-attention-and-learning-in-young-children.html
 - **Schrift für Kinder:** Einstöckiges a/g bringt beim Lesen keinen messbaren Vorteil (Walker & Reynolds); Kinder bevorzugen klare, serifenlose Formen (Sassoon Primary). Andika wurde für Leseanfänger entwickelt.
   - https://www.fonts.com/content/learning/fyti/situational-typography/typography-for-children
   - https://booksforkeeps.co.uk/article/typography-in-childrens-books/
   - https://www.bwillcreative.com/best-fonts-for-teachers-in-canva/
+- **Druck, Kopie und Graustufen** (`druck-und-platz.md`):
+  - ISO/IEC 19752 (Reichweite von Tonerkartuschen bei 5 % Flächendeckung); Erläuterung z. B. troygroup.com/blog/understanding-toner-ink-yield-and-5-page-coverage
+  - Graustufen-Umsetzung: Farben gleicher Leuchtdichte werden zum selben Grau (u. a. Grundland & Dodgson, Cambridge Tech Report UCAM-CL-TR-649)
+  - Kopierfähige Vorlagen: Linien nicht zu dünn, Grauwerte unterscheidbar, Verkleinerung auf 70 % halbiert die Linienstärke (LIT Verlag, Hinweise zur Papiervorlage)
+  - Gestaltgesetz der gemeinsamen Region vs. Nähe; zu viele Rahmen erzeugen Unruhe (lawsofux.com/law-of-common-region)
 
 ## Präsentation und Folien (Skill `praesentation`)
 

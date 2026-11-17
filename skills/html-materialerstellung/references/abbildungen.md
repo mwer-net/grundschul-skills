@@ -6,7 +6,7 @@ Alle `x-…`-Elemente aus `assets/abbildungen.js`. Sie sind berechnet, nie von H
 
 - Lösung erscheint nur auf dem Lösungsblatt und im Beispiel (`class="beispiel"` am Container).
 - Farbe aus der Palette, Text bleibt schwarz. In der s/w-Ansicht zeichnen die Elemente selbst mit Schwarz, Grau, Form und Muster.
-- Unzulässige Angaben zeichnen einen gestrichelten Kasten mit dem Grund. `blatt.py` meldet ihn als FEHLER mit dem Namen der Abbildung, der Editor sperrt das Speichern.
+- Unzulässige Angaben zeichnen einen gestrichelten Kasten mit dem Grund. `blatt.py` meldet ihn als FEHLER mit dem Namen der Abbildung.
 - Attributformate: Liste mit Leerzeichen oder `;`, wenn Einträge Leerzeichen enthalten; Paare `Name: Wert; Name: Wert`; Raster zeilenweise `0 1 1 / 0 1 0`. Zahlen auf dem Blatt: Dezimalkomma, ab fünf Stellen mit schmalem Leerzeichen (U+202F).
 - Mit `seed="…"` hängt alles Gemischte nur am Attribut: gleicher Seed, gleiches Bild in Vorschau, PDF und Lösung.
 - Ist ein Element maßstäblich (echte Zentimeter), kommt die Prüfmeldung `masstab`: beim Anlegen `--druckhinweis "In Originalgröße drucken (100 %)"` setzen.
@@ -194,7 +194,7 @@ Muster: `assets/muster/ebene-geometrie.html`. Gitter und Figuren mit `masse` sin
 | `spalten`, `zeilen` | Größe, höchstens Satzspiegelbreite |
 | `kaestchen` | Kantenlänge in cm; ohne Angabe wie im Rechenheft: 0,7 cm in Kl. 1, 0,5 cm ab Kl. 2 |
 | `figur` | gefüllte Kästchen zeilenweise, `0` leer, `1` voll |
-| `linien` | stattdessen Vielecke über Gitterpunkte, `0,0 3,0 3,2`, mehrere mit `;` (im Editor nur über Claude änderbar) |
+| `linien` | stattdessen Vielecke über Gitterpunkte, `0,0 3,0 3,2`, mehrere mit `;` |
 | `aufgabe` | `spiegeln`, `fortsetzen`, `vergroessern`, `weg`, ohne Angabe keine |
 | `achse`, `achse-bei` | `senkrecht` oder `waagerecht`, nach so vielen Kästchen; liegt immer auf einer Gitterlinie |
 | `rapport`, `rapporte`, `rapportart` | Breite eines Musters, wie viele vorgegeben sind (2), `schieben`, `spiegeln` oder `drehen` im Wechsel. Die Lösung zeigt zwei weitere |
@@ -421,7 +421,7 @@ Muster: `assets/muster/einmaleins-und-schriftlich.html`. Lösung und Teilergebni
 Eine Ziffer je Kästchen im echten Heftmaß, also in Originalgröße drucken (`kaestchen` 0,4 bis 1 cm, Standard 0,5).
 
 - `art`: `plus` (2 bis 4 Zahlen), `minus` (erste Zahl mindestens so groß wie die zweite), `mal` (zweiter Faktor höchstens 3 Stellen), `geteilt` (durch 2 bis 9, mit oder ohne Rest). Jede Zahl höchstens 7 Stellen.
-- `verfahren` bei Minus Pflicht: `abziehen-entbuendeln`, `abziehen-erweitern`, `ergaenzen-entbuendeln`, `ergaenzen-erweitern`. Entbündeln zeigt die neuen Ziffern über den durchgestrichenen, Erweitern die Überträge unter dem Subtrahenden. Abziehen und Ergänzen sehen im Blatt gleich aus und unterscheiden sich in der Sprechweise; das Panel nennt sie.
+- `verfahren` bei Minus Pflicht: `abziehen-entbuendeln`, `abziehen-erweitern`, `ergaenzen-entbuendeln`, `ergaenzen-erweitern`. Entbündeln zeigt die neuen Ziffern über den durchgestrichenen, Erweitern die Überträge unter dem Subtrahenden. Abziehen und Ergänzen sehen im Blatt gleich aus und unterscheiden sich in der Sprechweise.
 - `uebertrag` `zeile` (Standard) oder `keine`. Beim Malnehmen hat jedes Teilprodukt eine eigene Übertragszeile über sich; die Teilprodukte beginnen beim höchsten Stellenwert des zweiten Faktors und tragen ihre Nullen.
 - `zeige` mehrfach: `aufgabe`, `uebertraege`, `ergebnis`; Standard `aufgabe`. Das Lösungsblatt zeigt alles, bei Geteilt mit allen Zwischenschritten und Rest.
 - `fehlerhaft="ja"` zeigt die Rechnung mit genau einem typischen Fehler (Übertrag vergessen, Stelle verrutscht, falsch herum gerechnet; bei Geteilt Rest oder Null vergessen), `seed` wählt ihn. Die Lösung kreist die falsche Ziffer ein, schreibt die richtige darunter und nennt den Fehler. Lässt sich keiner einbauen (ohne Übertrag und kürzere Zahl), meldet das Element das.
@@ -469,7 +469,7 @@ Muster: `assets/muster/groessen.html`. Beträge, Längen und Zeiten werden immer
 <x-kalender art="jahr" jahr="2028"></x-kalender>
 ```
 
-`art` `monat` oder `jahr` (12 Monate auf einer Seite). Wochen beginnen am Montag, Schaltjahre stimmen. `markiert` Tage mit Ring, `luecken` Tage ohne Zahl; im Jahreskalender als `Monat-Tag`, z. B. `2-14` (dort nur in der Quelle, das Panel zeigt die Tage nur beim Monat). `kw="ja"` Kalenderwochen. Feiertage und Ferien kommen nicht automatisch, sie sind je Land verschieden: über `markiert`.
+`art` `monat` oder `jahr` (12 Monate auf einer Seite). Wochen beginnen am Montag, Schaltjahre stimmen. `markiert` Tage mit Ring, `luecken` Tage ohne Zahl; im Jahreskalender als `Monat-Tag`, z. B. `2-14`. `kw="ja"` Kalenderwochen. Feiertage und Ferien kommen nicht automatisch, sie sind je Land verschieden: über `markiert`.
 
 ### `x-zeitspanne`: Zeitspanne am Zeitstrahl
 
@@ -555,7 +555,7 @@ Ohne `woerter`: die Wörter aller Lücken derselben Aufgabe. Fehlt ein Lückenwo
 <x-beschriften darstellung="nummer" wortspeicher="1" bild="bilder/wachstum.png" alt="Pflanze" punkte="12,70: Samen"></x-beschriften>
 ```
 
-`punkte` ist `x,y: Wort` in Prozent des Bilds. `darstellung`: `linien` (Standard, Wörter außerhalb des Bilds, Linien kreuzen sich nicht), `nummer`. Höchstens 6 Punkte je Bildhälfte. `wortspeicher="1"` zeigt die Wörter sortiert. In der Schoolbox setzt die Lehrkraft die Punkte mit Maus oder Finger aufs Bild. Lösung: Wörter eingetragen.
+`punkte` ist `x,y: Wort` in Prozent des Bilds. `darstellung`: `linien` (Standard, Wörter außerhalb des Bilds, Linien kreuzen sich nicht), `nummer`. Höchstens 6 Punkte je Bildhälfte. `wortspeicher="1"` zeigt die Wörter sortiert. Lösung: Wörter eingetragen.
 
 ### `x-schreibrahmen`
 
@@ -843,7 +843,7 @@ Gibt es für einen Wunsch kein Element, baue im Chat ein eigenes aus statischem 
 - **Außen** ein `figure`, `div` oder `svg` mit `data-frei` und einem Namen in `data-frei-titel`. Der Name steht in der Gliederung und im Inspektor. Keine eigenen `x-`-Namen: Unbekannte `x-…` bleiben leer.
 - **Ist ein Teil des Blatts gewählt,** bleibt das Ergebnis genau ein Element. Passt das gewählte nicht, ersetze es durch das freie.
 - **Erlaubt:** was sich drucken lässt, also HTML-Grundelemente, SVG-Formen, `<use href="#…">`, `fill="url(#…)"` als Attribut für Verläufe und Muster aus `<defs>`, `style` und `<style>` ohne `url()` und `@import`.
-- **Nicht erlaubt:** Skripte, `on…`-Attribute, `javascript:`, `<iframe>`, `<object>`, `<embed>`, `<form>`, `<base>`, `<meta>`, `<link>`, `<foreignObject>`, `<image>`, Animationen (Bewegung im Auftakt nur über `data-auftritt` und `data-bewegung`, `praesentation/SKILL.md`) und jede Adresse nach außen. Bilder nur als Pfad aus der Mappe; Formen zeichnest du als SVG. Rückstriche in CSS und seltene Entitäten gehen auch nicht, schreibe das Zeichen direkt. Der Server prüft das nach jedem Lauf gegen eine Liste. Bei einem Fund entsteht kein Vorschlag. Etwas zum Anklicken geht hier nicht, und das sagst du auch so.
+- **Nicht erlaubt:** Skripte, `on…`-Attribute, `javascript:`, `<iframe>`, `<object>`, `<embed>`, `<form>`, `<base>`, `<meta>`, `<link>`, `<foreignObject>`, `<image>`, Animationen (Bewegung im Auftakt nur über `data-auftritt` und `data-bewegung`, `praesentation/SKILL.md`) und jede Adresse nach außen. Bilder nur als Pfad aus der Mappe; Formen zeichnest du als SVG. Rückstriche in CSS und seltene Entitäten gehen auch nicht, schreibe das Zeichen direkt. Enthält das Element etwas davon, entsteht kein Vorschlag. Etwas zum Anklicken geht hier nicht, und das sagst du auch so.
 - **Es bleibt Material:** Linien ≥ 1,5 px, tauglich für s/w, Farbe nie als einziger Träger, Text schwarz, Maße relativ zum Blatt (`viewBox` und `width="100%"` oder eine Breite innerhalb des Satzspiegels). Lösung über dieselben Wege wie sonst: `class="nur-loesung"` zeigt einen Teil nur auf dem Lösungsblatt, auch an einem `<g>`.
 - **Klein halten:** Hunderte Pfade sprengen Budget und Dateigröße. Lieber weniger Punkte.
 

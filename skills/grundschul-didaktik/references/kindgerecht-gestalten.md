@@ -4,8 +4,10 @@
 
 Zwei Befunde scheinen sich zu widersprechen, passen aber zusammen:
 
-1. **Emotional Design wirkt.** Warme, angenehme Farben, runde Formen und freundliche Gesichter an *lernrelevanten* Elementen verbessern Behalten, Verstehen und Motivation und senken die empfundene Schwierigkeit (Meta-Analyse Brom et al. 2018: d ≈ 0,3–0,4; Wong & Adesope 2021; Um, Plass et al. 2012).
-2. **Deko ohne Bezug schadet.** Interessante, aber für das Lernziel irrelevante Bilder und Details („seductive details") verschlechtern Behalten und Transfer (Sundararajan & Adesope 2020). Bei Kindern mit geringer Impulskontrolle ist der Effekt am stärksten; bei Leseanfängern konkurrieren bunte Bilder neben dem Text um Aufmerksamkeit. Stark dekorierte Lernumgebungen senken bei jungen Kindern die Aufmerksamkeit und den Lernzuwachs (Fisher, Godwin & Seltman 2014).
+1. **Emotional Design wirkt.** Warme, angenehme Farben, runde Formen und freundliche Gesichter an *lernrelevanten* Elementen verbessern Behalten, Verstehen und Motivation und senken die empfundene Schwierigkeit.
+2. **Deko ohne Bezug schadet.** Interessante, aber für das Lernziel irrelevante Bilder und Details („seductive details") verschlechtern Behalten und Transfer. Bei Kindern mit geringer Impulskontrolle ist der Effekt am stärksten; bei Leseanfängern konkurrieren bunte Bilder neben dem Text um Aufmerksamkeit. Stark dekorierte Lernumgebungen senken bei jungen Kindern die Aufmerksamkeit und den Lernzuwachs.
+
+Studien dazu: `grundschul-didaktik/references/quellen.md`, „Gestaltung und Kognition“.
 
 **Daraus folgt die Grundregel: Das schön machen, was ohnehin da ist – nicht etwas dazustellen.** Form und Figuren kommen an Elemente mit Funktion (Aufgabennummer, Beispiel, Tipp, Lernobjekt), nicht als Füllung.
 
@@ -60,17 +62,17 @@ Feste Vorgabe für alle Materialien: Die Leitfigur ist **Willi Waschbär** oder 
 | Grafik | Aussehen | Datei (`html-materialerstellung/assets/bilder/`) |
 |---|---|---|
 | Willi Waschbär | grauer Waschbär-Junge, schwarze Augenmaske, dunkelbraune Augen ohne Wimpern, geringelter Schwanz, oranges T-Shirt (#F28C28) | `willi.png`, s/w `willi-strich.png` |
-| Wilma Waschbär | graues Waschbär-Mädchen, schwarze Augenmaske, petrolfarbene Augen mit Wimpern, geringelter Schwanz, petrolfarbenes Kleid (#2A9D8F), petrolfarbene Schleife am Ohr | `wilma.png`, s/w noch anlegen |
+| Wilma Waschbär | graues Waschbär-Mädchen, schwarze Augenmaske, petrolfarbene Augen mit Wimpern, geringelter Schwanz, petrolfarbenes Kleid (#2A9D8F), petrolfarbene Schleife am Ohr | `wilma.png`, keine s/w-Version |
 | Wachstumsgrafik (Samen → Keimling → Pflanze → Blume) | vier Stufen nebeneinander, Pastell, für die Selbsteinschätzung | `wachstum.png`, s/w `wachstum-strich.png` |
 
 Canva-Media-IDs und Technik: `html-materialerstellung/references/bilder.md`.
 
-**Im Material steht die farbige Version; die s/w-Ausgabe nimmt von selbst die Strich-Version**, denn die farbigen werden in s/w zu grauen Flächen (Toner, unruhig). Fehlt eine Strich-Version noch: in Canva mit `generate-image` aus dem Original (`imageReferences`) erzeugen, Prompt „gleiche Figur als Ausmalbild: nur klare schwarze Konturen, weiße Füllung, keine Grautöne, keine Schraffur, weißer Hintergrund", dann `remove-background`, als Datei in `assets/bilder/` ablegen (`bilder.md`).
+**Im Material steht die farbige Version; die s/w-Ausgabe nimmt von selbst die Strich-Version**, denn die farbigen werden in s/w zu grauen Flächen (Toner, unruhig). Fehlt eine Strich-Version noch: anlegen nach `html-materialerstellung/references/bilder.md`, Abschnitt 2.
 
 - **Wiederverwenden statt neu erzeugen:** Die vorhandenen Dateien einsetzen. Für eine andere Pose (zeigt nach links, freut sich, denkt nach) `generate-image` mit dem Original als `imageReferences` und der Aussehen-Beschreibung oben aufrufen, danach `remove-background`; neue Posen als Datei ergänzen.
 - **Wer wann:** Pro Material eine Figur, abwechselnd über die Materialien einer Reihe; bei Partner- oder Dialogaufgaben auch beide.
 - **Immer mit Funktion:** Die Figur gibt einen Strategietipp in einer Sprechblase, zeigt auf das Beispiel und denkt dort laut vor („So geht's: Zuerst … dann … zum Schluss prüfe ich …"), stellt die Herausforderung ●●●, hat sich bei „Finde den Fehler" vertan oder stellt die Reflexionsfrage. Sie spricht in „noch"-Sprache und lobt Strategie und Ausdauer, nie Begabung. Ohne Funktion keine Figur.
-- Höchstens ein Auftritt pro Seite (Figur mit Tipp oder Figur in der Ecke, nie beides), zwei nur bei Partner- oder Dialogaufgaben; klein (Maß setzt `blatt.css`, Faustwert in `html-materialerstellung/references/layout.md`). Die Figur in der Ecke steht am Rand; der Tipp steht im Körper seiner Aufgabe über der Item-Reihe, nie mitten in einer Reihe und nicht im Kopf (`druck-und-platz.md`, „Kopf und Fuß schlank“). Zwei Figuren auf einer Seite wirkten in der Erprobung sofort überladen.
+- Höchstens ein Auftritt pro Seite (Figur mit Tipp oder Figur in der Ecke, nie beides), zwei nur bei Partner- oder Dialogaufgaben; klein (Maß setzt `blatt.css`, Faustwert in `html-materialerstellung/references/layout.md`). Die Figur in der Ecke steht am Rand; der Tipp steht im Körper seiner Aufgabe über der Item-Reihe, nie mitten in einer Reihe und nicht im Kopf (`druck-und-platz.md`, „Kopf und Fuß schlank“). Zwei Figuren auf einer Seite wirken sofort überladen.
 
 ### 4. Bilder nur mit Mehrwert
 
@@ -91,7 +93,7 @@ Dosierung: Leitfigur plus nur die Bilder, die die Aufgaben brauchen.
 
 ### 5. Kindgerechte Schrift
 
-- **Fließtext:** klare Druckschrift mit eindeutigen Formen. In Klasse 1/2 mit einstöckigem a und g, weil es der Form entspricht, die die Kinder schreiben (Lesetests zeigen keinen Nachteil des zweistöckigen a – entscheidend ist die Passung zur Schrift der Klasse). Standard: **Andika** (für Leseanfänger entwickelt, einstöckiges a und g; im HTML eingebettet), auch ab Klasse 3. Nur eingebettete Schriften (`html-materialerstellung/assets/fonts/`).
+- **Fließtext:** klare Druckschrift mit eindeutigen Formen. In Klasse 1/2 mit einstöckigem a und g, weil es der Form entspricht, die die Kinder schreiben (entscheidend ist die Passung zur Schrift der Klasse). Standard: **Andika** (für Leseanfänger entwickelt, einstöckiges a und g; im HTML eingebettet), auch ab Klasse 3. Nur eingebettete Schriften (`html-materialerstellung/assets/fonts/`).
 - **Überschriften auf Arbeitsseiten:** die Leseschrift in fett, wie im Schulbuch. Eine runde, fröhliche Schmuckschrift (**Fredoka**) nur auf Schauseiten: Deckblatt, Szenenkarte, Plakat, Pass, Urkunde und Schmucktext.
 - Höchstens diese zwei Schriften. Keine Schreibschrift- oder Schmuckschriften für Lesetext, keine Großbuchstaben-Texte.
 - Ziffern in Schulform (1 ohne Fuß, offene 4, 7 mit Querstrich): `blatt.css` setzt sie von selbst.

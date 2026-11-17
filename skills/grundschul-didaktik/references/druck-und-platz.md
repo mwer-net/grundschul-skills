@@ -6,11 +6,11 @@ Material wird in Farbe angelegt, s/w ist eine Ansicht davon; die Regel dazu steh
 
 ## 1. Warum
 
-- **Toner:** Flächen und mittlere Töne kosten am meisten. Auch Pastellflächen druckt ein Laser als Punktraster über die ganze Fläche; auf dem Probeblatt Uhrzeit bedeckten sie 55 % der Seite und kosteten fast eine halbe Textseite Toner zusätzlich.
+- **Toner:** Flächen und mittlere Töne kosten am meisten. Auch Pastellflächen druckt ein Laser als Punktraster über die ganze Fläche.
 - **Kopierer:** Helle Flächen werden fleckig oder fallen weg, sehr helle Linien verschwinden. Jede Kopie einer Kopie und jede Verkleinerung (A4 → A5 halbiert die Linienstärke) verliert weiter.
 - **Graustufen:** Farben gleicher Helligkeit werden zum selben Grau. Farbcodes gehen verloren, farbige Schrift wird kontrastarm.
 - **Kästen:** Jeder Kasten kostet Innenabstand, bei vier Aufgaben schnell 150–200 px, also eine ganze Aufgabe. Weißraum und Nähe ordnen ebenso klar; viele Rahmen machen das Blatt unruhig (Gestaltgesetze).
-- **Emotional Design:** Farbe, runde Formen und Figur an lernrelevanten Elementen motivieren (`kindgerecht-gestalten.md`). Stark dekorierte Umgebungen lenken junge Kinder dagegen ab (Fisher, Godwin & Seltman 2014). Darum Farbe gezielt an Nummern, Überschrift, Figur und Lernobjekt, nie als Fläche oder Deko.
+- **Emotional Design:** Farbe, runde Formen und Figur an lernrelevanten Elementen motivieren (`kindgerecht-gestalten.md`). Stark dekorierte Umgebungen lenken junge Kinder dagegen ab. Darum Farbe gezielt an Nummern, Überschrift, Figur und Lernobjekt, nie als Fläche oder Deko.
 
 ## 2. Damit es auch in s/w taugt
 
@@ -144,7 +144,7 @@ Ein Blatt ist dann richtig gefüllt, wenn ein Kind des Niveaus daran so lange ar
 
 **Im HTML** steht am `<body>` `data-satz="2"` (gesetzt wie ein Schulbuch) und das Zeitziel (`data-zeit="20"`), die Minuten an jeder Aufgabe (`<div class="aufgabe" data-min="5">`). `blatt.py` rechnet je Niveau nach und meldet zu wenig oder zu viel Zeit, fehlende Minuten, zu wenig Inhalt, einen zu hohen Kopf oder Fuß und freien Platz (Tabelle „Was die Prüfung meldet“). Geprüftes Muster: `html-materialerstellung/assets/beispiel-niveaublatt-kl2.html`.
 
-**Zeitmodell** (Richtwerte für ein Kind im mittleren Niveau, aus Unterrichtserfahrung; ● rechnet mit dem oberen, ●●● mit dem unteren Wert und bekommt dafür anspruchsvollere Items):
+**Zeitmodell** (Richtwerte für ein Kind im mittleren Niveau; ● rechnet mit dem oberen, ●●● mit dem unteren Wert und bekommt dafür anspruchsvollere Items):
 
 | Tätigkeit | Kl. 1 | Kl. 2 | Kl. 3 | Kl. 4 |
 |---|---|---|---|---|
@@ -259,8 +259,4 @@ Mindestmaße, die höchste Zahl je A4 und den Abstand zur Schnittkante prüft `b
 
 ## Quellen
 
-- ISO/IEC 19752 (Reichweite von Tonerkartuschen bei 5 % Flächendeckung); Erläuterung z. B. troygroup.com/blog/understanding-toner-ink-yield-and-5-page-coverage
-- Graustufen-Umsetzung: Farben gleicher Leuchtdichte werden zum selben Grau (u. a. Grundland & Dodgson, Cambridge Tech Report UCAM-CL-TR-649)
-- Kopierfähige Vorlagen: Linien nicht zu dünn, Grauwerte unterscheidbar, Verkleinerung auf 70 % halbiert die Linienstärke (LIT Verlag, Hinweise zur Papiervorlage)
-- Gestaltgesetz der gemeinsamen Region vs. Nähe; zu viele Rahmen erzeugen Unruhe (lawsofux.com/law-of-common-region)
-- Fisher, A. V., Godwin, K. E. & Seltman, H. (2014). Visual environment, attention allocation, and learning in young children. Psychological Science, 25(7).
+`grundschul-didaktik/references/quellen.md`, „Gestaltung und Kognition“.

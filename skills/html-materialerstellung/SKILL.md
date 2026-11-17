@@ -148,7 +148,7 @@ Bevor ein Element, ein Format oder ein Maß dazukommt: [Quellen](references/quel
 
 Fehlt eine Darstellung, kommt es darauf an, wo du arbeitest. Nie gilt: von Hand zurechtgeschobenes Layout statt eines Elements, ein KI-Bild statt einer exakten Abbildung, oder eine Absage, weil es das Element nicht gibt.
 
-**Im Chat und in Lehrkraft-Sitzungen:** Vorhandene Elemente zuerst, denn sie lassen sich einstellen. Sonst baue die Darstellung als freies Element aus HTML und SVG mit `data-frei`: [Freies Element](references/abbildungen.md#freies-element). Den Code der Schoolbox änderst du dabei nicht. Wiederholt sich ein freies Element, merkt der Admin es sich für ein neues Element. Schmuck, der frei auf der Seite liegt (Formen, Figuren, Schmuckschrift, Konfetti), schreibst du nach [Gestaltung](references/gestaltung.md); freie Elemente (`data-frei`) bleiben, was sie sind.
+**Im Chat und in Lehrkraft-Sitzungen:** Vorhandene Elemente zuerst, denn sie lassen sich einstellen. Sonst baue die Darstellung als freies Element aus HTML und SVG mit `data-frei`: [Freies Element](references/abbildungen.md#freies-element). Den Code der Schoolbox änderst du dabei nicht. Schmuck, der frei auf der Seite liegt (Formen, Figuren, Schmuckschrift, Konfetti), schreibst du nach [Gestaltung](references/gestaltung.md); freie Elemente (`data-frei`) bleiben, was sie sind.
 
 **Im Repo:** als neues Element. **Neues Element = Zeichenfunktion in `abbildungen.js` + Eintrag in `ABBILDUNG_SCHEMA` (`schoolbox/kern/src/abbildungen.ts`) + Katalogeintrag + Musterblatt.** Ohne Schema lässt es sich im Editor nicht einstellen, und der Test dazu schlägt fehl.
 
