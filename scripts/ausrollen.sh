@@ -105,7 +105,7 @@ fi
 # Vor der ersten Änderung: Der neue Stand wird außerhalb des Arbeitsbaums geprüft, mit dem tsx des laufenden Stands
 schritt 'Quellen prüfen'
 pruefordner=$(mktemp -d)
-git archive "$neu" skills schoolbox/kern/src | tar -x -C "$pruefordner"
+git archive "$neu" skills schoolbox/kern/src schoolbox/vorlagen/ki | tar -x -C "$pruefordner"
 if ! "$schoolbox_dir/node_modules/.bin/tsx" "$pruefordner/schoolbox/kern/src/quellen.ts" --pruefen; then
 	rm -rf "$pruefordner"
 	abbruch 'Die erzeugten Abschnitte in den Skills passen nicht zu ihrer Quelle. Nichts ausgerollt.'
