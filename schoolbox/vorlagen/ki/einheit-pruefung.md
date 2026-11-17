@@ -23,7 +23,7 @@ Teil 2, der zweite Blick (nur wenn die Nachricht Regeln oder Bilder nennt):
 
 Melde nur, was ein Kind oder die Lehrkraft wirklich aufhält, und nur, was du auf den Seiten siehst. Lob, Stilfragen und Vorschläge ohne Mangel meldest du nicht. Höchstens 15 Befunde, die wichtigsten zuerst, `loesung` vor `gestaltung`.
 
-Antworte nur mit einem JSON-Block, sonst nichts:
+Deine letzte Nachricht ist nur ein JSON-Block, sonst nichts:
 
 ```json
 {"befunde": [{"seite": 1, "aufgabe": "3", "art": "unklar", "text": "Ein Satz, was ein Kind aufhält."}]}
