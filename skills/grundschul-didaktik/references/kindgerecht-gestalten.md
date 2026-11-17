@@ -1,5 +1,7 @@
 # Kindgerecht und ansprechend gestalten, ohne zu überladen
 
+Inhalt: Kernaussage der Forschung · Arbeitsseiten und Schauseiten: wie viel Gestaltung wohin · Die fünf Hebel · KI-Bilder und -Grafiken (Canva `generate-image`) · Geschichten-Rahmen für eine Reihe · Prüffragen „ansprechend, aber nicht überladen"
+
 ## Kernaussage der Forschung
 
 Zwei Befunde scheinen sich zu widersprechen, passen aber zusammen:

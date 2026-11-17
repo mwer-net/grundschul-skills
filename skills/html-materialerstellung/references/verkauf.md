@@ -1,5 +1,7 @@
 # Material für den Verkauf (Eduki)
 
+Inhalt: 1. Deckblatt · 2. Handreichung · 3. Quellenverzeichnis · 4. Angebot für Eduki · 5. Gestaltung, die sich verkauft
+
 Lesen, wenn der Auftrag sagt, dass ein Material oder eine Reihe verkauft werden soll. Ohne diesen Satz gilt nichts von hier.
 
 Verkauft wird an fremde Lehrkräfte. Sie sehen zuerst nur das Deckblatt als kleines Bild, sie kennen die Klasse der Autorin nicht, und Eduki prüft vor der Freigabe jede Quelle. Gekauft werden vollständige Reihen mit eigenen Aufgabenideen, die liebevoll gestaltet sind; mehr Seiten derselben Übung verkaufen nichts. Deshalb gilt Abschnitt 5 für jede Seite, und vier Dinge kommen dazu:

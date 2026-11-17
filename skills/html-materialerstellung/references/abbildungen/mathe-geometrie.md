@@ -1,5 +1,7 @@
 # Abbildungen: Geometrie
 
+Inhalt: Ebene Geometrie · Räumliche Geometrie
+
 Für die `x-…`-Elemente hier gilt der Kopf des Katalogs `references/abbildungen.md` („Für alle gilt“: Lösung, Farbe, unzulässige Angaben, Attributformate, `seed`, `masstab`).
 
 ## Ebene Geometrie

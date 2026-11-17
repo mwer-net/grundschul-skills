@@ -1,5 +1,7 @@
 # Bilder: Leitfigur, KI-Bilder und -Grafiken mit Canva, Bilder ins Blatt holen
 
+Inhalt: 1. Vorhandene Grafiken (`assets/bilder/`) · 2. Bilder und Grafiken nach Bedarf mit Canva-KI (Format nach Platz, Bildvertrag, Prompt, Ablauf, Fehler und Versuche, 2a. Fehler im KI-Bild beheben, 2b. In der Schoolbox (ohne Bash)) · 3. Nichts Lesbares und nichts Exaktes aus der KI · 4. Ebenen über dem Bild: Figur, Zettel, Zahlen
+
 Was ein Bild bekommt, entscheidet `grundschul-didaktik/references/kindgerecht-gestalten.md` (Leitfigur mit Funktion, Bilder nur mit Mehrwert, Weglass-Test). Diese Datei regelt die Technik: Format, Bildvertrag, Prompt, Prüfung und Reparatur jedes KI-Bilds und wie Figur, Zettel und Zahlen als Ebenen auf das Bild kommen. Andere Skills und Aufträge verweisen hierher.
 
 ## 1. Vorhandene Grafiken (`assets/bilder/`)

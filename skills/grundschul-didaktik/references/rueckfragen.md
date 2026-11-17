@@ -1,5 +1,7 @@
 # Rückfrage-Protokoll
 
+Inhalt: Start-Abfrage (immer zuerst) · Ablauf · Was nicht passieren darf · Wiederkehrende Nutzer
+
 Ziel: Mit möglichst wenigen, gezielten Fragen ein vollständiges gemeinsames Verständnis herstellen, bevor Material entsteht. Angelehnt an das "Grill me"-Prinzip: Den Entscheidungsbaum Ast für Ast durchgehen, Abhängigkeiten der Reihe nach auflösen, zu jeder Frage eine Empfehlung geben.
 
 ## Start-Abfrage (immer zuerst)

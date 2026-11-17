@@ -1,5 +1,7 @@
 # Gestaltung: Ebenen, frei liegende Elemente, Anker
 
+Inhalt: Regeln für Claude · 1. Stapel · 2. Lage · 3. Attribute · 4. Arten · 5. Anker · 6. Druck und s/w · Seitenfläche · Figur · Bilder · Formen · Schmuckschrift · Sprechblase · Aussehen · Streuung · Titel im Bogen · Rahmen · Fläche · Gruppe · Pfad · Kombiniert
+
 Diese Datei beschreibt, wie Gestaltung im Material steht: Formen, Bilder, Figuren, Schmuckschrift, Streuungen,
 Seitenfläche, Seitenrahmen und Kopfband, die frei auf der Seite liegen statt im Stapel der Aufgaben. Alles ist
 statisches HTML, CSS und SVG. Es sieht ohne Skript gleich aus, im Editor, in der Vorschau und im PDF.

@@ -1,5 +1,7 @@
 # Kernkonzepte: Growth Mindset und Churer Modell
 
+Inhalt: A. Growth Mindset (dynamisches Selbstbild) · B. Churer Modell (Thöny & Lutz) · Zusammenspiel · Wachstumsgrafik · Quellen
+
 Beide Konzepte prägen, wie Aufgaben formuliert, angeboten und reflektiert werden. Drei Bausteine sind **wählbar** und werden in der Start-Abfrage geklärt (`rueckfragen.md`, Fragen 4–6):
 
 | Baustein | Frage | Bei „nein" |

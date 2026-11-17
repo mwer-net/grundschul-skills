@@ -1,5 +1,7 @@
 # Abbildungen: Zahlen und Rechnen
 
+Inhalt: Grundelemente · Zahldarstellungen · Rechenformate · Einmaleins und schriftliches Rechnen
+
 Für die `x-…`-Elemente hier gilt der Kopf des Katalogs `references/abbildungen.md` („Für alle gilt“: Lösung, Farbe, unzulässige Angaben, Attributformate, `seed`, `masstab`).
 
 ## Grundelemente

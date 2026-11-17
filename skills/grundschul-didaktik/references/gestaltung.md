@@ -1,5 +1,7 @@
 # Gestaltung von Grundschulmaterial
 
+Inhalt: Seitenaufbau (A4 Hochformat als Standard) · Schrift · Lineatur und Schreibflächen · Bilder und Illustrationen · Farbe · Arbeitsanweisungs-Symbole (nur auf Wunsch) · Arbeitsanweisungen formulieren · Barrierearme Zusatzhinweise
+
 ## Seitenaufbau (A4 Hochformat als Standard)
 
 Die Bausteine (Selbsteinschätzung, Niveaus, Sternchenaufgabe) legt die Start-Abfrage fest (`rueckfragen.md`). Das Schema zeigt alle Bausteine; nicht gewählte entfallen. Das Layout ist kompakt: Der Platz geht an Aufgaben, nicht an Kästen. Farbe und s/w: Abschnitt „Farbe“ unten. Mindestgrößen und Platzbudget: `druck-und-platz.md`.

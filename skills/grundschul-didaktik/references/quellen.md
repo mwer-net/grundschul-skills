@@ -1,5 +1,7 @@
 # Grundlagen und Quellen
 
+Inhalt: Recherche vor dem Plan: Quellen nach Rang · Bildungsstandards und Rahmen · Baden-Württemberg · Datenschutz · Leistungsbeurteilung und Klassenarbeiten · Mathematikdidaktik · Deutschdidaktik · Englisch in der Grundschule · Gestaltung und Kognition · Präsentation und Folien (Skill `praesentation`) · Differenzierung, Sprachsensibilität, offene Formen · Canva (nur KI-Bilder)
+
 Zusammenfassung der Recherche (Stand Oktober 2026), auf der die Skills beruhen. Links dienen der Vertiefung.
 
 Quellen zu Growth Mindset und Churer Modell stehen in `kernkonzepte.md`.

@@ -1,5 +1,7 @@
 # Druck und Platz
 
+Inhalt: 1. Warum · 2. Damit es auch in s/w taugt · 3. Farbe als Akzent · 4. Übersichtlich und platzsparend gestalten (in Farbe und in der s/w-Ansicht) (Aufbau einer Aufgabe ohne Kasten, Kopf und Fuß schlank, Aufgaben auf einen Blick verständlich, Items pro Aufgabe, Menge nach Arbeitszeit, Platzbudget (A4, Satzspiegel 1036 px), Ausschneide- und Legematerial, Was die Prüfung meldet) · 5. Checkliste · Quellen
+
 Material wird in Farbe angelegt, s/w ist eine Ansicht davon; die Regel dazu steht in `grundschul-didaktik/references/gestaltung.md` (Abschnitt „Farbe“). Dieser Text regelt, wie Farbe sparsam eingesetzt wird und wie der Platz genutzt wird.
 
 **Immer gilt das kompakte Layout** (Abschnitt 4): Aufgaben ohne Kasten, schlanker Kopf und Fuß, volle Item-Reihen. Farbe macht ein Blatt ansprechend, Kästen mit Innenabstand kosten nur Platz.

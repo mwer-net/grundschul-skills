@@ -1,5 +1,7 @@
 # Entwürfe und Aufgabenplan
 
+Inhalt: Ablauf · Phase 1: Klären – kurz halten · Phase 2: Entwürfe · Phase 3: Feedback · Phase 4: Aufgabenplan · Was je Materialart variiert und festgelegt wird · Abkürzungen · In der Schoolbox · Was nicht passieren darf
+
 Ziel: Die Lehrkraft sieht früh, wie das Material aussehen wird, und entscheidet, **bevor** Inhalte ausformuliert, Lösungen geprüft und Bilder erzeugt werden. Die Endfassung setzt nur noch einen freigegebenen Aufgabenplan um, ohne inhaltliche Schleifen.
 
 Warum: Alle Items, Lösungen, Bilder und die Endkontrolle kosten ein Vielfaches an Zeit und Tokens gegenüber einem Entwurf. Gefällt die Richtung erst danach nicht, ist dieser Aufwand verloren. Entwürfe entstehen schon im echten Layout (`html-materialerstellung`); der gewählte Entwurf wird zur Endfassung ausgebaut, nicht neu gebaut.

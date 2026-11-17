@@ -1,5 +1,7 @@
 # Katalog der Abbildungen
 
+Inhalt: Wo steht welches Element · Aufgabenformate · Freies Element
+
 Alle `x-…`-Elemente aus `assets/abbildungen.js`. Sie sind berechnet, nie von Hand gezeichnet und nie KI-Bilder. Vollständige Beispiele im Blatt: `assets/muster/`.
 
 **Für alle gilt:**
