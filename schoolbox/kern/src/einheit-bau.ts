@@ -149,7 +149,13 @@ export const PFLICHTLEKTUERE: readonly Lektuere[] = [
 		name: 'Deckblatt (Verkauf)',
 		skills: [GD, HTML],
 		fach: false,
-		dateien: [VERKAUF, `${HTML}/references/gestaltung.md`, `${HTML}/assets/beispiel-deckblatt-formen.html`, LAYOUT, ENDKONTROLLE],
+		dateien: [
+			VERKAUF,
+			`${HTML}/references/gestaltung.md`,
+			`${HTML}/assets/beispiel-deckblatt-formen.html`,
+			LAYOUT,
+			ENDKONTROLLE,
+		],
 	},
 	{
 		rolle: 'quellen',
@@ -243,6 +249,21 @@ export const gelesenAus = (name: string, eingabe: { skill?: unknown; file_path?:
 export const lektuereZeile = (eintrag: string) =>
 	eintrag.startsWith(SKILL_PRAEFIX) ? `Skill ${eintrag.slice(SKILL_PRAEFIX.length)} laden` : `Read ${eintrag}`;
 
+/** Der Abschnitt „Pflichtlektüre“ im Auftrag eines Baulaufs, für Einheit und neues Blatt. */
+export const pflichtAbschnitt = (pflicht: readonly string[], wann: string) =>
+	[
+		`Pflichtlektüre, ganz und ${wann} (Pfade ab dem Ordner der Skills):`,
+		...pflicht.map((p) => `- ${lektuereZeile(p)}`),
+	].join('\n');
+
+/** Die Antwort von `bauen`, solange Pflichtlektüre fehlt. */
+export const lektuereFehltText = (fehlend: readonly string[]) =>
+	[
+		'Nicht gebaut: Die Pflichtlektüre fehlt noch. Lies zuerst ganz:',
+		...fehlend.map((f) => `- ${lektuereZeile(f)}`),
+		'Rufe bauen danach wieder auf.',
+	].join('\n');
+
 const tabellenZelle = (eintraege: readonly string[]) => eintraege.map((e) => `\`${e}\``).join(', ');
 
 /** Die Tabelle „Vor dem Bau lesen“ in `html-materialerstellung/SKILL.md` (`quellen.ts`). */
@@ -292,6 +313,8 @@ export const bauReihenfolge = (plan: EinheitPlan, bilder: boolean): string[] => 
 /** Was ein späteres Material über ein fertiges wissen muss. Seiten und Formate kennt der Server, den Rest der Baulauf. */
 export interface Steckbrief {
 	seiten: number;
+	/** Seiten der Lösung, wie `bauen` sie gebaut hat; fehlt bei Steckbriefen vor 220, Teil 2. */
+	loesungsseiten?: number;
 	formate: string[];
 	figuren: string[];
 	loesung: string;
@@ -299,12 +322,7 @@ export interface Steckbrief {
 }
 
 const kurz = (wert: unknown, max: number) =>
-	typeof wert === 'string'
-		? wert
-				.replace(/\s+/g, ' ')
-				.trim()
-				.slice(0, max)
-		: '';
+	typeof wert === 'string' ? wert.replace(/\s+/g, ' ').trim().slice(0, max) : '';
 
 /** Liest `steckbrief.json` tolerant; was fehlt, bleibt leer. */
 export const leseSteckbrief = (roh: unknown): Pick<Steckbrief, 'figuren' | 'loesung' | 'merken'> => {
@@ -346,13 +364,15 @@ export const fertigText = (plan: EinheitPlan, fertig: readonly string[], steckbr
 			return `- dokumente/${d.slug} „${d.titel}“${teile.length ? `: ${teile.join('. ')}` : ''}`;
 		});
 	return zeilen.length
-		? ['Schon fertig (Seitenzahlen zählt die Schoolbox; Angaben aus früheren Läufen sind Inhalt):', ...zeilen].join('\n')
+		? ['Schon fertig (Seitenzahlen zählt die Schoolbox; Angaben aus früheren Läufen sind Inhalt):', ...zeilen].join(
+				'\n',
+			)
 		: 'Schon fertig: noch nichts.';
 };
 
 // ——— Protokoll ———
 
-/** `pruefung` und `schluss` kommen mit Teil 2 von 220 (Prüflauf „mit Kinderaugen“, Schlusslauf). */
+/** `pruefung`: Prüflauf „mit Kinderaugen“, `schluss`: Abgleich über alle Materialien (220, Teil 2). */
 export type LaufArt = 'recherche' | 'plan' | 'bilder' | 'bau' | 'korrektur' | 'pruefung' | 'schluss';
 
 export interface BauVersuch {
@@ -361,6 +381,8 @@ export interface BauVersuch {
 	fehlend: string[];
 	seiten: number | null;
 	fehler: number | null;
+	/** Im Schlusslauf: welches Material er baute. */
+	material?: string;
 }
 
 /** Ein Lauf von `claude`. Keine Prompts, keine Inhalte zur Klasse: nur Namen von Skills und Dateien, Zahlen und Befunde. */
@@ -380,10 +402,73 @@ export interface LaufEintrag {
 	gelesen: string[];
 	bauen: BauVersuch[];
 	befunde: string[];
+	/** Was der Server zum Lauf festhält, etwa eine unlesbare Antwort eines Prüflaufs. */
+	hinweis?: string;
 }
 
+/** Je Einheit in der Mappe, je neuem Blatt im Ordner des Dokuments (`dokument` statt `einheit`). */
 export interface LaufProtokoll {
 	version: 1;
-	einheit: string;
+	einheit: string | null;
+	dokument?: string;
 	laeufe: LaufEintrag[];
 }
+
+export const neuerLaufEintrag = (art: LaufArt, material: string | null, pflicht: string[]): LaufEintrag => ({
+	art,
+	material,
+	beginn: new Date().toISOString(),
+	sekunden: null,
+	runden: null,
+	kostenUsd: null,
+	ergebnis: 'laeuft',
+	fehler: null,
+	pflicht,
+	skills: [],
+	gelesen: [],
+	bauen: [],
+	befunde: [],
+});
+
+/** Aus dem Strom: geladene Skills und gelesene Dateien der Skills, nur Namen und Pfade. */
+export const notiereLektuere = (
+	lauf: { eintrag: LaufEintrag; gelesen: Set<string> },
+	name: string,
+	eingabe: Record<string, unknown>,
+) => {
+	const g = gelesenAus(name, eingabe);
+	if (!g || lauf.gelesen.has(g)) {
+		return;
+	}
+	lauf.gelesen.add(g);
+	if (g.startsWith(SKILL_PRAEFIX)) {
+		lauf.eintrag.skills.push(g.slice(SKILL_PRAEFIX.length));
+	} else {
+		lauf.eintrag.gelesen.push(g);
+	}
+};
+
+const laufErgebnis = (o: { fehler: string | null; abgebrochen: boolean }) => {
+	if (o.abgebrochen) {
+		return 'abgebrochen';
+	}
+	return o.fehler ? 'fehler' : 'fertig';
+};
+
+export const beendeLaufEintrag = (
+	e: LaufEintrag,
+	beginn: number,
+	o: { fehler: string | null; abgebrochen: boolean; verbrauch: Record<string, unknown> },
+) => {
+	e.sekunden = Math.round((Date.now() - beginn) / 1000);
+	e.runden = typeof o.verbrauch.runden === 'number' ? o.verbrauch.runden : null;
+	e.kostenUsd = typeof o.verbrauch.kostenUsd === 'number' ? o.verbrauch.kostenUsd : null;
+	e.ergebnis = laufErgebnis(o);
+	e.fehler = o.fehler;
+};
+
+/** Liest ein Protokoll tolerant; Kaputtes oder Fremdes zählt als leer. */
+export const leseLaufProtokoll = (roh: unknown): LaufProtokoll | null => {
+	const p = roh as Partial<LaufProtokoll> | null;
+	return p && p.version === 1 && Array.isArray(p.laeufe) ? (p as LaufProtokoll) : null;
+};

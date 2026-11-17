@@ -1,7 +1,7 @@
 import type { EinheitPlan, EinheitStand, PlanDokument, PlanGeschichte } from '@schoolbox/kern/src/einheit';
 import { einheitBauDauer } from '@schoolbox/kern/src/einheit';
 import { BILDER_SCHRITT } from '@schoolbox/kern/src/einheit-bau';
-import type { ReactNode } from 'react';
+import { gepruefteZahl, SCHLUSS_SCHRITT } from '@schoolbox/kern/src/einheit-pruefung';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -14,8 +14,9 @@ import { laufzeit, useJetzt } from '../editor/entwurf';
 import { limitHinweis, useKiZustand } from '../editor/ki';
 import { PlanFreigabe } from '../editor/PlanFreigabe';
 import { ART_NAME } from '../lib/text';
-import { AufgabenTabelle, RechercheKurz, RechercheQuellen, StundenKurz } from './EinheitPlanDetails';
 import { einheitAktion, einheitFreigeben, fertig, fortschritt, geplant } from './einheiten';
+import { AufgabenTabelle, Aufklapp, RechercheKurz, RechercheQuellen, StundenKurz } from './EinheitPlanDetails';
+import { PruefungDetails } from './EinheitPruefung';
 import { useAblage } from './kontext';
 
 /** „Einheit: 3 von 12“ im Kopf jeder Seite, solange eine läuft (140). Ersetzt für Einheiten den globalen Chat. */
@@ -111,17 +112,6 @@ const Platzhalter = ({ s }: { s: EinheitStand }) => {
 	);
 };
 
-/** Klappt mit dem Pfeil der Ebenenliste, nicht mit dem Dreieck des Browsers (190-29). */
-export const Aufklapp = ({ children, titel }: { titel: string; children: ReactNode }) => (
-	<details className="group text-sm">
-		<summary className="flex cursor-pointer list-none items-center gap-1 text-leise hover:text-tinte [&::-webkit-details-marker]:hidden">
-			<Symbol name="runter" className="size-3 -rotate-90 transition-transform group-open:rotate-0" />
-			{titel}
-		</summary>
-		<div className="mt-1 pl-4">{children}</div>
-	</details>
-);
-
 /** Was das Vorleseheft tragen muss (216); die Kurzfassung steht schon im Plan-Text. */
 const GeschichteDetails = ({ g }: { g: PlanGeschichte }) => (
 	<div className="flex flex-col gap-1">
@@ -183,8 +173,165 @@ const zahlText = (s: EinheitStand, plant: boolean) => {
 	if (s.inArbeit === BILDER_SCHRITT) {
 		return `${stand} · Claude macht die Bilder`;
 	}
+	if (s.inArbeit === SCHLUSS_SCHRITT) {
+		return `${stand} · Claude gleicht alle Materialien ab`;
+	}
 	const titel = s.plan.dokumente.find((d) => d.slug === s.inArbeit)?.titel;
+	if (titel && s.pruefung?.[s.inArbeit]?.status === 'laeuft') {
+		return `${stand} · Claude prüft „${titel}“ mit Kinderaugen`;
+	}
 	return titel ? `${stand} · Claude baut „${titel}“` : stand;
+};
+
+const bandKopf = (s: EinheitStand, recherchiert: boolean, plant: boolean) => {
+	if (recherchiert) {
+		return `Claude recherchiert für die Einheit „${s.titel}“`;
+	}
+	return plant ? `Claude plant die Einheit „${s.titel}“` : KOPF[s.status](s.titel);
+};
+
+type BandAktion = 'abbrechen' | 'weiter' | 'verwerfen' | 'schliessen';
+
+/** Abbrechen im Lauf, Weiterbauen und Verwerfen, wenn unvollständig, Schließen, wenn fertig. */
+const BandKnoepfe = ({
+	plant,
+	s,
+	tue,
+	warte,
+}: {
+	s: EinheitStand;
+	plant: boolean;
+	warte: boolean;
+	tue: (aktion: BandAktion) => () => Promise<void>;
+}) => {
+	const laeuft = s.status === 'laeuft';
+	return (
+		<span className="ml-auto flex items-center gap-2">
+			{laeuft && (
+				<Knopf art="zweit" groesse="klein" disabled={warte} onClick={() => void tue('abbrechen')()}>
+					Abbrechen
+				</Knopf>
+			)}
+			{s.status === 'unvollstaendig' && (
+				<>
+					<Knopf groesse="klein" disabled={warte} onClick={() => void tue('weiter')()}>
+						{plant ? 'Nochmal planen' : 'Weiterbauen'}
+					</Knopf>
+					<Knopf art="zweit" groesse="klein" disabled={warte} onClick={() => void tue('verwerfen')()}>
+						Verwerfen
+					</Knopf>
+				</>
+			)}
+			{/* Das Band gehört zum Bau, nicht zum Ordner: Fertig lässt es sich schließen (190-42). */}
+			{s.status === 'fertig' && (
+				<Tooltip text="Schließen">
+					<Knopf
+						art="leise"
+						groesse="klein"
+						aria-label="Schließen"
+						disabled={warte}
+						data-einheit-schliessen
+						onClick={() => void tue('schliessen')()}
+					>
+						<Symbol name="schliessen" />
+					</Knopf>
+				</Tooltip>
+			)}
+		</span>
+	);
+};
+
+/** Der Plan zur Freigabe: Dauer, Plantext, Stunden und Recherche. */
+const BandPlan = ({
+	fehler,
+	gesperrt,
+	s,
+	verwerfen,
+}: {
+	s: EinheitStand;
+	gesperrt: boolean;
+	fehler: (grund: unknown) => boolean;
+	verwerfen: () => Promise<void>;
+}) => (
+	<div className="flex flex-col gap-2" data-einheit-plan>
+		<p className="text-sm text-leise">
+			{`So würde Claude die Einheit bauen. Passt das? Gebaut wird erst nach deiner Freigabe, jedes Material für sich; das dauert dann ${einheitBauDauer(geplant(s), s.bilder, gepruefteZahl(s.plan?.dokumente ?? []))}.`}
+		</p>
+		{/* Dieselbe Freigabe wie beim neuen Blatt (190-35); die Sperre gegen den Doppelklick liegt dort (190-32). */}
+		<PlanFreigabe
+			text={s.planText ?? ''}
+			gesperrt={gesperrt}
+			klein
+			planKlasse="max-h-[60vh] bg-flaeche text-sm"
+			freigeben={() => einheitFreigeben(s.id).then(() => true, fehler)}
+			aendern={(wunsch) => einheitFreigeben(s.id, wunsch).then(() => true, fehler)}
+			verwerfen={() => verwerfen().catch(fehler)}
+			zusatz={
+				s.plan && (
+					<div className="mt-3 flex flex-col gap-3">
+						<StundenKurz plan={s.plan} />
+						<RechercheKurz plan={s.plan} recherche={s.recherche} />
+					</div>
+				)
+			}
+		/>
+	</div>
+);
+
+/** Aufgaben, Quellen, Geschichte und Annahmen des Plans zum Aufklappen. */
+const BandDetails = ({ s }: { s: EinheitStand }) => {
+	const quellen = s.recherche?.status === 'fertig' ? s.recherche.quellen : [];
+	return (
+		<>
+			{s.plan && (s.plan.stunden?.length ?? 0) > 0 && (
+				<Aufklapp titel={`Alle Aufgaben der Reihe (${aufgabenZahl(s.plan)})`}>
+					<div className="flex flex-col gap-3">
+						{s.status !== 'plan' && <StundenKurz plan={s.plan} />}
+						<AufgabenTabelle plan={s.plan} />
+					</div>
+				</Aufklapp>
+			)}
+			{quellen.length > 0 && (
+				<Aufklapp titel={`Quellen der Recherche (${quellen.length})`}>
+					<RechercheQuellen quellen={quellen} />
+				</Aufklapp>
+			)}
+			{s.plan?.geschichte && (
+				<Aufklapp titel="Geschichte und Vorleseheft">
+					<GeschichteDetails g={s.plan.geschichte} />
+				</Aufklapp>
+			)}
+			{(s.plan?.annahmen.length ?? 0) > 0 && (
+				<Aufklapp titel="Annahmen">
+					<ul className="list-disc pl-4">
+						{s.plan?.annahmen.map((a) => (
+							<li key={a}>{a}</li>
+						))}
+					</ul>
+				</Aufklapp>
+			)}
+		</>
+	);
+};
+
+/** Befunde der Prüfung je Material, mit Verweis aufs Dokument. */
+const BandBefunde = ({ s }: { s: EinheitStand }) => {
+	const befunde = s.befunde.filter((b) => b.texte.length > 0);
+	if (befunde.length === 0) {
+		return null;
+	}
+	return (
+		<Aufklapp titel={`Befunde der Prüfung (${befunde.length})`}>
+			<ul className="flex flex-col gap-1">
+				{befunde.map((b) => (
+					<li key={b.slug}>
+						{b.dok ? <Link to={`/m/${s.mappe}/${b.dok}`}>{b.slug}</Link> : b.slug}
+						{`: ${b.texte.join(' · ')}`}
+					</li>
+				))}
+			</ul>
+		</Aufklapp>
+	);
 };
 
 /** Das Band oben im Ordner einer Einheit (140, A2 S. 6): Stand, Abbrechen, Weiterbauen, Verwerfen, Annahmen, Befunde. */
@@ -223,7 +370,7 @@ export const EinheitBand = ({ s }: { s: EinheitStand }) => {
 				: {}),
 		});
 	};
-	const tue = (aktion: 'abbrechen' | 'weiter' | 'verwerfen' | 'schliessen') => async () => {
+	const tue = (aktion: BandAktion) => async () => {
 		if (warte) {
 			return;
 		}
@@ -245,13 +392,7 @@ export const EinheitBand = ({ s }: { s: EinheitStand }) => {
 	const plant = s.freigegeben === false;
 	const recherchiert = laeuft && s.recherche?.status === 'laeuft';
 	const zahl = recherchiert ? `${s.recherche?.schritt ?? 'Bildungsplan und Fachdidaktik'} …` : zahlText(s, plant);
-	const kopf = recherchiert
-		? `Claude recherchiert für die Einheit „${s.titel}“`
-		: laeuft && plant
-			? `Claude plant die Einheit „${s.titel}“`
-			: KOPF[s.status](s.titel);
-	const befunde = s.befunde.filter((b) => b.texte.length > 0);
-	const quellen = s.recherche?.status === 'fertig' ? s.recherche.quellen : [];
+	const kopf = bandKopf(s, recherchiert, laeuft && plant);
 	return (
 		<section
 			className="mb-3 flex flex-col gap-2 rounded-lg border border-rand bg-flaeche-2 px-3 py-2"
@@ -264,107 +405,15 @@ export const EinheitBand = ({ s }: { s: EinheitStand }) => {
 				{laeuft && <span className="text-leise tabular-nums">{laufzeit(s.laufSeit ?? s.start, jetzt)}</span>}
 				<span className="text-leise">{zahl}</span>
 				{s.grund && !laeuft && <span className="text-sm text-leise">{s.grund}</span>}
-				<span className="ml-auto flex items-center gap-2">
-					{laeuft && (
-						<Knopf art="zweit" groesse="klein" disabled={warte} onClick={() => void tue('abbrechen')()}>
-							Abbrechen
-						</Knopf>
-					)}
-					{s.status === 'unvollstaendig' && (
-						<>
-							<Knopf groesse="klein" disabled={warte} onClick={() => void tue('weiter')()}>
-								{plant ? 'Nochmal planen' : 'Weiterbauen'}
-							</Knopf>
-							<Knopf art="zweit" groesse="klein" disabled={warte} onClick={() => void tue('verwerfen')()}>
-								Verwerfen
-							</Knopf>
-						</>
-					)}
-					{/* Das Band gehört zum Bau, nicht zum Ordner: Fertig lässt es sich schließen (190-42). */}
-					{s.status === 'fertig' && (
-						<Tooltip text="Schließen">
-							<Knopf
-								art="leise"
-								groesse="klein"
-								aria-label="Schließen"
-								disabled={warte}
-								data-einheit-schliessen
-								onClick={() => void tue('schliessen')()}
-							>
-								<Symbol name="schliessen" />
-							</Knopf>
-						</Tooltip>
-					)}
-				</span>
+				<BandKnoepfe s={s} plant={plant} warte={warte} tue={tue} />
 			</div>
-			{s.status === 'plan' && (
-				<div className="flex flex-col gap-2" data-einheit-plan>
-					<p className="text-sm text-leise">
-						So würde Claude die Einheit bauen. Passt das? Gebaut wird erst nach deiner Freigabe, jedes Material
-						für sich; das dauert dann {einheitBauDauer(geplant(s), s.bilder)}.
-					</p>
-					{/* Dieselbe Freigabe wie beim neuen Blatt (190-35); die Sperre gegen den Doppelklick liegt dort (190-32). */}
-					<PlanFreigabe
-						text={s.planText ?? ''}
-						gesperrt={limitGesperrt}
-						klein
-						planKlasse="max-h-[60vh] bg-flaeche text-sm"
-						freigeben={() => einheitFreigeben(s.id).then(() => true, fehler)}
-						aendern={(wunsch) => einheitFreigeben(s.id, wunsch).then(() => true, fehler)}
-						verwerfen={() => verwerfen().catch(fehler)}
-						zusatz={
-							s.plan && (
-								<div className="mt-3 flex flex-col gap-3">
-									<StundenKurz plan={s.plan} />
-									<RechercheKurz plan={s.plan} recherche={s.recherche} />
-								</div>
-							)
-						}
-					/>
-				</div>
-			)}
-			{s.plan && (s.plan.stunden?.length ?? 0) > 0 && (
-				<Aufklapp titel={`Alle Aufgaben der Reihe (${aufgabenZahl(s.plan)})`}>
-					<div className="flex flex-col gap-3">
-						{s.status !== 'plan' && <StundenKurz plan={s.plan} />}
-						<AufgabenTabelle plan={s.plan} />
-					</div>
-				</Aufklapp>
-			)}
-			{quellen.length > 0 && (
-				<Aufklapp titel={`Quellen der Recherche (${quellen.length})`}>
-					<RechercheQuellen quellen={quellen} />
-				</Aufklapp>
-			)}
-			{s.plan?.geschichte && (
-				<Aufklapp titel="Geschichte und Vorleseheft">
-					<GeschichteDetails g={s.plan.geschichte} />
-				</Aufklapp>
-			)}
-			{(s.plan?.annahmen.length ?? 0) > 0 && (
-				<Aufklapp titel="Annahmen">
-					<ul className="list-disc pl-4">
-						{s.plan?.annahmen.map((a) => (
-							<li key={a}>{a}</li>
-						))}
-					</ul>
-				</Aufklapp>
-			)}
+			{s.status === 'plan' && <BandPlan s={s} gesperrt={limitGesperrt} fehler={fehler} verwerfen={verwerfen} />}
+			<BandDetails s={s} />
 			<Aufklapp titel="Auftrag">
 				<p className="whitespace-pre-wrap">{s.auftrag}</p>
 			</Aufklapp>
-			{!laeuft && befunde.length > 0 && (
-				<Aufklapp titel={`Befunde der Prüfung (${befunde.length})`}>
-					<ul className="flex flex-col gap-1">
-						{befunde.map((b) => (
-							<li key={b.slug}>
-								{b.dok ? <Link to={`/m/${s.mappe}/${b.dok}`}>{b.slug}</Link> : b.slug}
-								{`: ${b.texte.join(' · ')}`}
-							</li>
-						))}
-					</ul>
-				</Aufklapp>
-			)}
+			{!laeuft && <BandBefunde s={s} />}
+			<PruefungDetails s={s} />
 			{!plant && <Platzhalter s={s} />}
 		</section>
 	);

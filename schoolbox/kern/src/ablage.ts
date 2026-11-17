@@ -30,8 +30,8 @@ const ENTWURF_DATEI = /^[A-Z](\.html|-s\d+\.png)$/;
 export const ENTWURF_QUELLE = /^entwurf-[a-z]\.html$/;
 /** Je Dokument: Was sich neu erzeugen lässt oder zur Geschichte des Originals gehört, wandert nicht in eine Kopie. */
 const NICHT_KOPIEREN = ['versionen', 'ausgabe'];
-/** Gehören zum laufenden Auftrag an Claude (057) und entstehen in der Kopie auch nicht leer neu. */
-const NUR_IM_ORIGINAL = ['vorschlag', '.ki-pruefung.html'];
+/** Gehören zum laufenden Auftrag an Claude (057) und entstehen in der Kopie auch nicht leer neu; so auch das Laufprotokoll. */
+const NUR_IM_ORIGINAL = ['vorschlag', '.ki-pruefung.html', LAUF_DATEI];
 const ID_REGEX = new RegExp(ID_MUSTER);
 
 const GERUEST = `<!doctype html>

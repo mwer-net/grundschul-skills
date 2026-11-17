@@ -5,9 +5,11 @@ import type { EinheitPlan } from './einheit';
 import { lesePlan } from './einheit';
 import { aufgabenFuerBau, formatAus, formatTitel, formatZaehlung, planBefunde } from './einheit-aufgaben';
 
+const ARTEN: Record<string, string> = { kontrolle: 'lernzielkontrolle', vorleseheft: 'unterrichtsplanung' };
+
 const DOKUMENTE = ['vorleseheft', 'kapitel-1', 'kapitel-2', 'kapitel-3', 'lernspiel', 'kontrolle'].map((slug) => ({
 	slug,
-	art: slug === 'kontrolle' ? 'lernzielkontrolle' : slug === 'vorleseheft' ? 'unterrichtsplanung' : 'arbeitsblatt',
+	art: ARTEN[slug] ?? 'arbeitsblatt',
 	format: 'a4-hoch',
 }));
 
@@ -94,8 +96,20 @@ describe('Aufgaben-Übersicht im Plan (221)', () => {
 				handlung: 'Spiegeln',
 				begriffe: ['Spiegelachse'],
 				aufgaben: [
-					{ dokument: 'kapitel-2', format: 'lueckentext', inhalt: 'Merksatz', bereich: 'II', zweitesMal: false },
-					{ dokument: '', format: 'Spiegelschrift lesen', inhalt: 'Botschaft', bereich: null, zweitesMal: false },
+					{
+						dokument: 'kapitel-2',
+						format: 'lueckentext',
+						inhalt: 'Merksatz',
+						bereich: 'II',
+						zweitesMal: false,
+					},
+					{
+						dokument: '',
+						format: 'Spiegelschrift lesen',
+						inhalt: 'Botschaft',
+						bereich: null,
+						zweitesMal: false,
+					},
 				],
 				kontrolle: false,
 			},
@@ -119,16 +133,43 @@ describe('Aufgaben-Übersicht im Plan (221)', () => {
 		const p = plan({
 			...GUT,
 			stunden: [
-				{ nr: 1, handlung: 'a', aufgaben: [auf('kapitel-1', 'lueckentext', 'Merksatz'), auf('kapitel-1', 'Spiegel-Memory', 'x')] },
-				{ nr: 2, handlung: 'b', aufgaben: [auf('kapitel-2', 'Lückentext mit Wortauswahl', 'Merksatz'), auf('kapitel-2', 'spiegel-memory', 'y', 'I', true)] },
-				{ nr: 3, handlung: 'c', aufgaben: [auf('kapitel-3', 'lueckentext', 'Merksatz', 'I', true), auf('kapitel-3', 'ankreuzen', 'z', 'I', true)] },
+				{
+					nr: 1,
+					handlung: 'a',
+					aufgaben: [auf('kapitel-1', 'lueckentext', 'Merksatz'), auf('kapitel-1', 'Spiegel-Memory', 'x')],
+				},
+				{
+					nr: 2,
+					handlung: 'b',
+					aufgaben: [
+						auf('kapitel-2', 'Lückentext mit Wortauswahl', 'Merksatz'),
+						auf('kapitel-2', 'spiegel-memory', 'y', 'I', true),
+					],
+				},
+				{
+					nr: 3,
+					handlung: 'c',
+					aufgaben: [
+						auf('kapitel-3', 'lueckentext', 'Merksatz', 'I', true),
+						auf('kapitel-3', 'ankreuzen', 'z', 'I', true),
+					],
+				},
 			],
 		});
 		const befunde = planBefunde(p, 3);
 		assert.equal(befunde.length, 3, befunde.join('\n'));
-		assert.match(befunde[0] ?? '', /„Lückentext mit Wortauswahl“ \(lueckentext\) kommt in Stunde 2 zum zweiten Mal vor \(zuerst Stunde 1\): Setze dort „zweitesMal“: true/);
-		assert.match(befunde[1] ?? '', /„Ankreuzen \/ Einkreisen“ \(ankreuzen\) ist in Stunde 3 als zweites Mal markiert/);
-		assert.match(befunde[2] ?? '', /„Lückentext mit Wortauswahl“ \(lueckentext\) kommt 3-mal vor \(Stunde 1, 2, 3\)/);
+		assert.match(
+			befunde[0] ?? '',
+			/„Lückentext mit Wortauswahl“ \(lueckentext\) kommt in Stunde 2 zum zweiten Mal vor \(zuerst Stunde 1\): Setze dort „zweitesMal“: true/,
+		);
+		assert.match(
+			befunde[1] ?? '',
+			/„Ankreuzen \/ Einkreisen“ \(ankreuzen\) ist in Stunde 3 als zweites Mal markiert/,
+		);
+		assert.match(
+			befunde[2] ?? '',
+			/„Lückentext mit Wortauswahl“ \(lueckentext\) kommt 3-mal vor \(Stunde 1, 2, 3\)/,
+		);
 	});
 
 	it('Regeln: Stunde ohne Handlung, fehlende Stunde zum Kapitel, Fachwort zu spät, Bereich III in Kl. 2', () => {
@@ -146,14 +187,22 @@ describe('Aufgaben-Übersicht im Plan (221)', () => {
 						auf('kapitel-1', 'sortieren', 'Ohne Bereich', ''),
 					],
 				},
-				{ nr: 2, handlung: 'Spiegeln', begriffe: ['Spiegelachse', 'faltlinie'], aufgaben: [auf('kapitel-2', 'zuordnen', 'x')] },
+				{
+					nr: 2,
+					handlung: 'Spiegeln',
+					begriffe: ['Spiegelachse', 'faltlinie'],
+					aufgaben: [auf('kapitel-2', 'zuordnen', 'x')],
+				},
 			],
 		});
 		const befunde = planBefunde(p, 2).join('\n');
 		assert.match(befunde, /In „stunden“ fehlt Stunde 3/);
 		assert.match(befunde, /Stunde 1 hat keine Handlungsform/);
 		assert.match(befunde, /Stunde 1, Aufgabe „Ohne Bereich“: Es fehlt einen Anforderungsbereich/);
-		assert.match(befunde, /„Spiegelachse“ steht schon in Stunde 1 in einer Aufgabe, eingeführt wird es erst in Stunde 2/);
+		assert.match(
+			befunde,
+			/„Spiegelachse“ steht schon in Stunde 1 in einer Aufgabe, eingeführt wird es erst in Stunde 2/,
+		);
 		assert.match(befunde, /„faltlinie“ wird zweimal eingeführt \(Stunde 1 und 2\)/);
 		assert.match(befunde, /dokumente\/kapitel-1 hat 2 Aufgaben aus Bereich III; in Kl\. 2 höchstens eine/);
 		// In Kl. 3 gilt die Grenze für Bereich III nicht; ein Plan vor 221 ohne Übersicht und Kapitel hat keine Befunde.
@@ -186,7 +235,10 @@ describe('Aufgaben-Übersicht im Plan (221)', () => {
 			].join('\n'),
 		);
 		assert.match(aufgabenFuerBau(p, 'kontrolle'), /Stunde 4 \(Lernzielkontrolle: Formate der Reihe, neue Items\)/);
-		assert.match(aufgabenFuerBau(p, 'kapitel-3'), /zum zweiten Mal: mit höherem Anspruch als beim ersten: Figur an waagerechter Achse/);
+		assert.match(
+			aufgabenFuerBau(p, 'kapitel-3'),
+			/zum zweiten Mal: mit höherem Anspruch als beim ersten: Figur an waagerechter Achse/,
+		);
 		// Ein Material ohne eigene Aufgaben bekommt die Formate der ganzen Reihe.
 		const heft = aufgabenFuerBau(p, 'vorleseheft');
 		assert.match(heft, /^Aufgaben-Übersicht.*\n\nFormate der Stunden:\n- Stunde 1: /);

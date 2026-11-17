@@ -204,7 +204,9 @@ describe('Lauf einer Einheit (139)', () => {
 		return einheit;
 	};
 	const prompts = async () =>
-		(await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8')).split('\n---\n').filter(Boolean);
+		(await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8').catch(() => ''))
+			.split('\n---\n')
+			.filter(Boolean);
 	const jsonl = async <T>(name: string) =>
 		(await readFile(path.join(path.dirname(bin), name), 'utf8').catch(() => ''))
 			.trim()
@@ -227,9 +229,10 @@ describe('Lauf einer Einheit (139)', () => {
 		server = await starteTestServer({
 			env: { CLAUDE_BIN: bin },
 			kiPruefer: () => Promise.resolve(pruefbericht),
-			einheitAnsicht: async (_quelle, ziel) => {
+			einheitAnsicht: async (quelle, ziel) => {
 				await mkdir(ziel, { recursive: true });
-				await writeFile(path.join(ziel, 'seite-1.png'), '');
+				// Die Quelle als „Seitenbild“: So sieht der Prüflauf der Attrappe, was auf der Seite steht.
+				await writeFile(path.join(ziel, 'seite-1.png'), await readFile(quelle));
 				return { bericht: pruefbericht, bilder: ['seite-1.png'] };
 			},
 		});
@@ -267,7 +270,9 @@ describe('Lauf einer Einheit (139)', () => {
 				.trim()
 				.split('\n')
 				.map((z) => (JSON.parse(z) as { args: string[] }).args)
-				.filter((a) => a.includes('--append-system-prompt-file') && a.join(' ').includes('einheit-material.md'));
+				.filter(
+					(a) => a.includes('--append-system-prompt-file') && a.join(' ').includes('einheit-material.md'),
+				);
 		const ohne = (await aufrufe()).at(-1) ?? [];
 		assert.ok(ohne.includes('--strict-mcp-config'));
 		assert.ok(!ohne.includes(CANVA_MCP));
@@ -286,8 +291,7 @@ describe('Lauf einer Einheit (139)', () => {
 		assert.equal(s.korrigiert, true);
 		assert.deepEqual(s.befunde, []);
 		assert.deepEqual(Object.keys(s.importiert).sort(), ['fall-1', 'fall-2']);
-		const prompts = (await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8')).split('\n---\n');
-		assert.match(prompts.filter((p) => p.includes('Korrekturrunde')).at(-1) ?? '', /data-satz="2"/);
+		assert.match((await prompts()).filter((p) => p.includes('Korrekturrunde')).at(-1) ?? '', /data-satz="2"/);
 	});
 
 	it('Skript im Material: nicht übernommen, eine Korrekturrunde, danach sauber', async () => {
@@ -315,8 +319,7 @@ describe('Lauf einer Einheit (139)', () => {
 		assert.deepEqual(s.bausteine, { selbsteinschaetzung: false, niveaus: false, sternchen: false });
 		assert.equal(s.korrigiert, true);
 		assert.deepEqual(s.befunde, []);
-		const prompts = (await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8')).split('\n---\n');
-		const korrektur = prompts.filter((p) => p.includes('Korrekturrunde')).at(-1) ?? '';
+		const korrektur = (await prompts()).filter((p) => p.includes('Korrekturrunde')).at(-1) ?? '';
 		assert.match(korrektur, /dokumente\/fall-2\/material\.html: Laut Auftrag ohne drei Niveaus/);
 		// Gegenprobe: Mit Niveaus ist dasselbe Material richtig.
 		const mit = await starte({ ...ANGABEN, bausteine: { niveaus: true } });
@@ -331,7 +334,13 @@ describe('Lauf einer Einheit (139)', () => {
 		// Je Material ein Lauf: fall-1 ist übernommen, während fall-2 in Arbeit ist.
 		await warte(async () => (await stand(id)).inArbeit === 'fall-2');
 		assert.deepEqual(Object.keys((await stand(id)).importiert), ['fall-1']);
-		const angefangen = path.join(einheitenWurzel(server.materialDir), `einheit-${id}`, 'arbeit', 'dokumente', 'fall-2');
+		const angefangen = path.join(
+			einheitenWurzel(server.materialDir),
+			`einheit-${id}`,
+			'arbeit',
+			'dokumente',
+			'fall-2',
+		);
 		await warte(() => existsSync(path.join(angefangen, 'material.html')));
 		assert.equal(
 			(await api('/einheiten', { method: 'POST', body: JSON.stringify({ angaben: ANGABEN }) })).status,
@@ -346,7 +355,7 @@ describe('Lauf einer Einheit (139)', () => {
 		await api(`/einheiten/${id}/weiter`, { method: 'POST' });
 		assert.deepEqual(Object.keys((await bis(id, 'fertig')).importiert).sort(), ['fall-1', 'fall-2']);
 		// Weiterbauen setzt am angefangenen Material an, in einer neuen Sitzung.
-		const neu = (await prompts()).slice(vorher);
+		const neu = (await prompts()).slice(vorher).filter((p) => p.startsWith('Schritt 2: der Bau'));
 		assert.equal(neu.length, 1);
 		assert.match(neu[0] ?? '', /der Bau von dokumente\/fall-2\//);
 		assert.match(neu[0] ?? '', /Ein früherer Durchgang hat dieses Material angefangen/);
@@ -421,9 +430,13 @@ describe('Lauf einer Einheit (139)', () => {
 
 		it('Plan mit Übersicht wird gelesen; ohne Verstoß keine Korrekturrunde', async () => {
 			await fall('einheit-uebersicht');
-			const { id, s, neu } = await planen();
+			const { id, neu, s } = await planen();
 			assert.deepEqual(
-				s.plan?.stunden?.map((t) => [t.nr, t.handlung, t.aufgaben.map((a) => [a.format, a.bereich, a.zweitesMal])]),
+				s.plan?.stunden?.map((t) => [
+					t.nr,
+					t.handlung,
+					t.aufgaben.map((a) => [a.format, a.bereich, a.zweitesMal]),
+				]),
 				[
 					[
 						1,
@@ -451,10 +464,13 @@ describe('Lauf einer Einheit (139)', () => {
 
 		it('Ein Format dreimal: genau eine Korrekturrunde mit dem Befund, danach der korrigierte Plan', async () => {
 			await fall('einheit-dreifach');
-			const { id, s, neu } = await planen();
+			const { id, neu, s } = await planen();
 			const runde = korrekturen(neu);
 			assert.equal(runde.length, 1);
-			assert.match(runde[0] ?? '', /„Lückentext mit Wortauswahl“ \(lueckentext\) kommt 3-mal vor \(Stunde 1, 2\)/);
+			assert.match(
+				runde[0] ?? '',
+				/„Lückentext mit Wortauswahl“ \(lueckentext\) kommt 3-mal vor \(Stunde 1, 2\)/,
+			);
 			assert.match(s.planText ?? '', /Korrigierter Plan/);
 			assert.deepEqual(s.planBefunde, []);
 			assert.deepEqual(
@@ -468,7 +484,7 @@ describe('Lauf einer Einheit (139)', () => {
 
 		it('Behebt Claude den Verstoß nicht, bleibt es bei einer Runde; der Befund steht im Stand', async () => {
 			await fall('einheit-dreifach-stur');
-			const { id, s, neu } = await planen();
+			const { id, neu, s } = await planen();
 			assert.equal(korrekturen(neu).length, 1);
 			assert.equal(s.status, 'plan');
 			assert.equal(s.planBefunde?.length, 1);
@@ -478,7 +494,7 @@ describe('Lauf einer Einheit (139)', () => {
 
 		it('Alter Plan ohne Übersicht: keine Korrekturrunde, kein Feld', async () => {
 			await fall('einheit');
-			const { id, s, neu } = await planen();
+			const { id, neu, s } = await planen();
 			assert.deepEqual(korrekturen(neu), []);
 			assert.equal(neu.filter((p) => p.startsWith('Schritt 1')).length, 1);
 			assert.equal(s.plan?.stunden, undefined);
@@ -489,7 +505,9 @@ describe('Lauf einer Einheit (139)', () => {
 
 	describe('Ein Lauf je Material (220)', () => {
 		const protokoll = async (mappe: string) =>
-			JSON.parse(await readFile(path.join(mappenDir(server.materialDir, mappe), LAUF_DATEI), 'utf8')) as LaufProtokoll;
+			JSON.parse(
+				await readFile(path.join(mappenDir(server.materialDir, mappe), LAUF_DATEI), 'utf8'),
+			) as LaufProtokoll;
 		const baulaeufe = async (mappe: string) => (await protokoll(mappe)).laeufe.filter((e) => e.art === 'bau');
 
 		it('Jedes Material in einer neuen Sitzung; der Auftrag nennt Aufgaben und fertige Materialien', async () => {
@@ -530,7 +548,7 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.equal(p.einheit, id);
 			assert.deepEqual(
 				p.laeufe.map((e) => e.art).filter((a) => a !== 'recherche'),
-				['plan', 'bau', 'bau'],
+				['plan', 'bau', 'pruefung', 'bau', 'pruefung', 'schluss'],
 			);
 			for (const e of await baulaeufe(mappe)) {
 				assert.equal(e.ergebnis, 'fertig');
@@ -552,7 +570,9 @@ describe('Lauf einer Einheit (139)', () => {
 			const vorher = (await jsonl('bauen.jsonl')).length;
 			const { id, mappe } = await starte();
 			await bis(id, 'fertig');
-			const antworten = (await jsonl<{ slug: string; text?: string; fehler?: boolean }>('bauen.jsonl')).slice(vorher);
+			const antworten = (await jsonl<{ slug: string; text?: string; fehler?: boolean }>('bauen.jsonl')).slice(
+				vorher,
+			);
 			const [erster] = await baulaeufe(mappe);
 			const fehlend = erster?.pflicht.at(-1) ?? '';
 			assert.ok(fehlend);
@@ -581,6 +601,194 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.deepEqual(Object.keys(s.importiert).sort(), ['fall-1', 'fall-2']);
 			const zweiter = (await prompts()).slice(vorher).find((p) => p.includes('der Bau von dokumente/fall-2/'));
 			assert.match(zweiter ?? '', /Titel: Uhrzeit/);
+		});
+	});
+
+	describe('Prüflauf mit Kinderaugen und Schlusslauf (220, Teil 2)', () => {
+		const protokoll = async (mappe: string) =>
+			JSON.parse(
+				await readFile(path.join(mappenDir(server.materialDir, mappe), LAUF_DATEI), 'utf8'),
+			) as LaufProtokoll;
+		const arten = async (mappe: string) =>
+			(await protokoll(mappe)).laeufe
+				.map((e) => `${e.art}:${e.material ?? ''}`)
+				.filter((a) => !a.startsWith('recherche'));
+		const nachPruefung = (neu: string[]) => neu.filter((p) => p.startsWith('Korrekturrunde nach der Prüfung.'));
+		const quelle = async (s: EinheitStand, mappe: string, slug: string) =>
+			readFile(
+				path.join(
+					mappenDir(server.materialDir, mappe),
+					'dokumente',
+					s.importiert[slug]?.dok ?? '',
+					'material.html',
+				),
+				'utf8',
+			);
+
+		it('Unklare Anweisung: der Prüflauf meldet sie, eine Korrekturrunde in der Sitzung des Baus, dann sauber', async () => {
+			await fall('einheit-unklar');
+			const vorher = (await prompts()).length;
+			const laeufeVorher = (await jsonl('laeufe.jsonl')).length;
+			const pruefVorher = (await jsonl('pruefungen.jsonl')).length;
+			const { id, mappe } = await starte();
+			const s = await bis(id, 'fertig');
+			assert.deepEqual(await arten(mappe), [
+				'plan:',
+				'bau:fall-1',
+				'pruefung:fall-1',
+				'korrektur:fall-1',
+				'pruefung:fall-1',
+				'bau:fall-2',
+				'pruefung:fall-2',
+				'schluss:_schluss',
+			]);
+			const p = s.pruefung?.['fall-1'];
+			assert.equal(p?.status, 'fertig');
+			assert.equal(p?.runden, 2);
+			assert.equal(p?.korrekturen, 1);
+			assert.deepEqual(
+				p?.gefunden.map((b) => [b.seite, b.aufgabe, b.art]),
+				[[1, '1', 'unklar']],
+			);
+			assert.deepEqual(p?.offen, []);
+			assert.deepEqual(s.pruefung?.['fall-2']?.gefunden, []);
+			const neu = (await prompts()).slice(vorher);
+			const runde = nachPruefung(neu);
+			assert.equal(runde.length, 1);
+			assert.match(runde[0] ?? '', /- Seite 1, Aufgabe 1, [^:]+: Was mit den Uhren zu tun ist, steht nicht da\./);
+			const laeufe = (await jsonl<{ erste: string; resume: boolean }>('laeufe.jsonl')).slice(laeufeVorher);
+			assert.equal(laeufe.find((l) => l.erste.startsWith('Korrekturrunde nach der Prüfung.'))?.resume, true);
+			// Der Prüflauf sieht weder Lösung noch Bau: nur die Seiten, Klasse und Fach.
+			const pruefungen = (
+				await jsonl<{ titel: string; loesung: boolean; kind: boolean }>('pruefungen.jsonl')
+			).slice(pruefVorher);
+			assert.deepEqual(
+				pruefungen.map((x) => [x.titel, x.loesung, x.kind]),
+				[
+					['Fall 1', false, true],
+					['Fall 1', false, true],
+					['Fall 2', false, true],
+				],
+			);
+			const pruefPrompt = neu.find((x) => x.startsWith('Prüfung von „Fall 1“')) ?? '';
+			assert.match(pruefPrompt, /Klasse 2, Mathematik/);
+			assert.doesNotMatch(pruefPrompt, /Auftrag der Lehrkraft|Rätselkette|Schritt 2/);
+			assert.doesNotMatch(await quelle(s, mappe, 'fall-1'), /Mach was mit den Uhren/);
+			const e = (await protokoll(mappe)).laeufe.find((x) => x.art === 'pruefung');
+			assert.match(e?.befunde[0] ?? '', /Was mit den Uhren/);
+		});
+
+		it('Stur: nach zwei Korrekturrunden bleibt der Befund offen, die Einheit ist trotzdem fertig', async () => {
+			await fall('einheit-stur');
+			const vorher = (await prompts()).length;
+			const { id, mappe } = await starte();
+			const s = await bis(id, 'fertig');
+			const p = s.pruefung?.['fall-1'];
+			assert.equal(p?.runden, 3);
+			assert.equal(p?.korrekturen, 2);
+			assert.equal(p?.offen.length, 1);
+			assert.equal(p?.offen[0]?.art, 'unklar');
+			assert.equal(nachPruefung((await prompts()).slice(vorher)).length, 2);
+			assert.equal((await arten(mappe)).filter((a) => a === 'pruefung:fall-1').length, 3);
+			assert.match(await quelle(s, mappe, 'fall-1'), /Mach was mit den Uhren/);
+		});
+
+		it('Unlesbare Antwort: keine Befunde, keine Korrekturrunde, im Protokoll vermerkt', async () => {
+			await fall('einheit-pruefung-unlesbar');
+			const vorher = (await prompts()).length;
+			const { id, mappe } = await starte();
+			const s = await bis(id, 'fertig');
+			assert.equal(s.pruefung?.['fall-1']?.status, 'fertig');
+			assert.deepEqual(s.pruefung?.['fall-1']?.offen, []);
+			assert.deepEqual(nachPruefung((await prompts()).slice(vorher)), []);
+			const e = (await protokoll(mappe)).laeufe.filter((x) => x.art === 'pruefung');
+			assert.equal(e.length, 2);
+			assert.match(e[0]?.hinweis ?? '', /keinen lesbaren Block/);
+		});
+
+		it('Scheitert der Prüflauf, bleibt das Material und der Bau geht weiter', async () => {
+			await fall('einheit-pruefung-scheitert');
+			const { id, mappe } = await starte();
+			const s = await bis(id, 'fertig');
+			assert.deepEqual(Object.keys(s.importiert).sort(), ['fall-1', 'fall-2']);
+			assert.equal(s.pruefung?.['fall-1']?.status, 'gescheitert');
+			assert.ok(s.pruefung?.['fall-1']?.grund);
+			assert.equal(s.schluss?.status, 'fertig');
+			const e = (await protokoll(mappe)).laeufe.filter((x) => x.art === 'pruefung');
+			assert.equal(e.length, 2);
+			assert.notEqual(e[0]?.ergebnis, 'fertig');
+		});
+
+		it('Doppelte Abbildung: der Server meldet sie dem zweiten Material und dem Schlusslauf', async () => {
+			await fall('einheit-dopplung');
+			const vorher = (await prompts()).length;
+			const { id } = await starte();
+			const s = await bis(id, 'fertig');
+			assert.deepEqual(s.pruefung?.['fall-1']?.server ?? [], []);
+			assert.match(s.pruefung?.['fall-2']?.server[0] ?? '', /Dieselbe Abbildung steht schon in „Fall 1“/);
+			assert.equal(s.pruefung?.['fall-2']?.korrekturen, 2);
+			const neu = (await prompts()).slice(vorher);
+			assert.match(nachPruefung(neu)[0] ?? '', /Die Schoolbox meldet:\n- Dieselbe Abbildung/);
+			const schluss = neu.find((p) => p.startsWith('Schritt 3: der Schlusslauf')) ?? '';
+			assert.match(
+				schluss,
+				/Doppelte Abbildungen, die der Server gefunden hat:\n- Dieselbe Abbildung in „Fall 1“ und „Fall 2“: <x-gitter/,
+			);
+			assert.match(s.schluss?.server[0] ?? '', /Dieselbe Abbildung in „Fall 1“ und „Fall 2“/);
+		});
+
+		it('Schlusslauf mit falscher Seitenzahl: ungebaute Änderung zurückgesetzt, der Server nennt die Zahl', async () => {
+			await fall('einheit-seitenzahl');
+			const vorher = (await prompts()).length;
+			const { id, mappe } = await starte();
+			const s = await bis(id, 'fertig');
+			const schluss =
+				(await prompts()).slice(vorher).find((p) => p.startsWith('Schritt 3: der Schlusslauf')) ?? '';
+			assert.match(schluss, /Die Zahlen der Schoolbox/);
+			assert.match(schluss, /- deckblatt: /);
+			assert.equal(s.schluss?.status, 'fertig');
+			assert.deepEqual(s.schluss?.neuGebaut, []);
+			assert.deepEqual(s.schluss?.offen, []);
+			assert.match(
+				s.schluss?.server.join(' ') ?? '',
+				/„Deckblatt“ nennt 12 Seiten\. Die Schoolbox zählt 2 Seiten/,
+			);
+			assert.match(await quelle(s, mappe, 'deckblatt'), /12 Seiten/);
+			const e = (await protokoll(mappe)).laeufe.find((x) => x.art === 'schluss');
+			assert.match(e?.hinweis ?? '', /nicht mit bauen gebaut, zurückgesetzt: deckblatt/);
+			assert.ok(e?.befunde.some((b) => b.includes('nennt 12 Seiten')));
+		});
+
+		it('Schlusslauf baut nach der Pflichtlektüre neu: übernommen, die Zahl stimmt', async () => {
+			await fall('einheit-seitenzahl-gebaut');
+			const { id, mappe } = await starte();
+			const s = await bis(id, 'fertig');
+			assert.deepEqual(s.schluss?.neuGebaut, ['deckblatt']);
+			assert.deepEqual(s.schluss?.server, []);
+			assert.match(await quelle(s, mappe, 'deckblatt'), /2 Seiten/);
+			const e = (await protokoll(mappe)).laeufe.find((x) => x.art === 'schluss');
+			assert.deepEqual(
+				e?.bauen.map((b) => [b.material, b.fehlend]),
+				[['deckblatt', []]],
+			);
+		});
+
+		it('Abgebrochener Schlusslauf: Weiterbauen wiederholt nur ihn', async () => {
+			await fall('einheit-schluss-haenger');
+			const { id } = await starte();
+			await warte(async () => (await stand(id)).inArbeit === '_schluss');
+			await api(`/einheiten/${id}/abbrechen`, { method: 'POST' });
+			const s = await bis(id, 'unvollstaendig');
+			assert.deepEqual(Object.keys(s.importiert).sort(), ['fall-1', 'fall-2']);
+			assert.equal(s.schluss?.status, 'abgebrochen');
+			await fall('einheit');
+			const vorher = (await prompts()).length;
+			await api(`/einheiten/${id}/weiter`, { method: 'POST' });
+			const t = await bis(id, 'fertig');
+			assert.equal(t.schluss?.status, 'fertig');
+			const neu = (await prompts()).slice(vorher);
+			assert.equal(neu.length, 1);
+			assert.match(neu[0] ?? '', /^Schritt 3: der Schlusslauf/);
 		});
 	});
 

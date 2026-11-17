@@ -8,6 +8,7 @@ import {
 	ID_MUSTER,
 	istToken,
 	KI_PRUEFDATEI,
+	LAUF_DATEI,
 	lebenderOrdner,
 	legeFreigabeAn,
 	leseFreigaben,
@@ -33,7 +34,7 @@ import { MAX_SAMMLUNG, pdfAntwort, sendePdf, waehleMappenVariante, waehlePdfVari
 const ID_REGEX = new RegExp(ID_MUSTER);
 const SICHERE_METHODEN = new Set(['GET', 'HEAD']);
 /** Was ein Teilen-Link im Dokumentordner nie sieht: alte Stände, Entwürfe, Verwaltungsdaten. */
-const GESPERRT_IM_DOKUMENT = new Set(['versionen', 'entwuerfe', 'vorschlag', KI_PRUEFDATEI, 'meta.json']);
+const GESPERRT_IM_DOKUMENT = new Set(['versionen', 'entwuerfe', 'vorschlag', KI_PRUEFDATEI, LAUF_DATEI, 'meta.json']);
 export const GILT_NICHT_MEHR = 'Dieser Link gilt nicht mehr.';
 
 export const freigabePfad = (token: string) => `/f/${token}`;

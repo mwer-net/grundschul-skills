@@ -3,8 +3,9 @@
  * `einheit.json` schreibt. Eine Einheit ist ein Ordner mit einem Behälter, keine neue `Art` (140).
  */
 import type { PlanStunde } from './einheit-aufgaben';
-import type { Steckbrief } from './einheit-bau';
 import { leseStunden } from './einheit-aufgaben';
+import type { Steckbrief } from './einheit-bau';
+import type { PruefStand, SchlussStand } from './einheit-pruefung';
 import { SchoolboxFehler } from './fehler';
 import { FACH_NAME } from './namen';
 import type { RechercheAnfrage, RechercheStand } from './recherche';
@@ -17,14 +18,25 @@ export const EINHEIT_THEMA = 'thema.css';
 export const EINHEIT_ZEICHEN = { thema: 200, ziel: 200, frei: 1500, idee: 300, titel: 120, autor: 60 };
 export const EINHEIT_MAX_DOKUMENTE = 24;
 /**
- * Kasten „Verbrauch“ vor dem Start (140). Seit 220 baut je Material ein eigener Durchgang; geschätzt 5 bis 10 Minuten
- * je Material (Lauf vom 2026-11-16: 15 Materialien in 54 Minuten in einem Lauf), am ersten echten Lauf zu messen.
+ * Kasten „Verbrauch“ vor dem Start (140). Seit 220 baut je Material ein eigener Durchgang, danach prüft ein eigener Lauf
+ * Arbeitsblätter, Stationen, Spiele und Schauseiten, am Ende gleicht ein Schlusslauf alles ab. Geschätzt, am ersten
+ * echten Lauf zu messen (Lauf vom 2026-11-16: 15 Materialien in 54 Minuten in einem Lauf, ohne Prüfung).
  */
 export const EINHEIT_VERBRAUCH =
-	'Zuerst sucht Claude im Web nach Bildungsplan und Fachdidaktik und zeigt dir den Plan: die Geschichte und alle Materialien. Das dauert einige Minuten. Nach deiner Freigabe baut Claude die Materialien nacheinander, jedes in einem eigenen Durchgang: Regeln lesen, bauen, prüfen, ansehen. Je nach Umfang dauert das eine bis drei Stunden und verbraucht sehr viel von deinem Limit. Du kannst weiterarbeiten; jedes Material erscheint im Ordner, sobald es fertig ist.';
+	'Zuerst sucht Claude im Web nach Bildungsplan und Fachdidaktik und zeigt dir den Plan: die Geschichte und alle Materialien. Das dauert einige Minuten. Nach deiner Freigabe baut Claude die Materialien nacheinander, jedes in einem eigenen Durchgang: Regeln lesen, bauen, prüfen, ansehen. Danach löst ein eigener Durchgang jedes Arbeitsblatt, jede Station und jedes Spiel wie ein Kind der Klasse, und Claude bessert nach, was dabei auffällt. Zum Schluss gleicht Claude alle Materialien mit deinem Auftrag ab. Je nach Umfang dauert das zwei bis vier Stunden und verbraucht sehr viel von deinem Limit. Du kannst weiterarbeiten; jedes Material erscheint im Ordner, sobald es fertig ist.';
 
-/** Minuten je Material in einem eigenen Durchgang (220), geschätzt; dazu einmal die Bilder. */
-export const EINHEIT_MINUTEN_JE_MATERIAL = { von: 5, bis: 10, bilder: 15 };
+/**
+ * Minuten je Material in einem eigenen Durchgang (220), geschätzt; dazu einmal die Bilder. `pruefen`: Prüfläufe und
+ * Korrekturrunden eines geprüften Materials (bis zu drei kurze Prüfläufe, bis zu zwei Korrekturen), `schluss` der
+ * Schlusslauf einmal je Einheit.
+ */
+export const EINHEIT_MINUTEN_JE_MATERIAL = {
+	von: 5,
+	bis: 10,
+	bilder: 15,
+	pruefen: { von: 3, bis: 10 },
+	schluss: { von: 10, bis: 25 },
+};
 
 const dauer = (minuten: number) => {
 	if (minuten < 60) {
@@ -34,11 +46,12 @@ const dauer = (minuten: number) => {
 	return `${String(stunden).replace('.', ',')} ${stunden === 1 ? 'Stunde' : 'Stunden'}`;
 };
 
-/** „etwa 1,5 bis 2,5 Stunden“ für den Text vor der Freigabe. */
-export const einheitBauDauer = (materialien: number, bilder: boolean) => {
-	const extra = bilder ? EINHEIT_MINUTEN_JE_MATERIAL.bilder : 0;
-	const von = dauer(materialien * EINHEIT_MINUTEN_JE_MATERIAL.von + extra);
-	const bis = dauer(materialien * EINHEIT_MINUTEN_JE_MATERIAL.bis + extra);
+/** „etwa 1,5 bis 2,5 Stunden“ für den Text vor der Freigabe; `geprueft`: Materialien mit Prüflauf (`gepruefteZahl`). */
+export const einheitBauDauer = (materialien: number, bilder: boolean, geprueft = 0) => {
+	const m = EINHEIT_MINUTEN_JE_MATERIAL;
+	const extra = bilder ? m.bilder : 0;
+	const von = dauer(materialien * m.von + geprueft * m.pruefen.von + m.schluss.von + extra);
+	const bis = dauer(materialien * m.bis + geprueft * m.pruefen.bis + m.schluss.bis + extra);
 	if (von === bis) {
 		return `etwa ${von}`;
 	}
@@ -518,4 +531,8 @@ export interface EinheitStand {
 	rechercheAnfrage?: RechercheAnfrage;
 	/** Was nach der Korrekturrunde des Planlaufs an der Aufgaben-Übersicht noch nicht stimmt (221). */
 	planBefunde?: string[];
+	/** Je geprüftem Material der Stand der Prüfung (220, Teil 2). Fehlt bei Einheiten davor. */
+	pruefung?: Record<string, PruefStand>;
+	/** Der Schlusslauf über alle Materialien; fehlt, bis er beginnt. */
+	schluss?: SchlussStand;
 }

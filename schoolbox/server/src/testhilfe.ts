@@ -30,7 +30,7 @@ import { A4, FOLIE, testPdf } from '@schoolbox/kern/src/testpdf';
 
 import { erstelleApp } from './app';
 import type { EinheitAnsicht } from './einheit';
-import type { KiPruefer } from './ki';
+import type { KiAnsicht, KiPruefer } from './ki';
 import type { ServerKonfig } from './konfig';
 import { pruefeServerKonfig } from './konfig';
 import type { Kontext } from './kontext';
@@ -92,6 +92,20 @@ process.stdin.on('end', () => {
 		sag({ type: 'result', subtype: 'success', is_error: false, result: 'Recherche geschrieben.', num_turns: 4, total_cost_usd: 0.1, usage: { output_tokens: 5 }, permission_denials: [] });
 		return;
 	}
+	// 220: der Prüflauf mit Kinderaugen, nur Read und ohne Sitzung. Er sieht nur die Seitenbilder in seinem Ordner; die
+	// Ersatz-Ansicht der Tests schreibt die Quelle hinein. Eine Anweisung „Mach was mit den Uhren“ meldet er als unklar.
+	if (args[args.indexOf('--tools') + 1] === 'Read') {
+		const seiten = fs.readdirSync('.').filter((n) => /^seite-\d+\.png$/.test(n)).sort();
+		sag({ type: 'assistant', message: { content: seiten.map((n) => ({ type: 'tool_use', name: 'Read', input: { file_path: path.resolve(n) } })) } });
+		const text = seiten.map((n) => fs.readFileSync(n, 'utf8')).join('\n');
+		fs.appendFileSync(path.join(__dirname, 'pruefungen.jsonl'), JSON.stringify({ titel: /^Prüfung von „([^“]*)“/.exec(eingabe)?.[1] ?? '', loesung: fs.readdirSync('.').some((n) => n.startsWith('loesung-')), kind: eingabe.includes('mit Kinderaugen') }) + '\n');
+		const fertig = (result, extra = {}) => sag({ type: 'result', subtype: 'success', is_error: false, result, num_turns: 3, total_cost_usd: 0.02, usage: { output_tokens: 5 }, permission_denials: [], ...extra });
+		if (fall === 'einheit-pruefung-scheitert') { fertig('', { subtype: 'error_during_execution', is_error: true }); process.exit(1); }
+		if (fall === 'einheit-pruefung-unlesbar') { fertig('Ich habe mir alles angesehen, es passt.'); return; }
+		const befunde = text.includes('Mach was mit den Uhren') ? [{ seite: 1, aufgabe: '1', art: 'unklar', text: 'Was mit den Uhren zu tun ist, steht nicht da.' }] : [];
+		fertig('Geprüft.\n\x60\x60\x60json\n' + JSON.stringify({ befunde }) + '\n\x60\x60\x60');
+		return;
+	}
 	if (args.includes('--no-session-persistence')) { sag({ type: 'result', subtype: 'success', is_error: false, result: 'ok', num_turns: 1, total_cost_usd: 0.0006 }); return; }
 	const nutzung = fall === 'kontext-gross' ? { usage: { input_tokens: 10, cache_read_input_tokens: 120000, cache_creation_input_tokens: 500 } } : {};
 	sag({ type: 'assistant', message: { ...nutzung, content: [{ type: 'tool_use', name: 'Skill', input: { skill: 'fach-mathematik' } }, { type: 'tool_use', name: 'Edit', input: {} }] } });
@@ -106,7 +120,15 @@ process.stdin.on('end', () => {
 		const behoben = fall === 'einheit-dreifach' && !eingabe.includes('Schritt 1');
 		const stunden = [{ nr: 1, handlung: 'Uhr aus Pappe stellen', begriffe: ['Minutenzeiger'], aufgaben: [auf('fall-1', 'legen-bauen-falten', 'I', false), auf('fall-1', 'lueckentext', 'I', false)] }, { nr: 2, handlung: 'Zu zweit Uhrzeiten zeigen', begriffe: [], aufgaben: [auf('fall-2', 'lueckentext', 'II', true), auf('fall-2', fall === 'einheit-uebersicht' || behoben ? 'erklaeren' : 'lueckentext', 'III', false)] }];
 		const uebersicht = fall === 'einheit-uebersicht' || fall.startsWith('einheit-dreifach') ? { stunden, recherche: 'Der Bildungsplan nennt volle und halbe Stunden.' } : {};
-		const plan = () => fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Uhrzeit', annahmen: ['Klasse 2'], ...uebersicht, dokumente: [{ slug: 'fall-1', titel: 'Fall 1', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Einstieg', fertig: false }, { slug: 'fall-2', titel: 'Fall 2', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Üben', fertig: false }] }));
+		// 220, Teil 2: „einheit-seitenzahl“ hat statt fall-2 ein Deckblatt, das 12 Seiten nennt; die Einheit hat 2.
+		const mitDeckblatt = fall.startsWith('einheit-seitenzahl');
+		const zweitesDok = mitDeckblatt ? { slug: 'deckblatt', titel: 'Deckblatt', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Titel', fertig: false } : { slug: 'fall-2', titel: 'Fall 2', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Üben', fertig: false };
+		const titelVon = (slug) => ({ 'fall-1': 'Fall 1', 'fall-2': 'Fall 2', deckblatt: 'Deckblatt' })[slug] ?? slug;
+		const plan = () => fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Uhrzeit', annahmen: ['Klasse 2'], ...uebersicht, dokumente: [{ slug: 'fall-1', titel: 'Fall 1', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Einstieg', fertig: false }, zweitesDok] }));
+		// „einheit-unklar“ und „einheit-stur“: fall-1 mit einer unklaren Anweisung, „-stur“ behebt sie nie. „einheit-dopplung“:
+		// dieselbe Abbildung in beiden Materialien.
+		const UNKLAR = '<p>Mach was mit den Uhren.</p>';
+		const GITTER = '<x-gitter art="geobrett" spalten="6" zeilen="4" linien="3,0 0,2 3,4" achse="senkrecht"></x-gitter>';
 		const warte = (ms) => new Promise((r) => setTimeout(r, ms));
 		const neben = (name) => args[args.indexOf(name) + 1] ?? '';
 		fs.appendFileSync(path.join(__dirname, 'laeufe.jsonl'), JSON.stringify({ erste: eingabe.split('\n')[0], resume: args.includes('--resume'), auftrag: path.basename(neben('--append-system-prompt-file')) }) + '\n');
@@ -127,9 +149,33 @@ process.stdin.on('end', () => {
 			// Schritt 1 schreibt nur den Plan; gebaut wird nach der Freigabe.
 			if (eingabe.includes('Schritt 1')) { plan(); ende({ result: (eingabe.includes('möchte ihn anders') ? 'Geänderter Plan. ' : '') + 'Die Uhr im Rathaus ist stehen geblieben. Zwei Fälle.' }); return; }
 			if (eingabe.includes('Korrekturrunde zum Plan')) { plan(); ende({ result: 'Korrigierter Plan. Zwei Fälle.' }); return; }
+			if (eingabe.startsWith('Korrekturrunde nach der Prüfung.')) {
+				const slug = fs.readFileSync(path.join(__dirname, 'letzter.txt'), 'utf8');
+				const datei = 'dokumente/' + slug + '/material.html';
+				if (fall !== 'einheit-stur') { fs.writeFileSync(datei, fs.readFileSync(datei, 'utf8').replace(UNKLAR, '<p>Stelle jede Uhr auf die Zeit darunter.</p>')); }
+				await bauen(slug);
+				ende({ result: 'Anweisung geklärt.' });
+				return;
+			}
+			// Der Schlusslauf: „einheit-seitenzahl“ bessert das Deckblatt aus, ohne bauen; „-gebaut“ liest die Pflicht und baut.
+			if (eingabe.startsWith('Schritt 3: der Schlusslauf')) {
+				if (fall === 'einheit-schluss-haenger') { setInterval(() => {}, 1000); return; }
+				if (mitDeckblatt) {
+					if (fall === 'einheit-seitenzahl-gebaut') {
+						const zeile = /^- deckblatt: (.*)$/m.exec(eingabe)?.[1] ?? '';
+						lies([...zeile.matchAll(/Skill (\S+) laden|Read ([^\s·]+)/g)].map((t) => t[1] ? { type: 'tool_use', name: 'Skill', input: { skill: t[1] } } : { type: 'tool_use', name: 'Read', input: { file_path: path.join(neben('--add-dir'), '.claude', 'skills', t[2]) } }));
+						await warte(200);
+					}
+					const datei = 'dokumente/deckblatt/material.html';
+					fs.writeFileSync(datei, fs.readFileSync(datei, 'utf8').replace('12 Seiten', '2 Seiten'));
+					if (fall === 'einheit-seitenzahl-gebaut') { await bauen('deckblatt'); }
+				}
+				ende({ result: 'Abgeglichen.\n\x60\x60\x60json\n{"offen": []}\n\x60\x60\x60' });
+				return;
+			}
 			if (eingabe.startsWith('Korrekturrunde.')) {
 				const slug = /dokumente\/([a-z0-9-]+)\/material\.html:/.exec(eingabe)?.[1] ?? 'fall-2';
-				fs.writeFileSync('dokumente/' + slug + '/material.html', blatt(slug === 'fall-1' ? 'Fall 1' : 'Fall 2'));
+				fs.writeFileSync('dokumente/' + slug + '/material.html', blatt(titelVon(slug)));
 				await bauen(slug);
 				ende({ result: 'Behoben.' });
 				return;
@@ -141,10 +187,11 @@ process.stdin.on('end', () => {
 			fs.mkdirSync('bilder', { recursive: true });
 			fs.writeFileSync('bilder/uhr.png', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
 			fs.mkdirSync('dokumente/' + slug, { recursive: true });
-			const zweites = slug === 'fall-2';
+			const zweites = slug !== 'fall-1';
+			fs.writeFileSync(path.join(__dirname, 'letzter.txt'), slug);
 			// „einheit-niveau“: Niveau-Punkte, obwohl der Auftrag ohne Niveaus ist (210). „einheit-altsatz“: Body ohne data-satz (212).
-			const extra = zweites ? { 'einheit-skript': '<script>window.boese = 1</script>', 'einheit-niveau': '<span class="niveau"><i></i><i></i></span>' }[fall] ?? '' : '';
-			fs.writeFileSync('dokumente/' + slug + '/material.html', blatt(zweites ? 'Fall 2' : 'Fall 1', extra, zweites && fall === 'einheit-altsatz' ? '' : undefined));
+			const extra = (zweites ? { 'einheit-skript': '<script>window.boese = 1</script>', 'einheit-niveau': '<span class="niveau"><i></i><i></i></span>' }[fall] ?? '' : ['einheit-unklar', 'einheit-stur'].includes(fall) ? UNKLAR : '') + (fall === 'einheit-dopplung' ? GITTER : '') + (slug === 'deckblatt' ? '<p>Diese Einheit hat 12 Seiten.</p>' : '');
+			fs.writeFileSync('dokumente/' + slug + '/material.html', blatt(titelVon(slug), extra, zweites && fall === 'einheit-altsatz' ? '' : undefined));
 			if (fall === 'einheit-ueberschreiben') { fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Anders', dokumente: [{ slug: 'fremd', titel: 'Fremd', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'x' }] })); }
 			if (zweites && fall === 'einheit-haenger') { setInterval(() => {}, 1000); return; }
 			const spaeter = fall === 'einheit-ungelesen' && !zweites ? lektuere.splice(-1) : [];
@@ -154,7 +201,7 @@ process.stdin.on('end', () => {
 			await bauen(slug);
 			fs.writeFileSync('dokumente/' + slug + '/steckbrief.json', JSON.stringify({ figuren: ['Willi mit Uhr'], loesung: zweites ? 'liefert das R' : 'liefert das U', merken: 'führt den Minutenzeiger ein' }));
 			await warte(zweites ? 1500 : 0);
-			ende({ result: (zweites ? 'Fall 2' : 'Fall 1') + ' gebaut.' });
+			ende({ result: titelVon(slug) + ' gebaut.' });
 		})();
 		return;
 	}
@@ -189,9 +236,42 @@ process.stdin.on('end', () => {
 	if (fall === 'abmeldung') { sag({ type: 'assistant', error: 'authentication_failed', message: { content: [] } }); ende({ is_error: true, result: 'Not logged in' }); process.exit(1); }
 	if (fall === 'limit-budget') { ende({ subtype: 'error_max_budget_usd', is_error: true, result: '' }); process.exit(1); }
 	// Neues Blatt in zwei Schritten: erst der Aufgabenplan als Antwort, nach der Freigabe das Blatt.
-	if (fall === 'plan') {
+	// 220, Teil 2: „plan-unklar“ baut eine unklare Anweisung, die die Korrektur nach der Prüfung behebt, „plan-stur“ nicht;
+	// „plan-bauen“ ruft bauen einmal vor und einmal nach der Pflichtlektüre.
+	if (fall.startsWith('plan')) {
+		const UNKLAR = '<p>Mach was mit den Uhren.</p>';
+		if (eingabe.startsWith('Korrekturrunde nach der Prüfung.')) {
+			if (fall !== 'plan-stur') { fs.writeFileSync('material.html', fs.readFileSync('material.html', 'utf8').replace(UNKLAR, '<p>Stelle jede Uhr auf die Zeit darunter.</p>')); }
+			ende({ result: 'Geklärt.' });
+			return;
+		}
+		if (fall === 'plan-bauen' && !(eingabe.includes('Aufgabenplan') && !eingabe.includes('freigegeben'))) {
+			const neben = (name) => args[args.indexOf(name) + 1] ?? '';
+			const ruf = () => new Promise((fertig) => {
+				const konfig = JSON.parse(fs.readFileSync(neben('--mcp-config'), 'utf8'));
+				const v = require('node:net').connect(konfig.mcpServers.schoolbox.args[1]);
+				let antwort = '';
+				v.on('connect', () => v.write(JSON.stringify({ dokument: 'blatt' }) + '\n'));
+				v.on('data', (t) => { antwort += t; });
+				v.on('close', () => { fs.appendFileSync(path.join(__dirname, 'bauen.jsonl'), JSON.stringify(JSON.parse(antwort || '{}')) + '\n'); fertig(); });
+				v.on('error', () => fertig());
+			});
+			aendere();
+			(async () => {
+				await ruf();
+				const teile = [...eingabe.matchAll(/^- (?:Skill (\S+) laden|Read (\S+))$/gm)].map((t) => t[1] ? { type: 'tool_use', name: 'Skill', input: { skill: t[1] } } : { type: 'tool_use', name: 'Read', input: { file_path: path.join(neben('--add-dir'), '.claude', 'skills', t[2]) } });
+				sag({ type: 'assistant', message: { content: teile } });
+				await new Promise((r) => setTimeout(r, 200));
+				await ruf();
+				ende({});
+			})();
+			return;
+		}
 		if (eingabe.includes('Aufgabenplan') && !eingabe.includes('freigegeben')) { ende({ result: (eingabe.includes('möchte ihn anders') ? 'Geänderter ' : '') + 'Aufgabenplan Kl2_Mathe_Igel_AB1 · Zeitziel 20 min\n\nSeite ● Grundlage (21 min)\n1  Lies ab.  8 Uhren  5 min\n2  Zeichne die Zeiger ein.  4 Uhren  4 min\n\nAnnahme: Klasse 2' }); return; }
-		aendere(); ende({}); return;
+		aendere();
+		if (fall !== 'plan') { const alt = fs.readFileSync('material.html', 'utf8'); fs.writeFileSync('material.html', alt.includes('</h1>') ? alt.replace('</h1>', '</h1>' + UNKLAR) : alt.replace('</section>', UNKLAR + '</section>')); }
+		ende({});
+		return;
 	}
 	if (fall === 'nichts') { ende({}); return; }
 	if (fall === 'leer') { ende({ result: '' }); return; }
@@ -302,6 +382,8 @@ export interface TestServerOptionen {
 	kiPruefer?: KiPruefer;
 	/** Ohne baut blatt.py das Werkzeug `bauen` der Einheit. */
 	einheitAnsicht?: EinheitAnsicht;
+	/** Ohne baut blatt.py die Seiten eines neuen Blatts (Werkzeug `bauen`, Prüflauf). */
+	kiAnsicht?: KiAnsicht;
 }
 
 export const starteTestServer = async (optionen: TestServerOptionen = {}) => {
@@ -320,6 +402,7 @@ export const starteTestServer = async (optionen: TestServerOptionen = {}) => {
 		folien: optionen.folienBauer,
 		kiPruefer: optionen.kiPruefer,
 		einheitAnsicht: optionen.einheitAnsicht,
+		kiAnsicht: optionen.kiAnsicht,
 	});
 	const ueberwachung: Ueberwachung | null = optionen.ueberwachung
 		? await starteUeberwachung(kontext, optionen.ruheMs)

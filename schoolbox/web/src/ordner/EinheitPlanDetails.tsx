@@ -2,11 +2,25 @@ import type { EinheitPlan } from '@schoolbox/kern/src/einheit';
 import type { PlanStunde } from '@schoolbox/kern/src/einheit-aufgaben';
 import { FORMAT_HOECHSTENS, formatTitel, formatZaehlung } from '@schoolbox/kern/src/einheit-aufgaben';
 import type { RechercheStand } from '@schoolbox/kern/src/recherche';
+import type { ReactNode } from 'react';
+
+import { Symbol } from '../bausteine/Symbol';
 
 /**
  * Der Plan einer Einheit für die Lehrkraft (221): kurz, was die Kinder je Stunde tun und was die Recherche ergab;
  * zum Aufklappen alle Aufgaben der Reihe und die Quellen. Keine Feldnamen, keine Codes.
  */
+
+/** Klappt mit dem Pfeil der Ebenenliste, nicht mit dem Dreieck des Browsers (190-29). */
+export const Aufklapp = ({ children, titel }: { titel: string; children: ReactNode }) => (
+	<details className="group text-sm">
+		<summary className="flex cursor-pointer list-none items-center gap-1 text-leise hover:text-tinte [&::-webkit-details-marker]:hidden">
+			<Symbol name="runter" className="size-3 -rotate-90 transition-transform group-open:rotate-0" />
+			{titel}
+		</summary>
+		<div className="mt-1 pl-4">{children}</div>
+	</details>
+);
 
 const kapitelTitel = (plan: EinheitPlan, nr: number) => plan.geschichte?.kapitel.find((k) => k.nr === nr)?.titel ?? '';
 
@@ -30,7 +44,9 @@ export const StundenKurz = ({ plan }: { plan: EinheitPlan }) => {
 					<div key={s.nr} className="contents">
 						<dt className="text-leise tabular-nums">{`Stunde ${s.nr}`}</dt>
 						<dd>
-							{kapitelTitel(plan, s.nr) && <span className="text-leise">{mitDoppelpunkt(kapitelTitel(plan, s.nr))}</span>}
+							{kapitelTitel(plan, s.nr) && (
+								<span className="text-leise">{mitDoppelpunkt(kapitelTitel(plan, s.nr))}</span>
+							)}
 							{s.handlung || 'noch offen'}
 							{s.kontrolle && <span className="text-leise"> (Lernzielkontrolle)</span>}
 							{woerter(s) && <span className="text-leise">{woerter(s)}</span>}
@@ -60,6 +76,14 @@ export const RechercheKurz = ({ plan, recherche }: { plan: EinheitPlan; recherch
 };
 
 const zelle = 'border-b border-rand px-2 py-1 align-top';
+
+/** Letzte Spalte der Tabelle: neu, das zweite Mal mit höherem Anspruch, oder Wiederholung in der Kontrolle. */
+const vorkommen = (kontrolle: boolean | undefined, zweitesMal: boolean | undefined) => {
+	if (kontrolle) {
+		return 'Wiederholung';
+	}
+	return zweitesMal ? '2. Mal' : 'neu';
+};
 
 /** Alle Aufgaben der Reihe als Tabelle, darunter, ob ein Format zu oft vorkommt. */
 export const AufgabenTabelle = ({ plan }: { plan: EinheitPlan }) => {
@@ -92,9 +116,7 @@ export const AufgabenTabelle = ({ plan }: { plan: EinheitPlan }) => {
 								<td className={`${zelle} text-leise`}>{titel.get(a.dokument) ?? ''}</td>
 								<td className={zelle}>{formatTitel(a.format)}</td>
 								<td className={`${zelle} tabular-nums`}>{a.bereich ?? ''}</td>
-								<td className={`${zelle} text-leise`}>
-									{s.kontrolle ? 'Wiederholung' : a.zweitesMal ? '2. Mal' : 'neu'}
-								</td>
+								<td className={`${zelle} text-leise`}>{vorkommen(s.kontrolle, a.zweitesMal)}</td>
 							</tr>
 						)),
 					)}

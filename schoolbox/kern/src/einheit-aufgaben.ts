@@ -18,14 +18,24 @@ export interface AufgabenFormat {
 
 /** Aus der Tabelle „Bewährte Aufgabenformate“ (`arbeitsblatt`) und den Stufen der Geometrie (`fach-mathematik`). */
 export const AUFGABEN_FORMATE: readonly AufgabenFormat[] = [
-	{ name: 'zuordnen', titel: 'Zuordnen / Verbinden', geeignet: 'Kl. 1–2, Begriffe, Bild-Wort', hinweis: 'Max. 6 Paare, `x-zuordnen`' },
+	{
+		name: 'zuordnen',
+		titel: 'Zuordnen / Verbinden',
+		geeignet: 'Kl. 1–2, Begriffe, Bild-Wort',
+		hinweis: 'Max. 6 Paare, `x-zuordnen`',
+	},
 	{
 		name: 'lueckentext',
 		titel: 'Lückentext mit Wortauswahl',
 		geeignet: 'Deutsch, Sachunterricht, Merksatz',
 		hinweis: '`x-lueckentext`, `x-wortspeicher`',
 	},
-	{ name: 'ankreuzen', titel: 'Ankreuzen / Einkreisen', geeignet: 'Verständnis, Wortarten', hinweis: '`x-ankreuzen`' },
+	{
+		name: 'ankreuzen',
+		titel: 'Ankreuzen / Einkreisen',
+		geeignet: 'Verständnis, Wortarten',
+		hinweis: '`x-ankreuzen`',
+	},
 	{
 		name: 'richtig-falsch',
 		titel: 'Richtig oder falsch („Stimmt das?“)',
@@ -235,23 +245,13 @@ const name = (format: string) => {
 	const titel = formatTitel(format);
 	return titel === format ? `„${format}“` : `„${titel}“ (${format})`;
 };
-const kurzInhalt = (a: PlanAufgabe) => (a.inhalt ? `„${a.inhalt.slice(0, 60)}${a.inhalt.length > 60 ? '…' : ''}“` : 'ohne Inhalt');
+const kurzInhalt = (a: PlanAufgabe) =>
+	a.inhalt ? `„${a.inhalt.slice(0, 60)}${a.inhalt.length > 60 ? '…' : ''}“` : 'ohne Inhalt';
 const liste = (nrn: number[]) => [...new Set(nrn)].join(', ');
-const muster = (wort: string) =>
-	new RegExp(`(?<![\\p{L}\\p{N}])${wort.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'iu');
+const muster = (wort: string) => new RegExp(`(?<![\\p{L}\\p{N}])${wort.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'iu');
 
-/**
- * Verstöße gegen die Regeln der Reihe, als Befund für die Korrekturrunde des Planlaufs. Nur was sich zählen lässt:
- * jede Stunde mit Handlungsform und Aufgaben, kein Format öfter als zweimal und das zweite markiert, ein Fachwort vor
- * der ersten Aufgabe, die es nennt, in Kl. 1/2 höchstens eine Aufgabe aus Bereich III je Blatt. Ein Plan ohne
- * Übersicht und ohne Kapitel (vor 221) hat keine Befunde.
- */
-export const planBefunde = (plan: EinheitPlan, klasse?: Klasse): string[] => {
-	const stunden = plan.stunden ?? [];
-	const kapitel = (plan.geschichte?.kapitel ?? []).map((k) => k.nr).filter((nr) => nr >= 1);
-	if (stunden.length === 0 && kapitel.length === 0) {
-		return [];
-	}
+/** Jede Stunde da, mit Handlungsform und Aufgaben, jede Aufgabe mit Format, Bereich und Material. */
+const stundenBefunde = (stunden: PlanStunde[], kapitel: number[]) => {
 	const befunde: string[] = [];
 	const fehlt = kapitel.filter((nr) => !stunden.some((s) => s.nr === nr));
 	if (fehlt.length) {
@@ -261,7 +261,9 @@ export const planBefunde = (plan: EinheitPlan, klasse?: Klasse): string[] => {
 	}
 	for (const s of stunden) {
 		if (!s.handlung) {
-			befunde.push(`Stunde ${s.nr} hat keine Handlungsform: Nenne in „handlung“, was die Kinder mit welchem Material tun.`);
+			befunde.push(
+				`Stunde ${s.nr} hat keine Handlungsform: Nenne in „handlung“, was die Kinder mit welchem Material tun.`,
+			);
 		}
 		if (s.aufgaben.length === 0) {
 			befunde.push(`Stunde ${s.nr} hat keine Aufgaben in „aufgaben“.`);
@@ -277,7 +279,12 @@ export const planBefunde = (plan: EinheitPlan, klasse?: Klasse): string[] => {
 			}
 		}
 	}
-	// Formate in der Reihenfolge der Reihe: das zweite Vorkommen markiert, kein drittes.
+	return befunde;
+};
+
+/** Formate in der Reihenfolge der Reihe: das zweite Vorkommen markiert, kein drittes. */
+const formatBefunde = (plan: EinheitPlan, stunden: PlanStunde[]) => {
+	const befunde: string[] = [];
 	const bisher = new Map<string, number[]>();
 	const zuOft = new Map<string, { format: string; stunden: number[] }>();
 	for (const s of stunden) {
@@ -306,7 +313,12 @@ export const planBefunde = (plan: EinheitPlan, klasse?: Klasse): string[] => {
 			`${name(format)} kommt ${nrn.length}-mal vor (Stunde ${liste(nrn)}); erlaubt sind höchstens ${FORMAT_HOECHSTENS}, das zweite mit höherem Anspruch. Ersetze die übrigen durch andere Formate, nicht nur durch einen anderen Namen.`,
 		);
 	}
-	// Fachwörter: eingeführt in oder vor der Stunde, in der eine Aufgabe sie zuerst nennt, und nur einmal.
+	return befunde;
+};
+
+/** Fachwörter: eingeführt in oder vor der Stunde, in der eine Aufgabe sie zuerst nennt, und nur einmal. */
+const fachwortBefunde = (stunden: PlanStunde[]) => {
+	const befunde: string[] = [];
 	const eingefuehrt = new Map<string, { wort: string; nr: number }>();
 	for (const s of stunden) {
 		for (const wort of s.begriffe) {
@@ -321,7 +333,7 @@ export const planBefunde = (plan: EinheitPlan, klasse?: Klasse): string[] => {
 			}
 		}
 	}
-	for (const { wort, nr } of eingefuehrt.values()) {
+	for (const { nr, wort } of eingefuehrt.values()) {
 		const vorher = stunden.find((s) => s.nr < nr && s.aufgaben.some((a) => muster(wort).test(a.inhalt)));
 		if (vorher) {
 			befunde.push(
@@ -329,24 +341,48 @@ export const planBefunde = (plan: EinheitPlan, klasse?: Klasse): string[] => {
 			);
 		}
 	}
-	if (klasse === 1 || klasse === 2) {
-		const dritte = new Map<string, number>();
-		for (const s of stunden) {
-			for (const a of s.aufgaben.filter((x) => x.bereich === 'III')) {
-				const blatt = a.dokument || `stunde-${s.nr}`;
-				dritte.set(blatt, (dritte.get(blatt) ?? 0) + 1);
-			}
+	return befunde;
+};
+
+/** In Kl. 1/2 höchstens eine Aufgabe aus Bereich III je Blatt. */
+const bereichDreiBefunde = (stunden: PlanStunde[], klasse: 1 | 2) => {
+	const befunde: string[] = [];
+	const dritte = new Map<string, number>();
+	for (const s of stunden) {
+		for (const a of s.aufgaben.filter((x) => x.bereich === 'III')) {
+			const blatt = a.dokument || `stunde-${s.nr}`;
+			dritte.set(blatt, (dritte.get(blatt) ?? 0) + 1);
 		}
-		for (const [blatt, n] of dritte) {
-			if (n > 1) {
-				const wo = blatt.startsWith('stunde-') ? `Stunde ${blatt.slice(7)}` : `dokumente/${blatt}`;
-				befunde.push(
-					`${wo} hat ${n} Aufgaben aus Bereich III; in Kl. ${klasse} höchstens eine je Blatt (grundschul-didaktik, references/differenzierung.md).`,
-				);
-			}
+	}
+	for (const [blatt, n] of dritte) {
+		if (n > 1) {
+			const wo = blatt.startsWith('stunde-') ? `Stunde ${blatt.slice(7)}` : `dokumente/${blatt}`;
+			befunde.push(
+				`${wo} hat ${n} Aufgaben aus Bereich III; in Kl. ${klasse} höchstens eine je Blatt (grundschul-didaktik, references/differenzierung.md).`,
+			);
 		}
 	}
 	return befunde;
+};
+
+/**
+ * Verstöße gegen die Regeln der Reihe, als Befund für die Korrekturrunde des Planlaufs. Nur was sich zählen lässt:
+ * jede Stunde mit Handlungsform und Aufgaben, kein Format öfter als zweimal und das zweite markiert, ein Fachwort vor
+ * der ersten Aufgabe, die es nennt, in Kl. 1/2 höchstens eine Aufgabe aus Bereich III je Blatt. Ein Plan ohne
+ * Übersicht und ohne Kapitel (vor 221) hat keine Befunde.
+ */
+export const planBefunde = (plan: EinheitPlan, klasse?: Klasse): string[] => {
+	const stunden = plan.stunden ?? [];
+	const kapitel = (plan.geschichte?.kapitel ?? []).map((k) => k.nr).filter((nr) => nr >= 1);
+	if (stunden.length === 0 && kapitel.length === 0) {
+		return [];
+	}
+	return [
+		...stundenBefunde(stunden, kapitel),
+		...formatBefunde(plan, stunden),
+		...fachwortBefunde(stunden),
+		...(klasse === 1 || klasse === 2 ? bereichDreiBefunde(stunden, klasse) : []),
+	];
 };
 
 const zeile = (a: PlanAufgabe) =>

@@ -249,6 +249,16 @@ const OhneBlattKarte = ({
 };
 
 /** Die Karte auf dem Blatt: Fortschritt, oder der Grund, warum kein Entwurf kam. */
+/** Was die Lehrkraft während des Laufs erwarten kann: Recherche, Aufgabenplan oder Bau. */
+const laufHinweis = (recherchiert: boolean, plant: boolean) => {
+	if (recherchiert) {
+		return 'Claude liest zuerst im Bildungsplan und in Fachportalen nach, meist zwei bis fünf Minuten. Danach kommt der Aufgabenplan; gebaut wird, wenn du ihn freigibst.';
+	}
+	return plant
+		? 'Zuerst kommt der Aufgabenplan, meist nach ein bis zwei Minuten. Gebaut wird, wenn du ihn freigibst.'
+		: 'Claude baut, prüft und sieht sich jede Seite an. Das dauert meist 5 bis 15 Minuten. Du kannst den Editor verlassen, die Arbeit läuft weiter.';
+};
+
 export const EntwurfKarte = ({
 	entwurf,
 	karte,
@@ -297,13 +307,7 @@ export const EntwurfKarte = ({
 							<div className="h-full w-1/3 animate-pulse rounded-full bg-brand-500" />
 						</div>
 						<Schritte auftrag={phase.auftrag} />
-						<p className="mt-3 text-xs text-leise">
-							{recherchiert
-								? 'Claude liest zuerst im Bildungsplan und in Fachportalen nach, meist zwei bis fünf Minuten. Danach kommt der Aufgabenplan; gebaut wird, wenn du ihn freigibst.'
-								: plant
-								? 'Zuerst kommt der Aufgabenplan, meist nach ein bis zwei Minuten. Gebaut wird, wenn du ihn freigibst.'
-								: 'Claude baut, prüft und sieht sich jede Seite an. Das dauert meist 5 bis 15 Minuten. Du kannst den Editor verlassen, die Arbeit läuft weiter.'}
-						</p>
+						<p className="mt-3 text-xs text-leise">{laufHinweis(recherchiert, plant)}</p>
 						<Knopf art="zweit" className="mt-3" onClick={() => void entwurf.abbrechen()}>
 							Abbrechen
 						</Knopf>

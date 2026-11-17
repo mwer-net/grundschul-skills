@@ -6,21 +6,28 @@ import { describe, it } from 'node:test';
 import type { EinheitPlan } from './einheit';
 import { lesePlan } from './einheit';
 import {
-	BILDER_SCHRITT,
 	bauReihenfolge,
+	BILDER_SCHRITT,
 	fertigText,
 	gelesenAus,
-	leseSteckbrief,
 	lektuereZeile,
-	PFLICHTLEKTUERE,
+	leseSteckbrief,
 	pflichtFuer,
+	PFLICHTLEKTUERE,
 	rolleVon,
 	SKILL_PRAEFIX,
 } from './einheit-bau';
 import { WURZEL } from './konfig';
 import { FAECHER } from './werte';
 
-const dok = (slug: string, art: EinheitPlan['dokumente'][number]['art'] = 'arbeitsblatt') => ({ slug, titel: slug, art, format: 'a4-hoch', zweck: '', fertig: false });
+const dok = (slug: string, art: EinheitPlan['dokumente'][number]['art'] = 'arbeitsblatt') => ({
+	slug,
+	titel: slug,
+	art,
+	format: 'a4-hoch',
+	zweck: '',
+	fertig: false,
+});
 
 describe('Pflichtlektüre (220)', () => {
 	it('jeder Skill und jede Datei der Liste existiert, auch die Fach-Skills', () => {
@@ -60,7 +67,9 @@ describe('Pflichtlektüre (220)', () => {
 		assert.equal(gelesenAus('Skill', { skill: 'fach-mathematik' }), 'skill:fach-mathematik');
 		assert.equal(gelesenAus('Skill', { skill: 'anthropic-skills:lernspiel' }), 'skill:lernspiel');
 		assert.equal(
-			gelesenAus('Read', { file_path: '/tmp/x/ablage/.claude/skills/grundschul-didaktik/references/druck-und-platz.md' }),
+			gelesenAus('Read', {
+				file_path: '/tmp/x/ablage/.claude/skills/grundschul-didaktik/references/druck-und-platz.md',
+			}),
 			'grundschul-didaktik/references/druck-und-platz.md',
 		);
 		assert.equal(gelesenAus('Read', { file_path: '/tmp/x/.claude/skills/lernspiel/SKILL.md' }), 'skill:lernspiel');
@@ -74,22 +83,36 @@ describe('Pflichtlektüre (220)', () => {
 describe('Reihenfolge und fertige Materialien (220)', () => {
 	const plan = lesePlan(
 		{
-		titel: 'Uhr',
-		annahmen: [],
-		dokumente: [
-			dok('deckblatt', 'sonstiges'),
-			dok('hinweise', 'unterrichtsplanung'),
-			dok('kapitel-2'),
-			dok('spiel', 'lernspiel'),
-			dok('kapitel-1'),
-			dok('vorleseheft', 'unterrichtsplanung'),
-			dok('quellen', 'sonstiges'),
-			dok('eduki-angebot', 'sonstiges'),
-		],
-		stunden: [
-			{ nr: 1, handlung: '', begriffe: [], aufgaben: [{ dokument: 'kapitel-1', format: 'zuordnen', inhalt: '', bereich: 'I', zweitesMal: false }] },
-			{ nr: 2, handlung: '', begriffe: [], aufgaben: [{ dokument: 'kapitel-2', format: 'sortieren', inhalt: '', bereich: 'II', zweitesMal: false }] },
-		],
+			titel: 'Uhr',
+			annahmen: [],
+			dokumente: [
+				dok('deckblatt', 'sonstiges'),
+				dok('hinweise', 'unterrichtsplanung'),
+				dok('kapitel-2'),
+				dok('spiel', 'lernspiel'),
+				dok('kapitel-1'),
+				dok('vorleseheft', 'unterrichtsplanung'),
+				dok('quellen', 'sonstiges'),
+				dok('eduki-angebot', 'sonstiges'),
+			],
+			stunden: [
+				{
+					nr: 1,
+					handlung: '',
+					begriffe: [],
+					aufgaben: [
+						{ dokument: 'kapitel-1', format: 'zuordnen', inhalt: '', bereich: 'I', zweitesMal: false },
+					],
+				},
+				{
+					nr: 2,
+					handlung: '',
+					begriffe: [],
+					aufgaben: [
+						{ dokument: 'kapitel-2', format: 'sortieren', inhalt: '', bereich: 'II', zweitesMal: false },
+					],
+				},
+			],
 		},
 		24,
 	) as EinheitPlan;
@@ -115,8 +138,13 @@ describe('Reihenfolge und fertige Materialien (220)', () => {
 		assert.equal(fertigText(plan, [], {}), 'Schon fertig: noch nichts.');
 		const steckbrief = leseSteckbrief({ figuren: ['Willi'], loesung: 'U', merken: 'Minutenzeiger', boese: 'x' });
 		assert.deepEqual(Object.keys(steckbrief).sort(), ['figuren', 'loesung', 'merken']);
-		const text = fertigText(plan, ['kapitel-1'], { 'kapitel-1': { seiten: 2, formate: ['zuordnen'], ...steckbrief } });
-		assert.match(text, /- dokumente\/kapitel-1 „kapitel-1“: 2 Seiten\. Formate: zuordnen\. Figuren: Willi\. Rätselkette: U\. Merken: Minutenzeiger/);
+		const text = fertigText(plan, ['kapitel-1'], {
+			'kapitel-1': { seiten: 2, formate: ['zuordnen'], ...steckbrief },
+		});
+		assert.match(
+			text,
+			/- dokumente\/kapitel-1 „kapitel-1“: 2 Seiten\. Formate: zuordnen\. Figuren: Willi\. Rätselkette: U\. Merken: Minutenzeiger/,
+		);
 		assert.doesNotMatch(text, /kapitel-2/);
 	});
 });

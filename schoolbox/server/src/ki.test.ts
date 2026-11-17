@@ -113,6 +113,12 @@ describe('Aufträge an Claude', () => {
 		await writeFile(path.join(ordner, 'fall.txt'), 'gut');
 		server = await starteTestServer({
 			env: { CLAUDE_BIN: bin },
+			// Die Seiten ohne Browser: das Blatt selbst als „Seitenbild“, so liest der Prüflauf der Attrappe die Anweisungen.
+			kiAnsicht: async (_dir, html, ziel) => {
+				await mkdir(ziel, { recursive: true });
+				await writeFile(path.join(ziel, 'seite-1.png'), html);
+				return { bericht: pruefbericht, bilder: ['seite-1.png'] };
+			},
 			kiPruefer: async () => {
 				await pruefungHaelt;
 				pruefungZaehlt();
@@ -788,6 +794,99 @@ describe('Aufträge an Claude', () => {
 		const ander = await legeDokumentAn(server.materialDir, { beispiel: true });
 		const res = await api(`/dokumente/${ander.mappe}/${ander.dok}/ki/nochmal`, { method: 'POST' });
 		assert.equal(res.status, 404);
+	});
+
+	describe('Neues Material: Pflichtlektüre, Prüflauf und Laufprotokoll (220, Teil 2)', () => {
+		type Protokoll = {
+			version: number;
+			einheit: string | null;
+			dokument: string;
+			laeufe: { art: string; pflicht: string[]; befunde: string[]; bauen: { fehlend: string[] }[] }[];
+		};
+		const baue = async (name: string) => {
+			await fall(name);
+			const blatt = await legeDokumentAn(server.materialDir, { beispiel: true });
+			const pfad = `/dokumente/${blatt.mappe}/${blatt.dok}`;
+			const los = async (ziel: string, body: object = {}) => {
+				const res = await api(ziel, { method: 'POST', body: JSON.stringify(body) });
+				assert.equal(res.status, 202);
+				return fertig(((await res.json()) as { auftrag: { id: string } }).auftrag.id);
+			};
+			// Mit Sternchenaufgabe wie im Beispielblatt: keine Korrekturrunde durch den Wächter (210).
+			await los(`${pfad}/ki`, {
+				aktion: 'neu-entwurf',
+				antworten: { thema: 'Uhrzeit', bausteine: { sternchen: true } },
+			});
+			const vorher =
+				(await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8')).split('\n---\n').length - 1;
+			const bau = await los(`${pfad}/ki/plan/freigeben`);
+			assert.equal(bau.status, 'fertig', bau.fehler ?? '');
+			const neu = (await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8'))
+				.split('\n---\n')
+				.slice(vorher);
+			const dir = dokumentDir(server.materialDir, blatt.mappe, blatt.dok);
+			const protokoll = JSON.parse(await readFile(path.join(dir, '_lauf.json'), 'utf8')) as Protokoll;
+			const meta = JSON.parse(await readFile(path.join(dir, 'vorschlag', 'blatt', 'vorschlag.json'), 'utf8')) as {
+				meldungen: { stufe: string; text: string }[];
+			};
+			const html = await readFile(path.join(dir, 'vorschlag', 'blatt', 'material.html'), 'utf8');
+			await api(`${pfad}/vorschlag/verwerfen`, { method: 'POST' });
+			return { blatt, neu, protokoll, meta, html, bau };
+		};
+		const arten = (p: Protokoll) => p.laeufe.map((e) => e.art).filter((a) => a !== 'recherche');
+
+		it('Unklare Anweisung: Prüflauf, eine Korrekturrunde, letzter Prüflauf; das Protokoll liegt im Dokument', async () => {
+			const { blatt, html, meta, neu, protokoll } = await baue('plan-unklar');
+			const bauPrompt = neu.find((p) => p.includes('Freigegebener Aufgabenplan')) ?? '';
+			assert.match(bauPrompt, /Pflichtlektüre, ganz und vor dem ersten Aufruf von bauen/);
+			assert.match(bauPrompt, /^- Skill html-materialerstellung laden$/m);
+			assert.equal(neu.filter((p) => p.startsWith('Korrekturrunde nach der Prüfung.')).length, 1);
+			assert.match(
+				neu.find((p) => p.startsWith('Korrekturrunde nach der Prüfung.')) ?? '',
+				/Was mit den Uhren zu tun ist/,
+			);
+			assert.equal(neu.filter((p) => p.startsWith('Prüfung von „Blatt“')).length, 2);
+			assert.doesNotMatch(html, /Mach was mit den Uhren/);
+			assert.equal(
+				meta.meldungen.some((m) => m.text.startsWith('Prüfung mit Kinderaugen')),
+				false,
+			);
+			assert.equal(protokoll.version, 1);
+			assert.equal(protokoll.einheit, null);
+			assert.equal(protokoll.dokument, blatt.dok);
+			assert.deepEqual(arten(protokoll), ['plan', 'bau', 'pruefung', 'korrektur', 'pruefung']);
+			assert.ok((protokoll.laeufe.find((e) => e.art === 'bau')?.pflicht.length ?? 0) > 2);
+			assert.match(protokoll.laeufe.find((e) => e.art === 'pruefung')?.befunde[0] ?? '', /Was mit den Uhren/);
+		});
+
+		it('Stur: nach einer Korrekturrunde bleibt der Befund als Warnung im Vorschlag', async () => {
+			const { html, meta, neu, protokoll } = await baue('plan-stur');
+			assert.equal(neu.filter((p) => p.startsWith('Korrekturrunde nach der Prüfung.')).length, 1);
+			assert.match(html, /Mach was mit den Uhren/);
+			const warnung = meta.meldungen.find((m) => m.text.startsWith('Prüfung mit Kinderaugen'));
+			assert.equal(warnung?.stufe, 'WARNUNG');
+			assert.match(warnung?.text ?? '', /Seite 1, Aufgabe 1, .*: Was mit den Uhren zu tun ist, steht nicht da\./);
+			assert.deepEqual(arten(protokoll), ['plan', 'bau', 'pruefung', 'korrektur', 'pruefung']);
+		});
+
+		it('bauen vor der Pflichtlektüre: abgewiesen mit der fehlenden Datei, danach gebaut', async () => {
+			const vorher = (await readFile(path.join(path.dirname(bin), 'bauen.jsonl'), 'utf8').catch(() => ''))
+				.trim()
+				.split('\n')
+				.filter(Boolean).length;
+			const { protokoll } = await baue('plan-bauen');
+			const antworten = (await readFile(path.join(path.dirname(bin), 'bauen.jsonl'), 'utf8'))
+				.trim()
+				.split('\n')
+				.slice(vorher)
+				.map((z) => JSON.parse(z) as { text?: string; fehler?: boolean });
+			assert.equal(antworten[0]?.fehler, true);
+			assert.match(antworten[0]?.text ?? '', /Die Pflichtlektüre fehlt noch/);
+			assert.notEqual(antworten[1]?.fehler, true);
+			const bau = protokoll.laeufe.find((e) => e.art === 'bau');
+			assert.ok((bau?.bauen[0]?.fehlend.length ?? 0) > 0);
+			assert.deepEqual(bau?.bauen[1]?.fehlend, []);
+		});
 	});
 
 	it('Laufende neue Blätter stehen in der Liste für die Ablage (133)', async () => {

@@ -14,7 +14,7 @@ import type { EinheitAnsicht, Einheiten } from './einheit';
 import { erstelleEinheiten } from './einheit';
 import type { Ereignisse } from './ereignisse';
 import { erstelleEreignisse } from './ereignisse';
-import type { Ki, KiPruefer } from './ki';
+import type { Ki, KiAnsicht, KiPruefer } from './ki';
 import { erstelleKi } from './ki';
 import type { ServerKonfig } from './konfig';
 import type { OrdnerSpeicher } from './ordner-speicher';
@@ -61,6 +61,8 @@ export interface Bauer {
 	kiPruefer?: KiPruefer;
 	/** Ohne baut blatt.py das Werkzeug `bauen` der Einheit. */
 	einheitAnsicht?: EinheitAnsicht;
+	/** Ohne baut blatt.py die Seiten eines neuen Blatts für `bauen` und den Prüflauf. */
+	kiAnsicht?: KiAnsicht;
 }
 
 export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Bauer = {}): Kontext => {
@@ -88,7 +90,7 @@ export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Ba
 			konfig,
 			ereignisse,
 			pruefer,
-			ansicht: (dokDir, html, ziel) => baueAnsicht(konfig, dokDir, html, ziel),
+			ansicht: bauer.kiAnsicht ?? ((dokDir, html, ziel) => baueAnsicht(konfig, dokDir, html, ziel)),
 		}),
 		ordner: erstelleOrdnerSpeicher(materialDir, sperre, ereignisse),
 		version,

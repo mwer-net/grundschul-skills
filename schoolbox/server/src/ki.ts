@@ -10,31 +10,55 @@ import { createInterface } from 'node:readline';
 import type {
 	Ansicht,
 	Bausteine,
+	BauVersuch,
 	Fund,
 	KiAktion,
 	Konfig,
+	LaufArt,
+	LaufEintrag,
 	Meldung,
+	PruefBefund,
 	Pruefbericht,
+	PruefBild,
 	RechercheAnfrage,
 	RechercheErgebnis,
 	RechercheStand,
 } from '@schoolbox/kern';
 import {
 	ANSICHT_ORDNER,
+	ART_NAME,
 	bausteinVerstoesse,
+	beendeLaufEintrag,
+	befundZeile,
+	blickLektuere,
+	blickRegeln,
 	dokumentDir,
+	FACH_NAME,
 	formatBefund,
 	hatSatz,
 	ID_MUSTER,
 	istEinElement,
+	klasseText,
+	LAUF_DATEI,
+	lektuereFehltText,
+	leseLaufProtokoll,
 	leseMeta,
+	lesePruefung,
 	mappenDir,
 	neueFunde,
+	neuerLaufEintrag,
+	notiereLektuere,
+	pflichtAbschnitt,
+	pflichtFuer,
 	pruefeRecherche,
+	pruefKorrektur,
+	pruefText,
+	pruefWeise,
 	quelleVon,
 	RECHERCHE_DATEI,
 	rechercheAbschnitt,
 	rechercheText,
+	rolleVon,
 	satzBefund,
 	schreibeAtomar,
 	WURZEL,
@@ -72,6 +96,8 @@ export const KI_GRENZEN = {
 		budgetGuthabenUsd: 5,
 		/** So oft geht ein Blatt mit Fehlern noch einmal an Claude zurück. */
 		korrekturen: 2,
+		/** Nach dem Prüflauf „mit Kinderaugen“ (220, Teil 2): eine Korrekturrunde, dann ein letzter Prüflauf. */
+		pruefRunden: 1,
 	},
 	auftragZeichen: 4000,
 	/** Was der Server selbst an den Auftrag hängt: die Antworten aus dem Assistenten und der Aufgabenplan. */
@@ -114,6 +140,18 @@ export const KI_GRENZEN = {
 		bilder: { zeitMs: 60 * 60_000, runden: 300, budgetUsd: 25, budgetGuthabenUsd: 5 },
 		/** So oft geht ein Material mit Sperre oder Prüf-FEHLER an seinen Lauf zurück. */
 		korrekturen: 1,
+		/**
+		 * Ein Prüflauf „mit Kinderaugen“ (220, Teil 2): nur Read, Seitenbilder ansehen, jede Aufgabe lösen, beim zweiten
+		 * Blick dazu zwei bis vier Regeldateien. Klein gegenüber dem Bau; geschätzt 10 bis 25 Runden und 0,5 bis 1,5 USD.
+		 */
+		pruefung: { zeitMs: 10 * 60_000, runden: 40, budgetUsd: 3, budgetGuthabenUsd: 1 },
+		/** So oft gehen Befunde des Prüflaufs als Korrekturrunde an den Baulauf zurück; danach prüft er ein letztes Mal. */
+		pruefRunden: 2,
+		/**
+		 * Der Schlusslauf über alle Materialien: Auftrag, Plan, Steckbriefe, Zahlen und Dopplungen gegen das Gebaute, dazu
+		 * die Pflichtlektüre jedes Materials, das er neu baut. Höchstens `neubau` Materialien.
+		 */
+		schluss: { zeitMs: 45 * 60_000, runden: 250, budgetUsd: 25, budgetGuthabenUsd: 5, neubau: 4 },
 		/** Die Planung vor der Freigabe: Geschichte und Plan, noch kein Material. */
 		planZeitMs: 15 * 60_000,
 		/**
@@ -404,6 +442,51 @@ export const CANVA_BILD_RECHTE = [
 	'Edit(./ergebnis.json)',
 ];
 
+/** Ein Canva-Bild (176): nur die Bildwerkzeuge von Canva und zwei Dateien, kein Skill, kein Material. */
+const canvaBildArgumente = (o: { ablage: string; auftragDatei: string; budgetUsd?: number; modell: string }) => [
+	'-p',
+	'--output-format',
+	'stream-json',
+	'--verbose',
+	'--model',
+	o.modell,
+	'--effort',
+	KI_EFFORT,
+	'--setting-sources',
+	'project',
+	'--add-dir',
+	o.ablage,
+	'--settings',
+	canvaEinstellungen(),
+	'--strict-mcp-config',
+	'--mcp-config',
+	CANVA_MCP,
+	'--tools',
+	'Read,Edit,Write',
+	'--allowedTools',
+	...CANVA_BILD_RECHTE,
+	...CANVA_WERKZEUGE,
+	'--disallowedTools',
+	...NIE_LESEN,
+	...NIE_KONNEKTOR_WERKZEUGE,
+	'--permission-mode',
+	'dontAsk',
+	'--max-turns',
+	String(KI_GRENZEN.canva.runden),
+	'--max-budget-usd',
+	String(o.budgetUsd ?? KI_GRENZEN.canva.budgetUsd),
+	'--append-system-prompt-file',
+	o.auftragDatei,
+];
+
+/** Ein Einheit-Lauf nimmt seine eigenen Werkzeuge; sonst schreibt nur, wer mehrere Dateien oder Bilder anlegt. */
+const werkzeugListe = (o: { einheit?: boolean; werkzeuge?: string }, canva: boolean) => {
+	if (o.einheit) {
+		return o.werkzeuge ?? 'Read,Edit,Write,Skill';
+	}
+	return canva ? 'Read,Edit,Write,Skill' : 'Read,Edit,Skill';
+};
+
 /**
  * Der Aufruf aus Issue 056: Skills ja, sonst nichts. Der Prompt kommt über stdin, weil `--tools` Werte schluckt.
  * `einheit` (139) schreibt mehrere Dateien und hat eigene Grenzen. `mitCanva` (138): eine Einheit mit Bildern oder der
@@ -429,44 +512,10 @@ export const kiArgumente = (o: {
 	/** Werkzeuge eines Einheit-Laufs, etwa für den Prüflauf (220, Teil 2); ohne `Read,Edit,Write,Skill`. */
 	werkzeuge?: string;
 }) => {
-	const canva = o.mitCanva === true;
 	if (o.canvaBild === true) {
-		return [
-			'-p',
-			'--output-format',
-			'stream-json',
-			'--verbose',
-			'--model',
-			o.modell,
-			'--effort',
-			KI_EFFORT,
-			'--setting-sources',
-			'project',
-			'--add-dir',
-			o.ablage,
-			'--settings',
-			canvaEinstellungen(),
-			'--strict-mcp-config',
-			'--mcp-config',
-			CANVA_MCP,
-			'--tools',
-			'Read,Edit,Write',
-			'--allowedTools',
-			...CANVA_BILD_RECHTE,
-			...CANVA_WERKZEUGE,
-			'--disallowedTools',
-			...NIE_LESEN,
-			...NIE_KONNEKTOR_WERKZEUGE,
-			'--permission-mode',
-			'dontAsk',
-			'--max-turns',
-			String(KI_GRENZEN.canva.runden),
-			'--max-budget-usd',
-			String(o.budgetUsd ?? KI_GRENZEN.canva.budgetUsd),
-			'--append-system-prompt-file',
-			o.auftragDatei,
-		];
+		return canvaBildArgumente(o);
 	}
+	const canva = o.mitCanva === true;
 	const blattRunden = o.gross ? KI_GRENZEN.blatt.runden : KI_GRENZEN.runden;
 	const blattBudget = o.gross ? KI_GRENZEN.blatt.budgetUsd : KI_GRENZEN.budgetUsd;
 	return [
@@ -488,7 +537,7 @@ export const kiArgumente = (o: {
 			? ['--mcp-config', ...(o.mcpDatei ? [o.mcpDatei] : []), ...(canva ? [CANVA_MCP] : [])]
 			: []),
 		'--tools',
-		(o.einheit ? o.werkzeuge : undefined) ?? (o.einheit || canva ? 'Read,Edit,Write,Skill' : 'Read,Edit,Skill'),
+		werkzeugListe(o, canva),
 		'--allowedTools',
 		...(o.einheit ? (o.rechte ?? EINHEIT_RECHTE) : [`Edit(./${WORKFILE})`, ...(canva ? BLATT_BILD_RECHTE : [])]),
 		'Skill',
@@ -623,8 +672,11 @@ export const recherchiere = (o: {
 				const e = JSON.parse(zeile) as Record<string, unknown>;
 				werteAus(e, stand, { schritt: () => undefined, limit: () => undefined, werkzeug: o.werkzeug });
 				const inhalt = ((e.message ?? {}) as { content?: unknown[] }).content ?? [];
-				for (const teil of e.type === 'assistant' ? (inhalt as { type?: string; name?: string; input?: { url?: unknown } }[]) : []) {
-					const text = teil.type === 'tool_use' && teil.name ? rechercheSchritt(teil.name, teil.input ?? {}) : null;
+				for (const teil of e.type === 'assistant'
+					? (inhalt as { type?: string; name?: string; input?: { url?: unknown } }[])
+					: []) {
+					const text =
+						teil.type === 'tool_use' && teil.name ? rechercheSchritt(teil.name, teil.input ?? {}) : null;
 					if (text) {
 						o.schritt(text);
 					}
@@ -634,7 +686,10 @@ export const recherchiere = (o: {
 			}
 		});
 		kind.on('error', (fehler: Error & { code?: string }) => {
-			grund = fehler.code === 'ENOENT' ? 'Claude ist auf dem Server nicht installiert.' : 'Claude ließ sich nicht starten.';
+			grund =
+				fehler.code === 'ENOENT'
+					? 'Claude ist auf dem Server nicht installiert.'
+					: 'Claude ließ sich nicht starten.';
 		});
 		kind.on('close', () => {
 			clearTimeout(frist);
@@ -656,7 +711,10 @@ export const recherchiere = (o: {
 				ergebnis = {
 					ok: false,
 					grund: fehlt
-						? (grund ?? (code ? (RECHERCHE_FEHLER[code] ?? 'Die Recherche ist abgebrochen.') : 'Claude hat keine recherche.md geschrieben.'))
+						? (grund ??
+							(code
+								? (RECHERCHE_FEHLER[code] ?? 'Die Recherche ist abgebrochen.')
+								: 'Claude hat keine recherche.md geschrieben.'))
 						: 'recherche.md ist kein lesbarer Text.',
 				};
 			}
@@ -670,6 +728,188 @@ export const rechercheStand = (e: RechercheErgebnis): RechercheStand =>
 	e.ok
 		? { status: 'fertig', grund: null, quellen: e.quellen, text: e.text }
 		: { status: 'gescheitert', grund: e.grund, quellen: [], text: null };
+
+/**
+ * Der Prüflauf „mit Kinderaugen“ (220, Teil 2), für Einheit und neues Blatt: eine neue Sitzung ohne Gedächtnis, nur
+ * Read, kein Schreibrecht, kein MCP. Der Arbeitsordner enthält nur die Seitenbilder (ohne Lösung) und die Prüfbilder der
+ * Bilder; die Skills liest er für den zweiten Blick in der Ablage.
+ */
+export const pruefArgumente = (o: {
+	ablage: string;
+	auftragDatei: string;
+	budgetUsd: number;
+	runden: number;
+	modell: string;
+}) => [
+	'-p',
+	'--output-format',
+	'stream-json',
+	'--verbose',
+	'--model',
+	o.modell,
+	'--effort',
+	KI_EFFORT_GROSS,
+	'--setting-sources',
+	'project',
+	'--add-dir',
+	o.ablage,
+	'--strict-mcp-config',
+	'--no-session-persistence',
+	'--tools',
+	'Read',
+	'--disallowedTools',
+	...NIE_LESEN,
+	...NIE_KONNEKTOR_WERKZEUGE,
+	'--permission-mode',
+	'dontAsk',
+	'--max-turns',
+	String(o.runden),
+	'--max-budget-usd',
+	String(o.budgetUsd),
+	'--append-system-prompt-file',
+	o.auftragDatei,
+];
+
+/** Der laufende Lauf eines neuen Blatts mit seinem Eintrag im Protokoll und dem, was die Sitzung gelesen hat. */
+interface BlattLauf {
+	eintrag: LaufEintrag;
+	gelesen: Set<string>;
+}
+
+const SEITENBILD = /^seite-\d+\.png$/;
+const LEKTUERE_WARTEN_MS = 500;
+/** So viele Läufe behält das Protokoll eines Blatts; die ältesten fallen heraus. */
+const MAX_BLATT_LAEUFE = 50;
+
+export const PRUEF_AUFTRAG = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit-pruefung.md');
+const BILD_IM_MATERIAL = /\.\.\/\.\.\/bilder\/([a-z0-9][a-z0-9-]{0,59}\.(?:png|jpg))/g;
+const MAX_VERTRAG = 1500;
+
+/**
+ * Richtet den Ordner des Prüflaufs ein, nachdem `ansicht` die Seiten frisch hineingebaut hat: Lösungsseiten gehen
+ * heraus, die Prüfbilder der Canva-Bilder des Materials kommen nach `bilder/`. `arbeit` ist der Arbeitsordner des Baus
+ * mit `bilder.json` und `ansicht/bilder/`.
+ */
+export const richtePruefOrdnerEin = async (ordner: string, gebaut: string[], html: string, arbeit: string) => {
+	for (const b of gebaut.filter((n) => n.startsWith('loesung-'))) {
+		await rm(path.join(ordner, b), { force: true });
+	}
+	const seiten = gebaut.filter((b) => /^seite-\d+\.png$/.test(b));
+	const ausschnitte = gebaut.filter((b) => /^seite-\d+-aufgabe-\d+\.png$/.test(b));
+	let liste: unknown = [];
+	try {
+		liste = JSON.parse(await readFile(path.join(arbeit, 'bilder.json'), 'utf8'));
+	} catch {
+		// Keine Bildliste: keine Bilder aus Canva.
+	}
+	const eintraege = new Map(
+		(Array.isArray(liste) ? (liste as Record<string, unknown>[]) : [])
+			.filter((e) => typeof e.datei === 'string')
+			.map((e) => [String(e.datei), e]),
+	);
+	const vorhanden = await readdir(path.join(arbeit, ANSICHT_BILDER)).catch(() => [] as string[]);
+	const bilder: PruefBild[] = [];
+	for (const datei of new Set([...html.matchAll(BILD_IM_MATERIAL)].map((t) => t[1] ?? ''))) {
+		const e = eintraege.get(datei);
+		if (!e) {
+			continue;
+		}
+		const stamm = datei.replace(/\.(png|jpg)$/, '');
+		const pruefbilder = vorhanden.filter((n) => n.startsWith(`${stamm}-`) && n.endsWith('.png')).sort();
+		if (pruefbilder.length) {
+			await mkdir(path.join(ordner, 'bilder'), { recursive: true });
+			for (const n of pruefbilder) {
+				await cp(path.join(arbeit, ANSICHT_BILDER, n), path.join(ordner, 'bilder', n));
+			}
+		}
+		bilder.push({
+			datei,
+			motiv: typeof e.motiv === 'string' ? e.motiv.slice(0, 200) : '',
+			vertrag: JSON.stringify({ platz: e.platz, blickpunkt: e.blickpunkt, vertrag: e.vertrag }).slice(
+				0,
+				MAX_VERTRAG,
+			),
+			pruefbilder: pruefbilder.map((n) => `bilder/${n}`),
+		});
+	}
+	return { seiten, ausschnitte, bilder };
+};
+
+export interface PruefErgebnis {
+	befunde: PruefBefund[];
+	/** Die Antwort enthielt keinen lesbaren Block: keine Befunde, im Protokoll vermerkt. */
+	lesbar: boolean;
+	fehler: string | null;
+	verbrauch: Record<string, unknown>;
+}
+
+/** Führt einen Prüflauf in `ordner` aus und liest nur seine Befunde. Scheitert er, bleibt das Material, wie es ist. */
+export const pruefeLauf = (o: {
+	bin: string;
+	modell: string;
+	ordner: string;
+	ablage: string;
+	text: string;
+	grenzen: { zeitMs: number; runden: number; budgetUsd: number };
+	gestartet?: (kind: ChildProcessWithoutNullStreams) => void;
+	werkzeug?: (name: string, eingabe: Record<string, unknown>) => void;
+}) =>
+	new Promise<PruefErgebnis>((resolve) => {
+		const stand: LaufStand = { sitzung: null, fehlerCode: null, ergebnis: {} };
+		const kind = spawn(
+			o.bin,
+			pruefArgumente({
+				ablage: o.ablage,
+				auftragDatei: PRUEF_AUFTRAG,
+				budgetUsd: Math.round(o.grenzen.budgetUsd * 100) / 100,
+				runden: o.grenzen.runden,
+				modell: o.modell,
+			}),
+			{ cwd: o.ordner, env: kiUmgebung(o.bin) },
+		);
+		o.gestartet?.(kind);
+		let grund: string | null = null;
+		let bytes = 0;
+		const frist = setTimeout(
+			() => {
+				grund = 'Die Zeit für die Prüfung ist abgelaufen.';
+				beendeKind(kind);
+			},
+			Math.max(o.grenzen.zeitMs, 1000),
+		);
+		kind.stdin.on('error', () => undefined);
+		kind.stdin.end(o.text);
+		kind.stderr.resume();
+		createInterface({ input: kind.stdout }).on('line', (zeile) => {
+			bytes += zeile.length;
+			if (bytes > KI_GRENZEN.ausgabeBytes) {
+				grund = 'Die Antwort der Prüfung war zu groß.';
+				beendeKind(kind);
+				return;
+			}
+			try {
+				werteAus(JSON.parse(zeile) as Record<string, unknown>, stand, {
+					schritt: () => undefined,
+					limit: () => undefined,
+					werkzeug: o.werkzeug,
+				});
+			} catch {
+				// Keine JSON-Zeile.
+			}
+		});
+		kind.on('error', (fehler: Error & { code?: string }) => {
+			grund =
+				fehler.code === 'ENOENT'
+					? 'Claude ist auf dem Server nicht installiert.'
+					: 'Claude ließ sich nicht starten.';
+		});
+		kind.on('close', (code) => {
+			clearTimeout(frist);
+			const fehler = grund ?? stand.ergebnis.fehler ?? (code === 0 ? null : (stand.fehlerCode ?? 'unbekannt'));
+			const gelesen = fehler ? { befunde: [], lesbar: true } : lesePruefung(stand.ergebnis.antwort ?? '');
+			resolve({ ...gelesen, fehler, verbrauch: stand.ergebnis.verbrauch ?? {} });
+		});
+	});
 
 /** Erst freundlich, dann hart: `claude` räumt bei SIGINT seine Sitzung auf. */
 export const beendeKind = (kind: ChildProcessWithoutNullStreams) => {
@@ -1445,7 +1685,13 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			gross = false,
 			mcpDatei = null,
 			mitCanva = false,
-		}: { gross?: boolean; mcpDatei?: string | null; mitCanva?: boolean } = {},
+			werkzeug,
+		}: {
+			gross?: boolean;
+			mcpDatei?: string | null;
+			mitCanva?: boolean;
+			werkzeug?: (name: string, eingabe: Record<string, unknown>) => void;
+		} = {},
 	) =>
 		new Promise<Ergebnis>((resolve) => {
 			const stand: LaufStand = { sitzung, fehlerCode: null, ergebnis: {} };
@@ -1512,6 +1758,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 							limit = neu;
 							gemeldet = true;
 						},
+						werkzeug,
 					});
 				} catch {
 					// Keine JSON-Zeile: gehört nicht zum Protokoll.
@@ -1558,7 +1805,10 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			mappe: a.mappe,
 			dok: a.dok,
 			status,
-			umfang: { 'Ganzes Blatt': 'blatt', 'limit': 'limit', 'recherche': 'recherche' }[umfang] ?? 'teil',
+			umfang:
+				{ 'Ganzes Blatt': 'blatt', 'limit': 'limit', 'recherche': 'recherche', 'pruefung': 'pruefung' }[
+					umfang
+				] ?? 'teil',
 			sekunden: Math.round((Date.now() - start) / 1000),
 			...verbrauch,
 		};
@@ -1661,6 +1911,38 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 		return { arbeit, ablage, sitzung: null, ende };
 	};
 
+	/** Was noch nicht gelesen ist. Der Strom kann dem Aufruf von `bauen` knapp nachlaufen: dann einmal kurz warten. */
+	const fehlendeLektuere = async (pflicht: readonly string[], gelesen: ReadonlySet<string>) => {
+		const offen = () => pflicht.filter((p) => !gelesen.has(p));
+		if (offen().length) {
+			await new Promise((r) => setTimeout(r, LEKTUERE_WARTEN_MS));
+		}
+		return offen();
+	};
+
+	/** Das Laufprotokoll eines neuen Blatts (220, Teil 2): wie `_lauf.json` der Einheit, im Ordner des Dokuments. */
+	const notiereBlattLaeufe = async (dir: string, dok: string, laeufe: readonly LaufEintrag[]) => {
+		if (!laeufe.length || !existsSync(dir)) {
+			return;
+		}
+		const datei = path.join(dir, LAUF_DATEI);
+		let alt: LaufEintrag[] = [];
+		try {
+			alt = leseLaufProtokoll(JSON.parse(await readFile(datei, 'utf8')))?.laeufe ?? [];
+		} catch {
+			// Noch kein Protokoll.
+		}
+		const protokoll = {
+			version: 1,
+			einheit: null,
+			dokument: dok,
+			laeufe: [...alt, ...laeufe].slice(-MAX_BLATT_LAEUFE),
+		};
+		await schreibeAtomar(datei, `${JSON.stringify(protokoll, null, '\t')}\n`).catch((fehler: unknown) => {
+			console.error('Laufprotokoll des Blatts:', fehler);
+		});
+	};
+
 	/**
 	 * Das Werkzeug „bauen“ für diesen Lauf: derselbe Bau wie später in der Schoolbox, mit dem Teil wieder im ganzen
 	 * Blatt. Die Sperre zuerst: Was nicht ins Material darf, soll auch hier nie im Browser laufen.
@@ -1673,8 +1955,18 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			ausschnitt: Ausschnitt,
 			bilder: BlattBilder | null,
 			bausteine: Partial<Bausteine> | undefined,
+			lektuere: { pflicht: string[]; lauf: () => BlattLauf | null } | null = null,
 		): Bauen =>
 		async () => {
+			const l = lektuere?.lauf() ?? null;
+			const versuch: BauVersuch = { zeit: new Date().toISOString(), fehlend: [], seiten: null, fehler: null };
+			if (lektuere && l) {
+				l.eintrag.bauen.push(versuch);
+				versuch.fehlend = await fehlendeLektuere(lektuere.pflicht, l.gelesen);
+				if (versuch.fehlend.length) {
+					return { text: lektuereFehltText(versuch.fehlend), fehler: true };
+				}
+			}
 			const neu = await leseErgebnis(arbeit);
 			const funde = sperrFunde(quelle, ausschnitt, neu);
 			if (funde.length > 0) {
@@ -1683,6 +1975,8 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			const eingesetzt = ausschnitt.einsetzen(neu);
 			const ganz = bilder ? await bilder.einsetzen(eingesetzt) : eingesetzt;
 			const gebaut = await ansicht(dir, ganz, path.join(arbeit, ANSICHT_ORDNER));
+			versuch.seiten = gebaut.bilder.filter((b) => SEITENBILD.test(b)).length;
+			versuch.fehler = gebaut.bericht.meldungen.filter((m) => m.stufe === 'FEHLER').length;
 			const kopf = kopfBefunde(quelle, ganz).map((t) => `FEHLER: ${t}`);
 			const auftrag = bausteinVerstoesse(ganz, bausteine ?? {}).map((t) => `FEHLER: ${t}`);
 			return { text: [ansichtText(gebaut), ...kopf, ...auftrag].join('\n') };
@@ -1746,14 +2040,56 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 		const gross = w.neuesBlatt === true;
 		const blattBilder = bilderFuer(w, arbeit);
 		const mitBildern = async (html: string) => blattBilder?.einsetzen(html) ?? html;
+		// Neues Material (220, Teil 2): Laufprotokoll im Dokument; im Bau Pflichtlektüre vor bauen und ein Prüflauf danach.
+		const mitProtokoll = w.neuesBlatt === true && (w.phase === 'plan' || w.phase === 'bauen');
+		const imBau = w.neuesBlatt === true && w.phase === 'bauen' && !auf;
+		const rolle = rolleVon({ slug: '', art: meta.art });
+		const fach = w.rechercheAnfrage?.fach ?? 'faecheruebergreifend';
+		const pflicht = imBau ? pflichtFuer(rolle, { fach, reihe: false, verkauf: false }) : [];
+		const protokoll: LaufEintrag[] = [];
+		const gelesen = new Set<string>();
+		let laufJetzt: BlattLauf | null = null;
 		const werkzeug = await starteWerkzeug(
 			wurzelTmp,
-			bauenFuer(arbeit, dir, quelle, ausschnitt, blattBilder, w.bausteine),
+			bauenFuer(
+				arbeit,
+				dir,
+				quelle,
+				ausschnitt,
+				blattBilder,
+				w.bausteine,
+				imBau ? { pflicht, lauf: () => laufJetzt } : null,
+			),
 		).catch((fehler: unknown) => {
 			console.error('Werkzeug für Claude:', fehler);
 			return null;
 		});
 		const mit = { gross, mcpDatei: werkzeug?.mcpDatei ?? null, mitCanva: blattBilder !== null };
+		/** Ein Lauf mit Eintrag im Protokoll; eine neue Sitzung beginnt ihre Lektüre von vorn. */
+		const laufe = async (art: LaufArt, text: string, sitzung: string | null) => {
+			if (sitzung === null) {
+				gelesen.clear();
+			}
+			const eintrag = neuerLaufEintrag(art, null, art === 'plan' ? [] : pflicht);
+			const l = { eintrag, gelesen };
+			laufJetzt = l;
+			const beginn = Date.now();
+			const e = await lauf(arbeit, ablage, text, sitzung, a, {
+				...mit,
+				werkzeug: (name, eingabe) => notiereLektuere(l, name, eingabe),
+			});
+			laufJetzt = null;
+			beendeLaufEintrag(eintrag, beginn, {
+				fehler: e.fehler,
+				abgebrochen: aktiv?.abbruch === true,
+				verbrauch: e.verbrauch,
+			});
+			if (mitProtokoll) {
+				protokoll.push(eintrag);
+			}
+			return e;
+		};
+		const laufArt = (): LaufArt => (w.phase === 'plan' ? 'plan' : 'bau');
 		let verbrauch: Record<string, unknown> = {};
 		let ende: KiStatus = 'fehler';
 		let letzteSitzung: string | null = null;
@@ -1797,6 +2133,13 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			});
 			// Am Auftrag gespeichert, den auch Plan ändern, Freigabe und „Nochmal“ nehmen: Gesucht wird einmal.
 			w.recherche = ergebnis;
+			const eintrag = neuerLaufEintrag('recherche', null, []);
+			beendeLaufEintrag(eintrag, beginn, {
+				fehler: ergebnis.ok ? null : 'gescheitert',
+				abgebrochen: aktiv?.abbruch === true,
+				verbrauch: v,
+			});
+			protokoll.push(eintrag);
 			a.recherche = ergebnis.ok ? 'fertig' : 'gescheitert';
 			if (!ergebnis.ok) {
 				a.schritte.push('Plant ohne Recherche');
@@ -1812,13 +2155,16 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			// Immer frisch aus der Quelle: Die Lehrkraft kann seit der letzten Nachricht geändert haben.
 			await writeFile(path.join(arbeit, WORKFILE), ausschnitt.text);
 			const kopf = `Das Blatt: „${meta.titel}“, Art ${meta.art}.`;
+			const lektuere = imBau
+				? `\n\n${pflichtAbschnitt(pflicht, 'vor dem ersten Aufruf von bauen; bauen nimmt das Blatt sonst nicht an')}`
+				: '';
 			const text = (fortsetzung: boolean) =>
-				prompt(w, ausschnitt, kopf, { aufVorschlag: Boolean(auf), fortsetzung });
-			let erst = await lauf(arbeit, ablage, text(Boolean(platz.sitzung)), platz.sitzung, a, mit);
+				prompt(w, ausschnitt, kopf, { aufVorschlag: Boolean(auf), fortsetzung }) + lektuere;
+			let erst = await laufe(laufArt(), text(Boolean(platz.sitzung)), platz.sitzung);
 			if (platz.sitzung && !aktiv?.abbruch && fortsetzenGescheitert(erst)) {
 				// Dem Nutzer wird das nicht gezeigt, der Verbrauch hält es fest.
 				rueckfall = true;
-				erst = await lauf(arbeit, ablage, text(false), null, a, mit);
+				erst = await laufe(laufArt(), text(false), null);
 			}
 			letzteSitzung = erst.sitzung;
 			verbrauch = erst.verbrauch;
@@ -1826,12 +2172,12 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			return erst;
 		};
 		/** Prüft das Ergebnis und gibt es bei Fehlern an Claude zurück. `null`: Der Auftrag endet ohne Vorschlag. */
+		// Die Sperre zuerst: Die Blattprüfung öffnet das Ergebnis im Browser, und was hier hängen bleibt, soll dort nie laufen.
+		const blattPruefung = async (html: string) => {
+			const ganz = await mitBildern(ausschnitt.einsetzen(html));
+			return mitBausteinen(ganz, mitFormat(quelle, ganz, await pruefeSicher(dir, ganz)), w.bausteine);
+		};
 		const pruefeMitKorrektur = async (erst: Ergebnis, erstesErgebnis: string) => {
-			// Die Sperre zuerst: Die Blattprüfung öffnet das Ergebnis im Browser, und was hier hängen bleibt, soll dort nie laufen.
-			const blattPruefung = async (html: string) => {
-				const ganz = await mitBildern(ausschnitt.einsetzen(html));
-				return mitBausteinen(ganz, mitFormat(quelle, ganz, await pruefeSicher(dir, ganz)), w.bausteine);
-			};
 			let neu = erstesErgebnis;
 			let funde = sperrFunde(quelle, ausschnitt, neu);
 			let bericht = funde.length > 0 ? null : await blattPruefung(neu);
@@ -1842,15 +2188,12 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			for (let r = 0; r < runden && (funde.length > 0 || (bericht?.fehler ?? 0) > 0) && sitzung; r += 1) {
 				a.schritte.push(r === 0 ? 'Bessert nach' : 'Bessert noch einmal nach');
 				melde(a);
-				const zweit = await lauf(
-					arbeit,
-					ablage,
+				const zweit = await laufe(
+					'korrektur',
 					funde.length > 0
 						? sperrKorrektur(funde)
 						: `${KORREKTUR_KOPF}\n${berichtText(bericht?.meldungen ?? [])}`,
 					sitzung,
-					a,
-					mit,
 				);
 				sitzung = zweit.sitzung ?? sitzung;
 				letzteSitzung = sitzung;
@@ -1871,7 +2214,132 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 				funde = sperrFunde(quelle, ausschnitt, neu);
 				bericht = funde.length > 0 ? null : await blattPruefung(neu);
 			}
-			return { neu, funde, bericht, antwort };
+			return { neu, funde, bericht, antwort, sitzung };
+		};
+		/** Ein Prüflauf mit Kinderaugen am fertigen Blatt (220, Teil 2): Seiten ohne Lösung, nur Read, keine Sitzung. */
+		const pruefeEinmal = async (html: string) => {
+			const ordner = path.join(path.dirname(arbeit), 'pruefung');
+			const eintrag = neuerLaufEintrag('pruefung', null, []);
+			const l = { eintrag, gelesen: new Set<string>() };
+			const beginn = Date.now();
+			let ergebnis: PruefErgebnis | null = null;
+			try {
+				await rm(ordner, { recursive: true, force: true });
+				await mkdir(ordner, { recursive: true });
+				const ganz = await mitBildern(ausschnitt.einsetzen(html));
+				const gebaut = await ansicht(dir, ganz, ordner);
+				const teile = await richtePruefOrdnerEin(ordner, gebaut.bilder, ganz, arbeit);
+				const weise = pruefWeise(rolle, teile.bilder.length > 0);
+				if (!weise.kind && !weise.blick) {
+					return null;
+				}
+				const regeln = blickRegeln(rolle, teile.bilder.length > 0);
+				eintrag.pflicht = blickLektuere(regeln);
+				const g = KI_GRENZEN.einheit.pruefung;
+				a.schritte.push('Prüft mit Kinderaugen');
+				melde(a);
+				ergebnis = await pruefeLauf({
+					bin,
+					modell: konfig.kiModell,
+					ordner,
+					ablage,
+					text: pruefText({
+						titel: meta.titel,
+						artName: ART_NAME[meta.art],
+						klasse: klasseText(w.rechercheAnfrage?.klasse),
+						fach: FACH_NAME[fach],
+						...teile,
+						formate: [],
+						kind: weise.kind,
+						regeln: regeln.map((r) => path.join(ablage, '.claude', 'skills', r)),
+					}),
+					grenzen: {
+						zeitMs: g.zeitMs,
+						runden: g.runden,
+						budgetUsd: ueberGuthaben() ? g.budgetGuthabenUsd : g.budgetUsd,
+					},
+					gestartet: (kind) => {
+						if (aktiv) {
+							aktiv.kind = kind;
+						}
+						if (kind.pid) {
+							writeFileSync(pidDatei, String(kind.pid));
+						}
+					},
+					werkzeug: (name, eingabe) => notiereLektuere(l, name, eingabe),
+				});
+				eintrag.befunde = ergebnis.befunde.map(befundZeile);
+				if (!ergebnis.lesbar) {
+					eintrag.hinweis = 'Die Antwort hatte keinen lesbaren Block mit Befunden: keine Befunde übernommen.';
+				}
+				return ergebnis;
+			} catch (fehler) {
+				console.error('Prüflauf des Blatts:', (fehler as Error).message);
+				ergebnis = {
+					befunde: [],
+					lesbar: true,
+					fehler: 'Die Seiten ließen sich für die Prüfung nicht bauen.',
+					verbrauch: {},
+				};
+				return ergebnis;
+			} finally {
+				await rm(ordner, { recursive: true, force: true });
+				if (ergebnis) {
+					beendeLaufEintrag(eintrag, beginn, {
+						fehler: ergebnis.fehler,
+						abgebrochen: aktiv?.abbruch === true,
+						verbrauch: ergebnis.verbrauch,
+					});
+					protokoll.push(eintrag);
+					await notiereVerbrauch(
+						a,
+						ergebnis.fehler ? 'fehler' : 'fertig',
+						'pruefung',
+						beginn,
+						ergebnis.verbrauch,
+					);
+				}
+			}
+		};
+		/**
+		 * Prüflauf, höchstens `KI_GRENZEN.blatt.pruefRunden` Korrekturrunden in der Sitzung des Baus, dann ein letzter
+		 * Prüflauf. Eine Korrektur, die die Sperre trifft oder mehr Fehler macht, gilt nicht. Scheitert der Prüflauf, bleibt
+		 * das Blatt. Was offen bleibt, steht als Warnung im Vorschlag.
+		 */
+		const pruefeMitKinderaugen = async (s: {
+			neu: string;
+			bericht: Pruefbericht;
+			antwort: string;
+			sitzung: string | null;
+		}) => {
+			let { antwort, bericht, neu } = s;
+			let p = await pruefeEinmal(neu);
+			let offen = p && !p.fehler ? p.befunde : [];
+			for (let r = 0; r < KI_GRENZEN.blatt.pruefRunden && offen.length && s.sitzung && !aktiv?.abbruch; r += 1) {
+				a.schritte.push('Bessert nach der Prüfung nach');
+				melde(a);
+				const k = await laufe('korrektur', pruefKorrektur(offen, []), s.sitzung);
+				letzteSitzung = k.sitzung ?? letzteSitzung;
+				if (aktiv?.abbruch || k.fehler) {
+					break;
+				}
+				const neu2 = await leseErgebnis(arbeit);
+				const bericht2 = sperrFunde(quelle, ausschnitt, neu2).length > 0 ? null : await blattPruefung(neu2);
+				if (!bericht2 || neu2 === ausschnitt.text || bericht2.fehler > bericht.fehler) {
+					break;
+				}
+				neu = neu2;
+				bericht = bericht2;
+				antwort = k.antwort || antwort;
+				p = await pruefeEinmal(neu);
+				offen = p && !p.fehler ? p.befunde : offen;
+			}
+			const warnungen: Meldung[] = offen.map((b) => ({
+				stufe: 'WARNUNG',
+				seite: b.seite ?? 1,
+				text: `Prüfung mit Kinderaugen: ${befundZeile(b)}`,
+			}));
+			return { neu, antwort, bericht: { ...bericht, meldungen: [...bericht.meldungen, ...warnungen] } };
 		};
 		const schreibeVorschlag = async (neu: string, antwort: string, bericht: Pruefbericht) => {
 			// Einer je Gespräch (135): Andere Gespräche am selben Blatt behalten ihren Vorschlag.
@@ -1907,7 +2375,8 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 				await verwirfVorschlag(konfig.materialDir, w.mappe, w.dok, auf.schluessel);
 			}
 		};
-		try {
+		/** Erster Lauf, Antwort oder Prüfung mit Korrekturen, dann der Vorschlag. Ein `return` endet ohne Vorschlag. */
+		const fuehreAus = async () => {
 			const erst = await ersterLauf();
 			if (aktiv?.abbruch) {
 				ende = 'abgebrochen';
@@ -1942,10 +2411,20 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 				verbrauch = { ...verbrauch, gesperrt: funde.length };
 				throw new HttpFehler(422, sperrText(funde));
 			}
-			await schreibeVorschlag(stand.neu, stand.antwort, bericht);
+			const fertig =
+				imBau && !aktiv?.abbruch ? await pruefeMitKinderaugen({ ...stand, bericht }) : { ...stand, bericht };
+			if (aktiv?.abbruch) {
+				ende = 'abgebrochen';
+				return;
+			}
+			await schreibeVorschlag(fertig.neu, fertig.antwort, fertig.bericht);
 			a.ergebnis = 'vorschlag';
 			ende = 'fertig';
+		};
+		try {
+			await fuehreAus();
 		} finally {
+			await notiereBlattLaeufe(dir, w.dok, protokoll);
 			blattBilder?.ende();
 			await werkzeug?.ende().catch(() => undefined);
 			await platz.ende(letzteSitzung);
