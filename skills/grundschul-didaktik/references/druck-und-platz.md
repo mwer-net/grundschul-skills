@@ -78,12 +78,12 @@ Ziel: **Übersicht und genug zu tun.** Ein Kind muss jede Aufgabe auf einen Blic
 - **Schrift und Abstand je Klasse** (aus `blatt.css`):
 
 <!-- erzeugt: schrift-und-abstand -->
-| Klasse | Schrift | Abstand zwischen Aufgaben | Zeilenhöhe | Ältere Blätter (ohne `data-satz`) |
-|---|---|---|---|---|
-| Kl. 1 | 19 px (14 pt) | 20 px | 1,35 | 28 px, Abstand 36 px |
-| Kl. 2 | 16 px (12 pt) | 16 px | 1,3 | 24 px, Abstand 28 px; mit `data-zeit` 21 px, Abstand 24 px |
-| Kl. 3 | 15 px (11 pt) | 16 px | 1,3 | 20 px, Abstand 28 px; mit `data-zeit` 19 px, Abstand 24 px |
-| Kl. 4 | 15 px (11 pt) | 16 px | 1,3 | 18 px, Abstand 24 px; mit `data-zeit` 16 px |
+| Klasse | Schrift | Abstand zwischen Aufgaben | Zeilenhöhe |
+|---|---|---|---|
+| Kl. 1 | 19 px (14 pt) | 20 px | 1,35 |
+| Kl. 2 | 16 px (12 pt) | 16 px | 1,3 |
+| Kl. 3 | 15 px (11 pt) | 16 px | 1,3 |
+| Kl. 4 | 15 px (11 pt) | 16 px | 1,3 |
 <!-- /erzeugt: schrift-und-abstand -->
 
 Lücken müssen breit genug sein, damit Kinder der Klasse darin schreiben können. Mindestbreite einer Lücke:
@@ -142,7 +142,7 @@ Ein Blatt ist dann richtig gefüllt, wenn ein Kind des Niveaus daran so lange ar
 4. **Die Seite ist gefüllt wie im Schulbuch.** Eine Arbeitsseite trägt mindestens so viele Aufgaben und Teilaufgaben (Antworten, Lücken, Zeilen), wie `inhalt-wenig` verlangt (Grenzen in der Tabelle „Was die Prüfung meldet“); darunter meldet `blatt.py` die Seite. Bleibt unten Platz, kommt ein Item, eine Reihe oder eine Aufgabe dazu, in jeder Klasse. Nie mit Leerraum, größerer Schrift oder Deko füllen. Trägt eine Seite mit Absicht wenig (Forscherbogen, Bastelvorlage, freie Schreibseite), steht `data-dicht-ok` an ihrer `<section class="seite">`.
 5. **Mehr Zeit kommt aus mehr Denk- und Schreibarbeit, nicht aus mehr vom Gleichen.** Nach 6–8 gleichen Items wechselt das Format: erst ablesen, dann selbst eintragen, dann anwenden, dann erklären oder selbst eine Aufgabe erfinden. So üben die Kinder dasselbe Ziel auf mehreren Wegen und bleiben dran. Dazu gehören Aufgaben mit Material („Lege mit Plättchen. Zeichne dann.“), zu zweit („Zu zweit: …“) und fürs Heft („Zeichne ins Heft.“ mit Heft-Beispiel); das Heft ist normale Arbeit, nicht nur die Sternchenaufgabe. Wie die Anforderungsbereiche verteilt sind: `differenzierung.md`, „Anforderungsbereiche auf jedem Arbeitsblatt“.
 
-**Im HTML** steht am `<body>` `data-satz="2"` (gesetzt wie ein Schulbuch; ohne die Angabe gilt der ältere, große Satz) und das Zeitziel (`data-zeit="20"`), die Minuten an jeder Aufgabe (`<div class="aufgabe" data-min="5">`). `blatt.py` rechnet je Niveau nach und meldet zu wenig oder zu viel Zeit, fehlende Minuten, zu wenig Inhalt, einen zu hohen Kopf oder Fuß und freien Platz (Tabelle „Was die Prüfung meldet“). Geprüftes Muster: `html-materialerstellung/assets/beispiel-niveaublatt-kl2.html`.
+**Im HTML** steht am `<body>` `data-satz="2"` (gesetzt wie ein Schulbuch) und das Zeitziel (`data-zeit="20"`), die Minuten an jeder Aufgabe (`<div class="aufgabe" data-min="5">`). `blatt.py` rechnet je Niveau nach und meldet zu wenig oder zu viel Zeit, fehlende Minuten, zu wenig Inhalt, einen zu hohen Kopf oder Fuß und freien Platz (Tabelle „Was die Prüfung meldet“). Geprüftes Muster: `html-materialerstellung/assets/beispiel-niveaublatt-kl2.html`.
 
 **Zeitmodell** (Richtwerte für ein Kind im mittleren Niveau, aus Unterrichtserfahrung; ● rechnet mit dem oberen, ●●● mit dem unteren Wert und bekommt dafür anspruchsvollere Items):
 
@@ -221,9 +221,9 @@ Mindestmaße, die höchste Zahl je A4 und den Abstand zur Schnittkante prüft `b
 | `druckrand` | WARNUNG | Gestaltung mit Text oder Bild näher als 19 px (5 mm) am Blattrand |
 | `schrift-klein` | WARNUNG | Schrift unter 80 % der Schrift der Klasse, auf Folien der Folienschrift |
 | `flaeche` | WARNUNG | Fläche hinter Inhalt dunkler als 245 von 255 und größer als 4000 px² |
-| `aufgaben-viele` | WARNUNG | mehr Aufgaben (ohne ★) auf einer Seite als in Kl. 1/2/3/4: 6/8/9/10 mit `data-satz="2"`, 5/6/7/8 mit Zeitziel im älteren Satz, sonst 3/4/5/6 |
+| `aufgaben-viele` | WARNUNG | mehr Aufgaben (ohne ★) auf einer Seite als in Kl. 1/2/3/4: 6/8/9/10 mit `data-satz="2"` |
 | `rahmen-gross` | WARNUNG | mit Zeitziel: Kopf höher als 210 px oder Fuß höher als 150 px |
-| `abstand-knapp` | WARNUNG | weniger als 10 px zwischen zwei Aufgaben mit `data-satz="2"`, sonst 20 px |
+| `abstand-knapp` | WARNUNG | weniger als 10 px zwischen zwei Aufgaben mit `data-satz="2"` |
 | `platz-frei` | WARNUNG, HINWEIS | mehr als 90 px frei unten mit Zeitziel oder auf einer Arbeitsseite mit `data-satz="2"` (WARNUNG), sonst ab 150 px (HINWEIS); nicht auf Folien, Karten und Mini-Books |
 | `inhalt-wenig` | WARNUNG | Arbeitsseite mit `data-satz="2"`: weniger als 4 Aufgaben oder 12 Teilaufgaben, oder mehr als 35 % der Fläche leer; `data-dicht-ok` nimmt die Seite aus |
 | `teile-viele` | WARNUNG | `data-satz="2"`: mehr als 9 Teile zum Ausschneiden auf einer A4-Seite |

@@ -30,6 +30,7 @@ const GESTALTUNG = 'skills/html-materialerstellung/references/gestaltung.md';
 const ARBEITSBLATT = 'skills/arbeitsblatt/SKILL.md';
 const EINHEIT_AUFTRAG = 'schoolbox/vorlagen/ki/einheit.md';
 const HTML_SKILL = 'skills/html-materialerstellung/SKILL.md';
+const AELTERER_SATZ = 'skills/html-materialerstellung/references/aelterer-satz.md';
 
 const tabelle = (kopf: string[], zeilen: string[][]) =>
 	[
@@ -84,7 +85,7 @@ const bausteineJeArt = () => {
 	return tabelle(['Materialart', '3. Selbsteinschätzung', '4. Churer Modell', '5. Sternchenaufgabe'], zeilen);
 };
 
-const klassenWerte = (wurzel: string) => {
+const schriftJeKlasse = (wurzel: string) => {
 	const css = readFileSync(path.join(wurzel, BLATT_CSS), 'utf8');
 	const mitZeitziel = new Map(
 		[...css.matchAll(/^body\.kl([1-4])\[data-zeit\]\{--fs:(\d+)px(?:;--abstand:(\d+)px)?/gm)].map((t) => [
@@ -94,27 +95,33 @@ const klassenWerte = (wurzel: string) => {
 	);
 	const aelter = new Map(
 		[...css.matchAll(/^body\.kl([1-4])\{--fs:(\d+)px;--abstand:(\d+)px\}/gm)].map((t) => [
-			t[1],
+			t[1] ?? '',
 			`${t[2]} px, Abstand ${t[3]} px${mitZeitziel.get(t[1] ?? '') ?? ''}`,
 		]),
 	);
-	const zeilen = [
+	const satz2 = [
 		...css.matchAll(/^body\.kl([1-4])\[data-satz="2"\][^{]*\{--fs:(\d+)px;--abstand:(\d+)px;--zh:([\d.]+)/gm),
 	].map((t) => [
 		`Kl. ${t[1]}`,
 		`${t[2]} px (${String(Math.round(Number(t[2]) * 0.75)).replace('.', ',')} pt)`,
 		`${t[3]} px`,
 		(t[4] ?? '').replace('.', ','),
-		aelter.get(t[1] ?? '') ?? '',
 	]);
-	if (zeilen.length !== 4 || aelter.size !== 4) {
+	if (satz2.length !== 4 || aelter.size !== 4) {
 		throw new Error(`${BLATT_CSS}: Schrift und Abstand von Kl. 1 bis 4 nicht gefunden.`);
 	}
-	return tabelle(
-		['Klasse', 'Schrift', 'Abstand zwischen Aufgaben', 'Zeilenhöhe', 'Ältere Blätter (ohne `data-satz`)'],
-		zeilen,
-	);
+	return { aelter, satz2 };
 };
+
+const klassenWerte = (wurzel: string) =>
+	tabelle(['Klasse', 'Schrift', 'Abstand zwischen Aufgaben', 'Zeilenhöhe'], schriftJeKlasse(wurzel).satz2);
+
+/** Die Spalte der Blätter ohne `data-satz="2"` steht nur in `aelterer-satz.md` (228). */
+const aeltereKlassenWerte = (wurzel: string) =>
+	tabelle(
+		['Klasse', 'Ältere Blätter (ohne `data-satz`)'],
+		[...schriftJeKlasse(wurzel).aelter].sort(([a], [b]) => a.localeCompare(b)).map(([kl, wert]) => [`Kl. ${kl}`, wert]),
+	);
 
 const lueckenBreite = (wurzel: string) => {
 	const css = readFileSync(path.join(wurzel, BLATT_CSS), 'utf8');
@@ -193,6 +200,41 @@ const prozent = (anteil: number) => `${Math.round(anteil * 100)} %`;
 const zahlen = (objekt: string) => [...objekt.matchAll(/\d: (\d+)/g)].map((t) => t[1]).join('/');
 const codeListe = (text: string) => [...text.matchAll(/['"]([a-z-]+)['"]/g)].map((t) => t[1] ?? '');
 
+/** Die Schwellen, die mit und ohne `data-satz="2"` verschieden sind. */
+const satzSchwellen = (js: string) => {
+	const { treffer } = leser(js);
+	const [satz2, mitZeit, aelter] = treffer(
+		/const RICHTWERT = satz2 \? (\{[^}]+\})\[kl\] \|\| \d+ : zeitziel \? (\{[^}]+\})\[kl\] \|\| \d+ : (\{[^}]+\})/,
+	);
+	const [abstandSatz2, abstandAelter] = treffer(/ABSTAND_MIN = satz2 \? (\d+) : (\d+)/);
+	return {
+		abstandAelter,
+		abstandSatz2,
+		aelter: zahlen(aelter ?? ''),
+		mitZeit: zahlen(mitZeit ?? ''),
+		satz2: zahlen(satz2 ?? ''),
+	};
+};
+
+/** Je Code die Stufen, mit denen `pruefung.js` und der Lauf der Schoolbox ihn melden. */
+const meldungStufen = (js: string) => {
+	const stufen = new Map<string, Set<string>>();
+	const neben = (code: string, stufe: string) => stufen.set(code, (stufen.get(code) ?? new Set()).add(stufe));
+	for (const t of js.matchAll(/melde\("([A-Z]+)", [^,]+, ([^,]+),/g)) {
+		const codes = codeListe(t[2] ?? '');
+		neben(codes.join(', '), t[1] ?? '');
+	}
+	for (const t of js.matchAll(/stufe: "([A-Z]+)", seite: \d+, code: "([a-z-]+)"/g)) {
+		neben(t[2] ?? '', t[1] ?? '');
+	}
+	for (const [code, stufe] of Object.entries(LAUF_MELDUNGEN)) {
+		neben(code, stufe);
+	}
+	return stufen;
+};
+
+const stufenText = (s: Set<string> | undefined) => STUFEN.filter((x) => s?.has(x)).join(', ');
+
 /**
  * Die Schwellen der Prüfung aus `pruefung.js` und die Meldungen, die nur der Lauf der Schoolbox kennt (224). Stufen
  * und Codes von `pruefung.js` liest sie aus den Aufrufen, die des Laufs aus `LAUF_MELDUNGEN`.
@@ -200,10 +242,7 @@ const codeListe = (text: string) => [...text.matchAll(/['"]([a-z-]+)['"]/g)].map
 const pruefSchwellen = (wurzel: string) => {
 	const js = readFileSync(path.join(wurzel, PRUEFUNG_JS), 'utf8');
 	const { treffer, zahl } = leser(js);
-	const [satz2, mitZeit, aelter] = treffer(
-		/const RICHTWERT = satz2 \? (\{[^}]+\})\[kl\] \|\| \d+ : zeitziel \? (\{[^}]+\})\[kl\] \|\| \d+ : (\{[^}]+\})/,
-	);
-	const [abstandSatz2, abstandAelter] = treffer(/ABSTAND_MIN = satz2 \? (\d+) : (\d+)/);
+	const { abstandSatz2, satz2 } = satzSchwellen(js);
 	const [karte, stein, kind] = treffer(/KANTE_MIN = \{ karte: (\d+), stein: (\d+), kind: (\d+) \}/);
 	const druckrand = zahl('DRUCKRAND');
 	const satz = '`data-satz="2"`';
@@ -216,9 +255,9 @@ const pruefSchwellen = (wurzel: string) => {
 		druckrand: `Gestaltung mit Text oder Bild näher als ${druckrand} px (${Math.round((druckrand * 25.4) / 96)} mm) am Blattrand`,
 		'schrift-klein': `Schrift unter ${prozent(zahl('SCHRIFT_MIN'))} der Schrift der Klasse, auf Folien der Folienschrift`,
 		flaeche: `Fläche hinter Inhalt dunkler als ${zahl('FLAECHE_HELL')} von 255 und größer als ${zahl('FLAECHE_MIN')} px²`,
-		'aufgaben-viele': `mehr Aufgaben (ohne ★) auf einer Seite als in Kl. 1/2/3/4: ${zahlen(satz2 ?? '')} mit ${satz}, ${zahlen(mitZeit ?? '')} mit Zeitziel im älteren Satz, sonst ${zahlen(aelter ?? '')}`,
+		'aufgaben-viele': `mehr Aufgaben (ohne ★) auf einer Seite als in Kl. 1/2/3/4: ${satz2} mit ${satz}`,
 		'rahmen-gross': `mit Zeitziel: Kopf höher als ${zahl('KOPF_MAX')} px oder Fuß höher als ${zahl('FUSS_MAX')} px`,
-		'abstand-knapp': `weniger als ${abstandSatz2} px zwischen zwei Aufgaben mit ${satz}, sonst ${abstandAelter} px`,
+		'abstand-knapp': `weniger als ${abstandSatz2} px zwischen zwei Aufgaben mit ${satz}`,
 		'platz-frei': `mehr als ${zahl('FREI_MAX')} px frei unten mit Zeitziel oder auf einer Arbeitsseite mit ${satz} (WARNUNG), sonst ab ${zahl('FREI_HINWEIS')} px (HINWEIS); nicht auf Folien, Karten und Mini-Books`,
 		'inhalt-wenig': `Arbeitsseite mit ${satz}: weniger als ${zahl('AUFGABEN_MIN')} Aufgaben oder ${zahl('TEILE_MIN')} Teilaufgaben, oder mehr als ${zahl('LEER_MAX')} % der Fläche leer; \`data-dicht-ok\` nimmt die Seite aus`,
 		'teile-viele': `${satz}: mehr als ${zahl('TEILE_MAX')} Teile zum Ausschneiden auf einer A4-Seite`,
@@ -234,18 +273,7 @@ const pruefSchwellen = (wurzel: string) => {
 		'zeitziel-fehlt': `${laufNeu}: ${MIT_ZEITZIEL.map((a) => ART_ANGABEN[a].name).join(', ')} mit ${satz} und Aufgaben, aber ohne \`data-zeit\` am \`<body>\``,
 		'loesung-fehlt': `${laufNeu}: je Aufgabe, deren Antwortlinien keine Lösung haben; bei offener Aufgabe reicht ein Satz als \`.nur-loesung\``,
 	};
-	const stufen = new Map<string, Set<string>>();
-	const neben = (code: string, stufe: string) => stufen.set(code, (stufen.get(code) ?? new Set()).add(stufe));
-	for (const t of js.matchAll(/melde\("([A-Z]+)", [^,]+, ([^,]+),/g)) {
-		const codes = codeListe(t[2] ?? '');
-		neben(codes.join(', '), t[1] ?? '');
-	}
-	for (const t of js.matchAll(/stufe: "([A-Z]+)", seite: \d+, code: "([a-z-]+)"/g)) {
-		neben(t[2] ?? '', t[1] ?? '');
-	}
-	for (const [code, stufe] of Object.entries(LAUF_MELDUNGEN)) {
-		neben(code, stufe);
-	}
+	const stufen = meldungStufen(js);
 	for (const code of OHNE_SCHWELLE) {
 		stufen.delete(code);
 	}
@@ -261,10 +289,25 @@ const pruefSchwellen = (wurzel: string) => {
 				.split(', ')
 				.map((c) => `\`${c}\``)
 				.join(', '),
-			STUFEN.filter((x) => s.has(x)).join(', '),
+			stufenText(s),
 			`${WANN[code]}${(HINWEIS_OHNE as readonly string[]).includes(code) ? '; im Lauf der Schoolbox nicht im Bericht' : ''}`,
 		]);
 	return tabelle(['Code', 'Stufe', 'Wann'], zeilen);
+};
+
+/** Was die Prüfung ohne `data-satz="2"` anders meldet, für `aelterer-satz.md` (228). */
+const aeltereSchwellen = (wurzel: string) => {
+	const js = readFileSync(path.join(wurzel, PRUEFUNG_JS), 'utf8');
+	const { abstandAelter, aelter, mitZeit } = satzSchwellen(js);
+	const stufen = meldungStufen(js);
+	const WANN: Record<string, string> = {
+		'aufgaben-viele': `mehr Aufgaben (ohne ★) auf einer Seite als in Kl. 1/2/3/4: ${mitZeit} mit Zeitziel im älteren Satz, sonst ${aelter}`,
+		'abstand-knapp': `weniger als ${abstandAelter} px zwischen zwei Aufgaben`,
+	};
+	return tabelle(
+		['Code', 'Stufe', 'Wann'],
+		Object.entries(WANN).map(([code, wann]) => [`\`${code}\``, stufenText(stufen.get(code)), wann]),
+	);
 };
 
 const GROESSE: Record<string, string> = {
@@ -312,6 +355,9 @@ export const ABSCHNITTE: Abschnitt[] = [
 	{ datei: EINHEIT_AUFTRAG, marke: 'aufgabenformate', inhalt: formateFuerAuftrag },
 	// Pflichtlektüre (220): dieselbe Liste für Harness und Schoolbox
 	{ datei: HTML_SKILL, marke: 'pflichtlektuere', inhalt: pflichtTabelle },
+	// Älterer Satz (228): nur für vorhandene Blätter ohne `data-satz="2"`
+	{ datei: AELTERER_SATZ, marke: 'aelterer-satz-schrift', inhalt: aeltereKlassenWerte },
+	{ datei: AELTERER_SATZ, marke: 'aelterer-satz-schwellen', inhalt: aeltereSchwellen },
 ];
 
 /** Setzt den Inhalt zwischen `<!-- erzeugt: marke -->` und `<!-- /erzeugt: marke -->`. */

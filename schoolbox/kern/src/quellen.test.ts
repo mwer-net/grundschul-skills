@@ -215,6 +215,28 @@ describe('Erzeugte Abschnitte', () => {
 		);
 	});
 
+	it('Probe: Eine Schwelle des älteren Satzes schlägt nur in aelterer-satz.md an (228)', () => {
+		const wurzel = kopie('aelter');
+		const js = path.join(wurzel, 'skills/html-materialerstellung/assets/pruefung.js');
+		writeFileSync(js, readFileSync(js, 'utf8').replace('ABSTAND_MIN = satz2 ? 10 : 20', 'ABSTAND_MIN = satz2 ? 10 : 24'));
+		assert.deepEqual(abgleichen(wurzel, false), [
+			'skills/html-materialerstellung/references/aelterer-satz.md: aelterer-satz-schwellen',
+		]);
+		abgleichen(wurzel, true);
+		assert.match(
+			readFileSync(path.join(wurzel, 'skills/html-materialerstellung/references/aelterer-satz.md'), 'utf8'),
+			/\| `abstand-knapp` \| WARNUNG \| weniger als 24 px/,
+		);
+	});
+
+	it('druck-und-platz.md nennt nur die Werte mit data-satz="2", die älteren stehen in aelterer-satz.md (228)', () => {
+		const druck = readFileSync(path.join(WURZEL, 'skills/grundschul-didaktik/references/druck-und-platz.md'), 'utf8');
+		const aelter = readFileSync(path.join(WURZEL, 'skills/html-materialerstellung/references/aelterer-satz.md'), 'utf8');
+		assert.doesNotMatch(druck, /älter|Ältere/);
+		assert.match(aelter, /\| Kl\. 2 \| 24 px, Abstand 28 px/);
+		assert.match(aelter, /\| `aufgaben-viele` \| WARNUNG \| .*sonst 3\/4\/5\/6 \|/);
+	});
+
 	it('pruef-schwellen: Lauf-Meldungen aus LAUF_MELDUNGEN stehen drin, Meldungen ohne Schwelle nicht', () => {
 		const text = readFileSync(path.join(WURZEL, 'skills/grundschul-didaktik/references/druck-und-platz.md'), 'utf8');
 		const abschnitt = text.split('<!-- erzeugt: pruef-schwellen -->')[1]?.split('<!-- /erzeugt')[0] ?? '';
