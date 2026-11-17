@@ -2,7 +2,7 @@ import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { cp, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
@@ -128,8 +128,9 @@ export const KI_GRENZEN = {
 	 * Eine Unterrichtseinheit (139), seit 220 ein frischer Lauf je Material. `zeitMs`, `runden` und die Budgets gelten
 	 * für einen Durchgang des Baus (Freigabe oder „Weiterbauen“) über alle Läufe zusammen. Der Lauf vom 2026-11-16 in einem
 	 * Stück: 15 Materialien, 54 min, 323 Runden, 27,61 USD (rund 22 Runden und 1,85 USD je Material bei im Schnitt
-	 * 175.000 Token Kontext). Je Material neu heißt: Pflichtlektüre jedes Mal (40.000 bis 70.000 Token), dafür kleiner
-	 * Kontext; geschätzt 30 bis 60 Runden, 2 bis 4 USD und 5 bis 10 min je Material. Am ersten echten Lauf zu messen.
+	 * 175.000 Token Kontext). Je Material neu heißt: Pflichtlektüre jedes Mal (49.000 bis 120.000 Token je Materialart,
+	 * aus den Zeichen gerechnet in 222), dafür kleiner Kontext; geschätzt 30 bis 60 Runden, 2 bis 4 USD und 5 bis 10 min
+	 * je Material. Am ersten echten Lauf zu messen.
 	 */
 	einheit: {
 		zeitMs: 5 * 60 * 60_000,
@@ -734,8 +735,8 @@ export const rechercheStand = (e: RechercheErgebnis): RechercheStand =>
 
 /**
  * Der Prüflauf „mit Kinderaugen“ (220, Teil 2), für Einheit und neues Blatt: eine neue Sitzung ohne Gedächtnis, nur
- * Read, kein Schreibrecht, kein MCP. Der Arbeitsordner enthält nur die Seitenbilder (ohne Lösung) und die Prüfbilder der
- * Bilder; die Skills liest er für den zweiten Blick in der Ablage.
+ * Read, kein Schreibrecht, kein MCP. Der Arbeitsordner enthält die Seitenbilder, die Prüfbilder der Bilder und bei
+ * Kinderaugen die Lösungsseiten unter `loesung/`; die Skills liest er für den zweiten Blick in der Ablage.
  */
 export const pruefArgumente = (o: {
 	ablage: string;
@@ -787,15 +788,31 @@ const MAX_BLATT_LAEUFE = 50;
 export const PRUEF_AUFTRAG = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit-pruefung.md');
 const BILD_IM_MATERIAL = /\.\.\/\.\.\/bilder\/([a-z0-9][a-z0-9-]{0,59}\.(?:png|jpg))/g;
 const MAX_VERTRAG = 1500;
+const LOESUNGSSEITE = /^loesung-seite-\d+\.png$/;
+const LOESUNG_ORDNER = 'loesung';
 
 /**
  * Richtet den Ordner des Prüflaufs ein, nachdem `ansicht` die Seiten frisch hineingebaut hat: Lösungsseiten gehen
- * heraus, die Prüfbilder der Canva-Bilder des Materials kommen nach `bilder/`. `arbeit` ist der Arbeitsordner des Baus
- * mit `bilder.json` und `ansicht/bilder/`.
+ * heraus, mit `mitLoesung` (Rollen mit Kinderaugen, 229) liegen die ganzen Lösungsseiten danach unter `loesung/`. Die
+ * Prüfbilder der Canva-Bilder des Materials kommen nach `bilder/`. `arbeit` ist der Arbeitsordner des Baus mit
+ * `bilder.json` und `ansicht/bilder/`.
  */
-export const richtePruefOrdnerEin = async (ordner: string, gebaut: string[], html: string, arbeit: string) => {
+export const richtePruefOrdnerEin = async (
+	ordner: string,
+	gebaut: string[],
+	html: string,
+	arbeit: string,
+	mitLoesung: boolean,
+) => {
+	const loesungen: string[] = [];
 	for (const b of gebaut.filter((n) => n.startsWith('loesung-'))) {
-		await rm(path.join(ordner, b), { force: true });
+		if (mitLoesung && LOESUNGSSEITE.test(b)) {
+			await mkdir(path.join(ordner, LOESUNG_ORDNER), { recursive: true });
+			await rename(path.join(ordner, b), path.join(ordner, LOESUNG_ORDNER, b));
+			loesungen.push(`${LOESUNG_ORDNER}/${b}`);
+		} else {
+			await rm(path.join(ordner, b), { force: true });
+		}
 	}
 	const seiten = gebaut.filter((b) => /^seite-\d+\.png$/.test(b));
 	const ausschnitte = gebaut.filter((b) => /^seite-\d+-aufgabe-\d+\.png$/.test(b));
@@ -835,7 +852,7 @@ export const richtePruefOrdnerEin = async (ordner: string, gebaut: string[], htm
 			pruefbilder: pruefbilder.map((n) => `bilder/${n}`),
 		});
 	}
-	return { seiten, ausschnitte, bilder };
+	return { seiten, ausschnitte, bilder, loesungen };
 };
 
 export interface PruefErgebnis {
@@ -2223,7 +2240,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			}
 			return { neu, funde, bericht, antwort, sitzung };
 		};
-		/** Ein Prüflauf mit Kinderaugen am fertigen Blatt (220, Teil 2): Seiten ohne Lösung, nur Read, keine Sitzung. */
+		/** Ein Prüflauf mit Kinderaugen am fertigen Blatt (220, Teil 2): Lösung nach Teil 1, nur Read, ohne Sitzung. */
 		const pruefeEinmal = async (html: string) => {
 			const ordner = path.join(path.dirname(arbeit), 'pruefung');
 			const eintrag = neuerLaufEintrag('pruefung', null, []);
@@ -2235,7 +2252,8 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 				await mkdir(ordner, { recursive: true });
 				const ganz = await mitBildern(ausschnitt.einsetzen(html));
 				const gebaut = await ansicht(dir, ganz, ordner, { sw: false });
-				const teile = await richtePruefOrdnerEin(ordner, gebaut.bilder, ganz, arbeit);
+				const mitLoesung = pruefWeise(rolle, false).kind;
+				const teile = await richtePruefOrdnerEin(ordner, gebaut.bilder, ganz, arbeit, mitLoesung);
 				const weise = pruefWeise(rolle, teile.bilder.length > 0);
 				if (!weise.kind && !weise.blick) {
 					return null;

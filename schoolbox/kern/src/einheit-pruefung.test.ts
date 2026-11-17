@@ -13,6 +13,7 @@ import {
 	gepruefteZahl,
 	lesePruefung,
 	pruefKorrektur,
+	pruefText,
 	pruefWeise,
 	zahlenBefunde,
 	zahlenText,
@@ -89,6 +90,66 @@ describe('Antwort des Prüflaufs (220, Teil 2)', () => {
 		assert.match(text, /^Korrekturrunde nach der Prüfung\./);
 		assert.match(text, /- Seite 1, Aufgabe 2, [^:]+: Was zu tun ist, fehlt\./);
 		assert.match(text, /Die Schoolbox meldet:\n- Dieselbe Abbildung\./);
+		assert.doesNotMatch(text, /Lösung falsch/);
+	});
+
+	it('nimmt „loesung“ an; die Korrekturrunde fragt dann, ob Aufgabe oder Lösung falsch ist (229)', () => {
+		const { befunde } = lesePruefung(
+			'{"befunde": [{"seite": 1, "aufgabe": "2", "art": "loesung", "text": "7 + 8 ist 15, nicht 16."}, {"art": "Lösung fehlt", "text": "Aufgabe 3 hat keine Lösung."}]}',
+		);
+		assert.deepEqual(
+			befunde.map((b) => b.art),
+			['loesung', 'loesung'],
+		);
+		const text = pruefKorrektur(befunde, []);
+		assert.match(text, /- Seite 1, Aufgabe 2, Lösung falsch: 7 \+ 8 ist 15, nicht 16\./);
+		assert.match(text, /Prüfe, ob die Aufgabe oder die Lösung falsch ist, und ändere das Falsche\./);
+	});
+});
+
+describe('Nachricht an den Prüflauf (229)', () => {
+	const AUFTRAG = {
+		titel: 'Uhr',
+		artName: 'Arbeitsblatt',
+		klasse: 'Klasse 2',
+		fach: 'Mathematik',
+		seiten: ['seite-1.png'],
+		ausschnitte: ['seite-1-aufgabe-1.png'],
+		formate: [],
+		kind: true,
+		regeln: [],
+		bilder: [],
+		loesungen: [],
+	};
+	const TEIL_1 = [
+		'Prüfung von „Uhr“ (Arbeitsblatt), Klasse 2, Mathematik.',
+		'Teil 1, mit Kinderaugen: Löse jede Aufgabe wirklich, so wie ein Kind dieser Klasse sie liest und löst.',
+		'Die Seiten liegen in deinem Arbeitsordner. Sieh dir jede mit Read an:\n- seite-1.png',
+		'Ausschnitte je Aufgabe, wenn du etwas genauer sehen willst: seite-1-aufgabe-1.png',
+	];
+
+	it('ohne Lösungsseiten wörtlich wie vor 229, auch beim zweiten Blick allein', () => {
+		assert.equal(pruefText(AUFTRAG), TEIL_1.join('\n\n'));
+		assert.equal(
+			pruefText({ ...AUFTRAG, kind: false, regeln: ['r.md'], loesungen: ['loesung/loesung-seite-1.png'] }),
+			[
+				TEIL_1[0],
+				'Hier gibt es nichts zu lösen: nur der zweite Blick.',
+				TEIL_1[2],
+				TEIL_1[3],
+				'Teil 2, der zweite Blick. Lies zuerst diese Regeln ganz mit Read:\n- r.md',
+			].join('\n\n'),
+		);
+	});
+
+	it('mit Lösungsseiten nennt sie erst nach den Seiten des ersten Teils', () => {
+		const teile = pruefText({ ...AUFTRAG, regeln: ['r.md'], loesungen: ['loesung/loesung-seite-1.png'] }).split(
+			'\n\n',
+		);
+		assert.deepEqual(teile.slice(0, 4), TEIL_1);
+		assert.ok(teile.slice(0, 4).every((t) => !t.includes('loesung')));
+		assert.match(teile[4] ?? '', /^Lösung nachrechnen, erst nach Teil 1: .*\n- loesung\/loesung-seite-1\.png$/);
+		assert.match(teile[5] ?? '', /^Teil 2, der zweite Blick/);
 	});
 });
 

@@ -18,6 +18,7 @@ export const PRUEF_ARTEN = [
 	'auftrag',
 	'geschichte',
 	'zahlen',
+	'loesung',
 ] as const;
 export type PruefArt = (typeof PRUEF_ARTEN)[number];
 
@@ -32,6 +33,7 @@ export const PRUEF_ART_NAME: Record<PruefArt, string> = {
 	'auftrag': 'Auftrag',
 	'geschichte': 'Geschichte',
 	'zahlen': 'Zahlen',
+	'loesung': 'Lösung falsch',
 };
 
 /** Ein Befund eines Prüf- oder Schlusslaufs. `material` nur im Schlusslauf. Keine Namen, keine Prompts. */
@@ -154,6 +156,8 @@ export interface PruefAuftrag {
 	fach: string;
 	seiten: string[];
 	ausschnitte: string[];
+	/** Lösungsseiten unter `loesung/`; nur bei `kind`, erst nach Teil 1 genannt (229). */
+	loesungen: string[];
 	/** Je fertigem Material der Reihe seine Formate, für „dopplung“. */
 	formate: string[];
 	kind: boolean;
@@ -179,6 +183,12 @@ export const pruefText = (o: PruefAuftrag) =>
 			? [
 					'Aufgabenformate, die in der Reihe schon vorkamen (für „dopplung“):',
 					...o.formate.map((f) => `- ${f}`),
+				].join('\n')
+			: '',
+		o.kind && o.loesungen.length
+			? [
+					'Lösung nachrechnen, erst nach Teil 1: Schreib deine Ergebnisse je Aufgabe auf. Sieh dir erst dann die Lösungsseiten mit Read an:',
+					...o.loesungen.slice(0, PRUEF_GRENZEN.seiten).map((s) => `- ${s}`),
 				].join('\n')
 			: '',
 		o.regeln.length || o.bilder.length
@@ -228,6 +238,9 @@ const SYNONYME: Record<string, PruefArt> = {
 	'zahlen': 'zahlen',
 	'zahl': 'zahlen',
 	'seitenzahl': 'zahlen',
+	'loesung': 'loesung',
+	'loesung-falsch': 'loesung',
+	'loesung-fehlt': 'loesung',
 };
 
 const schluesselVon = (wert: string) =>
@@ -329,6 +342,9 @@ export const pruefKorrektur = (befunde: readonly PruefBefund[], server: readonly
 	[
 		'Korrekturrunde nach der Prüfung. Ein eigener Lauf hat das gebaute Material ohne Kenntnis des Baus angesehen und jede Aufgabe gelöst wie ein Kind der Klasse.',
 		befunde.length ? ['Er meldet:', ...befunde.map((b) => `- ${befundZeile(b)}`)].join('\n') : '',
+		befunde.some((b) => b.art === 'loesung')
+			? `Zu „${PRUEF_ART_NAME.loesung}“: Prüfe, ob die Aufgabe oder die Lösung falsch ist, und ändere das Falsche.`
+			: '',
 		server.length ? ['Die Schoolbox meldet:', ...server.map((t) => `- ${t}`)].join('\n') : '',
 		'Prüfe jeden Befund am Material. Behebe, was zutrifft; was nicht zutrifft, lass stehen und nenne es mit Grund in deiner Antwort. Halte dich an den Plan und die Regeln der Aufgaben-Übersicht. Baue mit bauen neu, sieh dir die Seiten an und aktualisiere steckbrief.json, wenn sich Figuren geändert haben. Antworte am Ende in höchstens drei Zeilen.',
 	]

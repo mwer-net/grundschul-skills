@@ -1146,8 +1146,9 @@ export const erstelleEinheiten = (
 			.map((d) => `„${d.titel}“: ${s.steckbriefe?.[d.slug]?.formate.join('; ') ?? ''}`);
 
 	/**
-	 * Ein Prüflauf für ein Material: neue Sitzung, nur Read, frisch gebaute Seiten ohne Lösung in einem eigenen Ordner.
-	 * Den Bau, die Quelle und den Plan sieht er nicht; Klasse, Fach und die Formate der Reihe nennt der Auftrag.
+	 * Ein Prüflauf für ein Material: neue Sitzung, nur Read, frisch gebaute Seiten in einem eigenen Ordner, mit `kind`
+	 * die Lösungsseiten unter `loesung/` für den Teil nach dem Lösen. Den Bau, die Quelle und den Plan sieht er nicht;
+	 * Klasse, Fach und die Formate der Reihe nennt der Auftrag.
 	 */
 	const pruefeMaterial = async (
 		s: EinheitStand,
@@ -1185,7 +1186,7 @@ export const erstelleEinheiten = (
 			const ansicht = await baueAnsicht(path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html'), ordner, {
 				sw: false,
 			});
-			const teile = await richtePruefOrdnerEin(ordner, ansicht.bilder, html, arbeitDir(s.id));
+			const teile = await richtePruefOrdnerEin(ordner, ansicht.bilder, html, arbeitDir(s.id), kind);
 			const ablage = ablageDir(s.id);
 			ergebnis = await pruefeLauf({
 				bin,

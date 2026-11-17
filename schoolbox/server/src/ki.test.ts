@@ -31,6 +31,7 @@ import {
 	kiUmgebung,
 	liesLimit,
 	limitErreichtText,
+	richtePruefOrdnerEin,
 	zuGrossText,
 } from './ki';
 import { CSRF_HEADER } from './schutz';
@@ -1854,5 +1855,56 @@ describe('„Zu umfangreich“ je Bezug (200-22, 190-26)', () => {
 			'Der Auftrag war zu umfangreich. Nimm eine kürzere Arbeitszeit.',
 		);
 		assert.equal(zuGrossText('sonstwas', null), undefined);
+	});
+});
+
+describe('Ordner des Prüflaufs (229)', () => {
+	const GEBAUT = [
+		'seite-1.png',
+		'seite-1-aufgabe-1.png',
+		'seite-2.png',
+		'loesung-seite-1.png',
+		'loesung-seite-1-aufgabe-1.png',
+		'loesung-seite-2.png',
+	];
+	const richte = async (mitLoesung: boolean) => {
+		const ordner = await mkdtemp(path.join(tmpdir(), 'pruefordner-'));
+		const arbeit = await mkdtemp(path.join(tmpdir(), 'pruefarbeit-'));
+		for (const n of GEBAUT) {
+			await writeFile(path.join(ordner, n), n);
+		}
+		const teile = await richtePruefOrdnerEin(ordner, GEBAUT, '<p>Blatt</p>', arbeit, mitLoesung);
+		const dateien = [
+			...(await readdir(ordner)),
+			...(await readdir(path.join(ordner, 'loesung')).catch(() => [] as string[])).map((n) => `loesung/${n}`),
+		].sort();
+		await rm(ordner, { recursive: true, force: true });
+		await rm(arbeit, { recursive: true, force: true });
+		return { teile, dateien };
+	};
+
+	it('ohne Lösung wie bisher: Lösungsbilder gehen heraus, kein Unterordner', async () => {
+		const { teile, dateien } = await richte(false);
+		assert.deepEqual(dateien, ['seite-1-aufgabe-1.png', 'seite-1.png', 'seite-2.png']);
+		assert.deepEqual(teile, {
+			seiten: ['seite-1.png', 'seite-2.png'],
+			ausschnitte: ['seite-1-aufgabe-1.png'],
+			bilder: [],
+			loesungen: [],
+		});
+	});
+
+	it('mit Kinderaugen: ganze Lösungsseiten unter loesung/, keine in den Seiten des ersten Teils', async () => {
+		const { teile, dateien } = await richte(true);
+		assert.deepEqual(dateien, [
+			'loesung',
+			'loesung/loesung-seite-1.png',
+			'loesung/loesung-seite-2.png',
+			'seite-1-aufgabe-1.png',
+			'seite-1.png',
+			'seite-2.png',
+		]);
+		assert.deepEqual(teile.loesungen, ['loesung/loesung-seite-1.png', 'loesung/loesung-seite-2.png']);
+		assert.ok([...teile.seiten, ...teile.ausschnitte].every((n) => !n.includes('loesung')));
 	});
 });
