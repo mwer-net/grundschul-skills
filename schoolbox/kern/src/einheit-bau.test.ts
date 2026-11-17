@@ -98,6 +98,13 @@ describe('Pflichtlektüre (220)', () => {
 		assert.equal(new Set(ohne).size, ohne.length);
 	});
 
+	it('Präsentation und Auftakt lesen die Folien, das Arbeitsblatt nicht (227)', () => {
+		const folien = 'html-materialerstellung/references/folien.md';
+		assert.ok(pflichtFuer('praesentation', { fach: 'deutsch', reihe: false, verkauf: false }).includes(folien));
+		assert.ok(pflichtFuer('praesentation', { fach: 'deutsch', reihe: true, verkauf: false }).includes(folien));
+		assert.ok(!pflichtFuer('arbeitsblatt', { fach: 'deutsch', reihe: true, verkauf: true }).includes(folien));
+	});
+
 	it('liest Skill-Aufrufe und Read im Ordner der Skills; alles andere zählt nicht', () => {
 		assert.equal(gelesenAus('Skill', { skill: 'fach-mathematik' }), 'skill:fach-mathematik');
 		assert.equal(gelesenAus('Skill', { skill: 'anthropic-skills:lernspiel' }), 'skill:lernspiel');

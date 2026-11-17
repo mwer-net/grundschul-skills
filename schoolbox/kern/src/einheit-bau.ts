@@ -1,8 +1,8 @@
 /**
  * Bau einer Einheit in Durchgängen (220): Nach der Freigabe baut je Material ein frischer Lauf, erst nach der
  * Pflichtlektüre. Die Pflichtlektüre steht nur hier; `quellen.ts` schreibt sie als Tabelle in
- * `html-materialerstellung/SKILL.md`, damit das Harness dieselbe Liste hat. Ohne Abhängigkeiten zur Laufzeit: Die
- * Oberfläche und `quellen.ts` laden die Datei direkt.
+ * `html-materialerstellung/references/pflichtlektuere.md`, damit das Harness dieselbe Liste hat. Ohne Abhängigkeiten
+ * zur Laufzeit: Die Oberfläche und `quellen.ts` laden die Datei direkt.
  */
 import type { EinheitPlan, PlanDokument } from './einheit';
 import { formatTitel } from './einheit-aufgaben';
@@ -25,6 +25,7 @@ const KINDGERECHT = `${GD}/references/kindgerecht-gestalten.md`;
 const REIHE = 'unterrichtsplanung/references/reihe-als-geschichte.md';
 const LAYOUT = `${HTML}/references/layout.md`;
 const ENDKONTROLLE = `${HTML}/references/visuelle-endkontrolle.md`;
+const FOLIEN = `${HTML}/references/folien.md`;
 const ABBILDUNGEN = `${HTML}/references/abbildungen.md`;
 const BILDER = `${HTML}/references/bilder.md`;
 const VERKAUF = `${HTML}/references/verkauf.md`;
@@ -132,7 +133,7 @@ export const PFLICHTLEKTUERE: readonly Lektuere[] = [
 		name: 'Präsentation, Auftakt einer Reihe',
 		skills: [GD, 'praesentation', HTML],
 		fach: true,
-		dateien: [KINDGERECHT, LAYOUT, ENDKONTROLLE],
+		dateien: [KINDGERECHT, FOLIEN, LAYOUT, ENDKONTROLLE],
 		reihe: [REIHE, `${HTML}/assets/beispiel-auftakt.html`],
 	},
 	{
@@ -312,7 +313,7 @@ export const ABBILDUNGEN_DATEIEN: readonly string[] = [
 		'spiele-raetsel',
 		'musik',
 	].map((n) => `${HTML}/references/abbildungen/${n}.md`),
-	`${HTML}/references/folien.md`,
+	FOLIEN,
 ];
 
 /** `wofuer`: der Text hinter dem Namen in der Überschrift, leer, wenn sie nur den Namen nennt. */
@@ -356,7 +357,7 @@ export const fehlendeAbbildungsTeile = (
 
 const tabellenZelle = (eintraege: readonly string[]) => eintraege.map((e) => `\`${e}\``).join(', ');
 
-/** Die Tabelle „Vor dem Bau lesen“ in `html-materialerstellung/SKILL.md` (`quellen.ts`). */
+/** Die Tabelle in `html-materialerstellung/references/pflichtlektuere.md` (`quellen.ts`). */
 export const pflichtTabelle = () =>
 	[
 		'| Materialart | Skills | Dateien | in einer Reihe | beim Verkauf |',
