@@ -125,7 +125,9 @@ const klassenWerte = (wurzel: string) =>
 const aeltereKlassenWerte = (wurzel: string) =>
 	tabelle(
 		['Klasse', 'Ältere Blätter (ohne `data-satz`)'],
-		[...schriftJeKlasse(wurzel).aelter].sort(([a], [b]) => a.localeCompare(b)).map(([kl, wert]) => [`Kl. ${kl}`, wert]),
+		[...schriftJeKlasse(wurzel).aelter]
+			.sort(([a], [b]) => a.localeCompare(b))
+			.map(([kl, wert]) => [`Kl. ${kl}`, wert]),
 	);
 
 const lueckenBreite = (wurzel: string) => {
@@ -253,13 +255,13 @@ const pruefSchwellen = (wurzel: string) => {
 	const satz = '`data-satz="2"`';
 	const laufNeu = 'nur im Lauf der Schoolbox beim Bau neuen Materials, nicht beim Ändern';
 	const WANN: Record<string, string> = {
-		aussen: 'ein Gestaltungselement liegt zu mehr als der Hälfte außerhalb der Seite',
+		'aussen': 'ein Gestaltungselement liegt zu mehr als der Hälfte außerhalb der Seite',
 		'zeit-fehlt': 'mit Zeitziel: eine Aufgabe ohne `data-min`',
 		'zeit-knapp': `mit Zeitziel: das kürzeste Niveau unter ${prozent(zahl('ZEIT_KNAPP'))} des Ziels`,
 		'zeit-viel': `nur beim Bauen, mit Zeitziel: das längste Niveau über ${prozent(zahl('ZEIT_VIEL'))} des Ziels`,
-		druckrand: `Gestaltung mit Text oder Bild näher als ${druckrand} px (${Math.round((druckrand * 25.4) / 96)} mm) am Blattrand`,
+		'druckrand': `Gestaltung mit Text oder Bild näher als ${druckrand} px (${Math.round((druckrand * 25.4) / 96)} mm) am Blattrand`,
 		'schrift-klein': `Schrift unter ${prozent(zahl('SCHRIFT_MIN'))} der Schrift der Klasse, auf Folien der Folienschrift`,
-		flaeche: `Fläche hinter Inhalt dunkler als ${zahl('FLAECHE_HELL')} von 255 und größer als ${zahl('FLAECHE_MIN')} px²`,
+		'flaeche': `Fläche hinter Inhalt dunkler als ${zahl('FLAECHE_HELL')} von 255 und größer als ${zahl('FLAECHE_MIN')} px²`,
 		'aufgaben-viele': `mehr Aufgaben (ohne ★) auf einer Seite als in Kl. 1/2/3/4: ${satz2} mit ${satz}`,
 		'rahmen-gross': `mit Zeitziel: Kopf höher als ${zahl('KOPF_MAX')} px oder Fuß höher als ${zahl('FUSS_MAX')} px`,
 		'abstand-knapp': `weniger als ${abstandSatz2} px zwischen zwei Aufgaben mit ${satz}`,
@@ -270,11 +272,11 @@ const pruefSchwellen = (wurzel: string) => {
 		'motiv-klein': `${satz}: das Motiv füllt weniger als ${prozent(zahl('MOTIV_MIN'))} der Karte innerhalb ihres Rands`,
 		'schnitt-knapp': `${satz}: Text oder Bild näher als ${zahl('SCHNITT_MIN')} mm an der Schnittkante`,
 		'kit-anteil': `nur beim Bauen: weniger als ${zahl('KIT_MINDEST')} % der Elemente mit Klasse nutzen nur Kit-Klassen`,
-		verdeckt: `Gestaltung vorne oder am Anker verdeckt Inhalt um mehr als ${zahl('VERDECKT_MIN')} px²`,
+		'verdeckt': `Gestaltung vorne oder am Anker verdeckt Inhalt um mehr als ${zahl('VERDECKT_MIN')} px²`,
 		'kontrast-sw': `in s/w: Text mit Kontrast unter ${zahl('KONTRAST_MIN')}:1 zu seiner Fläche`,
 		'bild-kontrast-sw': `in s/w: ein Bild, dessen Grauwerte weniger als ${zahl('BILD_SPANNE_MIN')} von 255 auseinanderliegen`,
 		'bild-unscharf': `ein Bild hat im Druck unter ${zahl('DPI_MIN')} dpi`,
-		ausgeblendet: 'einmal je Material: Elemente mit `data-aus` werden nicht gedruckt',
+		'ausgeblendet': 'einmal je Material: Elemente mit `data-aus` werden nicht gedruckt',
 		'zeitziel-fehlt': `${laufNeu}: ${MIT_ZEITZIEL.map((a) => ART_ANGABEN[a].name).join(', ')} mit ${satz} und Aufgaben, aber ohne \`data-zeit\` am \`<body>\``,
 		'loesung-fehlt': `${laufNeu}: je Aufgabe, deren Antwortlinien keine Lösung haben; bei offener Aufgabe reicht ein Satz als \`.nur-loesung\``,
 	};
@@ -284,7 +286,9 @@ const pruefSchwellen = (wurzel: string) => {
 	}
 	const fehlt = [...stufen.keys()].filter((c) => !WANN[c]);
 	if (fehlt.length > 0) {
-		throw new Error(`${PRUEFUNG_JS}: Meldung weder in WANN noch in OHNE_SCHWELLE (quellen.ts): ${fehlt.join(', ')}.`);
+		throw new Error(
+			`${PRUEFUNG_JS}: Meldung weder in WANN noch in OHNE_SCHWELLE (quellen.ts): ${fehlt.join(', ')}.`,
+		);
 	}
 	const erste = (s: Set<string>) => Math.min(...[...s].map((x) => STUFEN.indexOf(x)));
 	const zeilen = [...stufen]

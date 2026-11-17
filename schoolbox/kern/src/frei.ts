@@ -326,8 +326,7 @@ const imFremden = (k: Knoten) => {
 
 /** Was statt eines gesperrten Elements geht; die häufigsten Ablehnungen (225). */
 const STATT_ELEMENT: Record<string, string> = {
-	script:
-		'kein Skript: Abbildungen als <x-…>, Aussehen über CSS; im Kopf bleibt <script src="abbildungen.js"></script> wie in der Vorlage',
+	script: 'kein Skript: Abbildungen als <x-…>, Aussehen über CSS; im Kopf bleibt <script src="abbildungen.js"></script> wie in der Vorlage',
 	link: 'Stylesheets nur wie in der Vorlage (<link rel="stylesheet" href="blatt.css">, beim Thema thema.css); eigene Regeln in <style>',
 };
 

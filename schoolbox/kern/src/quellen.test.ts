@@ -20,8 +20,8 @@ import {
 	SKALA_STANDARD,
 	zahlStandard,
 } from './abbildungen';
-import { browserSkip } from './browsertest';
 import { leseAbbildungsKatalog } from './abbildungen-katalog';
+import { browserSkip } from './browsertest';
 import { LAUF_MELDUNGEN } from './einheit';
 import { ABBILDUNGEN_DATEIEN } from './einheit-bau';
 import { ASSETS, BLATT_PY, SKILL_DIR, WURZEL } from './konfig';
@@ -113,13 +113,14 @@ describe('Katalog gegen Schema', () => {
 		const tabellenFehler = (text: string) => {
 			const zeilen = [...text.matchAll(/^\| `(x-[a-z0-9-]+)` \|.*\| `([^`|]+)` \|$/gm)];
 			assert.ok(zeilen.length >= 30, `nur ${zeilen.length} Zeilen gefunden`);
-			return zeilen.flatMap(([, tag = '', spalte = '']) =>
-				!(tag in ABBILDUNG_SCHEMA)
-					? [`${tag} steht nicht im Schema`]
-					: datei.get(tag) === `html-materialerstellung/references/abbildungen/${spalte}`
-						? []
-						: [`${tag}: ${spalte} statt ${datei.get(tag) ?? '(keine Datei)'}`],
-			);
+			return zeilen.flatMap(([, tag = '', spalte = '']) => {
+				if (!(tag in ABBILDUNG_SCHEMA)) {
+					return [`${tag} steht nicht im Schema`];
+				}
+				return datei.get(tag) === `html-materialerstellung/references/abbildungen/${spalte}`
+					? []
+					: [`${tag}: ${spalte} statt ${datei.get(tag) ?? '(keine Datei)'}`];
+			});
 		};
 		const text = readFileSync(path.join(SKILLS, 'fach-mathematik/SKILL.md'), 'utf8');
 		assert.deepEqual(tabellenFehler(text), []);
@@ -130,7 +131,9 @@ describe('Katalog gegen Schema', () => {
 		assert.deepEqual(tabellenFehler(umgezogen), [
 			'x-uhr: musik.md statt html-materialerstellung/references/abbildungen/mathe-zahlen.md',
 		]);
-		assert.deepEqual(tabellenFehler(text.replace('| `x-urne` |', '| `x-urnen` |')), ['x-urnen steht nicht im Schema']);
+		assert.deepEqual(tabellenFehler(text.replace('| `x-urne` |', '| `x-urnen` |')), [
+			'x-urnen steht nicht im Schema',
+		]);
 	});
 
 	it('jedes Beispiel kennt seine Attribute und besteht die Prüfung', () => {
@@ -257,7 +260,10 @@ describe('Erzeugte Abschnitte', () => {
 	it('Probe: Eine Schwelle des älteren Satzes schlägt nur in aelterer-satz.md an (228)', () => {
 		const wurzel = kopie('aelter');
 		const js = path.join(wurzel, 'skills/html-materialerstellung/assets/pruefung.js');
-		writeFileSync(js, readFileSync(js, 'utf8').replace('ABSTAND_MIN = satz2 ? 10 : 20', 'ABSTAND_MIN = satz2 ? 10 : 24'));
+		writeFileSync(
+			js,
+			readFileSync(js, 'utf8').replace('ABSTAND_MIN = satz2 ? 10 : 20', 'ABSTAND_MIN = satz2 ? 10 : 24'),
+		);
 		assert.deepEqual(abgleichen(wurzel, false), [
 			'skills/html-materialerstellung/references/aelterer-satz.md: aelterer-satz-schwellen',
 		]);
@@ -269,15 +275,24 @@ describe('Erzeugte Abschnitte', () => {
 	});
 
 	it('druck-und-platz.md nennt nur die Werte mit data-satz="2", die älteren stehen in aelterer-satz.md (228)', () => {
-		const druck = readFileSync(path.join(WURZEL, 'skills/grundschul-didaktik/references/druck-und-platz.md'), 'utf8');
-		const aelter = readFileSync(path.join(WURZEL, 'skills/html-materialerstellung/references/aelterer-satz.md'), 'utf8');
+		const druck = readFileSync(
+			path.join(WURZEL, 'skills/grundschul-didaktik/references/druck-und-platz.md'),
+			'utf8',
+		);
+		const aelter = readFileSync(
+			path.join(WURZEL, 'skills/html-materialerstellung/references/aelterer-satz.md'),
+			'utf8',
+		);
 		assert.doesNotMatch(druck, /älter|Ältere/);
 		assert.match(aelter, /\| Kl\. 2 \| 24 px, Abstand 28 px/);
 		assert.match(aelter, /\| `aufgaben-viele` \| WARNUNG \| .*sonst 3\/4\/5\/6 \|/);
 	});
 
 	it('pruef-schwellen: Lauf-Meldungen aus LAUF_MELDUNGEN stehen drin, Meldungen ohne Schwelle nicht', () => {
-		const text = readFileSync(path.join(WURZEL, 'skills/grundschul-didaktik/references/druck-und-platz.md'), 'utf8');
+		const text = readFileSync(
+			path.join(WURZEL, 'skills/grundschul-didaktik/references/druck-und-platz.md'),
+			'utf8',
+		);
 		const abschnitt = text.split('<!-- erzeugt: pruef-schwellen -->')[1]?.split('<!-- /erzeugt')[0] ?? '';
 		for (const [code, stufe] of Object.entries(LAUF_MELDUNGEN)) {
 			assert.match(abschnitt, new RegExp(`\\| \`${code}\` \\| ${stufe} \\|`));
@@ -298,7 +313,10 @@ describe('Erzeugte Abschnitte', () => {
 	it('Index der Abbildungen: jedes Element mit seiner Datei, der Text hinter dem Namen oder die Beschriftung', () => {
 		const text = readFileSync(path.join(SKILL_DIR, 'references', 'abbildungen.md'), 'utf8');
 		const index = text.split('<!-- erzeugt: abbildungen-index -->')[1]?.split('<!-- /erzeugt')[0] ?? '';
-		assert.match(index, /\| `x-zeitspanne` \| Zeitspanne am Zeitstrahl \| `references\/abbildungen\/mathe-groessen-daten\.md` \|/);
+		assert.match(
+			index,
+			/\| `x-zeitspanne` \| Zeitspanne am Zeitstrahl \| `references\/abbildungen\/mathe-groessen-daten\.md` \|/,
+		);
 		assert.match(index, /\| `x-lueckentext` \| Lückentext \| `references\/abbildungen\.md` \|/);
 		assert.match(index, /\| `x-timer` \| Zeitscheibe \| `references\/folien\.md` \|/);
 		assert.doesNotMatch(index, /x-probe/);
@@ -311,25 +329,37 @@ describe('Erzeugte Abschnitte', () => {
 		const ohne = alle.filter((b) => b.element !== 'x-gitter');
 		assert.deepEqual(katalogFehler(ohne, schema), ['x-gitter ist in keiner Datei des Katalogs beschrieben.']);
 		const doppelt = [...alle, { element: 'x-gitter', wofuer: '', datei: 'b.md' }];
-		assert.match(katalogFehler(doppelt, schema).join(), /x-gitter ist mehrfach beschrieben: .*mathe-geometrie\.md, b\.md/);
+		assert.match(
+			katalogFehler(doppelt, schema).join(),
+			/x-gitter ist mehrfach beschrieben: .*mathe-geometrie\.md, b\.md/,
+		);
 		assert.deepEqual(katalogFehler([...alle, { element: 'x-neu', wofuer: '', datei: 'b.md' }], schema), [
 			'x-neu steht nicht im Schema.',
 		]);
 		const wurzel = kopie('index');
 		const geometrie = path.join(wurzel, 'skills/html-materialerstellung/references/abbildungen/mathe-geometrie.md');
-		writeFileSync(geometrie, readFileSync(geometrie, 'utf8').replace('### `x-gitter`:', '### Gitter mit `x-gitter`:'));
+		writeFileSync(
+			geometrie,
+			readFileSync(geometrie, 'utf8').replace('### `x-gitter`:', '### Gitter mit `x-gitter`:'),
+		);
 		assert.throws(() => abgleichen(wurzel, false), /x-gitter ist in keiner Datei/);
 	});
 
 	it('Probe: Eine neue Überschrift in einer Teil-Datei schlägt im Index an, Schreiben behebt es (226)', () => {
 		const wurzel = kopie('index-neu');
 		const geometrie = path.join(wurzel, 'skills/html-materialerstellung/references/abbildungen/mathe-geometrie.md');
-		writeFileSync(geometrie, readFileSync(geometrie, 'utf8').replace('### `x-figur`: Ebene Figur', '### `x-figur`: Vieleck'));
+		writeFileSync(
+			geometrie,
+			readFileSync(geometrie, 'utf8').replace('### `x-figur`: Ebene Figur', '### `x-figur`: Vieleck'),
+		);
 		assert.deepEqual(abgleichen(wurzel, false), [
 			'skills/html-materialerstellung/references/abbildungen.md: abbildungen-index',
 		]);
 		abgleichen(wurzel, true);
-		assert.match(readFileSync(path.join(wurzel, 'skills/html-materialerstellung/references/abbildungen.md'), 'utf8'), /\| `x-figur` \| Vieleck \|/);
+		assert.match(
+			readFileSync(path.join(wurzel, 'skills/html-materialerstellung/references/abbildungen.md'), 'utf8'),
+			/\| `x-figur` \| Vieleck \|/,
+		);
 	});
 
 	it('Probe: Eine fehlende Markierung ist ein Fehler, nicht „aktuell“', () => {

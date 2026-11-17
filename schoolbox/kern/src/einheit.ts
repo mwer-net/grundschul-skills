@@ -515,13 +515,13 @@ export const laufMeldungen = (html: string, art: Art): Meldung[] => {
 		return meldungen;
 	}
 	for (const g of aufgabenOhneLoesung(zerlegt)) {
-		const text =
-			g.aufgabe === 0
-				? `${g.fehlend} ${g.fehlend === 1 ? 'Antwortlinie' : 'Antwortlinien'} außerhalb einer Aufgabe ohne Lösung → data-l ergänzen`
-				: g.fehlend === g.linien
-					? `Aufgabe ${g.aufgabe} hat keine Lösung → data-l, loesung= oder, bei offener Aufgabe, ein Satz als .nur-loesung`
-					: `Aufgabe ${g.aufgabe}: ${g.fehlend} von ${g.linien} Antwortlinien ohne Lösung → data-l ergänzen`;
-		meldungen.push({ stufe: LAUF_MELDUNGEN['loesung-fehlt'], seite: g.seite, code: 'loesung-fehlt', text });
+		let satz = `Aufgabe ${g.aufgabe}: ${g.fehlend} von ${g.linien} Antwortlinien ohne Lösung → data-l ergänzen`;
+		if (g.aufgabe === 0) {
+			satz = `${g.fehlend} ${g.fehlend === 1 ? 'Antwortlinie' : 'Antwortlinien'} außerhalb einer Aufgabe ohne Lösung → data-l ergänzen`;
+		} else if (g.fehlend === g.linien) {
+			satz = `Aufgabe ${g.aufgabe} hat keine Lösung → data-l, loesung= oder, bei offener Aufgabe, ein Satz als .nur-loesung`;
+		}
+		meldungen.push({ stufe: LAUF_MELDUNGEN['loesung-fehlt'], seite: g.seite, code: 'loesung-fehlt', text: satz });
 	}
 	return meldungen;
 };

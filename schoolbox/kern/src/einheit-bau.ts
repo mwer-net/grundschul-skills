@@ -235,8 +235,9 @@ const SKILL_PFAD = /(?:^|\/)skills\/([a-z0-9-]+)\/([^\s]+)$/;
 export const READ_ZEILEN = 2000;
 
 /** Ein Read deckt die Datei ganz ab: ohne `offset` (oder ab Zeile 1) und ohne `limit` oder mit einem ab `READ_ZEILEN`. */
-const ganzGelesen = ({ offset, limit }: { offset?: unknown; limit?: unknown }) =>
-	(offset == null || Number(offset) <= 1) && (limit == null || Number(limit) >= READ_ZEILEN);
+const ohneAngabe = (wert: unknown) => wert === undefined || wert === null;
+const ganzGelesen = ({ limit, offset }: { offset?: unknown; limit?: unknown }) =>
+	(ohneAngabe(offset) || Number(offset) <= 1) && (ohneAngabe(limit) || Number(limit) >= READ_ZEILEN);
 
 /**
  * Was ein Werkzeugaufruf aus dem Strom von `claude` gelesen hat, als Eintrag wie in `pflichtFuer`: ein geladener Skill,

@@ -40,7 +40,8 @@ export const fehlendeLoesungen = (z: Zerlegung) => z.knoten.filter((k) => istAnt
 const vorfahren = (k: Knoten): Knoten[] => (k.eltern ? [k.eltern, ...vorfahren(k.eltern)] : []);
 
 /** Wie `pruefung.js`: Seiten sind die äußeren `.seite`, Aufgaben zählen je Seite ab 1, in Dokumentreihenfolge. */
-const aeussereSeiten = (z: Zerlegung) => z.knoten.filter((k) => hat(k, 'seite') && !vorfahren(k).some((v) => hat(v, 'seite')));
+const aeussereSeiten = (z: Zerlegung) =>
+	z.knoten.filter((k) => hat(k, 'seite') && !vorfahren(k).some((v) => hat(v, 'seite')));
 
 export interface AufgabeOhneLoesung {
 	/** 0: außerhalb einer Seite. */
@@ -68,7 +69,12 @@ export const aufgabenOhneLoesung = (z: Zerlegung): AufgabeOhneLoesung[] => {
 			continue;
 		}
 		const seite = seiten.find((s) => oben.includes(s));
-		const nr = aufgabe && seite ? darunter(seite).filter((d) => hat(d, 'aufgabe')).indexOf(aufgabe) + 1 : 0;
+		const nr =
+			aufgabe && seite
+				? darunter(seite)
+						.filter((d) => hat(d, 'aufgabe'))
+						.indexOf(aufgabe) + 1
+				: 0;
 		const schluessel = `${seite?.nr ?? -1}|${aufgabe?.nr ?? -1}`;
 		const g = gruppen.get(schluessel) ?? {
 			seite: seite ? seiten.indexOf(seite) + 1 : 0,

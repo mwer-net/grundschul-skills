@@ -3,9 +3,9 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
+import { leseAbbildungsKatalog } from './abbildungen-katalog';
 import type { EinheitPlan } from './einheit';
 import { lesePlan } from './einheit';
-import { leseAbbildungsKatalog } from './abbildungen-katalog';
 import {
 	ABBILDUNGEN_DATEIEN,
 	bauReihenfolge,

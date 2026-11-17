@@ -279,9 +279,10 @@ describe('neueFunde: nur was dazukam (Entscheidung 26)', () => {
 	});
 	it('Kopf der Vorlage in anderer Schreibweise ist Bestand, ein anderer Wert nicht (225)', () => {
 		const KOPF = '<link rel="stylesheet" href="blatt.css"><script src="abbildungen.js"></script>';
+		const hk = String.fromCharCode(39);
 		for (const anders of [
 			'<link href="blatt.css" rel="stylesheet"><script src="abbildungen.js"></script>',
-			"<link rel='stylesheet' href=blatt.css /><script src='abbildungen.js'></script>",
+			`<link rel=${hk}stylesheet${hk} href=blatt.css /><script src=${hk}abbildungen.js${hk}></script>`,
 		]) {
 			assert.deepEqual(neueFunde(KOPF, anders), [], anders);
 		}
@@ -311,7 +312,9 @@ describe('neueFunde: nur was dazukam (Entscheidung 26)', () => {
 	it('url(#…) im style einer SVG-Form nennt das Attribut, das erlaubt ist (225)', () => {
 		assert.deepEqual(
 			pruefeFreiesHtml('<svg><rect style="fill:url(#v)"/></svg>').map((f) => f.text),
-			['Die CSS-Funktion url() ist nicht erlaubt → im SVG als Attribut statt im style, z. B. fill="url(#verlauf)" (auch stroke, clip-path, mask)'],
+			[
+				'Die CSS-Funktion url() ist nicht erlaubt → im SVG als Attribut statt im style, z. B. fill="url(#verlauf)" (auch stroke, clip-path, mask)',
+			],
 		);
 		assert.deepEqual(pruefeFreiesHtml('<svg><rect fill="url(#v)"/></svg>'), []);
 	});

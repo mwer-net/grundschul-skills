@@ -214,7 +214,11 @@ describe('Prüfungen im Lauf (225)', () => {
 		assert.deepEqual(
 			laufMeldungen(html, 'arbeitsblatt').map(({ seite, stufe, text }) => ({ seite, stufe, text })),
 			[
-				{ seite: 1, stufe: 'WARNUNG', text: 'Aufgabe 2 hat keine Lösung → data-l, loesung= oder, bei offener Aufgabe, ein Satz als .nur-loesung' },
+				{
+					seite: 1,
+					stufe: 'WARNUNG',
+					text: 'Aufgabe 2 hat keine Lösung → data-l, loesung= oder, bei offener Aufgabe, ein Satz als .nur-loesung',
+				},
 				{ seite: 1, stufe: 'WARNUNG', text: 'Aufgabe 3: 1 von 2 Antwortlinien ohne Lösung → data-l ergänzen' },
 			],
 		);
@@ -767,11 +771,16 @@ describe('Lauf einer Einheit (139)', () => {
 			const { id } = await starte();
 			const s = await bis(id, 'fertig');
 			// 226: Das Gitter verlangt seine Teil-Datei; die Attrappe liest sie nach der Abweisung und baut dann.
-			const antworten = (await jsonl<{ slug: string; text?: string; fehler?: boolean }>('bauen.jsonl')).slice(gebaut);
+			const antworten = (await jsonl<{ slug: string; text?: string; fehler?: boolean }>('bauen.jsonl')).slice(
+				gebaut,
+			);
 			assert.equal(antworten[0]?.slug, 'fall-1');
 			assert.equal(antworten[0]?.fehler, true);
 			assert.match(antworten[0]?.text ?? '', /^Nicht gebaut: Du verwendest <x-gitter>\./);
-			assert.match(antworten[0]?.text ?? '', /^- Read html-materialerstellung\/references\/abbildungen\/mathe-geometrie\.md$/m);
+			assert.match(
+				antworten[0]?.text ?? '',
+				/^- Read html-materialerstellung\/references\/abbildungen\/mathe-geometrie\.md$/m,
+			);
 			assert.equal(antworten[1]?.slug, 'fall-1');
 			assert.notEqual(antworten[1]?.fehler, true);
 			assert.deepEqual(s.pruefung?.['fall-1']?.server ?? [], []);

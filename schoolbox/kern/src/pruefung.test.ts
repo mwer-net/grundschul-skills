@@ -695,9 +695,9 @@ describe('pruefung.js: Prüfbericht im Lauf (225)', { skip: browserSkip() }, () 
 			`<section class="seite">${aufgabe(1, 5)}${eigen}</section>`,
 			'.eigen-kasten { color: #333; }\n.titel { margin-top: 4px; }',
 		);
-		const stufen = Object.fromEntries(meldungen.map((m) => [m.code, m.stufe]));
-		assert.equal(stufen['thema-klasse'], 'HINWEIS');
-		assert.equal(stufen['thema-layout'], 'HINWEIS');
-		assert.equal(stufen['kit-anteil'], 'HINWEIS');
+		const stufe = (code: string) => meldungen.find((m) => m.code === code)?.stufe;
+		assert.equal(stufe('thema-klasse'), 'HINWEIS');
+		assert.equal(stufe('thema-layout'), 'HINWEIS');
+		assert.equal(stufe('kit-anteil'), 'HINWEIS');
 	});
 });

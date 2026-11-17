@@ -65,11 +65,11 @@ export const starteWerkzeug = async (dir: string, bauen: Bauen, art: 'blatt' | '
 	let reihe: Promise<unknown> = Promise.resolve();
 	const server: Server = createServer((verbindung) => {
 		verbindung.on('error', () => undefined);
-		createInterface({ input: verbindung }).once('line', (zeile) => {
+		createInterface({ input: verbindung }).once('line', (eingang) => {
 			const antworte = (ergebnis: { text: string; fehler?: boolean }) => verbindung.end(JSON.stringify(ergebnis));
 			let dokument: string | undefined;
 			try {
-				const wert = (JSON.parse(zeile) as { dokument?: unknown }).dokument;
+				const wert = (JSON.parse(eingang) as { dokument?: unknown }).dokument;
 				dokument = typeof wert === 'string' ? wert : undefined;
 			} catch {
 				antworte({ text: 'Die Anfrage war ungültig.', fehler: true });

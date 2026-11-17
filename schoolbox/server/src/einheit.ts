@@ -670,7 +670,11 @@ export const erstelleEinheiten = (
 			const vorschau = s.verkauf ? await legeVorschauAb(arbeitDir(s.id), d.slug, ansicht.bilder) : null;
 			const auftrag = bausteinVerstoesse(roh, s.bausteine ?? {}).map((t) => `FEHLER: ${t}`);
 			return {
-				text: [ansichtText(ansicht, `${ANSICHT_ORDNER}/${d.slug}`, laufMeldungen(roh, d.art)), ...auftrag, vorschau]
+				text: [
+					ansichtText(ansicht, `${ANSICHT_ORDNER}/${d.slug}`, laufMeldungen(roh, d.art)),
+					...auftrag,
+					vorschau,
+				]
 					.filter(Boolean)
 					.join('\n'),
 			};
@@ -1197,9 +1201,13 @@ export const erstelleEinheiten = (
 		await schreibeProtokoll();
 		let ergebnis;
 		try {
-			const ansicht = await baueAnsicht(path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html'), ordner, {
-				sw: false,
-			});
+			const ansicht = await baueAnsicht(
+				path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html'),
+				ordner,
+				{
+					sw: false,
+				},
+			);
 			const teile = await richtePruefOrdnerEin(ordner, ansicht.bilder, html, arbeitDir(s.id), kind);
 			const ablage = ablageDir(s.id);
 			ergebnis = await pruefeLauf({

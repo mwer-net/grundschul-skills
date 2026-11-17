@@ -2013,7 +2013,13 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			versuch.fehler = gebaut.bericht.meldungen.filter((m) => m.stufe === 'FEHLER').length;
 			const kopf = kopfBefunde(quelle, ganz).map((t) => `FEHLER: ${t}`);
 			const auftrag = bausteinVerstoesse(ganz, bausteine ?? {}).map((t) => `FEHLER: ${t}`);
-			return { text: [ansichtText(gebaut, ANSICHT_ORDNER, neuesBlatt ? laufMeldungen(ganz, neuesBlatt) : []), ...kopf, ...auftrag].join('\n') };
+			return {
+				text: [
+					ansichtText(gebaut, ANSICHT_ORDNER, neuesBlatt ? laufMeldungen(ganz, neuesBlatt) : []),
+					...kopf,
+					...auftrag,
+				].join('\n'),
+			};
 		};
 
 	/** Neue Bilder gibt es nur beim Bau eines neuen Blatts: Der freigegebene Plan nennt sie. */

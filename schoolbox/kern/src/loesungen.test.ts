@@ -80,7 +80,7 @@ describe('Lösung fehlt je Aufgabe (225)', () => {
 	it('zählt je Seite und Aufgabe wie pruefung.js, ohne Ausgeblendetes und mit .nur-loesung als Lösung', () => {
 		const html = [
 			`<section class="seite">${aufgabe(linie('7'))}${aufgabe(linie() + linie())}${aufgabe(linie('1') + linie())}</section>`,
-			`<section class="seite">${aufgabe(linie() + '<p class="nur-loesung">7</p>')}<div data-aus>${aufgabe(linie())}</div>${aufgabe(linie())}${linie()}</section>`,
+			`<section class="seite">${aufgabe(`${linie()}<p class="nur-loesung">7</p>`)}<div data-aus>${aufgabe(linie())}</div>${aufgabe(linie())}${linie()}</section>`,
 		].join('');
 		assert.deepEqual(aufgabenOhneLoesung(zerlege(html)), [
 			{ seite: 1, aufgabe: 2, fehlend: 2, linien: 2 },

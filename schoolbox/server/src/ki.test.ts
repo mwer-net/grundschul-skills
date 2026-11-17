@@ -42,7 +42,12 @@ import { KI_ATTRAPPE, legeDokumentAn, starteTestServer } from './testhilfe';
 const mitSatzstand = async (dir: string) => {
 	const datei = path.join(dir, 'material.html');
 	const html = (await readFile(datei, 'utf8')).replace('<body ', '<body data-satz="2" ');
-	assert.match(laufMeldungen(html, 'arbeitsblatt').map((m) => m.text).join('\n'), /fehlt data-zeit/);
+	assert.match(
+		laufMeldungen(html, 'arbeitsblatt')
+			.map((m) => m.text)
+			.join('\n'),
+		/fehlt data-zeit/,
+	);
 	await writeFile(datei, html);
 };
 
@@ -811,12 +816,20 @@ describe('Aufträge an Claude', () => {
 			version: number;
 			einheit: string | null;
 			dokument: string;
-			laeufe: { art: string; pflicht: string[]; gelesen: string[]; befunde: string[]; bauen: { fehlend: string[] }[] }[];
+			laeufe: {
+				art: string;
+				pflicht: string[];
+				gelesen: string[];
+				befunde: string[];
+				bauen: { fehlend: string[] }[];
+			}[];
 		};
 		const baue = async (name: string, mitSatz = false) => {
 			await fall(name);
 			const blatt = await legeDokumentAn(server.materialDir, { beispiel: true });
-			if (mitSatz) await mitSatzstand(blatt.dir);
+			if (mitSatz) {
+				await mitSatzstand(blatt.dir);
+			}
 			const pfad = `/dokumente/${blatt.mappe}/${blatt.dok}`;
 			const los = async (ziel: string, body: object = {}) => {
 				const res = await api(ziel, { method: 'POST', body: JSON.stringify(body) });
@@ -893,7 +906,10 @@ describe('Aufträge an Claude', () => {
 				.map((z) => JSON.parse(z) as { text?: string; fehler?: boolean });
 			assert.equal(antworten[0]?.fehler, true);
 			assert.match(antworten[0]?.text ?? '', /Die Pflichtlektüre fehlt noch\. Du verwendest <x-menge>/);
-			assert.match(antworten[0]?.text ?? '', /^- Read html-materialerstellung\/references\/abbildungen\/mathe-zahlen\.md$/m);
+			assert.match(
+				antworten[0]?.text ?? '',
+				/^- Read html-materialerstellung\/references\/abbildungen\/mathe-zahlen\.md$/m,
+			);
 			assert.notEqual(antworten[1]?.fehler, true);
 			assert.match(antworten[1]?.text ?? '', /Am <body> fehlt data-zeit/, 'Laufwarnung beim neuen Blatt (225)');
 			const bau = protokoll.laeufe.find((e) => e.art === 'bau');
@@ -955,7 +971,9 @@ describe('Aufträge an Claude', () => {
 			const prompts = path.join(path.dirname(bin), 'prompts.txt');
 			for (const mitSatz of [false, true]) {
 				const blatt = await legeDokumentAn(server.materialDir, { beispiel: true });
-				if (mitSatz) await mitSatzstand(blatt.dir);
+				if (mitSatz) {
+					await mitSatzstand(blatt.dir);
+				}
 				const res = await api(`/dokumente/${blatt.mappe}/${blatt.dok}/ki`, {
 					method: 'POST',
 					body: JSON.stringify({ auftrag: 'Mach es schöner' }),
@@ -1924,7 +1942,7 @@ describe('Ordner des Prüflaufs (229)', () => {
 	};
 
 	it('ohne Lösung wie bisher: Lösungsbilder gehen heraus, kein Unterordner', async () => {
-		const { teile, dateien } = await richte(false);
+		const { dateien, teile } = await richte(false);
 		assert.deepEqual(dateien, ['seite-1-aufgabe-1.png', 'seite-1.png', 'seite-2.png']);
 		assert.deepEqual(teile, {
 			seiten: ['seite-1.png', 'seite-2.png'],
@@ -1935,7 +1953,7 @@ describe('Ordner des Prüflaufs (229)', () => {
 	});
 
 	it('mit Kinderaugen: ganze Lösungsseiten unter loesung/, keine in den Seiten des ersten Teils', async () => {
-		const { teile, dateien } = await richte(true);
+		const { dateien, teile } = await richte(true);
 		assert.deepEqual(dateien, [
 			'loesung',
 			'loesung/loesung-seite-1.png',
