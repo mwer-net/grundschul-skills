@@ -10,6 +10,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { blattFarbenListe } from './blatt-farben';
+import { formateFuerAuftrag, formateTabelle } from './einheit-aufgaben';
 import { figurenListe } from './figuren';
 import { formenTabelle } from './formen';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
@@ -23,6 +24,8 @@ const BLATT_CSS = 'skills/html-materialerstellung/assets/blatt.css';
 const PRUEFUNG_JS = 'skills/html-materialerstellung/assets/pruefung.js';
 const LAYOUT = 'skills/html-materialerstellung/references/layout.md';
 const GESTALTUNG = 'skills/html-materialerstellung/references/gestaltung.md';
+const ARBEITSBLATT = 'skills/arbeitsblatt/SKILL.md';
+const EINHEIT_AUFTRAG = 'schoolbox/vorlagen/ki/einheit.md';
 
 const tabelle = (kopf: string[], zeilen: string[][]) =>
 	[
@@ -179,6 +182,9 @@ export const ABSCHNITTE: Abschnitt[] = [
 	{ datei: GESTALTUNG, marke: 'figuren', inhalt: figurenListe },
 	{ datei: GESTALTUNG, marke: 'formen', inhalt: formenTabelle },
 	{ datei: GESTALTUNG, marke: 'blatt-farben', inhalt: blattFarbenListe },
+	// Aufgabenformate (221): eine Liste für Skill und Plan der Einheit
+	{ datei: ARBEITSBLATT, marke: 'aufgabenformate', inhalt: formateTabelle },
+	{ datei: EINHEIT_AUFTRAG, marke: 'aufgabenformate', inhalt: formateFuerAuftrag },
 ];
 
 /** Setzt den Inhalt zwischen `<!-- erzeugt: marke -->` und `<!-- /erzeugt: marke -->`. */

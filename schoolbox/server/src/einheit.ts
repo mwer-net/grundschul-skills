@@ -33,6 +33,7 @@ import {
 	neueFunde,
 	neueMappe,
 	neuesDokument,
+	planBefunde,
 	pruefeEinheitAngaben,
 	RECHERCHE_DATEI,
 	rechercheAbschnitt,
@@ -132,6 +133,14 @@ const PLAN = (s: EinheitStand) => `Schritt 1: der Plan.\n\n${KOPF(s)}`;
 
 const PLAN_AENDERN = (wunsch: string) =>
 	`Schritt 1, Änderung. Die Lehrkraft hat den Plan gelesen und möchte ihn anders: „${wunsch}“\nArbeite das ein, schreibe einheit.json neu und antworte mit dem ganzen Plan. Baue noch nichts.`;
+
+/** Verstöße gegen die Regeln der Aufgaben-Übersicht (221): eine Runde, wie die Korrektur beim Bau. */
+const PLAN_KORREKTUR = (befunde: string[]) =>
+	[
+		'Korrekturrunde zum Plan. Die Schoolbox hat die Aufgaben-Übersicht in einheit.json („stunden“) nachgezählt und meldet:',
+		...befunde.map((b) => `- ${b}`),
+		'Ändere nur, was nötig ist: Formate, Aufgaben, Fachwörter und Markierungen in „stunden“, wenn nötig auch die Dokumente dazu. Schreibe einheit.json neu und antworte wieder mit dem ganzen Plan. Baue noch nichts.',
+	].join('\n');
 
 const BAU =
 	'Schritt 2: der Bau. Die Lehrkraft hat den Plan in einheit.json freigegeben. Baue jetzt die Einheit genau nach diesem Plan.';
@@ -606,6 +615,18 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			s.sitzung = ergebnis.sitzung ?? s.sitzung;
 			await abgleich();
 			await notiereVerbrauch(s, ergebnis.fehler ? 'unvollstaendig' : 'plan', start, ergebnis.verbrauch);
+			const klasse = s.rechercheAnfrage?.klasse;
+			const befunde = s.plan ? planBefunde(s.plan, klasse) : [];
+			if (!ergebnis.fehler && !aktiv?.abbruch && befunde.length && s.sitzung) {
+				const erste = ergebnis.antwort;
+				const start2 = Date.now();
+				ergebnis = await lauf(s, PLAN_KORREKTUR(befunde), s.sitzung, KI_GRENZEN.einheit.planZeitMs);
+				ergebnis = { ...ergebnis, antwort: ergebnis.antwort.trim() ? ergebnis.antwort : erste };
+				s.sitzung = ergebnis.sitzung ?? s.sitzung;
+				await abgleich();
+				await notiereVerbrauch(s, ergebnis.fehler ? 'unvollstaendig' : 'plan', start2, ergebnis.verbrauch);
+			}
+			s.planBefunde = s.plan ? planBefunde(s.plan, klasse) : [];
 		} finally {
 			clearInterval(takt);
 		}

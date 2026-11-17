@@ -380,6 +380,86 @@ describe('Lauf einer Einheit (139)', () => {
 		assert.ok(args.includes('mcp__schoolbox__bauen'));
 	});
 
+	describe('Aufgaben-Übersicht im Plan (221)', () => {
+		const prompts = async () =>
+			(await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8')).split('\n---\n').filter(Boolean);
+		const planen = async () => {
+			const vorher = (await prompts()).length;
+			const antwort = await api('/einheiten', { method: 'POST', body: JSON.stringify({ angaben: ANGABEN }) });
+			const { id } = (await antwort.json()) as { id: string };
+			const s = await bis(id, 'plan');
+			return { id, s, neu: (await prompts()).slice(vorher) };
+		};
+		const korrekturen = (neu: string[]) => neu.filter((p) => p.startsWith('Korrekturrunde zum Plan'));
+
+		it('Plan mit Übersicht wird gelesen; ohne Verstoß keine Korrekturrunde', async () => {
+			await fall('einheit-uebersicht');
+			const { id, s, neu } = await planen();
+			assert.deepEqual(
+				s.plan?.stunden?.map((t) => [t.nr, t.handlung, t.aufgaben.map((a) => [a.format, a.bereich, a.zweitesMal])]),
+				[
+					[
+						1,
+						'Uhr aus Pappe stellen',
+						[
+							['legen-bauen-falten', 'I', false],
+							['lueckentext', 'I', false],
+						],
+					],
+					[
+						2,
+						'Zu zweit Uhrzeiten zeigen',
+						[
+							['lueckentext', 'II', true],
+							['erklaeren', 'III', false],
+						],
+					],
+				],
+			);
+			assert.equal(s.plan?.recherche, 'Der Bildungsplan nennt volle und halbe Stunden.');
+			assert.deepEqual(korrekturen(neu), []);
+			assert.deepEqual(s.planBefunde, []);
+			await api(`/einheiten/${id}/verwerfen`, { method: 'POST' });
+		});
+
+		it('Ein Format dreimal: genau eine Korrekturrunde mit dem Befund, danach der korrigierte Plan', async () => {
+			await fall('einheit-dreifach');
+			const { id, s, neu } = await planen();
+			const runde = korrekturen(neu);
+			assert.equal(runde.length, 1);
+			assert.match(runde[0] ?? '', /„Lückentext mit Wortauswahl“ \(lueckentext\) kommt 3-mal vor \(Stunde 1, 2\)/);
+			assert.match(s.planText ?? '', /Korrigierter Plan/);
+			assert.deepEqual(s.planBefunde, []);
+			assert.deepEqual(
+				s.plan?.stunden?.flatMap((t) => t.aufgaben.map((a) => a.format)),
+				['legen-bauen-falten', 'lueckentext', 'lueckentext', 'erklaeren'],
+			);
+			// Gebaut wird wie immer erst nach der Freigabe.
+			assert.equal((await api(`/einheiten/${id}/freigeben`, { method: 'POST', body: '{}' })).status, 200);
+			await bis(id, 'fertig');
+		});
+
+		it('Behebt Claude den Verstoß nicht, bleibt es bei einer Runde; der Befund steht im Stand', async () => {
+			await fall('einheit-dreifach-stur');
+			const { id, s, neu } = await planen();
+			assert.equal(korrekturen(neu).length, 1);
+			assert.equal(s.status, 'plan');
+			assert.equal(s.planBefunde?.length, 1);
+			assert.match(s.planBefunde?.[0] ?? '', /kommt 3-mal vor/);
+			await api(`/einheiten/${id}/verwerfen`, { method: 'POST' });
+		});
+
+		it('Alter Plan ohne Übersicht: keine Korrekturrunde, kein Feld', async () => {
+			await fall('einheit');
+			const { id, s, neu } = await planen();
+			assert.deepEqual(korrekturen(neu), []);
+			assert.equal(neu.filter((p) => p.startsWith('Schritt 1')).length, 1);
+			assert.equal(s.plan?.stunden, undefined);
+			assert.deepEqual(s.planBefunde, []);
+			await api(`/einheiten/${id}/verwerfen`, { method: 'POST' });
+		});
+	});
+
 	it('Fremde IDs gibt es nicht', async () => {
 		assert.equal((await api('/einheiten/..%2F..%2Fetc')).status, 404);
 		assert.equal((await api('/einheiten/abcdefabcdef')).status, 404);

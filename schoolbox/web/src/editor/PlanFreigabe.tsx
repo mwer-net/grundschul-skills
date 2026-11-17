@@ -1,4 +1,4 @@
-import type { FormEvent } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import { klassen } from '../bausteine/klassen';
@@ -21,6 +21,7 @@ export const PlanFreigabe = ({
 	planKlasse,
 	text,
 	verwerfen,
+	zusatz,
 }: {
 	text: string;
 	/** Das Limit lässt keinen Lauf zu: „So bauen“ und „Ändern …“ gehen nicht. */
@@ -36,6 +37,8 @@ export const PlanFreigabe = ({
 	planKlasse?: string;
 	/** Prüfanker der Stelle, z. B. `data-entwurf-plan`. */
 	attribute?: Record<string, string>;
+	/** Zwischen Plan und Knöpfen, damit die Knöpfe nach allem stehen, was zu prüfen ist (Einheit, 221). */
+	zusatz?: ReactNode;
 }) => {
 	const [feldOffen, setFeldOffen] = useState(false);
 	const [wunsch, setWunsch] = useState('');
@@ -107,6 +110,7 @@ export const PlanFreigabe = ({
 			>
 				{text.trim()}
 			</div>
+			{zusatz}
 			{feldOffen ? (
 				<form className="mt-3 flex max-w-[46rem] flex-col gap-2" onSubmit={(e) => void sendeWunsch(e)}>
 					<textarea

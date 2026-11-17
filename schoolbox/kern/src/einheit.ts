@@ -2,6 +2,8 @@
  * Unterrichtseinheit (139): Angaben aus dem Assistenten, der Auftrag an Claude und der Plan, den Claude in
  * `einheit.json` schreibt. Eine Einheit ist ein Ordner mit einem Behälter, keine neue `Art` (140).
  */
+import type { PlanStunde } from './einheit-aufgaben';
+import { leseStunden } from './einheit-aufgaben';
 import { SchoolboxFehler } from './fehler';
 import { FACH_NAME } from './namen';
 import type { RechercheAnfrage, RechercheStand } from './recherche';
@@ -257,6 +259,8 @@ export interface EinheitPlan {
 	geschichte?: PlanGeschichte;
 	/** Die Kurzfassung der Recherche (219) in drei, vier Sätzen; fehlt bei Plänen davor. */
 	recherche?: string;
+	/** Aufgaben-Übersicht je Stunde (221, `einheit-aufgaben.ts`); fehlt bei Plänen davor. */
+	stunden?: PlanStunde[];
 }
 
 const kurz = (wert: unknown, max: number) => (typeof wert === 'string' ? wert.trim().slice(0, max) : '');
@@ -342,12 +346,14 @@ export const lesePlan = (roh: unknown, max = EINHEIT_MAX_DOKUMENTE): EinheitPlan
 		.slice(0, max);
 	const geschichte = leseGeschichte(p);
 	const recherche = kurz(p.recherche, 1200);
+	const stunden = leseStunden(p.stunden, new Set(dokumente.map((d) => d.slug)));
 	return {
 		titel: kurz(p.titel, EINHEIT_ZEICHEN.titel),
 		annahmen: kurzListe(p.annahmen, 300, 12),
 		dokumente,
 		...(geschichte ? { geschichte } : {}),
 		...(recherche ? { recherche } : {}),
+		...(stunden.length ? { stunden } : {}),
 	};
 };
 
@@ -467,4 +473,6 @@ export interface EinheitStand {
 	recherche?: RechercheStand;
 	/** Was die Recherche bekommt: Fach, Klasse, Thema und Ziele, nichts zur Lerngruppe. */
 	rechercheAnfrage?: RechercheAnfrage;
+	/** Was nach der Korrekturrunde des Planlaufs an der Aufgaben-Übersicht noch nicht stimmt (221). */
+	planBefunde?: string[];
 }

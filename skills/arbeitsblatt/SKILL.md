@@ -41,25 +41,33 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
 
 ## Bewährte Aufgabenformate
 
-| Format | Geeignet für | Hinweis |
-|---|---|---|
-| Zuordnen / Verbinden | Kl. 1–2, Begriffe, Bild-Wort | Max. 6 Paare, `x-zuordnen` |
-| Lückentext mit Wortauswahl | Deutsch, Sachunterricht | `x-lueckentext`, `x-wortspeicher` |
-| Ankreuzen / Einkreisen | Verständnis, Wortarten | `x-ankreuzen`, `x-richtigfalsch` |
-| Malen nach Ergebnis / Bildpuzzle | Mathe-Übung mit Selbstkontrolle | Farbschlüssel als ausgeschriebene Farbnamen, Bild als Strichzeichnung |
-| Zahlenmauer, Rechendreieck, Zahlenhaus | Mathe, produktives Üben | Siehe `fach-mathematik` |
-| Beschriften | Sachunterricht (Körper, Pflanze) | `x-beschriften` mit Wortspeicher |
-| Schreibrahmen | Texte, Protokolle | Satzanfänge vorgeben, Element `x-schreibrahmen` (Lineatur nach der Klasse) |
-| Forscheraufgabe / offene Aufgabe | Alle Fächer, natürliche Differenzierung | "Finde möglichst viele …" |
-| Fehler finden („Willi hat sich vertan") | Rechnen ab Kl. 2, Rechtschreibung erst ab Kl. 3 | Fehleranzahl angeben ("Finde 3 Fehler.") |
+<!-- erzeugt: aufgabenformate -->
+| Format | Name im Plan | Geeignet für | Hinweis |
+|---|---|---|---|
+| Zuordnen / Verbinden | `zuordnen` | Kl. 1–2, Begriffe, Bild-Wort | Max. 6 Paare, `x-zuordnen` |
+| Lückentext mit Wortauswahl | `lueckentext` | Deutsch, Sachunterricht, Merksatz | `x-lueckentext`, `x-wortspeicher` |
+| Ankreuzen / Einkreisen | `ankreuzen` | Verständnis, Wortarten | `x-ankreuzen` |
+| Richtig oder falsch („Stimmt das?“) | `richtig-falsch` | Prüfen, Fehlvorstellungen | `x-richtigfalsch`; auch „ja oder nein“ schreiben |
+| Malen nach Ergebnis / Bildpuzzle | `malen-nach-ergebnis` | Mathe-Übung mit Selbstkontrolle | Farbschlüssel als ausgeschriebene Farbnamen, Bild als Strichzeichnung |
+| Zahlenmauer, Rechendreieck, Zahlenhaus | `rechenformat` | Mathe, produktives Üben | Siehe `fach-mathematik` |
+| Beschriften | `beschriften` | Sachunterricht (Körper, Pflanze) | `x-beschriften` mit Wortspeicher |
+| Schreibrahmen | `schreibrahmen` | Texte, Protokolle | Satzanfänge vorgeben, Element `x-schreibrahmen` (Lineatur nach der Klasse) |
+| Forscheraufgabe / offene Aufgabe | `forscheraufgabe` | Alle Fächer, natürliche Differenzierung | „Finde möglichst viele …“ |
+| Fehler finden („Willi hat sich vertan“) | `fehler-finden` | Rechnen ab Kl. 2, Rechtschreibung erst ab Kl. 3 | Fehleranzahl angeben („Finde 3 Fehler.“) |
+| Legen, bauen, falten und festhalten | `legen-bauen-falten` | Geometrie, Mengen, Sachunterricht | Material nennen („Lege mit Plättchen.“), das Blatt hält das Ergebnis fest (zeichnen, ankreuzen) |
+| Ins Heft | `ins-heft` | Zeichnen, Rechnen, Schreiben | „Im Heft:“ mit dem Anfang des Eintrags als Heft-Beispiel (`.kasten`) |
+| Ergänzen (Figur, Muster, Reihe) | `ergaenzen` | Geometrie, Muster und Strukturen | `x-gitter aufgabe="spiegeln"`; Stufen in `fach-mathematik` |
+| Einzeichnen (Achse, Linie, Weg) | `einzeichnen` | Geometrie, Karten, Sachunterricht | Lineal nennen, wenn gerade Linien verlangt sind |
+| Sortieren / Ordnen | `sortieren` | Begriffe, Größen, Reihenfolgen | Tabelle mit Spalten oder Nummern zum Eintragen |
+| Erklären / Begründen | `erklaeren` | Anforderungsbereich III | In Kl. 1/2 mit Satzanfang oder zum Ankreuzen (`grundschul-didaktik/references/sprachsensibel.md`) |
+| Suchsel, Kreuzworträtsel | `raetsel` | Wortschatz | `x-suchsel`, `x-kreuzwort`, nur mit Anschlussaufgabe |
+<!-- /erzeugt: aufgabenformate -->
 
-| Legen, bauen, falten und festhalten | Geometrie, Mengen, Sachunterricht | Material nennen („Lege mit Plättchen.“), das Blatt hält das Ergebnis fest (zeichnen, ankreuzen) |
-| Zu zweit | Messen, Spiegeln, Fragen stellen | „Zu zweit:“ am Anfang der Anweisung; ein Kind tut, das andere prüft, dann Wechsel |
-| Ins Heft | Zeichnen, Rechnen, Schreiben | „Im Heft:“ mit dem Anfang des Eintrags als Heft-Beispiel (`.kasten`) |
+„Zu zweit“ ist kein Format, sondern eine Arbeitsform für Messen, Spiegeln und Fragen stellen: „Zu zweit:“ am Anfang der Anweisung; ein Kind tut, das andere prüft, dann Wechsel.
 
 Mathe-Rechenformate (`x-zahlenmauer`, `x-rechendreieck`, `x-zahlenhaus`) als Item-Reihen in `.reihe`, alle gleich groß.
 
-**Abwechslung über mehrere Blätter.** Gehört das Blatt zu einer Reihe oder Mappe, zählt die ganze Reihe: Ein Aufgabenformat kommt höchstens zweimal vor, beim zweiten Mal mit erkennbar höherem Anspruch (andere Achse, größerer Zahlenraum, ohne Hilfe). Dieselbe Figur, dasselbe Bild, dieselben Zahlen oder Wörter kommen nie zweimal vor. Lernzielkontrolle und Wiederholung nutzen bekannte Formate, aber neue Items. Vor dem Bau die Formate der anderen Blätter ansehen.
+**Abwechslung über mehrere Blätter.** Gehört das Blatt zu einer Reihe oder Mappe, zählt die ganze Reihe: Ein Aufgabenformat kommt höchstens zweimal vor, beim zweiten Mal mit erkennbar höherem Anspruch (andere Achse, größerer Zahlenraum, ohne Hilfe). Dieselbe Figur, dasselbe Bild, dieselben Zahlen oder Wörter kommen nie zweimal vor. Lernzielkontrolle und Wiederholung nutzen bekannte Formate, aber neue Items. Ein Format zählt nach seinem Namen in der Tabelle; fehlt es dort, bekommt es einen kurzen eigenen Namen, der in der ganzen Reihe gleich bleibt. Vor dem Bau die Formate der anderen Blätter ansehen.
 
 Die Elemente beschreibt `html-materialerstellung/references/abbildungen.md`, Abschnitt „Aufgabenformate“; eigenes Aussehen einer Reihe: `html-materialerstellung/references/layout.md`, Abschnitt „Baukasten und Thema“.
 

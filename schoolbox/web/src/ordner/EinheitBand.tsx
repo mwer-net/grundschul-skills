@@ -1,4 +1,4 @@
-import type { EinheitStand, PlanDokument, PlanGeschichte } from '@schoolbox/kern/src/einheit';
+import type { EinheitPlan, EinheitStand, PlanDokument, PlanGeschichte } from '@schoolbox/kern/src/einheit';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -12,6 +12,7 @@ import { laufzeit, useJetzt } from '../editor/entwurf';
 import { limitHinweis, useKiZustand } from '../editor/ki';
 import { PlanFreigabe } from '../editor/PlanFreigabe';
 import { ART_NAME } from '../lib/text';
+import { AufgabenTabelle, RechercheKurz, RechercheQuellen, StundenKurz } from './EinheitPlanDetails';
 import { einheitAktion, einheitFreigeben, fertig, fortschritt, geplant } from './einheiten';
 import { useAblage } from './kontext';
 
@@ -98,7 +99,7 @@ const Platzhalter = ({ s }: { s: EinheitStand }) => {
 };
 
 /** Klappt mit dem Pfeil der Ebenenliste, nicht mit dem Dreieck des Browsers (190-29). */
-const Aufklapp = ({ children, titel }: { titel: string; children: ReactNode }) => (
+export const Aufklapp = ({ children, titel }: { titel: string; children: ReactNode }) => (
 	<details className="group text-sm">
 		<summary className="flex cursor-pointer list-none items-center gap-1 text-leise hover:text-tinte [&::-webkit-details-marker]:hidden">
 			<Symbol name="runter" className="size-3 -rotate-90 transition-transform group-open:rotate-0" />
@@ -143,6 +144,8 @@ const GeschichteDetails = ({ g }: { g: PlanGeschichte }) => (
 		)}
 	</div>
 );
+
+const aufgabenZahl = (plan: EinheitPlan) => (plan.stunden ?? []).reduce((n, st) => n + st.aufgaben.length, 0);
 
 const KOPF: Record<EinheitStand['status'], (titel: string) => string> = {
 	laeuft: (t) => `Claude baut die Einheit „${t}“`,
@@ -231,6 +234,7 @@ export const EinheitBand = ({ s }: { s: EinheitStand }) => {
 			? `Claude plant die Einheit „${s.titel}“`
 			: KOPF[s.status](s.titel);
 	const befunde = s.befunde.filter((b) => b.texte.length > 0);
+	const quellen = s.recherche?.status === 'fertig' ? s.recherche.quellen : [];
 	return (
 		<section
 			className="mb-3 flex flex-col gap-2 rounded-lg border border-rand bg-flaeche-2 px-3 py-2"
@@ -291,8 +295,29 @@ export const EinheitBand = ({ s }: { s: EinheitStand }) => {
 						freigeben={() => einheitFreigeben(s.id).then(() => true, fehler)}
 						aendern={(wunsch) => einheitFreigeben(s.id, wunsch).then(() => true, fehler)}
 						verwerfen={() => verwerfen().catch(fehler)}
+						zusatz={
+							s.plan && (
+								<div className="mt-3 flex flex-col gap-3">
+									<StundenKurz plan={s.plan} />
+									<RechercheKurz plan={s.plan} recherche={s.recherche} />
+								</div>
+							)
+						}
 					/>
 				</div>
+			)}
+			{s.plan && (s.plan.stunden?.length ?? 0) > 0 && (
+				<Aufklapp titel={`Alle Aufgaben der Reihe (${aufgabenZahl(s.plan)})`}>
+					<div className="flex flex-col gap-3">
+						{s.status !== 'plan' && <StundenKurz plan={s.plan} />}
+						<AufgabenTabelle plan={s.plan} />
+					</div>
+				</Aufklapp>
+			)}
+			{quellen.length > 0 && (
+				<Aufklapp titel={`Quellen der Recherche (${quellen.length})`}>
+					<RechercheQuellen quellen={quellen} />
+				</Aufklapp>
 			)}
 			{s.plan?.geschichte && (
 				<Aufklapp titel="Geschichte und Vorleseheft">

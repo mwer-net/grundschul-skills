@@ -98,11 +98,17 @@ process.stdin.on('end', () => {
 	// 139: eine Einheit mit zwei Materialien; „einheit-skript“ baut erst ein Skript ein, „einheit-haenger“ schreibt erst das zweite, bleibt nach dem ersten fertigen stehen.
 	if (fall.startsWith('einheit')) {
 		const blatt = (titel, extra = '', satz = ' data-satz="2"') => '<!doctype html><html lang="de"><head><meta charset="utf-8"><title>' + titel + '</title><link rel="stylesheet" href="blatt.css"><link rel="stylesheet" href="../../thema.css"></head><body class="kl2 a4-hoch farbe"' + satz + '><section class="seite"><h1>' + titel + '</h1><img src="../../bilder/uhr.png" alt="Uhr">' + extra + '</section></body></html>';
-		const plan = (fertig) => fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Uhrzeit', annahmen: ['Klasse 2'], dokumente: [{ slug: 'fall-1', titel: 'Fall 1', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Einstieg', fertig: fertig >= 1 }, { slug: 'fall-2', titel: 'Fall 2', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Üben', fertig: fertig >= 2 }] }));
+		// 221: „einheit-uebersicht“ plant mit Aufgaben-Übersicht; „einheit-dreifach“ hat ein Format dreimal und behebt es in der Korrekturrunde zum Plan, „einheit-dreifach-stur“ nicht.
+		const auf = (dokument, format, bereich, zweitesMal) => ({ dokument, format, inhalt: 'Uhrzeiten ' + format, bereich, zweitesMal });
+		const behoben = fall === 'einheit-dreifach' && !eingabe.includes('Schritt 1');
+		const stunden = [{ nr: 1, handlung: 'Uhr aus Pappe stellen', begriffe: ['Minutenzeiger'], aufgaben: [auf('fall-1', 'legen-bauen-falten', 'I', false), auf('fall-1', 'lueckentext', 'I', false)] }, { nr: 2, handlung: 'Zu zweit Uhrzeiten zeigen', begriffe: [], aufgaben: [auf('fall-2', 'lueckentext', 'II', true), auf('fall-2', fall === 'einheit-uebersicht' || behoben ? 'erklaeren' : 'lueckentext', 'III', false)] }];
+		const uebersicht = fall === 'einheit-uebersicht' || fall.startsWith('einheit-dreifach') ? { stunden, recherche: 'Der Bildungsplan nennt volle und halbe Stunden.' } : {};
+		const plan = (fertig) => fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Uhrzeit', annahmen: ['Klasse 2'], ...uebersicht, dokumente: [{ slug: 'fall-1', titel: 'Fall 1', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Einstieg', fertig: fertig >= 1 }, { slug: 'fall-2', titel: 'Fall 2', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Üben', fertig: fertig >= 2 }] }));
 		const warte = (ms) => new Promise((r) => setTimeout(r, ms));
 		(async () => {
 			// Schritt 1 schreibt nur den Plan; gebaut wird nach der Freigabe.
 			if (eingabe.includes('Schritt 1')) { plan(0); ende({ result: (eingabe.includes('möchte ihn anders') ? 'Geänderter Plan. ' : '') + 'Die Uhr im Rathaus ist stehen geblieben. Zwei Fälle.' }); return; }
+			if (eingabe.includes('Korrekturrunde zum Plan')) { plan(0); ende({ result: 'Korrigierter Plan. Zwei Fälle.' }); return; }
 			if (eingabe.includes('Korrekturrunde')) { fs.writeFileSync('dokumente/fall-2/material.html', blatt('Fall 2')); plan(2); ende({ result: 'Behoben.' }); return; }
 			plan(0);
 			fs.writeFileSync('thema.css', ':root { --akzent: #c33; }');
