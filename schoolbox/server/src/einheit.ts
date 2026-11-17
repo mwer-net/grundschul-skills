@@ -9,7 +9,7 @@ import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { appendFile, copyFile, mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { appendFile, copyFile, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
@@ -34,6 +34,8 @@ import {
 	neueMappe,
 	neuesDokument,
 	pruefeEinheitAngaben,
+	RECHERCHE_DATEI,
+	rechercheAbschnitt,
 	satzBefund,
 	schreibeAtomar,
 	themaBefund,
@@ -49,7 +51,18 @@ import { ANSICHT_BILDER, erstelleBildLader, erstelleZuschnitt, notiereCanvaId } 
 import { schreibeQuelle } from './dokumente';
 import { HttpFehler } from './fehler';
 import type { Ergebnis, KiPruefer, LaufStand } from './ki';
-import { beendeKind, KI_GRENZEN, kiArgumente, kiPfad, kiUmgebung, legeAblageAn, VERBRAUCH_DATEI, werteAus } from './ki';
+import {
+	beendeKind,
+	KI_GRENZEN,
+	kiArgumente,
+	kiPfad,
+	kiUmgebung,
+	legeAblageAn,
+	recherchiere,
+	rechercheStand,
+	VERBRAUCH_DATEI,
+	werteAus,
+} from './ki';
 import type { Bauen } from './ki-werkzeug';
 import { ansichtText, starteWerkzeug } from './ki-werkzeug';
 import type { Kontext } from './kontext';
@@ -109,7 +122,13 @@ const KORREKTUR = (befunde: EinheitBefund[]) =>
 		'Behebe nur diese Fehler in den genannten Dateien und setze danach in einheit.json „fertig“ für diese Materialien wieder auf true. Antworte am Ende in höchstens drei Zeilen.',
 	].join('\n');
 
-const PLAN = (teil: string) => `Schritt 1: der Plan.\n\nAuftrag der Lehrkraft (aus dem Assistenten):\n${teil}`;
+/** Der Auftrag der Lehrkraft und, falls schon da, die Recherche dazu (219): für jeden Lauf ohne Sitzung. */
+const KOPF = (s: EinheitStand) =>
+	[`Auftrag der Lehrkraft (aus dem Assistenten):\n${s.auftrag}`, rechercheAbschnitt(s.recherche)]
+		.filter(Boolean)
+		.join('\n\n');
+
+const PLAN = (s: EinheitStand) => `Schritt 1: der Plan.\n\n${KOPF(s)}`;
 
 const PLAN_AENDERN = (wunsch: string) =>
 	`Schritt 1, Änderung. Die Lehrkraft hat den Plan gelesen und möchte ihn anders: „${wunsch}“\nArbeite das ein, schreibe einheit.json neu und antworte mit dem ganzen Plan. Baue noch nichts.`;
@@ -520,8 +539,57 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		error_max_budget_usd: 'Das Budget der Einheit ist aufgebraucht.',
 	};
 
-	/** Schritt 1: Claude schreibt nur den Plan. Danach wartet die Einheit auf die Freigabe der Lehrkraft. */
-	const plane = async (s: EinheitStand, text: string, sitzung: string | null) => {
+	/**
+	 * Vor dem ersten Plan (219): ein eigener Lauf mit Websuche, ohne Schreibrecht am Material. Was er schreibt, prüft der
+	 * Server; der Plan bekommt es als Inhalt und `recherche.md` im Arbeitsordner. Scheitert er, plant Claude ohne.
+	 */
+	const recherchiereEinheit = async (s: EinheitStand) => {
+		if (!s.rechercheAnfrage || s.recherche?.status === 'fertig') {
+			return;
+		}
+		s.recherche = { status: 'laeuft', grund: null, quellen: [], text: null, schritt: null };
+		await merke(s);
+		const beginn = Date.now();
+		const limit = kontext.ki.limit();
+		const ueberGuthaben = limit?.status === 'rejected' || limit?.laeuftUeberGuthaben === true;
+		const { ergebnis, verbrauch } = await recherchiere({
+			bin,
+			modell: kontext.konfig.kiModell,
+			ordner: path.join(dir(s.id), 'recherche'),
+			ablage: ablageDir(s.id),
+			anfrage: s.rechercheAnfrage,
+			budgetUsd: ueberGuthaben ? KI_GRENZEN.recherche.budgetGuthabenUsd : KI_GRENZEN.recherche.budgetUsd,
+			schritt: (text) => {
+				if (s.recherche?.status === 'laeuft') {
+					s.recherche.schritt = text;
+					void merke(s).catch(() => undefined);
+				}
+			},
+			gestartet: (kind) => {
+				if (aktiv) {
+					aktiv.kind = kind;
+				}
+				if (kind.pid) {
+					writeFileSync(path.join(dir(s.id), PID), String(kind.pid));
+				}
+			},
+		});
+		s.recherche = rechercheStand(ergebnis);
+		if (ergebnis.ok) {
+			await writeFile(path.join(arbeitDir(s.id), RECHERCHE_DATEI), ergebnis.text);
+		}
+		await notiereVerbrauch(s, ergebnis.ok ? 'fertig' : 'unvollstaendig', beginn, {
+			...verbrauch,
+			umfang: 'recherche',
+		});
+		await merke(s);
+	};
+
+	/**
+	 * Schritt 1: Claude schreibt nur den Plan. Danach wartet die Einheit auf die Freigabe der Lehrkraft. Ohne `text` ist
+	 * es ein neuer Plan: erst die Recherche, dann der Plan mit ihr.
+	 */
+	const plane = async (s: EinheitStand, text: string | null, sitzung: string | null) => {
 		const start = Date.now();
 		const takt = setInterval(() => void abgleich(), TAKT_MS);
 		if (aktiv) {
@@ -529,7 +597,12 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		}
 		let ergebnis: Ergebnis;
 		try {
-			ergebnis = await lauf(s, text, sitzung, KI_GRENZEN.einheit.planZeitMs);
+			if (text === null) {
+				await recherchiereEinheit(s);
+			}
+			ergebnis = aktiv?.abbruch
+				? { fehler: null, sitzung, antwort: '', verbrauch: {}, kontext: 0, gearbeitet: false }
+				: await lauf(s, text ?? PLAN(s), sitzung, KI_GRENZEN.einheit.planZeitMs);
 			s.sitzung = ergebnis.sitzung ?? s.sitzung;
 			await abgleich();
 			await notiereVerbrauch(s, ergebnis.fehler ? 'unvollstaendig' : 'plan', start, ergebnis.verbrauch);
@@ -594,7 +667,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		await rm(path.join(dir(s.id), PID), { force: true });
 	};
 
-	const beginne = async (s: EinheitStand, text: string, sitzung: string | null, stufe: Stufe = 'bau') => {
+	const beginne = async (s: EinheitStand, text: string | null, sitzung: string | null, stufe: Stufe = 'bau') => {
 		aktiv = {
 			stand: s,
 			kind: null,
@@ -620,7 +693,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		s.ende = null;
 		s.laufSeit = new Date().toISOString();
 		await merke(s);
-		(stufe === 'plan' ? plane : fuehreAus)(s, text, sitzung).catch(async (fehler: unknown) => {
+		(stufe === 'plan' ? plane(s, text, sitzung) : fuehreAus(s, text ?? BAU, sitzung)).catch(async (fehler: unknown) => {
 			console.error('Einheit:', fehler);
 			aktiv = null;
 			s.status = 'unvollstaendig';
@@ -718,8 +791,9 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			fehlgeschlageneBilder: 0,
 			planText: null,
 			freigegeben: false,
+			rechercheAnfrage: { fach: angaben.fach, klasse: angaben.klasse, thema: angaben.thema, ziele: angaben.ziele },
 		};
-		await beginne(s, PLAN(teil), null, 'plan');
+		await beginne(s, null, null, 'plan');
 		// Die Warnung zum 5-Stunden-Fenster steht vor dem Start im Assistenten (190-12).
 		return { id, ordner, mappe };
 	};
@@ -749,17 +823,11 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		s.korrigiert = false;
 		// Ist der Plan noch nicht freigegeben, beginnt Schritt 1 neu. Stände von vor der Freigabe-Stufe bauen weiter.
 		if (s.freigegeben === false) {
-			await beginne(s, PLAN(s.auftrag), null, 'plan');
+			await beginne(s, null, null, 'plan');
 			return s;
 		}
 		const sitzung = sitzungVon(s);
-		await beginne(
-			s,
-			sitzung
-				? WEITER(s)
-				: `Auftrag der Lehrkraft (aus dem Assistenten):\n${s.auftrag}\n\n${BAU}\n\n${WEITER(s)}`,
-			sitzung,
-		);
+		await beginne(s, sitzung ? WEITER(s) : `${KOPF(s)}\n\n${BAU}\n\n${WEITER(s)}`, sitzung);
 		return s;
 	};
 
@@ -778,7 +846,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			throw new HttpFehler(400, 'Der Änderungswunsch ist zu lang.');
 		}
 		const sitzung = sitzungVon(s);
-		const kopf = sitzung ? '' : `Auftrag der Lehrkraft (aus dem Assistenten):\n${s.auftrag}\n\n`;
+		const kopf = sitzung ? '' : `${KOPF(s)}\n\n`;
 		if (wunsch) {
 			await beginne(s, `${kopf}${PLAN_AENDERN(wunsch)}`, sitzung, 'plan');
 			return s;
@@ -884,6 +952,9 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 				s.status = 'unvollstaendig';
 				s.grund = 'Der Server wurde neu gestartet.';
 				s.ende = new Date().toISOString();
+				if (s.recherche?.status === 'laeuft') {
+					s.recherche = { status: 'gescheitert', grund: s.grund, quellen: [], text: null };
+				}
 				await merke(s);
 			}
 		}

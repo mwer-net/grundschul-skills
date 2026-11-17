@@ -1,4 +1,4 @@
-import type { Antworten, Bausteine } from '@schoolbox/kern';
+import type { Antworten, Bausteine, RechercheAnfrage } from '@schoolbox/kern';
 import {
 	auftragAus,
 	bausteinSchalter,
@@ -72,9 +72,21 @@ const eingabeVon = (body: Record<string, unknown>, dokument: Pick<Antworten, 'ar
 	}
 	// Die Wahl bei den Bausteinen prüft der Server am fertigen Blatt noch einmal (210).
 	const bausteine: Partial<Bausteine> = Object.fromEntries(bausteinSchalter(antworten).map((b) => [b.wert, b.an]));
+	// Nur das Thema geht in die Recherche (219), nichts zur Lerngruppe: Was dort steht, kann in Suchanfragen landen.
+	const thema = antworten.thema.trim();
+	const recherche: RechercheAnfrage | undefined = thema
+		? {
+				fach: antworten.fach,
+				klasse: antworten.klasse,
+				thema,
+				ziele: antworten.ziel.trim() ? [antworten.ziel.trim()] : [],
+				art: antworten.art,
+			}
+		: undefined;
 	return {
 		text: `Antworten der Lehrkraft aus dem Assistenten (sie ersetzen die Start-Abfrage):\n${auftragAus(antworten)}`,
 		bausteine,
+		recherche,
 	};
 };
 
@@ -130,7 +142,12 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 			neuesBlatt: aktion?.id === 'neu-entwurf',
 			// Ein neues Blatt beginnt wie in der Claude-App mit dem Aufgabenplan; gebaut wird nach der Freigabe.
 			...(aktion?.id === 'neu-entwurf' && eingabe
-				? { phase: 'plan' as const, eingabe: eingabe.text, bausteine: eingabe.bausteine }
+				? {
+						phase: 'plan' as const,
+						eingabe: eingabe.text,
+						bausteine: eingabe.bausteine,
+						...(eingabe.recherche ? { rechercheAnfrage: eingabe.recherche } : {}),
+					}
 				: {}),
 		});
 		res.status(202).json({ auftrag });

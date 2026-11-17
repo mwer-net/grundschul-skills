@@ -32,6 +32,9 @@ export const fortschritt = (s: EinheitStand) => {
 	if (s.status === 'plan') {
 		return 'Plan prüfen';
 	}
+	if (s.status === 'laeuft' && s.recherche?.status === 'laeuft') {
+		return 'recherchiert …';
+	}
 	return s.plan && s.freigegeben !== false ? `${fertig(s)} von ${geplant(s)}` : 'plant …';
 };
 

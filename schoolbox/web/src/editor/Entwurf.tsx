@@ -271,7 +271,8 @@ export const EntwurfKarte = ({
 	}
 	const hinweis = limitHinweis(ki.zustand.limit, ki.zustand.warnAb);
 	const plant = phase.art === 'laeuft' && phase.auftrag.phase === 'plan';
-	const laufTitel = `${laufWort(plant)} „${titel}“`;
+	const recherchiert = plant && phase.auftrag.recherche === 'laeuft';
+	const laufTitel = recherchiert ? `Claude recherchiert „${titel}“` : `${laufWort(plant)} „${titel}“`;
 	return (
 		<div className="pointer-events-none sticky top-0 z-10 h-0">
 			<div
@@ -297,7 +298,9 @@ export const EntwurfKarte = ({
 						</div>
 						<Schritte auftrag={phase.auftrag} />
 						<p className="mt-3 text-xs text-leise">
-							{plant
+							{recherchiert
+								? 'Claude liest zuerst im Bildungsplan und in Fachportalen nach, meist zwei bis fünf Minuten. Danach kommt der Aufgabenplan; gebaut wird, wenn du ihn freigibst.'
+								: plant
 								? 'Zuerst kommt der Aufgabenplan, meist nach ein bis zwei Minuten. Gebaut wird, wenn du ihn freigibst.'
 								: 'Claude baut, prüft und sieht sich jede Seite an. Das dauert meist 5 bis 15 Minuten. Du kannst den Editor verlassen, die Arbeit läuft weiter.'}
 						</p>

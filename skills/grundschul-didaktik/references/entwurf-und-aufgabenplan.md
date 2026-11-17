@@ -144,6 +144,7 @@ Der Plan ist die ganze Antwort, als einfacher Text ohne Markdown, im Format von 
 
 - erste Zeile: Titel, Klasse, Fach, Zeitziel, Seiten je Niveau
 - Ich-kann-Ziel wörtlich
+- Bildungsplan: die Teilkompetenzen wörtlich mit Fundstelle (`SKILL.md`, „Bildungsplan zuerst nachschlagen“), danach eine Zeile „Quellen:“ mit den Adressen aus `recherche.md`, auf die sich der Plan stützt
 - je Niveau eine Überschrift mit der Summe der Minuten, darunter je Aufgabe eine Zeile: Nummer, Anweisung wörtlich, Format und Anzahl der Items (zwei, drei Items als Beispiel, nicht alle), Minuten
 - Tipp der Leitfigur, Fuß, Bilder: welche vorhandenen, und welche neuen aus Canva (je Bild Motiv und Aufgabe; höchstens drei, nur wenn das Bild den Weglass-Test in `kindgerecht-gestalten.md` besteht, sonst „keine neuen Bilder“)
 - zuletzt die Annahmen, je eine Zeile, die mit „Annahme:“ beginnt

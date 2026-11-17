@@ -4,6 +4,7 @@
  */
 import { SchoolboxFehler } from './fehler';
 import { FACH_NAME } from './namen';
+import type { RechercheAnfrage, RechercheStand } from './recherche';
 import { ID_MUSTER } from './schema';
 import type { Art, Fach, Format, Klasse } from './werte';
 import { ARTEN, FAECHER, FORMATE, KLASSEN } from './werte';
@@ -254,6 +255,8 @@ export interface EinheitPlan {
 	dokumente: PlanDokument[];
 	/** Fehlt bei Plänen ohne Geschichte und bei Einheiten vor 216. */
 	geschichte?: PlanGeschichte;
+	/** Die Kurzfassung der Recherche (219) in drei, vier Sätzen; fehlt bei Plänen davor. */
+	recherche?: string;
 }
 
 const kurz = (wert: unknown, max: number) => (typeof wert === 'string' ? wert.trim().slice(0, max) : '');
@@ -338,11 +341,13 @@ export const lesePlan = (roh: unknown, max = EINHEIT_MAX_DOKUMENTE): EinheitPlan
 		.filter((d): d is PlanDokument => d !== null)
 		.slice(0, max);
 	const geschichte = leseGeschichte(p);
+	const recherche = kurz(p.recherche, 1200);
 	return {
 		titel: kurz(p.titel, EINHEIT_ZEICHEN.titel),
 		annahmen: kurzListe(p.annahmen, 300, 12),
 		dokumente,
 		...(geschichte ? { geschichte } : {}),
+		...(recherche ? { recherche } : {}),
 	};
 };
 
@@ -458,4 +463,8 @@ export interface EinheitStand {
 	 * Deckblatt steht vorn, entsteht beim Verkauf aber zuletzt.
 	 */
 	inArbeit?: string | null;
+	/** Die Recherche vor dem Plan (219). Fehlt bei Einheiten davor; `laeuft`: Claude recherchiert gerade. */
+	recherche?: RechercheStand;
+	/** Was die Recherche bekommt: Fach, Klasse, Thema und Ziele, nichts zur Lerngruppe. */
+	rechercheAnfrage?: RechercheAnfrage;
 }

@@ -33,6 +33,7 @@ export * from './ordner-sortierung';
 export * from './papierkorb';
 export * from './pfade';
 export * from './quelltext';
+export * from './recherche';
 export * from './schema';
 export * from './slug';
 export * from './struktur';

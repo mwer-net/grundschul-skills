@@ -26,6 +26,8 @@ export interface KiAuftrag {
 	/** Die Antwort ist der Aufgabenplan des neuen Blatts; gebaut wird nach der Freigabe. */
 	plan?: boolean;
 	phase?: 'plan' | 'bauen';
+	/** Die Recherche vor dem Aufgabenplan eines neuen Blatts (219). */
+	recherche?: 'laeuft' | 'fertig' | 'gescheitert';
 	/** Die Bitte der Lehrkraft: Nach dem Neuladen steht sie wieder in der Blase (200, Urteil c). */
 	bitte?: string;
 	/** Getippter Text, keine Schnellaktion (200-N02). */

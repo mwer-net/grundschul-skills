@@ -223,8 +223,13 @@ export const EinheitBand = ({ s }: { s: EinheitStand }) => {
 		}
 	};
 	const plant = s.freigegeben === false;
-	const zahl = zahlText(s, plant);
-	const kopf = laeuft && plant ? `Claude plant die Einheit „${s.titel}“` : KOPF[s.status](s.titel);
+	const recherchiert = laeuft && s.recherche?.status === 'laeuft';
+	const zahl = recherchiert ? `${s.recherche?.schritt ?? 'Bildungsplan und Fachdidaktik'} …` : zahlText(s, plant);
+	const kopf = recherchiert
+		? `Claude recherchiert für die Einheit „${s.titel}“`
+		: laeuft && plant
+			? `Claude plant die Einheit „${s.titel}“`
+			: KOPF[s.status](s.titel);
 	const befunde = s.befunde.filter((b) => b.texte.length > 0);
 	return (
 		<section

@@ -1,13 +1,24 @@
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 
-import type { Ansicht, Bausteine, Fund, KiAktion, Konfig, Meldung, Pruefbericht } from '@schoolbox/kern';
+import type {
+	Ansicht,
+	Bausteine,
+	Fund,
+	KiAktion,
+	Konfig,
+	Meldung,
+	Pruefbericht,
+	RechercheAnfrage,
+	RechercheErgebnis,
+	RechercheStand,
+} from '@schoolbox/kern';
 import {
 	ANSICHT_ORDNER,
 	bausteinVerstoesse,
@@ -19,7 +30,11 @@ import {
 	leseMeta,
 	mappenDir,
 	neueFunde,
+	pruefeRecherche,
 	quelleVon,
+	RECHERCHE_DATEI,
+	rechercheAbschnitt,
+	rechercheText,
 	satzBefund,
 	schreibeAtomar,
 	WURZEL,
@@ -108,6 +123,20 @@ export const KI_GRENZEN = {
 		budgetGuthabenUsd: 1,
 		warten: 5,
 	},
+	/**
+	 * Die Recherche vor dem Plan (219), ein eigener Lauf mit Websuche. Gemessen in zwei Probeläufen: eine Suche oder ein
+	 * Abruf, 5 Runden, gut 20 s und 0,09 bis 0,14 USD. Eine echte Recherche liest viele Seiten; Qualität geht vor
+	 * Verbrauch (Admin, 2026-11-17).
+	 */
+	recherche: {
+		zeitMs: 12 * 60_000,
+		runden: 60,
+		budgetUsd: 5,
+		budgetGuthabenUsd: 2,
+		/** Etwa zwei Seiten Text mit Adressen. */
+		zeichen: 12_000,
+		bytes: 64 * 1024,
+	},
 };
 /** Klein genügt: Es soll nur „ok“ sagen. */
 export const KI_LIMIT_MODELL = 'haiku';
@@ -126,7 +155,7 @@ const GESPRAECH_ORDNER = 'gespraech-';
 const SITZUNG_DATEI = 'sitzung.json';
 const ID_REGEX = new RegExp(ID_MUSTER);
 /** Das Rechtesystem sperrt das schon (Issue 056); das ist die zweite Schicht für das, was nie gelesen werden darf. */
-const NIE_LESEN = ['Read(~/.claude/**)', 'Read(~/.ssh/**)', 'Read(**/.env)', 'Read(**/materialien/**)'];
+export const NIE_LESEN = ['Read(~/.claude/**)', 'Read(~/.ssh/**)', 'Read(**/.env)', 'Read(**/materialien/**)'];
 
 export type KiStatus = 'wartet' | 'laeuft' | 'fertig' | 'fehler' | 'abgebrochen';
 
@@ -181,6 +210,8 @@ export interface KiAuftrag {
 	getippt?: boolean;
 	/** Die markierte Stelle dazu. */
 	zitat?: string;
+	/** Neues Material (219): die Recherche vor dem Aufgabenplan; `laeuft`, solange Claude im Web sucht. */
+	recherche?: RechercheStand['status'];
 }
 
 export interface VorschlagMeta {
@@ -247,6 +278,10 @@ export interface KiWunsch {
 	anhang?: string;
 	/** Neues Blatt: die Wahl bei den Bausteinen. Abgewähltes im Ergebnis ist ein Fehler wie aus der Prüfung (210). */
 	bausteine?: Partial<Bausteine>;
+	/** Neues Material aus dem Assistenten (219): Vor dem ersten Aufgabenplan recherchiert ein eigener Lauf dazu. */
+	rechercheAnfrage?: RechercheAnfrage;
+	/** Ihr Ergebnis; Plan ändern, Freigabe und „Nochmal“ übernehmen es, statt neu zu suchen. */
+	recherche?: RechercheErgebnis;
 }
 
 export type KiPruefer = (dokDir: string, html: string) => Promise<Pruefbericht>;
@@ -444,6 +479,166 @@ export const kiArgumente = (o: {
 		...(o.sitzung ? ['--resume', o.sitzung] : []),
 	];
 };
+
+/**
+ * Die Recherche schreibt genau eine Datei. Schreibrechte vergibt `claude` über Edit-Regeln, auch für das Werkzeug Write:
+ * Mit `Write(…)` allein lehnte der Probelauf in 219 jedes Schreiben ab. Das Werkzeug Edit selbst gibt es im Lauf nicht.
+ */
+export const RECHERCHE_RECHTE = [`Write(./${RECHERCHE_DATEI})`, `Edit(./${RECHERCHE_DATEI})`];
+export const RECHERCHE_WERKZEUGE = 'Read,Write,WebSearch,WebFetch';
+
+/**
+ * Der Recherche-Lauf (219), getrennt von Plan und Bau: Web, Lesen in den Skills und `recherche.md`, sonst nichts. Kein
+ * MCP, kein Skill-Werkzeug, keine Sitzung. Text aus dem Web landet so nie in einem Lauf mit Schreibrechten am Material.
+ */
+export const rechercheArgumente = (o: { ablage: string; auftragDatei: string; budgetUsd: number; modell: string }) => [
+	'-p',
+	'--output-format',
+	'stream-json',
+	'--verbose',
+	'--model',
+	o.modell,
+	'--effort',
+	KI_EFFORT_GROSS,
+	'--setting-sources',
+	'project',
+	'--add-dir',
+	o.ablage,
+	'--strict-mcp-config',
+	'--no-session-persistence',
+	'--tools',
+	RECHERCHE_WERKZEUGE,
+	'--allowedTools',
+	...RECHERCHE_RECHTE,
+	'WebSearch',
+	'WebFetch',
+	'--disallowedTools',
+	...NIE_LESEN,
+	...NIE_KONNEKTOR_WERKZEUGE,
+	'--permission-mode',
+	'dontAsk',
+	'--max-turns',
+	String(KI_GRENZEN.recherche.runden),
+	'--max-budget-usd',
+	String(o.budgetUsd),
+	'--append-system-prompt-file',
+	o.auftragDatei,
+];
+
+const RECHERCHE_FEHLER: Record<string, string> = {
+	rate_limit: 'Das Limit des Claude-Kontos ist erreicht.',
+	authentication_failed: 'Claude ist auf dem Server nicht angemeldet.',
+	error_max_turns: 'Die Recherche hat ihre Grenze an Runden erreicht.',
+	error_max_budget_usd: 'Die Recherche hat ihr Budget erreicht.',
+};
+
+/** Ein Schritt der Recherche für die Anzeige; die Adresse nur als Name der Seite. */
+const rechercheSchritt = (name: string, eingabe: { url?: unknown }) => {
+	if (name === 'WebSearch') {
+		return 'Sucht im Web';
+	}
+	if (name === 'WebFetch' && typeof eingabe.url === 'string') {
+		try {
+			return `Liest ${new URL(eingabe.url).hostname.replace(/^www\./, '')}`;
+		} catch {
+			return 'Liest eine Seite im Web';
+		}
+	}
+	return name === 'Write' ? 'Schreibt die Recherche auf' : null;
+};
+
+/**
+ * Führt die Recherche in `ordner` aus (wird neu angelegt) und prüft `recherche.md`, bevor sie weitergeht. Scheitert
+ * sie, ist das kein Fehler des Auftrags: Der Plan läuft weiter und nennt es in den Annahmen.
+ */
+export const recherchiere = (o: {
+	bin: string;
+	modell: string;
+	ordner: string;
+	ablage: string;
+	anfrage: RechercheAnfrage;
+	budgetUsd: number;
+	schritt: (text: string) => void;
+	gestartet?: (kind: ChildProcessWithoutNullStreams) => void;
+}) =>
+	new Promise<{ ergebnis: RechercheErgebnis; verbrauch: Record<string, unknown> }>((resolve) => {
+		const stand: LaufStand = { sitzung: null, fehlerCode: null, ergebnis: {} };
+		const auftragDatei = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'recherche.md');
+		rmSync(o.ordner, { recursive: true, force: true });
+		mkdirSync(o.ordner, { recursive: true });
+		const kind = spawn(
+			o.bin,
+			rechercheArgumente({ ablage: o.ablage, auftragDatei, budgetUsd: o.budgetUsd, modell: o.modell }),
+			{ cwd: o.ordner, env: kiUmgebung(o.bin) },
+		);
+		o.gestartet?.(kind);
+		let grund: string | null = null;
+		let bytes = 0;
+		const frist = setTimeout(() => {
+			grund = 'Die Zeit für die Recherche ist abgelaufen.';
+			beendeKind(kind);
+		}, KI_GRENZEN.recherche.zeitMs);
+		kind.stdin.on('error', () => undefined);
+		kind.stdin.end(rechercheText(o.anfrage));
+		kind.stderr.resume();
+		createInterface({ input: kind.stdout }).on('line', (zeile) => {
+			bytes += zeile.length;
+			if (bytes > KI_GRENZEN.ausgabeBytes) {
+				grund = 'Die Antwort der Recherche war zu groß.';
+				beendeKind(kind);
+				return;
+			}
+			try {
+				const e = JSON.parse(zeile) as Record<string, unknown>;
+				werteAus(e, stand, { schritt: () => undefined, limit: () => undefined });
+				const inhalt = ((e.message ?? {}) as { content?: unknown[] }).content ?? [];
+				for (const teil of e.type === 'assistant' ? (inhalt as { type?: string; name?: string; input?: { url?: unknown } }[]) : []) {
+					const text = teil.type === 'tool_use' && teil.name ? rechercheSchritt(teil.name, teil.input ?? {}) : null;
+					if (text) {
+						o.schritt(text);
+					}
+				}
+			} catch {
+				// Keine JSON-Zeile.
+			}
+		});
+		kind.on('error', (fehler: Error & { code?: string }) => {
+			grund = fehler.code === 'ENOENT' ? 'Claude ist auf dem Server nicht installiert.' : 'Claude ließ sich nicht starten.';
+		});
+		kind.on('close', () => {
+			clearTimeout(frist);
+			const verbrauch = stand.ergebnis.verbrauch ?? {};
+			// Auch nach Zeit- oder Rundengrenze zählt eine fertige Datei: Sie hat dieselbe Prüfung vor sich.
+			const datei = path.join(o.ordner, RECHERCHE_DATEI);
+			let ergebnis: RechercheErgebnis;
+			try {
+				const { size } = statSync(datei);
+				if (size > KI_GRENZEN.recherche.bytes) {
+					ergebnis = { ok: false, grund: 'recherche.md ist zu groß.' };
+				} else {
+					const roh = new TextDecoder('utf-8', { fatal: true }).decode(readFileSync(datei));
+					ergebnis = pruefeRecherche(roh, KI_GRENZEN.recherche.zeichen);
+				}
+			} catch (fehler) {
+				const fehlt = (fehler as { code?: string }).code === 'ENOENT';
+				const code = stand.ergebnis.fehler ?? stand.fehlerCode;
+				ergebnis = {
+					ok: false,
+					grund: fehlt
+						? (grund ?? (code ? (RECHERCHE_FEHLER[code] ?? 'Die Recherche ist abgebrochen.') : 'Claude hat keine recherche.md geschrieben.'))
+						: 'recherche.md ist kein lesbarer Text.',
+				};
+			}
+			rmSync(o.ordner, { recursive: true, force: true });
+			resolve({ ergebnis, verbrauch });
+		});
+	});
+
+/** Der Stand für Oberfläche und `stand.json`: Den Text gibt es nur, wenn er die Prüfung bestanden hat. */
+export const rechercheStand = (e: RechercheErgebnis): RechercheStand =>
+	e.ok
+		? { status: 'fertig', grund: null, quellen: e.quellen, text: e.text }
+		: { status: 'gescheitert', grund: e.grund, quellen: [], text: null };
 
 /** Erst freundlich, dann hart: `claude` räumt bei SIGINT seine Sitzung auf. */
 export const beendeKind = (kind: ChildProcessWithoutNullStreams) => {
@@ -923,6 +1118,7 @@ const prompt = (
 		fortsetzung ? null : verlaufAbschnitt(w.verlauf),
 		`Auftrag der Lehrkraft: ${w.auftrag}`,
 		w.anhang ?? null,
+		rechercheAbschnitt(w.recherche),
 		w.ohneRueckfragen && w.phase !== 'plan'
 			? 'Keine Rückfragen: Niemand kann bei diesem Auftrag antworten. Ändere das Blatt.'
 			: null,
@@ -1323,7 +1519,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			mappe: a.mappe,
 			dok: a.dok,
 			status,
-			umfang: { 'Ganzes Blatt': 'blatt', 'limit': 'limit' }[umfang] ?? 'teil',
+			umfang: { 'Ganzes Blatt': 'blatt', 'limit': 'limit', 'recherche': 'recherche' }[umfang] ?? 'teil',
 			sekunden: Math.round((Date.now() - start) / 1000),
 			...verbrauch,
 		};
@@ -1529,7 +1725,51 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			a.antwort = antwort;
 			ende = 'fertig';
 		};
+		/** Neues Material (219): erst die Recherche in einem eigenen Lauf, dann der Aufgabenplan mit ihr als Inhalt. */
+		const rechercheZuerst = async () => {
+			if (!w.neuesBlatt || w.phase !== 'plan' || !w.rechercheAnfrage || w.recherche) {
+				return;
+			}
+			a.recherche = 'laeuft';
+			a.schritte.push('Recherchiert Bildungsplan und Fachdidaktik');
+			melde(a);
+			const beginn = Date.now();
+			const { ergebnis, verbrauch: v } = await recherchiere({
+				bin,
+				modell: konfig.kiModell,
+				ordner: path.join(path.dirname(arbeit), 'recherche'),
+				ablage,
+				anfrage: w.rechercheAnfrage,
+				budgetUsd: ueberGuthaben() ? KI_GRENZEN.recherche.budgetGuthabenUsd : KI_GRENZEN.recherche.budgetUsd,
+				schritt: (t) => {
+					if (!a.schritte.includes(t)) {
+						a.schritte.push(t);
+						melde(a);
+					}
+				},
+				gestartet: (kind) => {
+					if (aktiv) {
+						aktiv.kind = kind;
+					}
+					if (kind.pid) {
+						writeFileSync(pidDatei, String(kind.pid));
+					}
+				},
+			});
+			// Am Auftrag gespeichert, den auch Plan ändern, Freigabe und „Nochmal“ nehmen: Gesucht wird einmal.
+			w.recherche = ergebnis;
+			a.recherche = ergebnis.ok ? 'fertig' : 'gescheitert';
+			if (!ergebnis.ok) {
+				a.schritte.push('Plant ohne Recherche');
+			}
+			melde(a);
+			await notiereVerbrauch(a, ergebnis.ok ? 'fertig' : 'fehler', 'recherche', beginn, v);
+		};
 		const ersterLauf = async () => {
+			await rechercheZuerst();
+			if (w.recherche?.ok) {
+				await writeFile(path.join(arbeit, RECHERCHE_DATEI), w.recherche.text);
+			}
 			// Immer frisch aus der Quelle: Die Lehrkraft kann seit der letzten Nachricht geändert haben.
 			await writeFile(path.join(arbeit, WORKFILE), ausschnitt.text);
 			const kopf = `Das Blatt: „${meta.titel}“, Art ${meta.art}.`;
