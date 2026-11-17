@@ -4,7 +4,7 @@ Ziel: Mit möglichst wenigen, gezielten Fragen ein vollständiges gemeinsames Ve
 
 ## Start-Abfrage (immer zuerst)
 
-Bevor es um Klasse, Thema oder Details geht, werden die Grundentscheidungen geklärt: zwei immer (Materialart, Medium), drei weitere je nach Materialart (Selbsteinschätzung, Churer Modell, Sternchenaufgabe). Sie bestimmen, welcher Material-Skill gilt, welches Format und welche Bausteine das Blatt hat. Nach Farbe oder s/w wird nicht gefragt: Material wird in Farbe angelegt (`gestaltung.md`, Abschnitt „Farbe“). **Einzeln nacheinander**, eine Frage pro Nachricht, jede mit Optionen und Empfehlung. Was die Anfrage schon beantwortet, wird nicht gefragt, sondern kurz bestätigt („Arbeitsblatt, A4 – richtig?" ist nicht nötig, wenn es wörtlich so dasteht).
+Bevor es um Klasse, Thema oder Details geht, werden die Grundentscheidungen geklärt: zwei immer (Materialart, Medium), drei weitere je nach Materialart (Selbsteinschätzung, Churer Modell, Sternchenaufgabe). Sie bestimmen, welcher Material-Skill gilt, welches Format und welche Bausteine das Blatt hat. Nach Farbe oder s/w wird nicht gefragt: Material wird in Farbe angelegt (`grundschul-didaktik/references/gestaltung.md`, Abschnitt „Farbe“). **Einzeln nacheinander**, eine Frage pro Nachricht, jede mit Optionen und Empfehlung. Was die Anfrage schon beantwortet, wird nicht gefragt, sondern kurz bestätigt („Arbeitsblatt, A4 – richtig?" ist nicht nötig, wenn es wörtlich so dasteht).
 
 **1. Materialart**
 

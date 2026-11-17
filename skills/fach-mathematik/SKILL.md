@@ -9,6 +9,8 @@ Grundlage: Bildungsplan Baden-Württemberg Mathematik (Neufassung auf Grundlage 
 
 ## Fachspezifische Rückfragen
 
+Gilt im Gespräch. Im Lauf der Schoolbox stehen die Antworten im Auftrag; frag nicht nach und nimm für Fehlendes den genannten Standard.
+
 Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachricht, mit Empfehlung). Ergänzend zu den Fragen des Material-Skills:
 
 1. **Zahlenraum und Stand:** Bis 10/20/100/1000/Million? Mit oder ohne Zehnerübergang? Welche Rechenstrategien sind eingeführt?

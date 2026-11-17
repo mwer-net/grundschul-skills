@@ -1,6 +1,6 @@
 # Druck und Platz
 
-Material wird in Farbe angelegt, s/w ist eine Ansicht davon; die Regel dazu steht in `gestaltung.md` (Abschnitt „Farbe“). Dieser Text regelt, wie Farbe sparsam eingesetzt wird und wie der Platz genutzt wird.
+Material wird in Farbe angelegt, s/w ist eine Ansicht davon; die Regel dazu steht in `grundschul-didaktik/references/gestaltung.md` (Abschnitt „Farbe“). Dieser Text regelt, wie Farbe sparsam eingesetzt wird und wie der Platz genutzt wird.
 
 **Immer gilt das kompakte Layout** (Abschnitt 4): Aufgaben ohne Kasten, schlanker Kopf und Fuß, volle Item-Reihen. Farbe macht ein Blatt ansprechend, Kästen mit Innenabstand kosten nur Platz.
 
@@ -17,7 +17,7 @@ Material wird in Farbe angelegt, s/w ist eine Ansicht davon; die Regel dazu steh
 Die s/w-Ansicht rechnet alles um: helle bunte Flächen werden weiß, Text und Linien behalten ihre Helligkeit. Beim Anlegen zählt nur:
 
 1. **Linien nicht heller als `#808080`** in Grau gerechnet; eigene Linien mindestens 1,5 px (≈ 1 pt), sonst fallen sie beim Kopieren weg. Die Linien des Kits setzt `blatt.css`. Die Nachspurvorlage in `x-lineatur` ist bewusst grau.
-2. **Unterschiede nicht nur über Farbe** (`gestaltung.md`): fett oder normal, durchgezogen oder gestrichelt, gefüllt oder leer, Symbol, Buchstabe, Beschriftung. Die Abbildungen (`x-…`) bringen das selbst mit.
+2. **Unterschiede nicht nur über Farbe** (`grundschul-didaktik/references/gestaltung.md`, Abschnitt „Farbe“): fett oder normal, durchgezogen oder gestrichelt, gefüllt oder leer, Symbol, Buchstabe, Beschriftung. Die Abbildungen (`x-…`) bringen das selbst mit.
 3. **Bilder zum Anmalen** als `name-strich.png` neben `name.png`: Die s/w-Ausgabe nimmt sie von selbst.
 4. **Prüfen:** die s/w-Hinweise im Bericht ansehen (`kontrast-sw`, `farbwort-sw`, `bild-kontrast-sw`). Im Lauf der Schoolbox stehen sie von selbst im Prüfbericht; in der Claude-App mit Bash kommt man mit `blatt.py bauen --profil sw` daran. Sie sind Hinweise, keine Sperre.
 
@@ -104,7 +104,7 @@ Lücken müssen breit genug sein, damit Kinder der Klasse darin schreiben könne
 | Uhr zum Ablesen | 100 px (2,6 cm), `groesse="100"` setzen | 84 px (2,2 cm) | 76 px (2 cm) |
 | Uhr zum Zeiger-Einzeichnen | 120 px (3,2 cm) | 84 px (2,2 cm) | 84 px (2,2 cm) |
 | Antwortlinie für eine Zahl/Uhrzeit | 100 px | 88 px | 80 px |
-| Zeilenhöhe Schreiblinie (`x-lineatur`, Maße in `gestaltung.md`) | Lineatur 1 | Lineatur 2 | Lineatur 3/4 |
+| Zeilenhöhe Schreiblinie (`x-lineatur`, Maße in `grundschul-didaktik/references/gestaltung.md`) | Lineatur 1 | Lineatur 2 | Lineatur 3/4 |
 | Ankreuz-/Ergebniskästchen | 22 px | 18 px | 17 px |
 | Wortart-Symbol, Satzglied-Kästchen | folgt der Schriftgröße, nicht verkleinern | ebenso | ebenso |
 | Glücksrad zum Ablesen | 180 px | 160 px | 140 px |

@@ -27,6 +27,8 @@ Alle Materialien sind für Grundschulen in Baden-Württemberg; das Bundesland wi
 
 ## 1. Vor dem Erstellen klären (Rückfrage-Protokoll)
 
+Gilt im Gespräch. Im Lauf der Schoolbox stehen die Antworten im Auftrag; frag nicht nach und nimm für Fehlendes den genannten Standard.
+
 Ungenaue Anfragen sind der Normalfall ("Mach mir ein Arbeitsblatt zu Tieren"). Erstelle dann **nichts**, sondern kläre gezielt nach dem Protokoll in `references/rueckfragen.md`:
 
 0. **Start-Abfrage zuerst:** Materialart, Medium/Format, dann je nach Materialart Selbsteinschätzung, Churer Modell und Sternchenaufgabe – einzeln nacheinander, jeweils mit Empfehlung (`references/rueckfragen.md`). Die Antworten bestimmen Material-Skill, Format und Bausteine und gelten für die ganze Unterhaltung. Steht eine Antwort schon im Auftrag, wird sie nicht gefragt und geht den Empfehlungen vor, auch wenn sie „ohne“ lautet (`references/kernkonzepte.md`).
@@ -113,6 +115,8 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 - [ ] Kopfzeile: Name, Datum, ggf. Thema – aber schlank
 
 ## 5. Ausgabe an die Lehrkraft
+
+Gilt im Gespräch. Im Lauf der Schoolbox stehen die Antworten im Auftrag; frag nicht nach und nimm für Fehlendes den genannten Standard.
 
 Liefere immer:
 1. Das Material: PDF (Arbeitsblatt und Lösungsblatt) und die eigenständige HTML-Datei (`html-materialerstellung`).

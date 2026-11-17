@@ -1,6 +1,6 @@
 # Eine Reihe als Geschichte bauen
 
-Lesen, wenn eine ganze Unterrichtseinheit als Paket entsteht (mehrere Materialien in einem Zug). Wie die Geschichte, die Szenenbilder und die Figuren gestaltet werden, steht in `grundschul-didaktik/references/kindgerecht-gestalten.md`, Abschnitt „Geschichten-Rahmen für eine Reihe“, und in `html-materialerstellung/references/bilder.md`. Dieser Text regelt, was das Paket enthält und in welcher Reihenfolge es entsteht.
+Lesen, wenn eine ganze Unterrichtseinheit als Paket entsteht (mehrere Materialien in einem Zug). Wie die Szenenbilder und die Figuren gestaltet werden, steht in `grundschul-didaktik/references/kindgerecht-gestalten.md`, Abschnitt „Geschichten-Rahmen für eine Reihe“, und in `html-materialerstellung/references/bilder.md`. Dieser Text regelt, was das Paket enthält und in welcher Reihenfolge es entsteht.
 
 Eine Einheit ist eine Geschichte in Kapiteln, keine Sammlung von Blättern. Die Kinder wollen wissen, wie es weitergeht; jede Stunde bringt die Geschichte ein Stück voran, und nur wer das Ich-kann-Ziel der Stunde erreicht, kommt weiter. Die Geschichte ist der Standard in allen Klassen. Nur wenn die Lehrkraft „ohne Rahmengeschichte“ wählt, bleibt derselbe Aufbau ohne Erzählung: Die Stunden heißen dann nach ihrem Thema, Vorleseheft, Fall-Karte und Rätselkette entfallen.
 

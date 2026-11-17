@@ -23,7 +23,7 @@ Wie viel gestaltet wird, folgt dem Zweck der Seite, nicht einer Vorlage. Die Mus
 
 Im Zweifel bei Arbeitsseiten weglassen, bei Schauseiten mutiger sein.
 
-**Farbe:** Material wird in Farbe angelegt, s/w ist eine Ansicht davon (`gestaltung.md`, Abschnitt „Farbe“). Emotional Design wirkt über Farbe als Akzent, Form, Schrift und Figur. Es gibt keine Farbflächen hinter Aufgaben und keine Aufgabenkästen – das Blatt soll Platz für Übung haben.
+**Farbe:** Material wird in Farbe angelegt, s/w ist eine Ansicht davon (`grundschul-didaktik/references/gestaltung.md`, Abschnitt „Farbe“). Emotional Design wirkt über Farbe als Akzent, Form, Schrift und Figur. Es gibt keine Farbflächen hinter Aufgaben und keine Aufgabenkästen – das Blatt soll Platz für Übung haben.
 
 ## Die fünf Hebel
 
@@ -38,7 +38,7 @@ Im Zweifel bei Arbeitsseiten weglassen, bei Schauseiten mutiger sein.
 
 Material wird immer in Farbe angelegt (oben, „Farbe“). Dabei gilt:
 
-- **1 Hauptfarbe + 1 Akzentfarbe** aus derselben Familie, warme, freundliche Töne; keine Neonfarben. Farbe auf Nummernkreise, Überschrift, Sprechblase, Leitfigur und Bilder, **keine Flächen hinter Aufgaben, Kopf oder Fuß**. Details: `druck-und-platz.md`, Abschnitt 3.
+- **1 Hauptfarbe + 1 Akzentfarbe** aus derselben Familie, warme, freundliche Töne; keine Neonfarben. Wohin Farbe kommt und wohin nicht: `druck-und-platz.md`, Abschnitt 3.
 - Farbe bedeutet überall dasselbe: z. B. jede Station eine Farbe; Klassenkonventionen (Wortarten, Stellenwerte) haben Vorrang. Niveaus bekommen keine eigene Farbe, nur Punkte ● / ●● / ●●●.
 - Farbe nie als einzige Information; Graustufen-Vorschau prüfen.
 
