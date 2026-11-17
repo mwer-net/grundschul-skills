@@ -33,7 +33,7 @@ const LAYOUT = 'skills/html-materialerstellung/references/layout.md';
 const GESTALTUNG = 'skills/html-materialerstellung/references/gestaltung.md';
 const ARBEITSBLATT = 'skills/arbeitsblatt/SKILL.md';
 const EINHEIT_AUFTRAG = 'schoolbox/vorlagen/ki/einheit.md';
-const HTML_SKILL = 'skills/html-materialerstellung/SKILL.md';
+const PFLICHTLEKTUERE_MD = 'skills/html-materialerstellung/references/pflichtlektuere.md';
 const AELTERER_SATZ = 'skills/html-materialerstellung/references/aelterer-satz.md';
 const ABBILDUNGEN = 'skills/html-materialerstellung/references/abbildungen.md';
 
@@ -397,7 +397,7 @@ export const ABSCHNITTE: Abschnitt[] = [
 	{ datei: ARBEITSBLATT, marke: 'aufgabenformate', inhalt: formateTabelle },
 	{ datei: EINHEIT_AUFTRAG, marke: 'aufgabenformate', inhalt: formateFuerAuftrag },
 	// Pflichtlektüre (220): dieselbe Liste für Harness und Schoolbox
-	{ datei: HTML_SKILL, marke: 'pflichtlektuere', inhalt: pflichtTabelle },
+	{ datei: PFLICHTLEKTUERE_MD, marke: 'pflichtlektuere', inhalt: pflichtTabelle },
 	// Älterer Satz (228): nur für vorhandene Blätter ohne `data-satz="2"`
 	{ datei: AELTERER_SATZ, marke: 'aelterer-satz-schrift', inhalt: aeltereKlassenWerte },
 	{ datei: AELTERER_SATZ, marke: 'aelterer-satz-schwellen', inhalt: aeltereSchwellen },

@@ -9,17 +9,23 @@ Jedes Material entsteht als **eine HTML-Datei** mit dem Gestaltungssystem aus `a
 
 Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände und exakte Abbildungen selbst; das Ergebnis sieht aus wie die Vorschau, ohne Nacharbeit.
 
+## Wo du arbeitest
+
+- **Lauf der Schoolbox:** Du baust mit dem Werkzeug `bauen`. Was der Auftrag nennt, geht vor. Rückfragen, Entwürfe und Befehle entfallen.
+- **Claude-App mit Bash:** `scripts/blatt.py`, Befehle der Schoolbox in [Mit Schoolbox](references/schoolbox-befehle.md), Leseliste in [Vor dem Bau lesen](references/pflichtlektuere.md).
+- **Ohne Code-Ausführung:** [Ohne Code-Ausführung](references/ohne-code.md).
+
 ## Bausteine
 
 | Datei | Zweck |
 |---|---|
 | `assets/blatt.css` | Gestaltungssystem: A4-Seite, 60 px Rand (oben und unten weniger), Satz wie im Schulbuch (`data-satz="2"`), Kopf, Aufgaben mit hängender Nummer, Niveau-Punkte, Punktfelder, Antwortlinien, Sprechblase, Fuß, Karten, Platzhalter, Folien. Profile über Klassen am `<body>`. |
-| `assets/praesentation.js` | Präsentationsmodus für Folien: blättern, Schritte und Aufdecken, Timer, Schwarzbild; nur mit `?praesentation=1` aktiv. `blatt.py` bettet es in die Offline-Präsentation ein und baut damit `--schritte` und `--notizen` (Abschnitt „Folien“) |
+| `assets/praesentation.js` | Präsentationsmodus für Folien: blättern, Schritte und Aufdecken, Timer, Schwarzbild; nur mit `?praesentation=1` aktiv. `blatt.py` bettet es in die Offline-Präsentation ein und baut damit `--schritte` und `--notizen` (`references/folien.md`) |
 | `assets/abbildungen.js` | Exakte Abbildungen als SVG (`x-…`-Elemente), berechnet statt gezeichnet. Welche es gibt, wie man sie schreibt und welche Mindestgrößen gelten, steht im Katalog: `references/abbildungen.md`, mit einem Index der Teil-Dateien in `references/abbildungen/`. Musterblätter: `assets/muster/`. |
 | `assets/vorlage-arbeitsblatt.html` | Muster mit allen Bausteinen; Ausgangspunkt für jedes Blatt |
-| `assets/vorlage-praesentation.html` | Kreisinput mit sechs Folien und allen Folien-Bausteinen; Ausgangspunkt für Präsentationen der Art „Impuls“ (Abschnitt „Folien“) |
+| `assets/vorlage-praesentation.html` | Kreisinput mit sechs Folien und allen Folien-Bausteinen; Ausgangspunkt für Präsentationen der Art „Impuls“ (`references/folien.md`) |
 | `assets/beispiel-auftakt.html` | geprüfter Auftakt einer Reihe (`body.folie.auftakt`): Szenen als SVG, Schmuckschrift, Wetten und Mitmachen, Aufdecken im Bild, Bewegung, Bildfolien und Kapitelfolgen (`praesentation/SKILL.md`, „Auftakt“); zeigt die Technik, keine Schablone |
-| `assets/vorlage-minibuch.html` | Faltbuch aus einem A4-Blatt, acht Seiten mit Satzmuster, Faltanleitung auf dem Lösungsblatt (Abschnitt „Mini-Book“) |
+| `assets/vorlage-minibuch.html` | Faltbuch aus einem A4-Blatt, acht Seiten mit Satzmuster, Faltanleitung auf dem Lösungsblatt ([Mini-Book](references/minibuch.md)) |
 | `assets/vorlage-forscherbogen-12.html`, `assets/vorlage-forscherbogen-34.html` | Forscherbogen bildgestützt (Kl. 1/2) und schriftlich (Kl. 3/4); Sicherheitshinweise als `.nur-loesung` im Kopf, Malfläche `.malfeld` |
 | `assets/beispiel-zehner-einer-kl2.html` | geprüftes Beispiel in s/w (Bündeln, Stellentafel, Sternchenaufgabe, Lösungen); zeigt Bausteine, nicht die Dichte |
 | `assets/beispiel-reihe-kapitel.html` | geprüftes Kapitel einer Reihe: Fall-Karte, Arbeitsblatt mit Kapitel-Marke, Beweis-Rätsel und Fußzeile; zeigt die Technik, keine Schablone |
@@ -48,56 +54,16 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 
 1. Im gewählten Entwurf alle Items, Beispiele und Lösungen aus dem Plan eintragen. Lösungen stehen **im selben HTML**: `data-l="46"` an Antwortlinien, `loesung="4:30"` an Uhren, `buendel-loesung="3"` an Mengen, `loesung="3 5"` an Stellentafeln, `class="nur-loesung"` für Lösungstexte, `class="nicht-loesung"` für Schreiblinien, die auf dem Lösungsblatt verschwinden. Das erste Item als `class="beispiel"` zeigt seine Lösung schon auf dem Arbeitsblatt.
 2. Bilder einsetzen: vorhandene aus `assets/bilder/`, alle anderen Motive der Bildliste mit Canva-KI erzeugen, jedes in vier Vierteln gegen seinen Bildvertrag prüfen und Fehler reparieren, dann als Datei einbauen; Figur, Zettel und Zahlen kommen als Ebenen darüber (`references/bilder.md`, Abschnitte 2 bis 4).
-3. Vor dem ersten Bau die Pflichtlektüre der Materialart lesen (Abschnitt „Vor dem Bau lesen“), dann bauen und prüfen:
+3. Vor dem ersten Bau die Pflichtlektüre der Materialart lesen (`references/pflichtlektuere.md`), dann bauen und prüfen:
    `python3 scripts/blatt.py bauen Kl2_Mathe_Uhrzeit_AB1.html -o ausgabe/`
    Ergebnis: eigenständige `.html` (alles eingebettet), `.pdf`, `-loesung.pdf`, Vorschau je Seite (`-s1.png`) und Ausschnitt je Aufgabe (`-s1-a1.png` …). Der Prüfbericht meldet FEHLER (Seitenrand, abgeschnitten, Überlappung, Schrift oder Bild fehlt; Lösungsblatt wird mitgeprüft), WARNUNGEN (Schrift zu klein, zu viele Aufgaben, Aufgaben zu dicht, Zeit, Menge und freier Platz) und HINWEISE (unscharfe Bilder, Platzhalter, s/w). Die Schwellen stehen in `grundschul-didaktik/references/druck-und-platz.md`, „Was die Prüfung meldet“. Die s/w-Hinweise stehen im Lauf der Schoolbox von selbst im Bericht, sonst mit `--profil sw`.
 4. FEHLER beheben und neu bauen, bis keiner bleibt. Passt der Inhalt nicht: Reihenfolge nach `grundschul-didaktik/references/druck-und-platz.md`, Ende von „Menge nach Arbeitszeit“; nie Schrift, Rand oder Schreibfläche von Hand verkleinern. Meldet der Bericht `inhalt-wenig` oder `platz-frei`: Items, Reihen oder eine Aufgabe ergänzen, bis die Seite gefüllt ist wie im Schulbuch.
 5. **Visuelle Endkontrolle** (`references/visuelle-endkontrolle.md`): Seitenvorschau, jeden Aufgaben-Ausschnitt und das Lösungsblatt ansehen, Befunde beheben, neu bauen.
-6. Der Lehrkraft geben: PDF (Arbeitsblatt und Lösung) und die eigenständige HTML-Datei, mit einem Satz, was die Endkontrolle korrigiert hat. Mit Schoolbox stattdessen den Link (Abschnitt „Mit Schoolbox“).
-
-### Vor dem Bau lesen
-
-Bevor ein Material zum ersten Mal gebaut wird, sind die Skills und Dateien seiner Art gelesen, ganz (Read ohne `offset` und `limit`) und in diesem Lauf, auch wenn sie früher im Gespräch schon dran waren. Die Schoolbox prüft dieselbe Liste und baut erst danach. „Fach-Skill“ ist der Skill des Fachs (`fach-mathematik` …); „in einer Reihe“ gilt für Materialien einer Unterrichtseinheit mit Geschichte, „beim Verkauf“ für Eduki.
-
-<!-- erzeugt: pflichtlektuere -->
-| Materialart | Skills | Dateien | in einer Reihe | beim Verkauf |
-|---|---|---|---|---|
-| Plan einer Unterrichtseinheit | grundschul-didaktik, Fach-Skill, unterrichtsplanung | `unterrichtsplanung/references/reihe-als-geschichte.md` |  | `html-materialerstellung/references/verkauf.md` |
-| Vorleseheft | grundschul-didaktik, unterrichtsplanung, html-materialerstellung | `unterrichtsplanung/references/reihe-als-geschichte.md`, `html-materialerstellung/assets/beispiel-vorleseheft.html`, `html-materialerstellung/references/layout.md`, `html-materialerstellung/references/visuelle-endkontrolle.md` |  |  |
-| Bilder einer Einheit (Canva) | html-materialerstellung | `html-materialerstellung/references/bilder.md`, `grundschul-didaktik/references/kindgerecht-gestalten.md` |  | `html-materialerstellung/references/verkauf.md` |
-| Arbeitsblatt, Kapitel einer Reihe | grundschul-didaktik, Fach-Skill, arbeitsblatt, html-materialerstellung | `grundschul-didaktik/references/druck-und-platz.md`, `grundschul-didaktik/references/differenzierung.md`, `html-materialerstellung/references/abbildungen.md`, `html-materialerstellung/references/layout.md`, `html-materialerstellung/references/visuelle-endkontrolle.md` | `unterrichtsplanung/references/reihe-als-geschichte.md`, `grundschul-didaktik/references/kindgerecht-gestalten.md`, `html-materialerstellung/assets/beispiel-reihe-kapitel.html` |  |
-| Lernzielkontrolle | grundschul-didaktik, Fach-Skill, lernzielkontrolle, html-materialerstellung | `grundschul-didaktik/references/druck-und-platz.md`, `grundschul-didaktik/references/differenzierung.md`, `html-materialerstellung/references/abbildungen.md`, `html-materialerstellung/references/layout.md`, `html-materialerstellung/references/visuelle-endkontrolle.md` |  |  |
-| Klassenarbeit | grundschul-didaktik, Fach-Skill, klassenarbeit, html-materialerstellung | `grundschul-didaktik/references/druck-und-platz.md`, `grundschul-didaktik/references/differenzierung.md`, `html-materialerstellung/references/abbildungen.md`, `html-materialerstellung/references/layout.md`, `html-materialerstellung/references/visuelle-endkontrolle.md` |  |  |
-| Stationen | grundschul-didaktik, Fach-Skill, stationenlernen, html-materialerstellung | `grundschul-didaktik/references/druck-und-platz.md`, `html-materialerstellung/references/abbildungen.md`, `html-materialerstellung/references/layout.md`, `html-materialerstellung/references/visuelle-endkontrolle.md` |  |  |
-| Lernspiel | grundschul-didaktik, Fach-Skill, lernspiel, html-materialerstellung | `grundschul-didaktik/references/druck-und-platz.md`, `grundschul-didaktik/references/kindgerecht-gestalten.md`, `html-materialerstellung/assets/beispiel-kartensatz.html`, `html-materialerstellung/references/layout.md`, `html-materialerstellung/references/visuelle-endkontrolle.md` |  |  |
-| Bild- und Wortkarten | grundschul-didaktik, Fach-Skill, bild-und-wortkarten, html-materialerstellung | `grundschul-didaktik/references/druck-und-platz.md`, `html-materialerstellung/assets/beispiel-kartensatz.html`, `html-materialerstellung/references/layout.md`, `html-materialerstellung/references/visuelle-endkontrolle.md` |  |  |
-| Lernplakat | grundschul-didaktik, Fach-Skill, lernplakat, html-materialerstellung | `grundschul-didaktik/references/kindgerecht-gestalten.md`, `html-materialerstellung/references/layout.md`, `html-materialerstellung/references/visuelle-endkontrolle.md` |  |  |
-| Lesetext | grundschul-didaktik, Fach-Skill, lesetext, html-materialerstellung | `grundschul-didaktik/references/druck-und-platz.md`, `html-materialerstellung/references/layout.md`, `html-materialerstellung/references/visuelle-endkontrolle.md` | `unterrichtsplanung/references/reihe-als-geschichte.md` |  |
-| Präsentation, Auftakt einer Reihe | grundschul-didaktik, Fach-Skill, praesentation, html-materialerstellung | `grundschul-didaktik/references/kindgerecht-gestalten.md`, `html-materialerstellung/references/layout.md`, `html-materialerstellung/references/visuelle-endkontrolle.md` | `unterrichtsplanung/references/reihe-als-geschichte.md`, `html-materialerstellung/assets/beispiel-auftakt.html` |  |
-| Hinweise für die Lehrkraft, Verlaufsplan | grundschul-didaktik, Fach-Skill, unterrichtsplanung, html-materialerstellung | `html-materialerstellung/assets/beispiel-lehrkraft-hinweise.html`, `html-materialerstellung/references/layout.md`, `html-materialerstellung/references/visuelle-endkontrolle.md` | `unterrichtsplanung/references/reihe-als-geschichte.md` | `html-materialerstellung/references/verkauf.md` |
-| Deckblatt (Verkauf) | grundschul-didaktik, html-materialerstellung | `html-materialerstellung/references/verkauf.md`, `html-materialerstellung/references/gestaltung.md`, `html-materialerstellung/assets/beispiel-deckblatt-formen.html`, `html-materialerstellung/references/layout.md`, `html-materialerstellung/references/visuelle-endkontrolle.md` |  |  |
-| Quellenverzeichnis (Verkauf) | html-materialerstellung | `html-materialerstellung/references/verkauf.md`, `html-materialerstellung/references/layout.md`, `html-materialerstellung/references/visuelle-endkontrolle.md` |  |  |
-| Angebot für Eduki (Verkauf) | html-materialerstellung | `html-materialerstellung/references/verkauf.md`, `html-materialerstellung/references/layout.md`, `html-materialerstellung/references/visuelle-endkontrolle.md` |  |  |
-| Anderes Material | grundschul-didaktik, Fach-Skill, html-materialerstellung | `html-materialerstellung/references/layout.md`, `html-materialerstellung/references/visuelle-endkontrolle.md` |  |  |
-<!-- /erzeugt: pflichtlektuere -->
-
-Dazu kommt der Katalog der Abbildungen nach dem, was das Material verwendet: Für jedes `x-…`-Element die Datei, die es beschreibt (Index in `references/abbildungen.md`), und der Einstieg `references/abbildungen.md` selbst. Beim Ändern eines vorhandenen Blatts prüft die Schoolbox das nicht.
+6. Der Lehrkraft geben: PDF (Arbeitsblatt und Lösung) und die eigenständige HTML-Datei, mit einem Satz, was die Endkontrolle korrigiert hat. Mit Schoolbox stattdessen den Link (`references/schoolbox-befehle.md`).
 
 ### 3. Änderungen
 
 Änderungswünsche werden in der HTML-Quelle umgesetzt und neu gebaut (Sekunden). Die eigenständige HTML-Datei lässt sich im Browser öffnen und drucken; wer in Canva weiterarbeiten will, lädt das PDF dort hoch.
-
-## Mit Schoolbox
-
-Ist im Projekt eine Schoolbox eingerichtet (Ordner `schoolbox/`, Projektanweisungen), liegt das Material in **Mappen** und die Lehrkraft bekommt am Ende einen Link statt Dateien. Am Aufbau des HTML und an der Prüfung ändert sich nichts. Alle Aufrufe aus dem Hauptordner des Projekts; `schoolbox/bin/schoolbox --hilfe` nennt Befehle und gültige Werte.
-
-1. **Mappe und Dokumente anlegen** statt eigener Ordner und Dateinamen: `schoolbox/bin/schoolbox neu --titel … --fach … --klasse …`, dann je Bestandteil `schoolbox/bin/schoolbox dokument <mappe> --titel … --art … [--format a4-quer|a3-hoch|a5-hoch|folie|minibuch] [--vorlage arbeitsblatt|praesentation|minibuch|forscherbogen-12|forscherbogen-34]` (bei `--art praesentation` ist `folie` Standard). Das Dokument liegt in `materialien/<mappe>/dokumente/<dokument>/`; die Quelle heißt immer `material.html`, mit `<title>` und `<body>`-Klassen schon gesetzt. Das Format steht in den Angaben des Dokuments (`meta.json` im selben Ordner) **und** als Klasse am `<body>`; ändert es sich, beides anpassen, sonst bricht `fertig` ab.
-2. **Druckhinweise** (doppelseitig, laminieren, in A3 drucken) gehören ans Dokument, die Schoolbox zeigt sie beim Drucken: `--druckhinweis "…"`, mehrfach möglich.
-3. **Entwürfe** in den Ordner des Dokuments schreiben (`entwurf-a.html` …), damit Pfade wie `bilder/…` später stimmen. `schoolbox/bin/schoolbox entwuerfe <mappe>/<dokument> <entwürfe>` registriert sie, baut und prüft sie wie `blatt.py uebersicht` (ein eigener Aufruf von `uebersicht` ist nicht nötig), nennt je Entwurf, ob er auf die Seite passt, die Vorschaubilder zum Ansehen und den Link für die Lehrkraft. Den gewählten übernehmen mit `schoolbox/bin/schoolbox waehle <mappe>/<dokument> B`; die Arbeitsdateien `entwurf-*.html` räumt das auf, die Entwürfe bleiben in der Schoolbox zum Nachsehen.
-4. **Bilder** des Dokuments in `bilder/` neben `material.html`; Bilder, die mehrere Dokumente der Mappe nutzen, in `materialien/<mappe>/bilder/` (eingebunden als `../../bilder/…`).
-5. **Bauen und Endkontrolle** wie oben mit `blatt.py bauen <dokumentordner>/material.html -o <dokumentordner>/ausgabe/`. Ohne `-o` lägen PDF und Vorschauen neben der Quelle.
-6. **Abschluss:** `schoolbox/bin/schoolbox fertig <mappe>/<dokument>` baut ein letztes Mal, hält den Stand als Version fest und nennt den Link. Bei FEHLERN gibt es ihn trotzdem (Exit-Code 1); erst beheben, dann erneut fertigstellen. Für eine Mappe mit mehreren Dokumenten `schoolbox/bin/schoolbox link <mappe>`.
-7. **Änderungen:** Die Lehrkraft kann die Quelle in der Schoolbox selbst bearbeiten. Vor jeder Änderung `material.html` neu lesen und gezielt ändern, nie aus einem früheren Stand neu schreiben. Danach wieder `fertig`; der Link bleibt gleich.
 
 ## Gestaltungssystem kurz
 
@@ -111,38 +77,8 @@ Ist im Projekt eine Schoolbox eingerichtet (Ordner `schoolbox/`, Projektanweisun
 - Seiten für die Lehrkraft: eigenes Dokument mit `<body class="kl… lehrkraft">` (Arial, 13 px, schlichte `h1`/`h2`, `.kit-tabelle`, `.lk-unter`, `.lk-stunde`), ohne Figuren und Farbflächen. Abschauen in `assets/beispiel-lehrkraft-hinweise.html`.
 - Reihe: `.seite.fall` (Fall-Karte mit `.fall-bild`, `.fall-band`, `.fall-innen`, `.fall-frage`), `.kapitel-marke` in der Namenszeile, `.aufgabe.beweis` mit `.beweis-marke`, `.fuss-zeile`. Abschauen in `assets/beispiel-reihe-kapitel.html`.
 - Karten: `.karten` mit `--spalten`, `.karte`, `.kartentext`, `.ecke`. Mit `data-satz="2"` zusätzlich `--zeilen`, `--set` (Setfarbe), `--fuge` (Abstand statt gemeinsamer Schnittlinie), `.karte.deckkarte`, `.karte.rueckseite`, `.karte.grund`, `.karte.legeteil`, `.karten.rueckseiten` (Rückseiten für den Duplexdruck gespiegelt), `.karten.streifen` und `.schneidebogen` mit `--spalten`, `--teil-b`, `--teil-h`. Abschauen in `assets/beispiel-kartensatz.html`.
-- Folien: Abschnitt „Folien“.
+- Folien: [Folien](references/folien.md).
 - Eigene Gestaltung kommt als Thema über die Kit-Bausteine, nicht als eigene Struktur: `references/layout.md`, Abschnitt „Baukasten und Thema“. Eigene Klassen und `<style>` sind die begründete Ausnahme.
-
-## Folien
-
-Für Präsentationen (Skill `praesentation`), Ausgangspunkt `assets/vorlage-praesentation.html`. Am `<body>` steht `folie`, z. B. `<body class="kl3 farbe palette-wiese folie">`, je Folie eine `<section class="seite">`. Eine Folie ist 1280 × 720 px groß (16:9), mit 48 px Rand bleiben 1184 × 624 px. Text 40 px (Kl. 1/2: 48 px), Überschrift 64 px; das setzt `blatt.css` für `folie`, die Klassenstufe ändert daran nichts außer in Kl. 1/2. Raster und Platzbudget: `references/layout.md`.
-
-| Baustein | Markup | Beim Präsentieren | Im PDF |
-|---|---|---|---|
-| Bühne | `<div class="buehne">` nach dem Kopf: füllt den Rest der Folie, Inhalte nebeneinander und mittig. Bilder, Platzhalter und Timer behalten ihre Breite, Text und `.tipp` passen sich an. | wie im PDF | wie gesetzt |
-| Schritt | `data-schritt="1"`, `"2"` … an einem Element der Folie; gleiche Zahl erscheint zusammen | Weiter deckt der Reihe nach auf, danach kommt die nächste Folie | alles sichtbar |
-| Aufdecken | `<span class="aufdecken">…</span>` um die Lösung im Satz, z. B. das Schlüsselwort des Merksatzes | verdeckt (Fläche mit „?“), Antippen oder Weiter deckt auf | sichtbar |
-| Timer | `<x-timer minuten="25" groesse="280"></x-timer>`. Die Skala reicht bis 60, über 60 Minuten bis 120; für kurze Phasen `skala="5"` oder `"10"`, sonst ist die Scheibe kaum zu sehen | läuft ab wie ein Time Timer, Antippen startet und hält an, sanftes Ende ohne Ton | Scheibe mit der eingestellten Zeit, darunter „25 Minuten“ |
-| Vermutung | `<div class="vermutung"><span class="nr">A</span>Antwort<span class="leerstelle"></span></div>`, mehrere untereinander in `<div class="reihe" style="--spalten:1;width:620px">`: Antwort zum Abstimmen mit Kästchen für die Strichliste; langer Text bricht um | wie im PDF | wie gesetzt |
-| Leerstelle | `<span class="leerstelle" style="--h:120px"></span>` (Höhe über `--h`, sonst volle Breite oder `width`) für Antworten oder Wortkarten, die die Lehrkraft am Board ergänzt | gestrichelter Rahmen | gestrichelter Rahmen |
-| Notiz | `<aside class="notiz"><p>…</p></aside>` am Ende jeder Folie | nie zu sehen | fehlt; steht in „Folien mit Notizen“ (`--notizen`) |
-
-Präsentiert wird mit `assets/praesentation.js`: Mit `?praesentation=1` in der Adresse (oder `class="praesentieren"` am `<body>`) zeigt es eine Folie nach der anderen bildschirmfüllend und verhält sich wie in der vorletzten Spalte; ohne den Schalter bleibt das Dokument wie in der letzten Spalte. In der Schoolbox heißt das Knopf **Präsentieren**, sie fügt das Skript selbst ein; ins Material gehört es nicht. Niveau-Punkte, ★ und `.tipp` funktionieren wie auf dem Arbeitsblatt. Die Prüfung meldet auf Folien keinen freien Platz (eine Aussage je Folie ist gewollt), warnt bei zu kleiner Schrift (`schrift-klein`, gemessen an der Folienschrift) und weist auf Folien ohne Notiz hin, sobald eine Folie eine hat.
-
-Ausgaben von `blatt.py bauen` für Folien, zum Präsentieren ohne Internet und zum Ausdrucken:
-
-| Ausgabe | Aufruf | Wofür |
-|---|---|---|
-| `NAME.html` | immer | Offline-Präsentation für den Mac: alles eingebettet samt `praesentation.js`, startet mit „Präsentation starten“ (Vollbild, Bildschirm bleibt wach), nach Esc wieder der Startbildschirm. Ohne JavaScript und im Druck die Seitenfolge |
-| `NAME-schritte.pdf` | `--schritte` | Fürs iPad: eine Seite je Zustand wie beim Weiterklicken, also je Folie 1 (alles verdeckt) + je Schritt + je `.aufdecken`; die Vorlage hat 11 Seiten. Verdeckt sieht aus wie beim Präsentieren, der Timer steht still |
-| `NAME-notizen.pdf` | `--notizen` | Zum Ausdrucken: A4 hoch, je Blatt bis zu zwei Folien klein (360 px breit), daneben „Folie 3 · 3 Schritte · 1 × aufdecken · Timer 25 Minuten“ und die Notizen in 17 px. Passt die zweite nicht mehr, kommt sie aufs nächste Blatt. Die Prüfung läuft auch hier; nur FEHLER zählen („Folien mit Notizen: … → Notiz kürzen“) |
-
-`--nur-zusatz` baut nur `--schritte`/`--notizen`, ohne Blatt, Vorschauen und Lösung (so ruft die Schoolbox es auf). Das normale PDF bleibt in jedem Fall die Seitenfolge mit allem aufgedeckt.
-
-## Mini-Book
-
-`schoolbox dokument <mappe> … --format minibuch --vorlage minibuch --druckhinweis "In Originalgröße drucken, einseitig"`. Das Format bedeutet: genau acht `.seite` in Lesereihenfolge (Titel, sechs Innenseiten, Rückseite), je ein Achtel A4. Das Ausschießen auf ein A4-Blatt quer (oben 5, 4, 3, 2 kopfstehend, unten 6, 7, 8, 1) macht `blatt.css` im Druck; die Reihenfolge nie von Hand umstellen. Die Prüfung meldet FEHLER bei einer anderen Seitenzahl und bei Inhalt näher als 4 mm an der Falz. Eine Seite fasst nur Bild und einen kurzen Satz; `x-lineatur` mit `breite="248"`. Die `.faltanleitung` am Ende der Vorlage bleibt stehen: Sie steht nur auf dem Lösungsblatt.
 
 ## Neues Element
 
@@ -173,10 +109,6 @@ Maßstäbliche Elemente (echte Zentimeter): `masstab(el)` im Element, und beim A
 - Abbildungen als `x-…`-Elemente statt SVG von Hand.
 - Prüfbericht statt Bild für Geometrie; Bilder (Seite, Ausschnitte) nur für die visuelle Endkontrolle ansehen.
 - Höchstens drei Runden Endkontrolle; bleibt danach etwas offen, die Vorschau mit dem offenen Punkt zeigen.
-
-## Ohne Code-Ausführung
-
-HTML wie oben schreiben und als HTML-Artefakt zeigen (CSS aus `blatt.css` inline einfügen, aus `abbildungen.js` nur den Abschnitt „Kern“, den Schluss ab „Ende der Abschnitte“ und die gebrauchten Abschnitte, nicht die ganze Datei); Drucken über den Browser (A4, Ränder „keine", Hintergrundgrafiken an). Prüfung dann von Hand nach `references/layout.md`.
 
 ## Typische Probleme
 

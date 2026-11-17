@@ -1,0 +1,3 @@
+# Mini-Book
+
+`schoolbox dokument <mappe> … --format minibuch --vorlage minibuch --druckhinweis "In Originalgröße drucken, einseitig"`. Das Format bedeutet: genau acht `.seite` in Lesereihenfolge (Titel, sechs Innenseiten, Rückseite), je ein Achtel A4. Das Ausschießen auf ein A4-Blatt quer (oben 5, 4, 3, 2 kopfstehend, unten 6, 7, 8, 1) macht `blatt.css` im Druck; die Reihenfolge nie von Hand umstellen. Die Prüfung meldet FEHLER bei einer anderen Seitenzahl und bei Inhalt näher als 4 mm an der Falz. Eine Seite fasst nur Bild und einen kurzen Satz; `x-lineatur` mit `breite="248"`. Die `.faltanleitung` am Ende der Vorlage bleibt stehen: Sie steht nur auf dem Lösungsblatt.
