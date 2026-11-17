@@ -31,7 +31,7 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 **C. Für ein Kind dieser Klasse verständlich (Fünf-Sekunden-Test)**
 - [ ] Die Seite als Kind ansehen: Wo fange ich an? Die erste Aufgabe ist sofort zu finden.
 - [ ] Für jede Aufgabe: Was soll ich tun? Wohin schreibe ich? Beides in wenigen Sekunden klar.
-- [ ] Eine Handlung pro Aufgabe, Anweisung in einer Zeile, nur bekannte Begriffe und Symbole.
+- [ ] Eine Handlung je Schritt, Anweisung auf einen Blick erfasst, nur bekannte Begriffe und Symbole.
 - [ ] Jeder Antwortplatz gehört eindeutig zu einem Item (Nähe, gleiche Spalte).
 - [ ] Tipp der Leitfigur steht im Körper seiner Aufgabe über der Item-Reihe und unterbricht keine Reihe.
 
@@ -82,7 +82,7 @@ Der Prüfbericht sieht keine inhaltlichen Fehler. Deshalb jede Aussage, die man 
 | Beispiel gequetscht | Beispiel auf Item-Größe bringen, Abstand zu den Nachbarn wie in der Reihe; reicht die Breite nicht, ein Item der Reihe streichen, solange `zeit-knapp` nicht meldet (`grundschul-didaktik/references/druck-und-platz.md`, Ende von „Menge nach Arbeitszeit“) |
 | Hinweis `kit-anteil`, `thema-layout` oder `thema-klasse` beim Bauen | Eigene Klassen durch Kit-Bausteine ersetzen, Aussehen in `thema.css` (`references/layout.md`, „Baukasten und Thema“) |
 | Seite zu voll oder Aufgabe unklar | Zu voll: Reihenfolge nach `grundschul-didaktik/references/druck-und-platz.md`, Ende von „Menge nach Arbeitszeit“, auf der Rückseite (`data-weiter`) beide Seiten füllen; unklare Aufgabe vereinfachen oder ein Beispiel ergänzen; nie Schrift, Abstände oder Schreibflächen von Hand verkleinern |
-| Aufgabe mit zwei Darstellungsformen in einer Reihe | Auf eine Form reduzieren oder in zwei Aufgaben teilen (wenn der Richtwert es zulässt) |
+| Aufgabe mit zwei Darstellungsformen in einer Reihe | Auf eine Form reduzieren, als nummerierte Schritte schreiben oder in zwei Aufgaben teilen (wenn der Richtwert es zulässt) |
 | Ungewollter Umbruch | Anweisung kürzen, `--spalten` senken oder `white-space:nowrap` für Rechenzeilen (`.zeile`); nie Schrift unter die Mindestgröße |
 | Tipp unterbricht die Reihe oder steht im Kopf | Tipp in den `.koerper` seiner Aufgabe über die Item-Reihe (`references/layout.md`, Abschnitt 3, Punkt 8) |
 | Bild zu groß oder unscharf | Breite setzen, Original in voller Auflösung (`bilder.md`) |

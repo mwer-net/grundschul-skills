@@ -15,7 +15,7 @@ Maße in CSS-px (96 dpi): A4 = 794 × 1123 px, 1 cm ≈ 38 px.
 | Nähe | Anweisung → Arbeitsfläche wenige px, Aufgabe → Aufgabe deutlich mehr | `.koerper` |
 | Nummernkreis | gefüllt, weiße Ziffer, so hoch wie 1,3 × Schrift (Kl. 2: 21 px); ★ für die Sternchenaufgabe | `.nr`, `.nr.stern` |
 | Rahmen mit Funktion | nur Sprechblase, Wortspeicher, Antwortkasten: Kontur 2 px, Ecken gerundet | `.blase`, `.box` |
-| Zeilenlänge | höchstens ca. 60 Zeichen | lange Anweisungen kürzen |
+| Zeilenlänge | höchstens ca. 60 Zeichen je Zeile | breite Textblöcke schmaler setzen; die Länge der Anweisung regelt `grundschul-didaktik/references/druck-und-platz.md`, „Aufgaben auf einen Blick verständlich“ |
 | Schriftgrößen | höchstens drei: Überschrift (1,5 × Text, fette Leseschrift), Text, Beschriftung; Mindestgröße der Klasse (Prüfung meldet < 80 % der Textgröße) | nur `.namenszeile` darf kleiner sein |
 | Reihen gleichartiger Elemente | gleiche Größe, gleicher Abstand | `.reihe` mit `--spalten`, eine Abbildungsgröße je Reihe |
 

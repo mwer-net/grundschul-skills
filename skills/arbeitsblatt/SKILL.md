@@ -9,7 +9,7 @@ Laden zusammen mit: `grundschul-didaktik` (Pflicht), dem passenden `fach-*`-Skil
 
 ## Rückfragen (zusätzlich zu den Pflichtangaben)
 
-Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Materialart steht fest, Medium meist A4 hoch, dann Selbsteinschätzung unten *(Empfehlung: ja)*, Churer Modell mit Niveaus zur Selbstwahl *(Empfehlung: ja)*, Sternchenaufgabe *(Empfehlung: nein mit Niveaus, ja ohne)*. Danach nach dem Rückfrage-Protokoll, eine Frage pro Nachricht, jeweils mit Empfehlung:
+Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Materialart steht fest, Medium meist A4 hoch, dann Selbsteinschätzung unten *(Empfehlung: ja)*, Churer Modell mit Niveaus zur Selbstwahl *(Empfehlung: ja)*, Sternchenaufgabe *(Empfehlung: nein mit Niveaus, ja ohne)*. Diese Empfehlungen gelten im Gespräch, wenn die Lehrkraft nichts anderes sagt; im Auftrag einer Reihe entscheidet der Auftrag (`unterrichtsplanung/references/reihe-als-geschichte.md`, Abschnitt 3). Danach nach dem Rückfrage-Protokoll, eine Frage pro Nachricht, jeweils mit Empfehlung:
 
 1. **Funktion:** Einführung (mit Beispiel, viel Anschauung), Übung (viele gleichartige Items, Selbstkontrolle), Vertiefung/Transfer (offene Aufgaben) oder Wiederholung? *Empfehlung meist: Übung.*
 2. **Zeitziel:** Wie lange soll ein Kind daran arbeiten (10 / 15 / 20 / 30 / 45 min)? *Empfehlung: 20 min.* Aus dem Zeitziel folgt die Menge, nicht aus der Seitenzahl (`grundschul-didaktik/references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“).

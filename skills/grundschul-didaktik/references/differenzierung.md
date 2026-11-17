@@ -4,13 +4,13 @@
 
 - **Gemeinsamer Lerngegenstand:** Alle Kinder arbeiten am selben Thema, auf unterschiedlichen Niveaus. Keine "Babyblätter" für schwächere Kinder: Gleiche Optik, gleicher Rahmen, gleiche Figur.
 - **Niveaus nicht als Rangordnung bezeichnen.** Neutrale Kennzeichnung mit Punkten: ● Grundlage / ●● Kern / ●●● Herausforderung. Pflanzensymbole sind für die Wachstums-Selbsteinschätzung reserviert (siehe `kernkonzepte.md`).
-- **Selbstwahl ist Standard, wenn das Churer Modell gewählt ist** (Start-Abfrage, `rueckfragen.md`): Kinder wählen Niveau, Platz und Partner selbst und dürfen wechseln. Eine Wahlhilfe auf dem Material und die Wachstums-Selbsteinschätzung unterstützen die Wahl.
+- **Selbstwahl ist Standard, wenn das Churer Modell gewählt ist** (Start-Abfrage, `rueckfragen.md`): Kinder wählen Niveau, Platz und Partner selbst und dürfen wechseln. Die Wahlhilfe sagt die Lehrkraft beim Austeilen; auf dem Material steht sie nur, wenn sich die Niveaus eine Seite teilen (`druck-und-platz.md`, „Kopf und Fuß schlank“). Die Wachstums-Selbsteinschätzung unterstützt die Wahl.
 
 ## Drei Niveaus (mit Churer Modell)
 
 | Niveau | Merkmal | Beispiel Mathe (Addition bis 20) | Beispiel Deutsch (Leseverständnis) |
 |---|---|---|---|
-| ● Grundlage | Vorwissen sichern, mit Hilfen, kleiner Umfang, anschaulich | Aufgaben mit Zwanzigerfeld-Bild | Bild-Satz-Zuordnung, Ja/Nein-Fragen |
+| ● Grundlage | Vorwissen sichern, leichtere Aufgaben, mehr Hilfen, anschaulich; gleich viel Arbeit wie die anderen Niveaus | Aufgaben mit Zwanzigerfeld-Bild | Bild-Satz-Zuordnung, Ja/Nein-Fragen |
 | ●● Kern | Lernziel der Stunde, ohne Bildhilfe, Regelanwendung | Aufgaben ohne Bild, Tauschaufgaben | W-Fragen mit Satzanfang |
 | ●●● Herausforderung | Offene oder Umkehraufgaben, Begründen, Übertragen, Erfinden | Platzhalteraufgaben, eigene Aufgaben erfinden, Muster erklären | Eigene Fragen zum Text, Text weiterschreiben |
 
@@ -32,7 +32,7 @@ Jedes Arbeitsblatt mischt die drei Bereiche, auch ohne Niveaus (Richtwerte wie i
 
 ## Differenzierungswege (kombinierbar)
 
-1. **Quantitativ:** Anzahl der Aufgaben (Pflicht- und Zusatzaufgaben).
+1. **Quantitativ:** Pflicht- und Zusatzaufgaben (★). Die Niveaus unterscheiden sich nicht in der Menge: Jedes trägt das ganze Zeitziel (`druck-und-platz.md`, „Menge nach Arbeitszeit“).
 2. **Qualitativ:** Schwierigkeit, Zahlenraum, Textlänge, Abstraktionsgrad.
 3. **Über Hilfen:** Tippkarten (gestuft: Tipp 1 Hinweis, Tipp 2 Beispiel, Tipp 3 Teil-Lösung), Wortspeicher, Anschauungsmaterial, Rechenhilfe.
 4. **Über den Zugang:** Handeln, Bild, Text, Hören.
@@ -41,9 +41,9 @@ Jedes Arbeitsblatt mischt die drei Bereiche, auch ohne Niveaus (Richtwerte wie i
 
 ## Umsetzung im Material
 
-- Variante A: Ein Blatt, drei Aufgabenbereiche (● / ●● / ●●● gekennzeichnet).
-- Variante B: Drei Blätter mit identischem Layout, unterschiedlichem Niveau (Punkte in der Ecke).
-- Variante C: Ein Blatt für alle + Tippkarten + Herausforderungskarte ●●●.
+- Standard: je Niveau eine eigene Seite mit identischem Layout und dem ganzen Zeitziel, die Punkte in der Namenszeile (`druck-und-platz.md`, „Menge nach Arbeitszeit“).
+- Ein Blatt mit drei Aufgabenbereichen (● / ●● / ●●● gekennzeichnet) nur auf Wunsch der Lehrkraft oder bei einem Zeitziel bis 10 Minuten.
+- Auf Wunsch: Ein Blatt für alle + Tippkarten + Herausforderungskarte ●●●.
 - Ohne Churer Modell: Ein Blatt für alle, Aufgaben steigend im Anspruch, Tippkarten, offene Aufgaben (natürliche Differenzierung), optional eine Sternchenaufgabe ★ am Ende.
 - Immer: Lösung bzw. Selbstkontrolle (je Niveau, falls Niveaus).
 
