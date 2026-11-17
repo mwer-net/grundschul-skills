@@ -47,9 +47,15 @@ const allePflichtDateien = () => {
 	return [...eintraege];
 };
 
-/** Rund 21.000 Token: Eine Datei, die Read nicht in einem Stück liefert, nähme `bauen` nie als gelesen an (226). */
+/**
+ * Rund 21.000 Token, unter der Grenze von 25.000 Token je Read. Von einer größeren Datei liefert Read ohne offset und
+ * limit nur den Anfang, und `bauen` zählt sie trotzdem als ganz gelesen (226).
+ */
 const ZEICHEN_MAX = 40_000;
-/** Heute schon größer; der heutige Wert ist der Deckel, bis ein eigenes Ticket die Datei kürzt oder teilt. */
+/**
+ * Heute schon größer; der heutige Wert ist der Deckel. Der Auftakt hat 26.606 Token, Read liefert davon nur die Zeilen
+ * 1–416. Ticket 231 bringt ihn unter die Grenze.
+ */
 const GROESSER_ERLAUBT: Record<string, number> = {
 	// Geprüfter Auftakt als Beispiel für Szenen aus SVG; Pflicht nur für einen Auftakt in einer Reihe.
 	'html-materialerstellung/assets/beispiel-auftakt.html': 48_465,

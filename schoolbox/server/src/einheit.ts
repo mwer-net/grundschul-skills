@@ -652,10 +652,10 @@ export const erstelleEinheiten = (
 				await schreibeProtokoll();
 				return { text: lektuereFehltText(offen.pflicht, offen.teile), fehler: true };
 			}
-			if (!existsSync(datei) || (await stat(datei)).size > KI_GRENZEN.materialBytes) {
+			if (!lesbar) {
 				return { text: `dokumente/${d.slug}/material.html fehlt oder ist zu groß.`, fehler: true };
 			}
-			const roh = await readFile(datei, 'utf8');
+			const roh = html;
 			const sperre = sperreVon(roh);
 			if (sperre.length) {
 				return { text: `Nicht gebaut, der Server lehnt das Material ab: ${sperre.join(' · ')}`, fehler: true };

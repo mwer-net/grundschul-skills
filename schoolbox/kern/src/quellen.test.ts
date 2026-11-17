@@ -108,6 +108,31 @@ describe('Katalog gegen Schema', () => {
 		assert.deepEqual(fehlt, []);
 	});
 
+	it('die Spalte „Katalog“ in fach-mathematik nennt die Datei des Index (226)', () => {
+		const datei = new Map(leseAbbildungsKatalog(SKILLS).map((b) => [b.element, b.datei]));
+		const tabellenFehler = (text: string) => {
+			const zeilen = [...text.matchAll(/^\| `(x-[a-z0-9-]+)` \|.*\| `([^`|]+)` \|$/gm)];
+			assert.ok(zeilen.length >= 30, `nur ${zeilen.length} Zeilen gefunden`);
+			return zeilen.flatMap(([, tag = '', spalte = '']) =>
+				!(tag in ABBILDUNG_SCHEMA)
+					? [`${tag} steht nicht im Schema`]
+					: datei.get(tag) === `html-materialerstellung/references/abbildungen/${spalte}`
+						? []
+						: [`${tag}: ${spalte} statt ${datei.get(tag) ?? '(keine Datei)'}`],
+			);
+		};
+		const text = readFileSync(path.join(SKILLS, 'fach-mathematik/SKILL.md'), 'utf8');
+		assert.deepEqual(tabellenFehler(text), []);
+		const umgezogen = text.replace(
+			'| `x-uhr` | Zifferblatt mit bzw. ohne Zeiger | `mathe-zahlen.md` |',
+			'| `x-uhr` | Zifferblatt | `musik.md` |',
+		);
+		assert.deepEqual(tabellenFehler(umgezogen), [
+			'x-uhr: musik.md statt html-materialerstellung/references/abbildungen/mathe-zahlen.md',
+		]);
+		assert.deepEqual(tabellenFehler(text.replace('| `x-urne` |', '| `x-urnen` |')), ['x-urnen steht nicht im Schema']);
+	});
+
 	it('jedes Beispiel kennt seine Attribute und besteht die Prüfung', () => {
 		const alle = beispiele(KATALOG);
 		assert.ok(alle.length >= 100, `nur ${alle.length} Beispiele gefunden`);
