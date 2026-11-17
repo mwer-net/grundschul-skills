@@ -6,7 +6,7 @@
  *   tsx kern/src/quellen.ts --pruefen  vergleicht nur; Exit 1, wenn etwas veraltet ist
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { blattFarbenListe } from './blatt-farben';
@@ -26,8 +26,7 @@ const PRUEFUNG_JS = 'skills/html-materialerstellung/assets/pruefung.js';
 const LAYOUT = 'skills/html-materialerstellung/references/layout.md';
 const GESTALTUNG = 'skills/html-materialerstellung/references/gestaltung.md';
 const ARBEITSBLATT = 'skills/arbeitsblatt/SKILL.md';
-const VORLAGEN = 'schoolbox/vorlagen';
-const EINHEIT_AUFTRAG = `${VORLAGEN}/ki/einheit.md`;
+const EINHEIT_AUFTRAG = 'schoolbox/vorlagen/ki/einheit.md';
 const HTML_SKILL = 'skills/html-materialerstellung/SKILL.md';
 
 const tabelle = (kopf: string[], zeilen: string[][]) =>
@@ -209,10 +208,6 @@ export const abgleichen = (wurzel: string, schreiben: boolean) => {
 	const veraltet: string[] = [];
 	for (const datei of new Set(ABSCHNITTE.map((a) => a.datei))) {
 		const pfad = path.join(wurzel, datei);
-		// Ein ausrollen.sh vor 221 prüft einen Teilbaum ohne Vorlagen; dort entfällt deren Abschnitt, statt abzubrechen.
-		if (!schreiben && datei.startsWith(`${VORLAGEN}/`) && !existsSync(path.join(wurzel, VORLAGEN))) {
-			continue;
-		}
 		const alt = readFileSync(pfad, 'utf8');
 		let neu = alt;
 		for (const { inhalt, marke } of ABSCHNITTE.filter((a) => a.datei === datei)) {
