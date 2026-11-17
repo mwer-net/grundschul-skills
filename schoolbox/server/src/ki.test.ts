@@ -927,6 +927,23 @@ describe('Aufträge an Claude', () => {
 			assert.match(antworten[0]?.text ?? '', /\S/);
 			assert.doesNotMatch(antworten[0]?.text ?? '', /fehlt data-zeit|hat keine Lösung|ohne Lösung/);
 		});
+
+		it('Ändern eines Blatts ohne data-satz: der Auftrag nennt aelterer-satz.md, mit data-satz nicht (228)', async () => {
+			const prompts = path.join(path.dirname(bin), 'prompts.txt');
+			for (const mitSatz of [false, true]) {
+				const blatt = await legeDokumentAn(server.materialDir, { beispiel: true });
+				if (mitSatz) await mitSatzstand(blatt.dir);
+				const res = await api(`/dokumente/${blatt.mappe}/${blatt.dok}/ki`, {
+					method: 'POST',
+					body: JSON.stringify({ auftrag: 'Mach es schöner' }),
+				});
+				assert.equal(res.status, 202);
+				const a = await fertig(((await res.json()) as { auftrag: { id: string } }).auftrag.id);
+				assert.equal(a.status, 'fertig', a.fehler ?? '');
+				const text = (await readFile(prompts, 'utf8')).split('\n---\n').at(-2) ?? '';
+				assert.equal(text.includes('aelterer-satz.md'), !mitSatz, mitSatz ? 'mit data-satz' : 'ohne data-satz');
+			}
+		});
 	});
 
 	it('Laufende neue Blätter stehen in der Liste für die Ablage (133)', async () => {

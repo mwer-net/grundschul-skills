@@ -2178,7 +2178,11 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			}
 			// Immer frisch aus der Quelle: Die Lehrkraft kann seit der letzten Nachricht geändert haben.
 			await writeFile(path.join(arbeit, WORKFILE), ausschnitt.text);
-			const kopf = `Das Blatt: „${meta.titel}“, Art ${meta.art}.`;
+			const kopf = `Das Blatt: „${meta.titel}“, Art ${meta.art}.${
+				w.neuesBlatt || hatSatz(quelle)
+					? ''
+					: ' Es steht im älteren Satz (kein data-satz="2" am <body>): lies dazu html-materialerstellung/references/aelterer-satz.md.'
+			}`;
 			const lektuere = imBau
 				? `\n\n${pflichtAbschnitt(pflicht, 'vor dem ersten Aufruf von bauen; bauen nimmt das Blatt sonst nicht an')}`
 				: '';
