@@ -11,6 +11,7 @@ import {
 	bausteinVerstoesse,
 	einheitAuftragAus,
 	LAUF_DATEI,
+	laufMeldungen,
 	lektuereZeile,
 	lesePlan,
 	mappenDir,
@@ -177,6 +178,46 @@ describe('Wächter: Abgewähltes im Material (210)', () => {
 			'<!-- <span class="niveau"></span> --><p>Ein Stern und eine Pflanze im Wachstum.</p><span class="nr">2</span><svg class="form" data-form="stern"></svg><span class="niveau-text">x</span><x-beschriften bild="bilder/wachstum.png"></x-beschriften>',
 		);
 		assert.deepEqual(bausteinVerstoesse(aehnlich, AUS), []);
+	});
+});
+
+describe('Prüfungen im Lauf (225)', () => {
+	const AUFGABE = '<div class="aufgabe" data-min="5"><span class="nr">1</span><div class="anw">Rechne.</div></div>';
+	const blatt = (body: string, inhalt = AUFGABE) =>
+		`<html><body class="kl2 a4-hoch farbe"${body}><section class="seite">${inhalt}</section></body></html>`;
+	const codes = (html: string, art: string) => laufMeldungen(html, art).map((m) => `${m.stufe} ${m.code ?? ''}`);
+
+	it('Zeitziel fehlt: nur neues Arbeitsmaterial mit Aufgaben', () => {
+		const ohne = blatt(' data-satz="2"');
+		assert.deepEqual(laufMeldungen(ohne, 'arbeitsblatt'), [
+			{
+				stufe: 'WARNUNG',
+				seite: 0,
+				code: 'zeitziel-fehlt',
+				text: 'Am <body> fehlt data-zeit. Ohne Zeitziel prüft der Bau die Menge nicht → ergänzen und je Aufgabe data-min setzen.',
+			},
+		]);
+		for (const art of ['stationen', 'lernzielkontrolle', 'klassenarbeit']) {
+			assert.deepEqual(codes(ohne, art), ['WARNUNG zeitziel-fehlt'], art);
+		}
+		assert.deepEqual(codes(blatt(' data-satz="2" data-zeit="20"'), 'arbeitsblatt'), []);
+		assert.deepEqual(codes(ohne, 'lernplakat'), [], 'andere Art');
+		assert.deepEqual(codes(blatt(''), 'arbeitsblatt'), [], 'älteres Blatt ohne data-satz');
+		assert.deepEqual(codes(blatt(' data-satz="2"', '<p>Male.</p><!-- class="aufgabe" -->'), 'arbeitsblatt'), []);
+	});
+
+	it('Lösung fehlt: je Aufgabe eine WARNUNG mit Seite', () => {
+		const html = blatt(
+			' data-satz="2" data-zeit="20"',
+			`${AUFGABE}<div class="aufgabe"><span class="antwort"></span></div><div class="aufgabe"><span class="antwort" data-l="3"></span><span class="antwort"></span></div>`,
+		);
+		assert.deepEqual(
+			laufMeldungen(html, 'arbeitsblatt').map(({ seite, stufe, text }) => ({ seite, stufe, text })),
+			[
+				{ seite: 1, stufe: 'WARNUNG', text: 'Aufgabe 2 hat keine Lösung → data-l, loesung= oder .nur-loesung ergänzen' },
+				{ seite: 1, stufe: 'WARNUNG', text: 'Aufgabe 3: 1 von 2 Antwortlinien ohne Lösung → data-l ergänzen' },
+			],
+		);
 	});
 });
 

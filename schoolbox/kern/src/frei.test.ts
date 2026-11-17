@@ -277,6 +277,36 @@ describe('neueFunde: nur was dazukam (Entscheidung 26)', () => {
 	it('Saubere Änderung am sauberen Blatt', () => {
 		assert.deepEqual(neueFunde('<p>x</p>', `<p>x</p>${SVG}`), []);
 	});
+	it('Kopf der Vorlage in anderer Schreibweise ist Bestand, ein anderer Wert nicht (225)', () => {
+		const KOPF = '<link rel="stylesheet" href="blatt.css"><script src="abbildungen.js"></script>';
+		for (const anders of [
+			'<link href="blatt.css" rel="stylesheet"><script src="abbildungen.js"></script>',
+			"<link rel='stylesheet' href=blatt.css /><script src='abbildungen.js'></script>",
+		]) {
+			assert.deepEqual(neueFunde(KOPF, anders), [], anders);
+		}
+		for (const fremd of [
+			'<link rel="stylesheet" href="https://x.example/a.css"><script src="abbildungen.js"></script>',
+			'<link rel="stylesheet" href="blatt.css" media="print"><script src="abbildungen.js"></script>',
+			'<link href="blatt.css rel=stylesheet"><script src="abbildungen.js"></script>',
+			'<link rel="stylesheet" href="blatt.css"><script src="abbildungen.js">a()</script>',
+		]) {
+			assert.equal(neueFunde(KOPF, fremd).length, 1, fremd);
+		}
+	});
+
+	it('Die häufigsten Sperrtexte nennen die Alternative (225)', () => {
+		const texte = pruefeFreiesHtml(
+			'<link rel="icon" href="x.png"><script>a()</script><div onclick="f()" style="background:url(x.png)"><img src="https://x.example/b.png"></div>',
+		).map((f) => f.text);
+		assert.deepEqual(texte, [
+			'Das Element <link> ist nicht erlaubt → Stylesheets nur wie in der Vorlage (<link rel="stylesheet" href="blatt.css">, beim Thema thema.css); eigene Regeln in <style>',
+			'Das Element <script> ist nicht erlaubt → kein Skript: Abbildungen als <x-…>, Aussehen über CSS; im Kopf bleibt <script src="abbildungen.js"></script> wie in der Vorlage',
+			'Das Attribut onclick an <div> ist nicht erlaubt → das Blatt ist statisch: kein Ereignis, Lösungen über data-l oder .nur-loesung',
+			'Die CSS-Funktion url() ist nicht erlaubt → Bilder als <img src="bilder/…">, keine Hintergrundbilder',
+			'Die Bildadresse „https://x.example/b.png“ ist nicht erlaubt → nur Bilder aus der Mappe (bilder/…) oder als data:image',
+		]);
+	});
 });
 
 describe('Vorhandenes Material besteht die Prüfung', () => {
@@ -290,7 +320,7 @@ describe('Vorhandenes Material besteht die Prüfung', () => {
 		assert.ok(dateien.length > 20);
 		for (const datei of dateien) {
 			const funde = pruefeFreiesHtml(readFileSync(datei, 'utf8')).filter(
-				(f) => !/^Das Element <(?:meta|link|script)> ist nicht erlaubt$/.test(f.text),
+				(f) => !/^Das Element <(?:meta|link|script)> ist nicht erlaubt(?: → .*)?$/.test(f.text),
 			);
 			assert.deepEqual(funde, [], datei);
 		}

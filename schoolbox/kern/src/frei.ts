@@ -210,7 +210,8 @@ const stilProbleme = (css: string): { text: string; stueck: string }[] => {
 	}
 	for (const [stueck, name = ''] of klein.matchAll(/([-\w]+)\s*\(([^)]*)\)?/g)) {
 		if (!CSS_FUNKTIONEN.has(name)) {
-			probleme.push({ text: `Die CSS-Funktion ${name}() ist nicht erlaubt`, stueck: kurz(stueck) });
+			const statt = name === 'url' ? ' → Bilder als <img src="bilder/…">, keine Hintergrundbilder' : '';
+			probleme.push({ text: `Die CSS-Funktion ${name}() ist nicht erlaubt${statt}`, stueck: kurz(stueck) });
 		}
 	}
 	for (const [stueck] of klein.matchAll(/javascript\s*:|(?:^|[;{\s])(?:behavior|-moz-binding)\s*:/g)) {
@@ -244,7 +245,7 @@ const wertProblem = (ort: Ort, name: string, wert: string): string | null => {
 	if (ort.tag === 'img' && name === 'src') {
 		return BILD_PFAD.test(wert) || BILD_DATEN.test(wert)
 			? null
-			: `Die Bildadresse „${kurz(wert)}“ ist nicht erlaubt`;
+			: `Die Bildadresse „${kurz(wert)}“ ist nicht erlaubt → nur Bilder aus der Mappe (bilder/…) oder als data:image`;
 	}
 	if (NUR_DURCH_USE.has(name)) {
 		return SPRUNG.test(wert)
@@ -285,7 +286,10 @@ const pruefeAttribute = (ort: Ort, teil: string): Fund[] => {
 	for (const treffer of teil.matchAll(ATTRIBUT)) {
 		const name = (treffer[1] ?? '').toLowerCase();
 		if (!attributErlaubt(ort, name)) {
-			funde.push(attributFund(ort, name, `Das Attribut ${name} an <${ort.tag}> ist nicht erlaubt`));
+			const statt = name.startsWith('on')
+				? ' → das Blatt ist statisch: kein Ereignis, Lösungen über data-l oder .nur-loesung'
+				: '';
+			funde.push(attributFund(ort, name, `Das Attribut ${name} an <${ort.tag}> ist nicht erlaubt${statt}`));
 			continue;
 		}
 		const wert = entschluesseleEng(treffer[2] ?? treffer[3] ?? treffer[4] ?? '');
@@ -314,6 +318,29 @@ const imFremden = (k: Knoten) => {
 	return false;
 };
 
+/** Was statt eines gesperrten Elements geht; die häufigsten Ablehnungen (225). */
+const STATT_ELEMENT: Record<string, string> = {
+	script:
+		'kein Skript: Abbildungen als <x-…>, Aussehen über CSS; im Kopf bleibt <script src="abbildungen.js"></script> wie in der Vorlage',
+	link: 'Stylesheets nur wie in der Vorlage (<link rel="stylesheet" href="blatt.css">, beim Thema thema.css); eigene Regeln in <style>',
+};
+
+/**
+ * Die Stelle eines Start-Tags ohne Schreibweise: Attribute in fester Folge, jeder Wert gleich gequotet, ohne `/` am
+ * Ende. So bleibt `<link href="blatt.css" rel="stylesheet">` derselbe Bestand wie in der Vorlage (225); ein
+ * Attribut mehr, ein anderer Wert oder eine Entität ist weiter neu.
+ */
+const tagOhneSchreibweise = (tag: string, roh: string) => {
+	const t = TAG.exec(roh);
+	if (!t) {
+		return roh;
+	}
+	const attribute = [...(t[1] ?? '').matchAll(ATTRIBUT)].map(
+		(a) => `${(a[1] ?? '').toLowerCase()}=${JSON.stringify(a[2] ?? a[3] ?? a[4] ?? '')}`,
+	);
+	return `<${tag} ${attribute.sort().join(' ')}>`;
+};
+
 const elementErlaubt = (tag: string, svg: boolean) =>
 	svg ? SVG_ELEMENTE.has(tag) : HTML_ELEMENTE.has(tag) || tag === 'svg' || Boolean(schemaVon(tag));
 
@@ -331,7 +358,14 @@ const pruefeKnoten = (z: Zerlegung, k: Knoten): Fund[] => {
 	const stelle = `${svg ? 'svg' : 'html'}|${rohtext ? z.quelle.slice(k.start, k.ende) : tagQuelle}`;
 	if (!elementErlaubt(k.tag, svg)) {
 		const wo = svg ? ' im SVG' : '';
-		return [{ text: `Das Element <${k.tag}>${wo} ist nicht erlaubt`, stelle }];
+		const statt = svg ? undefined : STATT_ELEMENT[k.tag];
+		const innen = rohtext ? z.quelle.slice(k.oeffnerEnde, k.ende) : '';
+		return [
+			{
+				text: `Das Element <${k.tag}>${wo} ist nicht erlaubt${statt ? ` → ${statt}` : ''}`,
+				stelle: `${svg ? 'svg' : 'html'}|${tagOhneSchreibweise(k.tag, tagQuelle)}${innen}`,
+			},
+		];
 	}
 	const tag = TAG.exec(tagQuelle);
 	if (!tag) {

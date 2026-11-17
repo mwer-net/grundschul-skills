@@ -5,6 +5,7 @@ import { describe, it } from 'node:test';
 
 import {
 	andereBeispiele,
+	aufgabenOhneLoesung,
 	fehlendeLoesungen,
 	hatLoesung,
 	kannBeispielSein,
@@ -69,6 +70,24 @@ describe('Lösungen', () => {
 		const alt = await vorlage();
 		const h1 = zerlege(alt).knoten.find((k) => k.tag === 'h1');
 		assert.throws(() => setzeLoesung(alt, nrVon(h1), 'x'), /keine Antwortlinie/);
+	});
+});
+
+describe('Lösung fehlt je Aufgabe (225)', () => {
+	const linie = (l?: string) => `<span class="antwort"${l === undefined ? '' : ` data-l="${l}"`}></span>`;
+	const aufgabe = (inhalt: string) => `<div class="aufgabe"><div class="anw">Rechne.</div>${inhalt}</div>`;
+
+	it('zählt je Seite und Aufgabe wie pruefung.js, ohne Ausgeblendetes und mit .nur-loesung als Lösung', () => {
+		const html = [
+			`<section class="seite">${aufgabe(linie('7'))}${aufgabe(linie() + linie())}${aufgabe(linie('1') + linie())}</section>`,
+			`<section class="seite">${aufgabe(linie() + '<p class="nur-loesung">7</p>')}<div data-aus>${aufgabe(linie())}</div>${aufgabe(linie())}${linie()}</section>`,
+		].join('');
+		assert.deepEqual(aufgabenOhneLoesung(zerlege(html)), [
+			{ seite: 1, aufgabe: 2, fehlend: 2, linien: 2 },
+			{ seite: 1, aufgabe: 3, fehlend: 1, linien: 2 },
+			{ seite: 2, aufgabe: 3, fehlend: 1, linien: 1 },
+			{ seite: 2, aufgabe: 0, fehlend: 1, linien: 1 },
+		]);
 	});
 });
 

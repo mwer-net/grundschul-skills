@@ -59,6 +59,7 @@ import {
 	freierName,
 	klasseText,
 	LAUF_DATEI,
+	laufMeldungen,
 	lebenderOrdner,
 	lektuereFehltText,
 	lektuereZeile,
@@ -654,7 +655,7 @@ export const erstelleEinheiten = (
 			const vorschau = s.verkauf ? await legeVorschauAb(arbeitDir(s.id), d.slug, ansicht.bilder) : null;
 			const auftrag = bausteinVerstoesse(roh, s.bausteine ?? {}).map((t) => `FEHLER: ${t}`);
 			return {
-				text: [ansichtText(ansicht, `${ANSICHT_ORDNER}/${d.slug}`), ...auftrag, vorschau]
+				text: [ansichtText(ansicht, `${ANSICHT_ORDNER}/${d.slug}`, laufMeldungen(roh, d.art)), ...auftrag, vorschau]
 					.filter(Boolean)
 					.join('\n'),
 			};

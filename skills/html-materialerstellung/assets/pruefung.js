@@ -79,6 +79,7 @@
   const satz2 = B.dataset.satz === "2" && !B.matches(".folie,.a3-hoch,.lehrkraft");
   const RICHTWERT = satz2 ? { 1: 6, 2: 8, 3: 9, 4: 10 }[kl] || 8 : zeitziel ? { 1: 5, 2: 6, 3: 7, 4: 8 }[kl] || 8 : { 1: 3, 2: 4, 3: 5, 4: 6 }[kl] || 6;
   const KOPF_MAX = 210, FUSS_MAX = 150, FREI_MAX = 90;
+  const ZEIT_KNAPP = 0.85, ZEIT_VIEL = 1.25; // Anteil am Zeitziel: darunter zu wenig, darüber zu viel
   const AUFGABEN_MIN = 4, TEILE_MIN = 12, LEER_MAX = 35, ABSTAND_MIN = satz2 ? 10 : 20;
   // Woran ein Kind auf der Seite etwas tut: Items einer Reihe oder Stellen zum Schreiben, je Aufgabe mindestens eine.
   const TEIL = ".antwort,.schreiblinie,.luecke,.platz,.malfeld,td[data-l],x-ankreuzen .ankreuzen,x-richtigfalsch tbody tr,.zeile-frei";
@@ -90,9 +91,14 @@
     if (zeitFehlt.length) melde("WARNUNG", zeitSeite, "zeit-fehlt", `${zeitFehlt.length} ${zeitFehlt.length === 1 ? "Aufgabe" : "Aufgaben"} ohne Zeitangabe → data-min an der Aufgabe ergänzen`, zeitFehlt);
     const alle = zeitGruppen.get(0) || 0, niveaus = [...zeitGruppen.keys()].filter((n) => n > 0);
     const wege = niveaus.length ? niveaus.map((n) => [n, alle + zeitGruppen.get(n)]) : [[0, alle]];
-    const [n, min] = wege.sort((a, b) => a[1] - b[1])[0];
-    if (!zeitFehlt.length && min < zeitziel * 0.85)
-      melde("WARNUNG", zeitSeite, "zeit-knapp", `${n ? `Die Aufgaben für ${"●".repeat(n)} reichen` : "Die Aufgaben reichen"} für etwa ${Math.round(min)} min, Ziel sind ${zeitziel} min → Aufgaben oder Items ergänzen${n ? ", oder je Niveau eine eigene Seite" : ""}`, []);
+    wege.sort((a, b) => a[1] - b[1]);
+    const [n, min] = wege[0], [nv, max] = wege[wege.length - 1];
+    const fuer = (k) => (k ? `Die Aufgaben für ${"●".repeat(k)} reichen` : "Die Aufgaben reichen");
+    if (!zeitFehlt.length && min < zeitziel * ZEIT_KNAPP)
+      melde("WARNUNG", zeitSeite, "zeit-knapp", `${fuer(n)} für etwa ${Math.round(min)} min, Ziel sind ${zeitziel} min → Aufgaben oder Items ergänzen${n ? ", oder je Niveau eine eigene Seite" : ""}`, []);
+    // Nur beim Bauen (225): Die Obergrenze ist für Claude; im Editor soll vorhandenes Material nicht mehr melden.
+    if (warten && !zeitFehlt.length && max > zeitziel * ZEIT_VIEL)
+      melde("WARNUNG", zeitSeite, "zeit-viel", `${fuer(nv)} für etwa ${Math.round(max)} min, Ziel sind ${zeitziel} min → Aufgabe auf ein weiteres Blatt oder zur Sternchenaufgabe machen`, []);
     zeitGruppen.clear(); zeitFehlt = [];
   };
   if (warten) window.kitAnteil = pruefeBaukasten(melde); // Nur beim Bauen: Im Editor hilft der Hinweis der Lehrkraft nicht.
@@ -183,7 +189,7 @@
     // 2. Abgeschnittener oder zu breiter Text; eine Ebene schneidet mit Absicht am Blattrand ab
     // 107: Text in einer Form mit Text (.form-inhalt) läuft nach unten über, darum dort auch die Höhe
     alle.filter((e) => !e.classList.contains("ebene") && !e.classList.contains("flaeche") && !e.classList.contains("bild-lagen") && ((e.scrollWidth > e.clientWidth + 2 && e.clientWidth > 0 && getComputedStyle(e).overflowX !== "visible") || (e.classList.contains("form-inhalt") && e.scrollHeight > e.clientHeight + 2 && e.clientHeight > 0)))
-      .forEach((e) => melde("FEHLER", nr, "abgeschnitten", `„${kurz(e)}“ ist abgeschnitten`, [ziel(e)]));
+      .forEach((e) => melde("FEHLER", nr, "abgeschnitten", `„${kurz(e)}“ ist abgeschnitten → Text kürzen oder dem Element mehr Breite geben (weniger Spalten)`, [ziel(e)]));
     // 2b. Fläche im Stapel (115): sie schneidet an ihrem Rand ab; ein Element, das darüber hinausragt, wird gekappt
     alle.filter((f) => f.classList.contains("flaeche")).forEach((f) => {
       const F = f.getBoundingClientRect();
@@ -214,7 +220,7 @@
     // nur das äußerste überlappende Paar melden
     paare.filter(([a, b]) => !paare.some(([c, d]) => (c !== a || d !== b) &&
         ((c.contains(a) && d.contains(b)) || (c.contains(b) && d.contains(a)))))
-      .forEach(([a, b, [w, h]]) => melde("FEHLER", nr, "ueberlappung", `„${kurz(a)}“ überlappt „${kurz(b)}“ (${w} × ${h} px)`, [ziel(a), ziel(b)]));
+      .forEach(([a, b, [w, h]]) => melde("FEHLER", nr, "ueberlappung", `„${kurz(a)}“ überlappt „${kurz(b)}“ (${w} × ${h} px) → Abstand vergrößern, Spalten senken oder das zweite Element in die nächste Zeile`, [ziel(a), ziel(b)]));
 
     // 3b. Gestaltung (096): außerhalb der Seite, im Druckrand, verdeckt Inhalt. Gemessen wird das Rechteck nach dem
     // Drehen; erst alle Rechtecke sammeln, dann vergleichen. Teile einer Gruppe zählen mit ihr.
@@ -253,7 +259,7 @@
     }
     if (klein.size) {
       const erste = [...klein].slice(0, 4);
-      melde("WARNUNG", nr, "schrift-klein", `Schrift kleiner als ${min} px ${folie ? "auf Folien (Leseentfernung)" : `für Klasse ${kl}`}: ${erste.map(([t]) => t).join(", ")}`, erste.map(([, p]) => ziel(p)));
+      melde("WARNUNG", nr, "schrift-klein", `Schrift kleiner als ${min} px ${folie ? "auf Folien (Leseentfernung)" : `für Klasse ${kl}`}: ${erste.map(([t]) => t).join(", ")} → font-size am Element entfernen; die Größe setzt blatt.css`, erste.map(([, p]) => ziel(p)));
     }
 
     // 5. s/w-Ansicht: Farben rechnet graustufen.js um, zu melden ist nur, was dabei verloren geht
@@ -318,7 +324,7 @@
     for (let i = 1; i < gezeigt.length; i++) {
       const [vorige, v] = gezeigt[i - 1], [a, n] = gezeigt[i];
       const gap = a.getBoundingClientRect().top - vorige.getBoundingClientRect().bottom;
-      if (gap < ABSTAND_MIN) melde("WARNUNG", nr, "abstand-knapp", `Nur ${Math.round(gap)} px zwischen Aufgabe ${v} und ${n}`, [ziel(vorige), ziel(a)]);
+      if (gap < ABSTAND_MIN) melde("WARNUNG", nr, "abstand-knapp", `Nur ${Math.round(gap)} px zwischen Aufgabe ${v} und ${n} → eigene margin an der Aufgabe entfernen`, [ziel(vorige), ziel(a)]);
     }
 
     // 8. Ungenutzter Platz (Folien dürfen leer sein: eine Aussage je Folie)

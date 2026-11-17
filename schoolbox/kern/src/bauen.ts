@@ -20,6 +20,7 @@ import {
 	zusatzStandDatei,
 } from './ausgabe';
 import { SchoolboxFehler } from './fehler';
+import { druckprofilAusHtml } from './html';
 import type { Konfig } from './konfig';
 import { BLATT_PY } from './konfig';
 import type { Meldung } from './meldungen';
@@ -262,9 +263,50 @@ export interface Ansicht {
 	bilder: string[];
 }
 
+/** Was nur die s/w-Ansicht meldet (`pruefung.js` bei `body.sw`). */
+const SW_CODES: readonly string[] = ['kontrast-sw', 'farbwort-sw', 'bild-kontrast-sw'];
+
+const swPruefen = async (konfig: Pick<Konfig, 'pythonBin'>, quelle: string, ordner: string) => {
+	const berichtDatei = path.join(ordner, 'pruefbericht.json');
+	const lauf = await fuehreAus(konfig.pythonBin, [
+		BLATT_PY,
+		'bauen',
+		quelle,
+		'-o',
+		ordner,
+		'--nur-pruefen',
+		'--profil',
+		'sw',
+		'--bericht',
+		berichtDatei,
+	]);
+	if ((lauf.code !== 0 && lauf.code !== 1) || !existsSync(berichtDatei)) {
+		return [];
+	}
+	const bericht = JSON.parse(await readFile(berichtDatei, 'utf8')) as Pruefbericht;
+	return bericht.meldungen.filter((m) => m.code !== undefined && SW_CODES.includes(m.code));
+};
+
+/**
+ * Die s/w-Meldungen einer Quelle in Farbe: ein zweiter Prüfdurchgang mit `--profil sw`, nur Bericht, keine Bilder
+ * (225). Claude hat kein Bash für `blatt.py bauen --profil sw`. Eine Quelle in s/w meldet sie schon im ersten.
+ */
+const swMeldungen = async (konfig: Pick<Konfig, 'pythonBin'>, quelle: string): Promise<Meldung[]> => {
+	if (druckprofilAusHtml(await readFile(quelle, 'utf8')) === 'sw') {
+		return [];
+	}
+	const ordner = await mkdtemp(path.join(tmpdir(), 'schoolbox-sw-'));
+	try {
+		return await swPruefen(konfig, quelle, ordner);
+	} finally {
+		await rm(ordner, { recursive: true, force: true });
+	}
+};
+
 /**
  * Baut eine Fassung so, wie `blatt.py bauen` es in der Claude-App tut, und legt Prüfbericht und Seitenbilder für die
  * visuelle Endkontrolle ab. `quelle` ist eine Datei, die neben den Bildern des Dokuments liegt; sie bleibt, wie sie ist.
+ * Die Hinweise der s/w-Ansicht stehen mit im Bericht.
  */
 export const baueAnsichtAus = async (
 	konfig: Pick<Konfig, 'pythonBin'>,
@@ -273,6 +315,8 @@ export const baueAnsichtAus = async (
 ): Promise<Ansicht> => {
 	const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-ansicht-'));
 	const berichtDatei = path.join(tmp, 'pruefbericht.json');
+	// Neben dem Bau: danach kostete der zweite Durchgang rund 7 s je Bau, daneben rund 4–5 s (225).
+	const sw = swMeldungen(konfig, quelle).catch(() => []);
 	try {
 		const lauf = await fuehreAus(konfig.pythonBin, [
 			BLATT_PY,
@@ -311,8 +355,11 @@ export const baueAnsichtAus = async (
 			await copyFile(path.join(tmp, b.datei), path.join(ziel, neu));
 			bilder.push(neu);
 		}
-		return { bericht: JSON.parse(await readFile(berichtDatei, 'utf8')) as Pruefbericht, bilder };
+		const bericht = JSON.parse(await readFile(berichtDatei, 'utf8')) as Pruefbericht;
+		bericht.meldungen.push(...(await sw));
+		return { bericht, bilder };
 	} finally {
+		await sw;
 		await rm(tmp, { recursive: true, force: true });
 	}
 };

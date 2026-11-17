@@ -29,6 +29,10 @@ export const MELDUNG_CODES = [
 	'schnitt-knapp',
 	/** Nur mit Zeitziel (`data-zeit`): Die geplanten Minuten der Aufgaben reichen nicht für das Ziel. */
 	'zeit-knapp',
+	/** Nur beim Bauen, mit Zeitziel: Die geplanten Minuten gehen mehr als 25 % über das Ziel hinaus (225). */
+	'zeit-viel',
+	/** Nur im Lauf von Claude, vom Server: Arbeitsmaterial mit Aufgaben, aber ohne `data-zeit` am `<body>` (225). */
+	'zeitziel-fehlt',
 	/** Nur mit Zeitziel: Aufgaben ohne geschätzte Minuten (`data-min`). */
 	'zeit-fehlt',
 	/** Nur mit Zeitziel: Kopf oder Selbsteinschätzung nehmen den Aufgaben zu viel Platz. */
@@ -42,7 +46,7 @@ export const MELDUNG_CODES = [
 	'zahlenraum',
 	/** Das Blatt hat Abbildungen mit echten Maßen (023). */
 	'masstab',
-	/** Nur im Editor: Antwortlinien ohne Lösung (019). */
+	/** Antwortlinien ohne Lösung: im Editor als Hinweis (019), im Lauf von Claude je Aufgabe als Warnung (225). */
 	'loesung-fehlt',
 	/** Nur im Editor: „Zu 3: …“ zeigt nach dem Umsortieren auf eine andere Aufgabe (016). */
 	'verweis',
@@ -56,6 +60,12 @@ export const MELDUNG_CODES = [
 	'verdeckt',
 	/** Einmal je Material: Elemente mit `data-aus` werden nicht gedruckt (096, F10). */
 	'ausgeblendet',
+	/** Nur beim Bauen: thema.css nennt eine Klasse, die blatt.css nicht kennt (055). */
+	'thema-klasse',
+	/** Nur beim Bauen: thema.css setzt Layout statt Aussehen (055). */
+	'thema-layout',
+	/** Nur beim Bauen: Weniger als 90 % der Elemente mit Klasse nutzen nur Kit-Klassen (055). */
+	'kit-anteil',
 ] as const;
 
 export type MeldungCode = (typeof MELDUNG_CODES)[number];
@@ -209,6 +219,19 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 			tipp: 'Eine Aufgabe oder Einträge ergänzen, zum Beispiel durch Duplizieren. Oder Claude darum bitten.',
 		};
 	},
+	'zeit-viel': (_n, text) => {
+		const [, hat, ziel] = /etwa (\d+) min, Ziel sind (\d+) min/.exec(text) ?? [];
+		return {
+			satz: hat
+				? `Die Aufgaben brauchen etwa ${hat} Minuten, geplant sind ${ziel ?? ''}.`
+				: 'Die Aufgaben brauchen mehr Zeit als geplant.',
+			tipp: 'Eine Aufgabe löschen, zur Sternchenaufgabe machen oder mit „Ab hier neue Seite“ teilen.',
+		};
+	},
+	'zeitziel-fehlt': () => ({
+		satz: 'Für das Blatt ist keine Arbeitszeit geplant.',
+		tipp: 'Claude bitten, ein Zeitziel und die Zeiten der Aufgaben zu ergänzen.',
+	}),
 	'zeit-fehlt': () => ({
 		satz: 'Bei einigen Aufgaben fehlt die geschätzte Arbeitszeit.',
 		tipp: 'Claude bitten, die Zeiten zu ergänzen.',
@@ -270,6 +293,12 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 			tipp: 'In den Ebenen mit dem Auge wieder einblenden.',
 		};
 	},
+	'thema-klasse': () => ({
+		satz: 'Das Aussehen der Einheit nutzt eine eigene Klasse, die das Blatt nicht kennt.',
+		tipp: null,
+	}),
+	'thema-layout': () => ({ satz: 'Das Aussehen der Einheit verändert auch das Layout.', tipp: null }),
+	'kit-anteil': () => ({ satz: 'Das Blatt nutzt viele eigene Gestaltungen statt der Bausteine.', tipp: null }),
 };
 
 type Regel = [RegExp, (...teile: string[]) => string];

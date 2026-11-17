@@ -10,7 +10,7 @@ import { createServer } from 'node:net';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 
-import type { Ansicht } from '@schoolbox/kern';
+import type { Ansicht, Meldung } from '@schoolbox/kern';
 import { ANSICHT_ORDNER, WURZEL } from '@schoolbox/kern';
 
 export const WERKZEUG_SERVER = 'schoolbox';
@@ -20,18 +20,32 @@ const MAX_MELDUNGEN = 60;
 
 export type Bauen = (dokument: string | undefined) => Promise<{ text: string; fehler?: boolean }>;
 
-/** Der Text, den Claude nach einem Bau liest. `ordner`: wo die Bilder liegen, aus Sicht seines Arbeitsordners. */
-export const ansichtText = ({ bericht, bilder }: Ansicht, ordner = ANSICHT_ORDNER) => {
-	const meldungen = bericht.meldungen.filter((m) => m.stufe !== 'HINWEIS');
+/** Hinweise, die Claude nicht bekommt: `ausgeblendet` ist gewollt, die Kit-Pflicht ist zurückgestellt (222). */
+const HINWEIS_OHNE: readonly string[] = ['ausgeblendet', 'kit-anteil'];
+const MAX_HINWEISE = 15;
+
+const zeile = (m: Meldung) => `${m.stufe}${m.seite > 0 ? ` Seite ${m.seite}` : ''}: ${m.text}`;
+
+/**
+ * Der Text, den Claude nach einem Bau liest. `ordner`: wo die Bilder liegen, aus Sicht seines Arbeitsordners.
+ * `zusatz`: Meldungen des Servers zum Lauf (`laufMeldungen`), sie zählen wie die des Prüfberichts (225).
+ */
+export const ansichtText = ({ bericht, bilder }: Ansicht, ordner = ANSICHT_ORDNER, zusatz: Meldung[] = []) => {
+	const alle = [...bericht.meldungen, ...zusatz];
+	const meldungen = alle.filter((m) => m.stufe !== 'HINWEIS');
+	const hinweise = alle.filter((m) => m.stufe === 'HINWEIS' && !(m.code && HINWEIS_OHNE.includes(m.code)));
 	const fehler = meldungen.filter((m) => m.stufe === 'FEHLER').length;
 	const seiten = bilder.filter((b) => /^seite-\d+\.png$/.test(b));
 	const ausschnitte = bilder.filter((b) => /^seite-\d+-aufgabe-\d+\.png$/.test(b));
 	const loesung = bilder.filter((b) => b.startsWith('loesung-'));
 	const liste = (namen: string[]) => namen.map((n) => `${ordner}/${n}`).join(', ');
 	return [
-		`Gebaut: ${seiten.length} ${seiten.length === 1 ? 'Seite' : 'Seiten'}. Prüfbericht: ${fehler} Fehler, ${meldungen.length - fehler} Warnungen.`,
-		...meldungen.slice(0, MAX_MELDUNGEN).map((m) => `${m.stufe} Seite ${m.seite}: ${m.text}`),
+		`Gebaut: ${seiten.length} ${seiten.length === 1 ? 'Seite' : 'Seiten'}. Prüfbericht: ${fehler} Fehler, ${meldungen.length - fehler} Warnungen, ${hinweise.length} Hinweise.`,
+		...meldungen.slice(0, MAX_MELDUNGEN).map(zeile),
 		meldungen.length > MAX_MELDUNGEN ? `… und ${meldungen.length - MAX_MELDUNGEN} weitere.` : null,
+		hinweise.length ? 'Hinweise (ansehen, kein Zwang):' : null,
+		...hinweise.slice(0, MAX_HINWEISE).map(zeile),
+		hinweise.length > MAX_HINWEISE ? `… und ${hinweise.length - MAX_HINWEISE} weitere Hinweise.` : null,
 		seiten.length ? `Seiten zum Ansehen mit Read: ${liste(seiten)}` : null,
 		ausschnitte.length ? `Ausschnitt je Aufgabe: ${liste(ausschnitte)}` : null,
 		loesung.length ? `Lösung: ${liste(loesung)}` : null,

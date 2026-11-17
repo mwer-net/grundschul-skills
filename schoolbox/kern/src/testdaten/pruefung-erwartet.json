@@ -13,17 +13,17 @@
 		{
 			"stufe": "FEHLER",
 			"seite": 1,
-			"text": "„Ein sehr langer Text, der nicht passt“ ist abgeschnitten"
+			"text": "„Ein sehr langer Text, der nicht passt“ ist abgeschnitten → Text kürzen oder dem Element mehr Breite geben (weniger Spalten)"
 		},
 		{
 			"stufe": "FEHLER",
 			"seite": 1,
-			"text": "„Erste Zeile“ überlappt „Zweite Zeile“ (606 × 24 px)"
+			"text": "„Erste Zeile“ überlappt „Zweite Zeile“ (606 × 24 px) → Abstand vergrößern, Spalten senken oder das zweite Element in die nächste Zeile"
 		},
 		{
 			"stufe": "WARNUNG",
 			"seite": 1,
-			"text": "Schrift kleiner als 19 px für Klasse 2: „Winzige Schrift hier.“ (10px)"
+			"text": "Schrift kleiner als 19 px für Klasse 2: „Winzige Schrift hier.“ (10px) → font-size am Element entfernen; die Größe setzt blatt.css"
 		},
 		{
 			"stufe": "HINWEIS",
@@ -53,7 +53,7 @@
 		{
 			"stufe": "WARNUNG",
 			"seite": 1,
-			"text": "Nur 4 px zwischen Aufgabe 1 und 2"
+			"text": "Nur 4 px zwischen Aufgabe 1 und 2 → eigene margin an der Aufgabe entfernen"
 		},
 		{
 			"stufe": "FEHLER",

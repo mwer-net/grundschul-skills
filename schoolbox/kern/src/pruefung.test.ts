@@ -86,6 +86,13 @@ describe('pruefung.js (mit blatt.py)', () => {
 					'teil-klein',
 					'motiv-klein',
 					'schnitt-knapp',
+					// 225: zeit-viel, Thema und Kit-Anteil prüft „pruefung.js: Prüfbericht im Lauf“; zeitziel-fehlt meldet
+					// der Server (laufMeldungen).
+					'zeit-viel',
+					'thema-klasse',
+					'thema-layout',
+					'kit-anteil',
+					'zeitziel-fehlt',
 				].includes(c),
 		);
 		assert.deepEqual(fehlt, [], 'jede Regel kommt in den Testdaten vor');
@@ -127,7 +134,7 @@ describe('pruefung.js mit Gestaltung (091)', { skip: browserSkip() }, () => {
 				{
 					code: 'ueberlappung',
 					stufe: 'FEHLER',
-					text: '„Willi oben“ überlappt „Wilma darunter“ (54 × 120 px)',
+					text: '„Willi oben“ überlappt „Wilma darunter“ (54 × 120 px) → Abstand vergrößern, Spalten senken oder das zweite Element in die nächste Zeile',
 				},
 				// Die freie Figur vorne überdeckt Aufgabe 4: dafür gibt es seit 096 den Hinweis statt ueberlappung.
 				{
@@ -638,5 +645,59 @@ describe('pruefung.js: Auftakt (217)', { skip: browserSkip() }, () => {
 	it('kleine Schrift meldet die Prüfung auch im Auftakt', async () => {
 		const klein = `${szene}<div class="ebene vorne"><div class="schmuck" data-lage="frei" data-schmuck="titel" style="--x:100px;--y:100px;--gr:20px">Zu klein</div></div>`;
 		assert.ok((await melde(folien(' auftakt', klein))).some((m) => m.code === 'schrift-klein'));
+	});
+});
+
+describe('pruefung.js: Prüfbericht im Lauf (225)', { skip: browserSkip() }, () => {
+	const aufgabe = (nr: number, min: number) =>
+		`<div class="aufgabe" data-min="${min}"><span class="nr">${nr}</span><div class="anw"><span class="text">Rechne.</span></div></div>`;
+	const melde = async (body: string, inhalt: string, thema = '') => {
+		const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-225-'));
+		try {
+			const datei = path.join(tmp, 'blatt.html');
+			await writeFile(path.join(tmp, 'thema.css'), thema);
+			await writeFile(
+				datei,
+				[
+					'<!doctype html><html lang="de"><head><meta charset="utf-8"><title>225</title>',
+					`<link rel="stylesheet" href="blatt.css">${thema ? '<link rel="stylesheet" href="thema.css">' : ''}</head>`,
+					`<body class="kl2 farbe"${body}>${inhalt}</body></html>`,
+				].join('\n'),
+			);
+			return await pruefe(datei);
+		} finally {
+			await rm(tmp, { recursive: true, force: true });
+		}
+	};
+
+	it('zeit-viel: über 125 % des Zeitziels, je Weg; bis 125 % still', async () => {
+		const meldungen = await melde(
+			' data-zeit="10"',
+			`<section class="seite">${aufgabe(1, 8)}${aufgabe(2, 8)}</section><section class="seite">${aufgabe(1, 6)}${aufgabe(2, 6)}</section>`,
+		);
+		assert.deepEqual(
+			meldungen.filter((m) => m.code === 'zeit-viel').map(({ seite, stufe, text }) => ({ seite, stufe, text })),
+			[
+				{
+					seite: 1,
+					stufe: 'WARNUNG',
+					text: 'Die Aufgaben reichen für etwa 16 min, Ziel sind 10 min → Aufgabe auf ein weiteres Blatt oder zur Sternchenaufgabe machen',
+				},
+			],
+		);
+		assert.equal(meldungen.filter((m) => m.code === 'zeit-knapp').length, 0);
+	});
+
+	it('Thema und Kit-Anteil haben ihre Codes (HINWEIS)', async () => {
+		const eigen = '<div class="eigen-kasten">x</div>'.repeat(5);
+		const meldungen = await melde(
+			'',
+			`<section class="seite">${aufgabe(1, 5)}${eigen}</section>`,
+			'.eigen-kasten { color: #333; }\n.titel { margin-top: 4px; }',
+		);
+		const stufen = Object.fromEntries(meldungen.map((m) => [m.code, m.stufe]));
+		assert.equal(stufen['thema-klasse'], 'HINWEIS');
+		assert.equal(stufen['thema-layout'], 'HINWEIS');
+		assert.equal(stufen['kit-anteil'], 'HINWEIS');
 	});
 });

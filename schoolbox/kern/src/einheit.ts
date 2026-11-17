@@ -7,7 +7,11 @@ import { leseStunden } from './einheit-aufgaben';
 import type { Steckbrief } from './einheit-bau';
 import type { PruefStand, SchlussStand } from './einheit-pruefung';
 import { SchoolboxFehler } from './fehler';
+import { hatSatz } from './html';
+import { aufgabenOhneLoesung } from './loesungen';
+import type { Meldung } from './meldungen';
 import { FACH_NAME } from './namen';
+import { zerlege } from './quelltext';
 import type { RechercheAnfrage, RechercheStand } from './recherche';
 import { ID_MUSTER } from './schema';
 import type { Art, Fach, Format, Klasse } from './werte';
@@ -470,6 +474,50 @@ export const bausteinVerstoesse = (html: string, bausteine: Partial<Bausteine>):
 		}
 	}
 	return befunde;
+};
+
+// ——— Prüfungen, die nur Claude im Lauf bekommt (225) ———
+
+/** Material, dessen Menge nach Arbeitszeit geplant wird (`druck-und-platz.md`, „Menge nach Arbeitszeit“). */
+const MIT_ZEITZIEL: readonly string[] = ['arbeitsblatt', 'stationen', 'lernzielkontrolle', 'klassenarbeit'];
+const BODY_TAG = /<body\b[^>]*>/i;
+
+/**
+ * Was der Bau für Claude zusätzlich meldet, als WARNUNG neben dem Prüfbericht: Der Editor zeigt der Lehrkraft beides
+ * nicht. Ohne `data-zeit` prüft `pruefung.js` die Menge nicht; nur neues Material (`data-satz="2"`), damit ein älteres
+ * Blatt beim Nachbessern nicht in die Zeitprüfung rutscht.
+ */
+export const laufMeldungen = (html: string, art: string): Meldung[] => {
+	const quelle = html.replace(/<!--[\s\S]*?-->/g, '');
+	const meldungen: Meldung[] = [];
+	const body = BODY_TAG.exec(quelle)?.[0] ?? '';
+	const mitAufgaben = [...quelle.matchAll(KLASSE_ATTR)].some((t) =>
+		(t[1] ?? t[2] ?? '').split(/\s+/).includes('aufgabe'),
+	);
+	if (MIT_ZEITZIEL.includes(art) && hatSatz(quelle) && mitAufgaben && !/\sdata-zeit\s*=/i.test(body)) {
+		meldungen.push({
+			stufe: 'WARNUNG',
+			seite: 0,
+			code: 'zeitziel-fehlt',
+			text: 'Am <body> fehlt data-zeit. Ohne Zeitziel prüft der Bau die Menge nicht → ergänzen und je Aufgabe data-min setzen.',
+		});
+	}
+	let zerlegt;
+	try {
+		zerlegt = zerlege(quelle);
+	} catch {
+		return meldungen;
+	}
+	for (const g of aufgabenOhneLoesung(zerlegt)) {
+		const text =
+			g.aufgabe === 0
+				? `${g.fehlend} ${g.fehlend === 1 ? 'Antwortlinie' : 'Antwortlinien'} außerhalb einer Aufgabe ohne Lösung → data-l ergänzen`
+				: g.fehlend === g.linien
+					? `Aufgabe ${g.aufgabe} hat keine Lösung → data-l, loesung= oder .nur-loesung ergänzen`
+					: `Aufgabe ${g.aufgabe}: ${g.fehlend} von ${g.linien} Antwortlinien ohne Lösung → data-l ergänzen`;
+		meldungen.push({ stufe: 'WARNUNG', seite: g.seite, code: 'loesung-fehlt', text });
+	}
+	return meldungen;
 };
 
 // ——— Stand (Server und Oberfläche) ———

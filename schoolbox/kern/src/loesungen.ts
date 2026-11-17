@@ -37,6 +37,52 @@ export const loesungVon = (k: Knoten) => attribut(k, 'data-l')?.wert?.trim() ?? 
 /** Antwortlinien ohne Lösung: Auf dem Lösungsblatt bliebe die Linie leer. */
 export const fehlendeLoesungen = (z: Zerlegung) => z.knoten.filter((k) => istAntwort(k) && !loesungVon(k));
 
+const vorfahren = (k: Knoten): Knoten[] => (k.eltern ? [k.eltern, ...vorfahren(k.eltern)] : []);
+
+/** Wie `pruefung.js`: Seiten sind die äußeren `.seite`, Aufgaben zählen je Seite ab 1, in Dokumentreihenfolge. */
+const aeussereSeiten = (z: Zerlegung) => z.knoten.filter((k) => hat(k, 'seite') && !vorfahren(k).some((v) => hat(v, 'seite')));
+
+export interface AufgabeOhneLoesung {
+	/** 0: außerhalb einer Seite. */
+	seite: number;
+	/** Nummer der Aufgabe auf ihrer Seite; 0: Antwortlinien außerhalb einer Aufgabe. */
+	aufgabe: number;
+	fehlend: number;
+	linien: number;
+}
+
+/**
+ * Fehlende Lösungen je Aufgabe, für Claude im Lauf (225). Dieselben Antwortlinien wie `fehlendeLoesungen`; nicht
+ * gezählt wird, was nicht gedruckt wird (`data-aus`), und eine Aufgabe, deren Lösung als `.nur-loesung` dasteht.
+ */
+export const aufgabenOhneLoesung = (z: Zerlegung): AufgabeOhneLoesung[] => {
+	const seiten = aeussereSeiten(z);
+	const gruppen = new Map<string, AufgabeOhneLoesung>();
+	for (const k of z.knoten.filter(istAntwort)) {
+		const oben = vorfahren(k);
+		if (oben.some((v) => attribut(v, 'data-aus') !== undefined || hat(v, 'nur-loesung'))) {
+			continue;
+		}
+		const aufgabe = oben.find((v) => hat(v, 'aufgabe'));
+		if (aufgabe && darunter(aufgabe).some((d) => hat(d, 'nur-loesung'))) {
+			continue;
+		}
+		const seite = seiten.find((s) => oben.includes(s));
+		const nr = aufgabe && seite ? darunter(seite).filter((d) => hat(d, 'aufgabe')).indexOf(aufgabe) + 1 : 0;
+		const schluessel = `${seite?.nr ?? -1}|${aufgabe?.nr ?? -1}`;
+		const g = gruppen.get(schluessel) ?? {
+			seite: seite ? seiten.indexOf(seite) + 1 : 0,
+			aufgabe: nr,
+			fehlend: 0,
+			linien: 0,
+		};
+		g.linien += 1;
+		g.fehlend += loesungVon(k) ? 0 : 1;
+		gruppen.set(schluessel, g);
+	}
+	return [...gruppen.values()].filter((g) => g.fehlend > 0);
+};
+
 /** Gibt es etwas, das in der Lösung stehen kann? Dann lohnt die Lösungsansicht auch ohne eine einzige Lösung. */
 export const kannLoesungHaben = (z: Zerlegung) => hatLoesung(z.quelle) || z.knoten.some(istAntwort);
 

@@ -40,6 +40,7 @@ import {
 	istEinElement,
 	klasseText,
 	LAUF_DATEI,
+	laufMeldungen,
 	lektuereFehltText,
 	leseLaufProtokoll,
 	leseMeta,
@@ -1955,6 +1956,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			ausschnitt: Ausschnitt,
 			bilder: BlattBilder | null,
 			bausteine: Partial<Bausteine> | undefined,
+			art: string,
 			lektuere: { pflicht: string[]; lauf: () => BlattLauf | null } | null = null,
 		): Bauen =>
 		async () => {
@@ -1979,7 +1981,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			versuch.fehler = gebaut.bericht.meldungen.filter((m) => m.stufe === 'FEHLER').length;
 			const kopf = kopfBefunde(quelle, ganz).map((t) => `FEHLER: ${t}`);
 			const auftrag = bausteinVerstoesse(ganz, bausteine ?? {}).map((t) => `FEHLER: ${t}`);
-			return { text: [ansichtText(gebaut), ...kopf, ...auftrag].join('\n') };
+			return { text: [ansichtText(gebaut, ANSICHT_ORDNER, laufMeldungen(ganz, art)), ...kopf, ...auftrag].join('\n') };
 		};
 
 	/** Neue Bilder gibt es nur beim Bau eines neuen Blatts: Der freigegebene Plan nennt sie. */
@@ -2058,6 +2060,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 				ausschnitt,
 				blattBilder,
 				w.bausteine,
+				meta.art,
 				imBau ? { pflicht, lauf: () => laufJetzt } : null,
 			),
 		).catch((fehler: unknown) => {
