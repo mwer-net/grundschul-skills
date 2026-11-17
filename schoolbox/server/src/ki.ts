@@ -2181,7 +2181,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			const kopf = `Das Blatt: „${meta.titel}“, Art ${meta.art}.${
 				w.neuesBlatt || hatSatz(quelle)
 					? ''
-					: ' Es steht im älteren Satz (kein data-satz="2" am <body>): lies dazu html-materialerstellung/references/aelterer-satz.md.'
+					: ' Es steht im älteren Satz (kein data-satz="2" am <body>): lies dazu Skill html-materialerstellung, references/aelterer-satz.md.'
 			}`;
 			const lektuere = imBau
 				? `\n\n${pflichtAbschnitt(pflicht, 'vor dem ersten Aufruf von bauen; bauen nimmt das Blatt sonst nicht an')}`

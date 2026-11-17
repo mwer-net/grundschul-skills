@@ -116,7 +116,7 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 
 ## 5. Ausgabe an die Lehrkraft
 
-Gilt im Gespräch. Im Lauf der Schoolbox stehen die Antworten im Auftrag; frag nicht nach und nimm für Fehlendes den genannten Standard.
+Gilt im Gespräch. Im Lauf der Schoolbox regelt der Auftrag, was du abgibst.
 
 Liefere immer:
 1. Das Material: PDF (Arbeitsblatt und Lösungsblatt) und die eigenständige HTML-Datei (`html-materialerstellung`).
