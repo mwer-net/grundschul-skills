@@ -29,6 +29,7 @@ import { liesReferenzen, loeseReferenz, pfadText } from '@schoolbox/kern/src/ref
 
 import type { BlattBilder } from './blatt-bilder';
 import { erstelleBlattBilder } from './blatt-bilder';
+import { ANSICHT_BILDER, erstelleZuschnitt } from './canva-bild';
 import { leseQuelle } from './dokumente';
 import type { Ereignisse } from './ereignisse';
 import { HttpFehler } from './fehler';
@@ -252,7 +253,7 @@ export type KiPruefer = (dokDir: string, html: string) => Promise<Pruefbericht>;
 /** Baut eine Fassung mit Seitenbildern nach `ziel`, für das Werkzeug „bauen“. */
 export type KiAnsicht = (dokDir: string, html: string, ziel: string) => Promise<Ansicht>;
 
-type KiKonfig = Pick<Konfig, 'claudeBin' | 'kiAn' | 'kiModell' | 'materialDir'>;
+type KiKonfig = Pick<Konfig, 'claudeBin' | 'kiAn' | 'kiModell' | 'materialDir' | 'pythonBin'>;
 
 interface Abhaengigkeiten {
 	konfig: KiKonfig;
@@ -510,6 +511,9 @@ const textSchritt = (name: string, eingabe: { skill?: unknown; file_path?: unkno
 		return `Liest die Regeln: ${eingabe.skill}`;
 	}
 	if (name === 'Read' && typeof eingabe.file_path === 'string') {
+		if (eingabe.file_path.includes(`${ANSICHT_BILDER}/`)) {
+			return 'Prüft ein Bild';
+		}
 		if (eingabe.file_path.includes(`${ANSICHT_ORDNER}/`)) {
 			return 'Sieht sich die Seiten an';
 		}
@@ -1452,7 +1456,12 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 	/** Neue Bilder gibt es nur beim Bau eines neuen Blatts: Der freigegebene Plan nennt sie. */
 	const bilderFuer = (w: KiWunsch, arbeit: string) =>
 		w.neuesBlatt === true && w.phase !== 'plan'
-			? erstelleBlattBilder(arbeit, mappenDir(konfig.materialDir, w.mappe))
+			? erstelleBlattBilder(
+					arbeit,
+					mappenDir(konfig.materialDir, w.mappe),
+					undefined,
+					erstelleZuschnitt(konfig.pythonBin, path.join(arbeit, ANSICHT_BILDER)),
+				)
 			: null;
 
 	/** Ein Gespräch behält seinen Ordner, denn die Sitzungsablage von `claude` hängt am `cwd` (Entscheidung 37). */

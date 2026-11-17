@@ -10,6 +10,7 @@ import path from 'node:path';
 
 import { uebernimmBilder, wendeBilderAn } from '@schoolbox/kern';
 
+import type { Zuschnitt } from './canva-bild';
 import { erstelleBildLader, notiereCanvaId } from './canva-bild';
 
 const BILD_IM_BLATT = /\.\.\/\.\.\/bilder\/([a-z0-9][a-z0-9-]{0,59}\.(?:png|jpg))/g;
@@ -24,8 +25,8 @@ interface Uebernommen {
 	angelegt: boolean;
 }
 
-export const erstelleBlattBilder = (arbeit: string, mappeDir: string, laden?: Laden) => {
-	const lader = erstelleBildLader(arbeit, path.join(arbeit, 'bilder'), laden);
+export const erstelleBlattBilder = (arbeit: string, mappeDir: string, laden?: Laden, zuschnitt?: Zuschnitt) => {
+	const lader = erstelleBildLader(arbeit, path.join(arbeit, 'bilder'), laden, zuschnitt);
 	// Export-URLs laufen ab, und Claude sieht sich das Bild gleich nach dem Eintrag an.
 	const takt = setInterval(() => void lader.pruefe(), TAKT_MS);
 	const stand = new Map<string, Uebernommen>();

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Kl2_Mathe_Kaestchen_Kartensatz</title>
+<link rel="stylesheet" href="blatt.css">
+<script src="abbildungen.js"></script>
+</head>
+<!-- Geprüftes Beispiel für Ausschneide- und Legematerial (Regeln: grundschul-didaktik/references/druck-und-platz.md,
+     Abschnitt „Ausschneide- und Legematerial“). Es zeigt die Machart, keine Schablone: Spielform, Farbe, Rückseite und
+     Raster folgen jedes Mal dem Inhalt.
+     Seite 1: Kartensatz zum Laminieren, 3 × 3 je A4 mit gemeinsamen Schnittlinien. Vorn die Deckkarte in der Setfarbe
+     (--set), dann die Bildkarten; das Gitter hat kein kaestchen und füllt die Karte von selbst.
+     Seite 2: Rückseiten in derselben Reihenfolge wie vorn (.karten.rueckseiten spiegelt die Spalten für den Duplexdruck):
+     hinter der Deckkarte die Anleitung, hinter jeder Bildkarte die Lösung zur Selbstkontrolle.
+     Seite 3: Schneidebogen, den die Kinder selbst schneiden: gerade, gestrichelte Linien, Schere an der ersten Linie. -->
+<body class="kl2 farbe palette-sonnig" data-satz="2">
+
+<section class="seite">
+  <div class="karten" style="--spalten:3;--zeilen:3;--set:var(--akzent)">
+    <div class="karte deckkarte">
+      <img src="bilder/willi.png" alt="Willi">
+      <div class="kartentext">Kästchen-Bilder</div>
+      <div>Wie viele Kästchen?</div>
+      <div>8 Karten · Klasse 2</div>
+    </div>
+    <div class="karte"><span class="ecke">A</span><x-gitter spalten="6" zeilen="6" figur="0 0 1 1 0 0 / 0 1 1 1 1 0 / 1 1 1 1 1 1 / 0 1 1 1 1 0 / 0 1 0 0 1 0 / 0 1 0 0 1 0"></x-gitter></div>
+    <div class="karte"><span class="ecke">B</span><x-gitter spalten="6" zeilen="6" figur="0 0 0 0 0 0 / 0 1 1 0 0 1 / 1 1 1 1 1 1 / 1 1 1 1 1 1 / 0 1 1 0 0 1 / 0 0 0 0 0 0"></x-gitter></div>
+    <div class="karte"><span class="ecke">C</span><x-gitter spalten="6" zeilen="6" figur="0 1 1 1 1 0 / 1 1 1 1 1 1 / 1 1 1 1 1 1 / 0 0 1 1 0 0 / 0 0 1 1 0 0 / 0 1 1 1 1 0"></x-gitter></div>
+    <div class="karte"><span class="ecke">D</span><x-gitter spalten="6" zeilen="6" figur="0 0 1 0 0 0 / 0 0 1 1 0 0 / 0 0 1 1 1 0 / 0 0 1 0 0 0 / 1 1 1 1 1 1 / 0 1 1 1 1 0"></x-gitter></div>
+    <div class="karte"><span class="ecke">E</span><x-gitter spalten="6" zeilen="6" figur="1 0 0 0 0 1 / 1 1 0 0 1 1 / 1 1 1 1 1 1 / 1 0 1 1 0 1 / 1 1 1 1 1 1 / 0 1 1 1 1 0"></x-gitter></div>
+    <div class="karte"><span class="ecke">F</span><x-gitter spalten="6" zeilen="6" figur="0 0 1 1 0 0 / 0 1 1 1 1 0 / 1 1 1 1 1 1 / 0 0 1 1 0 0 / 0 0 1 1 0 0 / 0 0 0 0 0 0"></x-gitter></div>
+    <div class="karte"><span class="ecke">G</span><x-gitter spalten="6" zeilen="6" figur="0 0 1 1 0 0 / 0 1 1 1 1 0 / 0 1 0 0 1 0 / 0 1 1 1 1 0 / 1 1 1 1 1 1 / 1 1 0 0 1 1"></x-gitter></div>
+    <div class="karte"><span class="ecke">H</span><x-gitter spalten="6" zeilen="6" figur="1 1 0 0 0 0 / 1 1 0 0 0 0 / 1 1 1 1 1 1 / 0 1 1 1 1 1 / 0 1 0 0 1 0 / 0 1 0 0 1 0"></x-gitter></div>
+  </div>
+</section>
+
+<section class="seite">
+  <div class="karten rueckseiten" style="--spalten:3;--zeilen:3;--set:var(--akzent)">
+    <div class="karte grund">
+      <div class="kartentext">So geht es</div>
+      <ol>
+        <li>Zähle die Kästchen.</li>
+        <li>Lege die Zahl dazu.</li>
+        <li>Drehe die Karte um. Stimmt es?</li>
+      </ol>
+    </div>
+    <div class="karte rueckseite"><div><div class="kartentext">20</div>Kästchen</div></div>
+    <div class="karte rueckseite"><div><div class="kartentext">18</div>Kästchen</div></div>
+    <div class="karte rueckseite"><div><div class="kartentext">24</div>Kästchen</div></div>
+    <div class="karte rueckseite"><div><div class="kartentext">17</div>Kästchen</div></div>
+    <div class="karte rueckseite"><div><div class="kartentext">26</div>Kästchen</div></div>
+    <div class="karte rueckseite"><div><div class="kartentext">16</div>Kästchen</div></div>
+    <div class="karte rueckseite"><div><div class="kartentext">22</div>Kästchen</div></div>
+    <div class="karte rueckseite"><div><div class="kartentext">19</div>Kästchen</div></div>
+  </div>
+</section>
+
+<section class="seite">
+  <span class="loesung-marke">Lösung</span>
+  <div class="namenszeile"><span class="name">Name:</span><span class="datum">Datum:</span></div>
+  <div class="kopf">
+    <div class="titel">
+      <h1>Kästchen-Bilder: Zahlenkarten</h1>
+      <div class="ziel">Ich kann Kästchen geschickt zählen.</div>
+    </div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">1</span>
+    <div class="anw"><span class="text">Zähle die Kästchen. Schreibe die Zahl auf.</span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:4">
+        <div class="zelle"><x-gitter spalten="4" zeilen="4" figur="1 1 0 0 / 1 1 1 0 / 1 1 1 1 / 0 0 1 1"></x-gitter><span class="antwort" data-l="11"></span></div>
+        <div class="zelle"><x-gitter spalten="4" zeilen="4" figur="0 1 1 0 / 1 1 1 1 / 1 1 1 1 / 0 1 1 0"></x-gitter><span class="antwort" data-l="12"></span></div>
+        <div class="zelle"><x-gitter spalten="4" zeilen="4" figur="1 1 1 1 / 1 0 0 1 / 1 0 0 1 / 1 1 1 1"></x-gitter><span class="antwort" data-l="12"></span></div>
+        <div class="zelle"><x-gitter spalten="4" zeilen="4" figur="1 1 1 1 / 1 1 1 1 / 0 1 1 0 / 1 1 1 1"></x-gitter><span class="antwort" data-l="14"></span></div>
+      </div>
+      <div class="tipp"><img class="figur" src="bilder/willi.png" alt="Willi"><div class="blase">Zähle Reihe für Reihe und rechne zusammen.</div></div>
+    </div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">2</span>
+    <div class="anw"><span class="text">Schneide die Zahlenkarten an den Linien aus.</span></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">3</span>
+    <div class="anw"><span class="text">Lege jede Zahl auf die passende Bildkarte. Drehe die Karte um: Stimmt es?</span></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr stern">★</span>
+    <div class="anw"><span class="text">Male ein eigenes Kästchen-Bild ins Heft. Wie viele Kästchen hat es?</span></div>
+  </div>
+  <div class="schneidebogen" style="--spalten:4;--teil-b:44mm;--teil-h:62mm">
+    <div><span class="kartentext">16</span></div>
+    <div><span class="kartentext">17</span></div>
+    <div><span class="kartentext">18</span></div>
+    <div><span class="kartentext">19</span></div>
+    <div><span class="kartentext">20</span></div>
+    <div><span class="kartentext">22</span></div>
+    <div><span class="kartentext">24</span></div>
+    <div><span class="kartentext">26</span></div>
+  </div>
+</section>
+</body>
+</html>

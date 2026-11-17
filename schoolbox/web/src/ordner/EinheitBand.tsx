@@ -1,4 +1,4 @@
-import type { EinheitStand, PlanDokument } from '@schoolbox/kern/src/einheit';
+import type { EinheitStand, PlanDokument, PlanGeschichte } from '@schoolbox/kern/src/einheit';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -106,6 +106,42 @@ const Aufklapp = ({ children, titel }: { titel: string; children: ReactNode }) =
 		</summary>
 		<div className="mt-1 pl-4">{children}</div>
 	</details>
+);
+
+/** Was das Vorleseheft tragen muss (216); die Kurzfassung steht schon im Plan-Text. */
+const GeschichteDetails = ({ g }: { g: PlanGeschichte }) => (
+	<div className="flex flex-col gap-1">
+		{g.kurz && <p>{g.kurz}</p>}
+		{g.verdaechtige.length > 0 && (
+			<p>
+				<b>Verdächtige:</b>
+				{` ${g.verdaechtige.join(' · ')}`}
+			</p>
+		)}
+		{g.falscheFaehrte && (
+			<p>
+				<b>Falsche Fährte:</b>
+				{` ${g.falscheFaehrte}`}
+			</p>
+		)}
+		{g.aufloesung && (
+			<p>
+				<b>Auflösung:</b>
+				{` ${g.aufloesung}`}
+			</p>
+		)}
+		{g.kapitel.length > 0 && (
+			<ul className="list-disc pl-4">
+				{g.kapitel.map((k) => (
+					<li key={k.nr}>
+						<b>{k.titel || (k.nr === 0 ? 'Auftakt' : `Kapitel ${k.nr}`)}</b>
+						{k.offenesEnde && ` · endet mit: ${k.offenesEnde}`}
+						{k.bildfolien.length > 0 && ` · Bildfolien: ${k.bildfolien.join(' · ')}`}
+					</li>
+				))}
+			</ul>
+		)}
+	</div>
 );
 
 const KOPF: Record<EinheitStand['status'], (titel: string) => string> = {
@@ -252,6 +288,11 @@ export const EinheitBand = ({ s }: { s: EinheitStand }) => {
 						verwerfen={() => verwerfen().catch(fehler)}
 					/>
 				</div>
+			)}
+			{s.plan?.geschichte && (
+				<Aufklapp titel="Geschichte und Vorleseheft">
+					<GeschichteDetails g={s.plan.geschichte} />
+				</Aufklapp>
 			)}
 			{(s.plan?.annahmen.length ?? 0) > 0 && (
 				<Aufklapp titel="Annahmen">

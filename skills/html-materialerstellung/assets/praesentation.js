@@ -490,6 +490,9 @@ body.praesentation-notizen .seite.notizblatt{width:794px;height:1123px;--rand:48
   background:var(--haupt);border:0;border-radius:999px;padding:22px 44px;cursor:pointer;min-height:44px}
 .praesentation-startseite button.leise{font:20px/1.4 Andika,sans-serif;color:inherit;background:none;padding:10px 16px;
   text-decoration:underline}
+.praesentation-startseite .kapitel{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
+.praesentation-startseite .kapitel button{font-size:22px;padding:14px 28px;background:none;color:var(--haupt);
+  box-shadow:inset 0 0 0 2px var(--haupt)}
 .praesentation-wieder{position:fixed;right:24px;bottom:24px;z-index:2147483647;font-size:20px;padding:14px 26px;
   box-shadow:0 2px 12px rgba(0,0,0,.25)}
 @media print{.praesentation-startseite,.praesentation-wieder{display:none!important}}`;
@@ -506,6 +509,23 @@ body.praesentation-notizen .seite.notizblatt{width:794px;height:1123px;--rand:48
       '<button type="button" class="leise">Folien als Seiten ansehen</button>';
     seite.querySelector("h1").textContent = titel;
     seite.querySelector("p").textContent = `${anzahl} ${anzahl === 1 ? "Folie" : "Folien"} · funktioniert ohne Internet`;
+    // Auftakt (217): Jede Kapitelfolge beginnt an einer Folie mit data-kapitel; die Lehrkraft startet dort direkt.
+    const kapitel = [...document.querySelectorAll(".seite")].map((f, i) => [f.getAttribute("data-kapitel"), i]).filter(([k]) => k);
+    if (kapitel.length) {
+      const leiste = document.createElement("div");
+      leiste.className = "kapitel";
+      for (const [k, i] of kapitel) {
+        const knopf = document.createElement("button");
+        knopf.type = "button";
+        knopf.textContent = `Ab Kapitel ${k}`;
+        knopf.addEventListener("click", () => {
+          losgehen();
+          if (window.praesentation) window.praesentation.gehe(i + 1);
+        });
+        leiste.append(knopf);
+      }
+      seite.querySelector(".los").after(leiste);
+    }
     const wieder = document.createElement("button");
     wieder.type = "button";
     wieder.className = "praesentation-wieder";

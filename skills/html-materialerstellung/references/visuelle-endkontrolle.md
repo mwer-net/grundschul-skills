@@ -7,7 +7,7 @@ Pflichtschritt nach dem Bauen, bevor die Lehrkraft etwas sieht. Der Prüfbericht
 1. **Voraussetzung:** `blatt.py bauen` ohne FEHLER; WARNUNGEN zu Übersicht (zu viele Aufgaben, zu dicht) behoben.
 2. **Vorschau ansehen:** `NAME-s1.png` (jede Seite) und `NAME-loesung-s1.png`.
 3. **Gesamtblick** auf die ganze Seite (Abschnitt C, „Fünf-Sekunden-Test").
-4. **Ausschnitte prüfen:** `NAME-s1-a1.png`, `-a2.png` … zeigen jede Aufgabe in doppelter Auflösung. **Jeden Ausschnitt einzeln ansehen** und die Checkliste A–F abarbeiten. Enthält das Material KI-Bilder, jedes Bild zusätzlich als Originaldatei in Vierteln prüfen (Checkliste G, `bilder.md` Abschnitt 2, Schritt 5); in der Seitenvorschau sind diese Fehler zu klein.
+4. **Ausschnitte prüfen:** `NAME-s1-a1.png`, `-a2.png` … zeigen jede Aufgabe in doppelter Auflösung. **Jeden Ausschnitt einzeln ansehen** und die Checkliste A–F abarbeiten. Enthält das Material KI-Bilder, jedes Bild zusätzlich in seinen vier Vierteln und im Ausschnitt seines Platzes prüfen (Checkliste G, `bilder.md` Abschnitt 2, Schritt 5; in der Schoolbox liegen die Prüfbilder unter `ansicht/bilder/`); in der Seitenvorschau sind diese Fehler zu klein.
 5. **Jeden Befund beheben** (Tabelle „Befund → Korrektur"), dann neu bauen und die betroffenen Ausschnitte erneut prüfen.
 6. **Wiederholen, bis alle Punkte erfüllt sind**, höchstens drei Runden. Bleibt danach etwas offen, der Lehrkraft die Vorschau mit genau diesem Punkt zeigen.
 7. **Erst dann** die Vorschau zeigen, mit einem Satz, was die Endkontrolle korrigiert hat. Weicht das Blatt dabei vom freigegebenen Aufgabenplan ab (Item oder Aufgabe gestrichen), das ausdrücklich nennen.
@@ -53,14 +53,16 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 - [ ] Lösungsblatt hat dasselbe Layout, alle Lösungen stehen an der richtigen Stelle.
 - [ ] Bilder scharf (kein dpi-Hinweis).
 
-**G. KI-Bilder (je Bild in voller Auflösung, jede Figur einzeln)**
+**G. KI-Bilder (je Bild in vier Vierteln und im Ausschnitt des Platzes, jede Figur einzeln)**
+- [ ] Bildvertrag abgehakt: jedes Pflichtobjekt mit Zahl, Farbe und Lage da und im Ausschnitt des Platzes ganz zu sehen, nichts Wichtiges in den äußeren 15 %, nichts Verbotenes im Bild.
 - [ ] Augen: zwei je Figur, in der Farbe ihrer Beschreibung, frei; kein Gegenstand (Lupe, Brille, Fernglas) mit dem Auge verschmolzen.
 - [ ] Arme, Hände, Pfoten und Beine gezählt: keine dritte Hand, keine Pfote ohne Körper, kein Arm, der in einen Gegenstand übergeht.
 - [ ] Gehaltene Gegenstände haben einen Griff und eine Pfote daran; nichts schwebt, ohne dass die Geschichte es will.
 - [ ] Schwanz, Ohren, Kleidung vollständig und deckend; keine durchscheinenden Figuren, Schleier, Wischer oder Geisterbilder.
 - [ ] Jede Figur genau einmal, so wie ihr Referenzbild (Kleidung, Fellfarbe, Augenfarbe, Erkennungszeichen); wiederkehrende Nebenfiguren sehen in allen Szenen der Reihe gleich aus.
 - [ ] Jede Figur, die in der Geschichte spricht oder handelt, ist im Bild zu sehen; im Bild tut niemand etwas anderes, als der Text sagt.
-- [ ] Keine Buchstaben, Ziffern oder Schriftreste, auch nicht klein an Häusern, Schildern, Kisten oder Kleidung.
+- [ ] Keine Buchstaben, Ziffern oder Schriftreste, auch nicht klein an Häusern, Schildern, Kisten oder Kleidung. Zettel, Schilder und Baupläne, von denen der Text spricht, tragen ihren Inhalt als Ebene.
+- [ ] Ebenen im Seitenbild: Die Leitfigur ist eine abgenommene Pose, auf allen Fall-Karten gleich groß; Zettel und Zahlen liegen dort, wo sie hingehören, und verdecken kein Pflichtobjekt.
 - [ ] Bild und Text passen: dieselbe Figur tut, was die Geschichte sagt; jede Anzahl, die der Text nennt, stimmt im Bild (Würfelaugen, Fächer, Häuser, Reihen); Gegenstände und Ort stimmen.
 
 **H. Inhalt nachrechnen (einmal je Dokument, nicht je Ausschnitt)**
@@ -97,4 +99,4 @@ Ein Blatt bestand die automatische Prüfung ohne Fehler und war trotzdem unbrauc
 
 ## Beispiel aus der Erprobung (Kl. 1, Reihen mit Szenenbildern)
 
-Zwei Reihen mit je 13 Szenenbildern sahen in der Seitenvorschau fehlerfrei aus. Erst in voller Auflösung, Viertel für Viertel, fanden sich in der ersten Reihe in fünf von 13 Bildern Fehler, unter anderem ein Lupenring, der mit dem Auge verschmolzen war (die Lupe ohne Griff), eine dritte Hand, ein Arm, der in eine Feder überging, eine Pfote ohne Körper; in einem anderen Set war dieselbe Figur zweimal zu sehen, mit verschiedenen Mützen. Die zweite Reihe hatte ganz andere Fehler, die nur der Abgleich mit dem Text zeigt: falsche Würfelaugen, Eierkartons mit falscher Fächerzahl, neun statt zehn Häuser, eine durchscheinende Geisterfigur und ein „D“ an einer Hauswand. Eine Reparatur mit „Augen wie bei Wilma“ gab Willi Wilmas Augenfarbe und Wimpern; erst „dunkelbraune Augen ohne Wimpern“ war richtig.
+Zwei Reihen mit je 13 Szenenbildern sahen in der Seitenvorschau fehlerfrei aus. Erst in voller Auflösung, Viertel für Viertel, fanden sich in der ersten Reihe in fünf von 13 Bildern Fehler, unter anderem ein Lupenring, der mit dem Auge verschmolzen war (die Lupe ohne Griff), eine dritte Hand, ein Arm, der in eine Feder überging, eine Pfote ohne Körper; in einem anderen Set war dieselbe Figur zweimal zu sehen, mit verschiedenen Mützen. Die zweite Reihe hatte ganz andere Fehler, die nur der Abgleich mit dem Text zeigt: falsche Würfelaugen, Eierkartons mit falscher Fächerzahl, neun statt zehn Häuser, eine durchscheinende Geisterfigur und ein „D“ an einer Hauswand. Eine Reparatur mit „Augen wie bei Wilma“ gab Willi Wilmas Augenfarbe und Wimpern; erst „dunkelbraune Augen ohne Wimpern“ war richtig. In einer späteren Einheit (Kl. 2, Achsensymmetrie) waren Zettel, Bauplan und Schild leer, obwohl der Text von Schrift sprach, ein Glöckchen lag im Rand eines 16:9-Bilds und fehlte auf der Fall-Karte, und die Leitfigur sah in jeder Szene anders aus. Daher Bildvertrag, Format nach Platz und Figur als Ebene (`bilder.md`).

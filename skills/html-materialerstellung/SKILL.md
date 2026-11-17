@@ -17,12 +17,15 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 | `assets/praesentation.js` | Präsentationsmodus für Folien: blättern, Schritte und Aufdecken, Timer, Schwarzbild; nur mit `?praesentation=1` aktiv. `blatt.py` bettet es in die Offline-Präsentation ein und baut damit `--schritte` und `--notizen` (Abschnitt „Folien“) |
 | `assets/abbildungen.js` | Exakte Abbildungen als SVG (`x-…`-Elemente), berechnet statt gezeichnet. Welche es gibt, wie man sie schreibt und welche Mindestgrößen gelten, steht im Katalog: `references/abbildungen.md`. Musterblätter: `assets/muster/`. |
 | `assets/vorlage-arbeitsblatt.html` | Muster mit allen Bausteinen; Ausgangspunkt für jedes Blatt |
-| `assets/vorlage-praesentation.html` | Kreisinput mit sechs Folien und allen Folien-Bausteinen; Ausgangspunkt für Präsentationen (Abschnitt „Folien“) |
+| `assets/vorlage-praesentation.html` | Kreisinput mit sechs Folien und allen Folien-Bausteinen; Ausgangspunkt für Präsentationen der Art „Impuls“ (Abschnitt „Folien“) |
+| `assets/beispiel-auftakt.html` | geprüfter Auftakt einer Reihe (`body.folie.auftakt`): Szenen als SVG, Schmuckschrift, Wetten und Mitmachen, Aufdecken im Bild, Bewegung, Bildfolien und Kapitelfolgen (`praesentation/SKILL.md`, „Auftakt“); zeigt die Technik, keine Schablone |
 | `assets/vorlage-minibuch.html` | Faltbuch aus einem A4-Blatt, acht Seiten mit Satzmuster, Faltanleitung auf dem Lösungsblatt (Abschnitt „Mini-Book“) |
 | `assets/vorlage-forscherbogen-12.html`, `assets/vorlage-forscherbogen-34.html` | Forscherbogen bildgestützt (Kl. 1/2) und schriftlich (Kl. 3/4); Sicherheitshinweise als `.nur-loesung` im Kopf, Malfläche `.malfeld` |
 | `assets/beispiel-zehner-einer-kl2.html` | geprüftes Beispiel in s/w (Bündeln, Stellentafel, Sternchenaufgabe, Lösungen); steht im älteren, großen Satz ohne `data-satz` und zeigt Bausteine, nicht die Dichte |
 | `assets/beispiel-reihe-kapitel.html` | geprüftes Kapitel einer Reihe: Fall-Karte, Arbeitsblatt mit Kapitel-Marke, Beweis-Rätsel und Fußzeile; zeigt die Technik, keine Schablone |
 | `assets/beispiel-lehrkraft-hinweise.html` | geprüfte Hinweise für die Lehrkraft (`body.lehrkraft`): Überblick der Reihe und je Stunde ein kurzer Block; Muster für jede Seite, die nur die Lehrkraft liest (Handreichung, Verlaufsplan) |
+| `assets/beispiel-vorleseheft.html` | geprüftes Vorleseheft einer Reihe (`body.lehrkraft.vorleseheft`): Auftakt und ein Kapitel mit Marken für Bildfolie, Frage und Übergang zur Aufgabe; zeigt die Machart, keinen Text zum Übernehmen |
+| `assets/beispiel-kartensatz.html` | geprüfter Kartensatz zum Ausschneiden und Legen: Deckkarte, Bildkarten mit großem Motiv, gestaltete Rückseiten mit Selbstkontrolle, Schneidebogen für die Kinder; zeigt die Machart, keine Schablone (Maße: `grundschul-didaktik/references/druck-und-platz.md`, „Ausschneide- und Legematerial“) |
 | `assets/beispiel-deckblatt-formen.html` | geprüftes Deckblatt mit frei liegender Gestaltung: Seitenfläche, Formen, Schmuckschrift, Figur am Anker, Sprechblase, Konfetti (`references/gestaltung.md`) |
 | `assets/fonts/` | Andika (Text und Überschriften, einstöckiges a/g, Schulziffern, l mit Bogen), Fredoka (Schmuck auf Schauseiten), Playwrite DE VA (Vereinfachte Ausgangsschrift für Schreibvorlagen), OFL-Lizenz |
 | `assets/bilder/` | Willi, Wilma, Wachstumsgrafik farbig und als Strichzeichnung (`references/bilder.md`) |
@@ -44,7 +47,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 ### 2. Endfassung (nach Freigabe des Aufgabenplans)
 
 1. Im gewählten Entwurf alle Items, Beispiele und Lösungen aus dem Plan eintragen. Lösungen stehen **im selben HTML**: `data-l="46"` an Antwortlinien, `loesung="4:30"` an Uhren, `buendel-loesung="3"` an Mengen, `loesung="3 5"` an Stellentafeln, `class="nur-loesung"` für Lösungstexte, `class="nicht-loesung"` für Schreiblinien, die auf dem Lösungsblatt verschwinden. Das erste Item als `class="beispiel"` zeigt seine Lösung schon auf dem Arbeitsblatt.
-2. Bilder einsetzen: vorhandene aus `assets/bilder/`, alle anderen Motive der Bildliste mit Canva-KI erzeugen, jedes in voller Auflösung prüfen und Fehler reparieren, dann als Datei einbauen (`references/bilder.md`, Abschnitte 2 und 2a).
+2. Bilder einsetzen: vorhandene aus `assets/bilder/`, alle anderen Motive der Bildliste mit Canva-KI erzeugen, jedes in vier Vierteln gegen seinen Bildvertrag prüfen und Fehler reparieren, dann als Datei einbauen; Figur, Zettel und Zahlen kommen als Ebenen darüber (`references/bilder.md`, Abschnitte 2 bis 4).
 3. Bauen und prüfen:
    `python3 scripts/blatt.py bauen Kl2_Mathe_Uhrzeit_AB1.html -o ausgabe/`
    Ergebnis: eigenständige `.html` (alles eingebettet), `.pdf`, `-loesung.pdf`, Vorschau je Seite (`-s1.png`) und Ausschnitt je Aufgabe (`-s1-a1.png` …). Der Prüfbericht meldet FEHLER (Seitenrand, abgeschnitten, Überlappung, Schrift oder Bild fehlt; Lösungsblatt wird mitgeprüft), WARNUNGEN (Schrift zu klein für die Klasse, zu viele Aufgaben, Aufgaben zu dicht) und HINWEISE (unscharfe Bilder, viel Leerraum, Platzhalter; mit `--profil sw` auch Kontrast, Farbwörter und Bilder in s/w).
@@ -79,7 +82,7 @@ Ist im Projekt eine Schoolbox eingerichtet (Ordner `schoolbox/`, Projektanweisun
 - Anweisungs-Symbol, nur wenn der Auftrag Symbole nennt (Standard: keine): `<span class="sym" data-sym="schreiben"></span>` in `.anw` vor `.text`, dann genau eines je Aufgabe: `schreiben`, `malen`, `lesen`, `sprechen`, `schneiden`, `kleben`, `verbinden`, `ankreuzen`, `rechnen`, `suchen`, `partner`, `wuerfeln`, `legen`.
 - Seiten für die Lehrkraft: eigenes Dokument mit `<body class="kl… lehrkraft">` (Arial, 13 px, schlichte `h1`/`h2`, `.kit-tabelle`, `.lk-unter`, `.lk-stunde`), ohne Figuren und Farbflächen. Abschauen in `assets/beispiel-lehrkraft-hinweise.html`. `.seite.lk` gibt es nur noch für ältere Mappen.
 - Reihe: `.seite.fall` (Fall-Karte mit `.fall-bild`, `.fall-band`, `.fall-innen`, `.fall-frage`), `.kapitel-marke` in der Namenszeile, `.aufgabe.beweis` mit `.beweis-marke`, `.fuss-zeile`. Abschauen in `assets/beispiel-reihe-kapitel.html`.
-- Karten: `.karten` mit `--spalten`, `.karte`, `.kartentext`, `.ecke`.
+- Karten: `.karten` mit `--spalten`, `.karte`, `.kartentext`, `.ecke`. Mit `data-satz="2"` zusätzlich `--zeilen`, `--set` (Setfarbe), `--fuge` (Abstand statt gemeinsamer Schnittlinie), `.karte.deckkarte`, `.karte.rueckseite`, `.karte.grund`, `.karte.legeteil`, `.karten.rueckseiten` (Rückseiten für den Duplexdruck gespiegelt), `.karten.streifen` und `.schneidebogen` mit `--spalten`, `--teil-b`, `--teil-h`. Abschauen in `assets/beispiel-kartensatz.html`.
 - Folien: Abschnitt „Folien“.
 - Eigene Gestaltung kommt als Thema über die Kit-Bausteine, nicht als eigene Struktur: `references/layout.md`, Abschnitt „Baukasten und Thema“. Eigene Klassen und `<style>` sind die begründete Ausnahme.
 

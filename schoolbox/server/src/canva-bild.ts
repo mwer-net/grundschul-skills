@@ -3,14 +3,17 @@
  * exportiertem Bild eine Zeile in `bilder.json`, der Server lädt. Nur vom Export-Host von Canva, nur PNG oder JPEG.
  */
 import { existsSync } from 'node:fs';
-import { appendFile, mkdir, readFile, stat } from 'node:fs/promises';
+import { appendFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { schreibeAtomar } from '@schoolbox/kern';
+import { ANSICHT_ORDNER, BLATT_PY, fuehreAus, schreibeAtomar } from '@schoolbox/kern';
 
 export const CANVA_HOST = 'export-download.canva.com';
 export const BILDER_LISTE = 'bilder.json';
 export const CANVA_IDS = 'canva-ids.tsv';
+/** Wo Claude die Viertel und den Ausschnitt jedes geladenen Bilds findet, relativ zum Arbeitsordner (215). */
+export const ANSICHT_BILDER = `${ANSICHT_ORDNER}/bilder`;
 export const MAX_BILD_BYTES = 10 * 1024 * 1024;
 /** Mehr braucht keine Einheit; die Liste wächst sonst ungebremst, wenn Text aus dem Material Claude dazu anstiftet. */
 export const MAX_BILDER = 40;
@@ -22,16 +25,25 @@ const FRIST_MS = 60_000;
 const DATEINAME = /^[a-z0-9][a-z0-9-]{0,59}\.(png|jpg)$/;
 const MEDIA_ID = /^[A-Za-z0-9_-]{1,40}$/;
 
+/**
+ * Eine Zeile aus `bilder.json`. `platz` (Breite und Höhe des Platzes im Material, px) und `blickpunkt` (dessen
+ * `object-position` in Prozent) bestimmen den Ausschnitt, den der Server zum Prüfen zuschneidet. Den Bildvertrag
+ * (`vertrag`, html-materialerstellung/references/bilder.md) liest nur Claude; der Server schreibt die Datei nie.
+ */
 export interface BildWunsch {
 	datei: string;
 	url: string;
 	motiv: string;
 	mediaId: string;
+	platz?: { breite: number; hoehe: number };
+	blickpunkt?: { x: number; y: number };
 }
 
 export type BildStand = { datei: string; ok: true } | { datei: string; ok: false; grund: string };
 
 type Laden = (url: string, init: Parameters<typeof fetch>[1]) => Promise<Response>;
+/** Läuft mit dem geprüften Inhalt, bevor die Datei in `bilder/` erscheint: Wer das Bild sieht, findet seine Viertel. */
+export type Zuschnitt = (inhalt: Buffer, wunsch: Pick<BildWunsch, 'datei' | 'platz' | 'blickpunkt'>) => Promise<void>;
 
 const typAus = (kopf: Buffer): 'png' | 'jpg' | null => {
 	if (kopf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
@@ -93,6 +105,7 @@ export const ladeCanvaBild = async (
 	wunsch: Pick<BildWunsch, 'datei' | 'url'>,
 	zielDir: string,
 	laden: Laden = fetch,
+	vorAblage?: (inhalt: Buffer) => Promise<void>,
 ): Promise<void> => {
 	const datei = pruefeDateiname(wunsch.datei);
 	let url = pruefeCanvaUrl(wunsch.url);
@@ -117,6 +130,7 @@ export const ladeCanvaBild = async (
 		if (path.extname(datei).slice(1) !== typ) {
 			throw new Error('Endung passt nicht zum Inhalt');
 		}
+		await vorAblage?.(inhalt);
 		await mkdir(zielDir, { recursive: true });
 		await schreibeAtomar(path.join(zielDir, datei), inhalt);
 		return;
@@ -124,15 +138,32 @@ export const ladeCanvaBild = async (
 };
 
 const istText = (w: unknown, max: number): w is string => typeof w === 'string' && w.length > 0 && w.length <= max;
+const istZahl = (w: unknown, min: number, max: number): w is number =>
+	typeof w === 'number' && Number.isFinite(w) && w >= min && w <= max;
+
+/** Ungültige Angaben zum Platz fallen weg; das Bild lädt trotzdem, nur ohne Ausschnitt. */
+const platzAus = (roh: unknown): Pick<BildWunsch, 'platz' | 'blickpunkt'> => {
+	const { blickpunkt: b, platz: p } = roh as {
+		platz?: { breite?: unknown; hoehe?: unknown };
+		blickpunkt?: { x?: unknown; y?: unknown };
+	};
+	const platz =
+		p && istZahl(p.breite, 1, 10_000) && istZahl(p.hoehe, 1, 10_000) ? { breite: p.breite, hoehe: p.hoehe } : null;
+	if (!platz) {
+		return {};
+	}
+	const blickpunkt = b && istZahl(b.x, 0, 100) && istZahl(b.y, 0, 100) ? { x: b.x, y: b.y } : null;
+	return blickpunkt ? { platz, blickpunkt } : { platz };
+};
 
 /** Liest `bilder.json`. Was nicht passt, fällt still heraus; geladen wird nur, was alle Prüfungen besteht. */
 export const leseBildWuensche = async (arbeit: string): Promise<BildWunsch[]> => {
-	const datei = path.join(arbeit, BILDER_LISTE);
+	const listenDatei = path.join(arbeit, BILDER_LISTE);
 	try {
-		if ((await stat(datei)).size > MAX_LISTE_BYTES) {
+		if ((await stat(listenDatei)).size > MAX_LISTE_BYTES) {
 			return [];
 		}
-		const roh = JSON.parse(await readFile(datei, 'utf8')) as unknown;
+		const roh = JSON.parse(await readFile(listenDatei, 'utf8')) as unknown;
 		const liste = Array.isArray(roh) ? roh : ((roh as { bilder?: unknown })?.bilder ?? []);
 		if (!Array.isArray(liste)) {
 			return [];
@@ -148,7 +179,8 @@ export const leseBildWuensche = async (arbeit: string): Promise<BildWunsch[]> =>
 					istText((b as BildWunsch).mediaId, 40) &&
 					MEDIA_ID.test((b as BildWunsch).mediaId),
 			)
-			.slice(0, MAX_BILDER);
+			.slice(0, MAX_BILDER)
+			.map(({ datei, mediaId, motiv, url, ...rest }) => ({ datei, url, motiv, mediaId, ...platzAus(rest) }));
 	} catch {
 		return [];
 	}
@@ -171,7 +203,7 @@ export const notiereCanvaId = async (bilderDir: string, w: Pick<BildWunsch, 'dat
  * Beobachtet `bilder.json` während eines Laufs und lädt jedes neue Bild sofort: Export-URLs laufen ab. Ein Fehlschlag
  * ist kein Fehler des Laufs; im Material bleibt dann der Platzhalter.
  */
-export const erstelleBildLader = (arbeit: string, zielDir: string, laden: Laden = fetch) => {
+export const erstelleBildLader = (arbeit: string, zielDir: string, laden: Laden = fetch, zuschnitt?: Zuschnitt) => {
 	const stand = new Map<string, BildStand>();
 	const wuensche = new Map<string, BildWunsch>();
 	let laeuft: Promise<void> = Promise.resolve();
@@ -182,8 +214,15 @@ export const erstelleBildLader = (arbeit: string, zielDir: string, laden: Laden 
 			if (stand.has(schluessel) || stand.size >= MAX_BILDER) {
 				continue;
 			}
+			// Ein Zuschnitt, der scheitert, hält das Bild nicht auf: Claude sieht es dann ganz an.
+			const zuschneiden = zuschnitt
+				? (inhalt: Buffer) =>
+						zuschnitt(inhalt, w).catch((fehler: unknown) => {
+							console.error('Bild zuschneiden:', fehler);
+						})
+				: undefined;
 			try {
-				await ladeCanvaBild(w, zielDir, laden);
+				await ladeCanvaBild(w, zielDir, laden, zuschneiden);
 				await notiereCanvaId(zielDir, w);
 				stand.set(schluessel, { datei: w.datei, ok: true });
 				wuensche.set(w.datei, w);
@@ -206,3 +245,26 @@ export const erstelleBildLader = (arbeit: string, zielDir: string, laden: Laden 
 };
 
 export type BildLader = ReturnType<typeof erstelleBildLader>;
+
+/**
+ * Prüfansichten zu jedem geladenen Bild nach `ziel` (215): die vier Viertel in voller Auflösung und, mit `platz`, der
+ * Ausschnitt, den das Material zeigt. Dieselbe Regel wie `blatt.py viertel` in der Claude-App.
+ */
+export const erstelleZuschnitt =
+	(pythonBin: string, ziel: string): Zuschnitt =>
+	async (inhalt, wunsch) => {
+		const datei = pruefeDateiname(wunsch.datei);
+		const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-zuschnitt-'));
+		try {
+			await writeFile(path.join(tmp, datei), inhalt);
+			const platz = wunsch.platz ? ['--platz', `${wunsch.platz.breite}x${wunsch.platz.hoehe}`] : [];
+			const blick = wunsch.blickpunkt ? ['--blick', `${wunsch.blickpunkt.x},${wunsch.blickpunkt.y}`] : [];
+			const quelle = path.join(tmp, datei);
+			const lauf = await fuehreAus(pythonBin, [BLATT_PY, 'viertel', quelle, '-o', ziel, ...platz, ...blick]);
+			if (lauf.code !== 0) {
+				throw new Error(`blatt.py viertel: Exit ${lauf.code ?? 'Timeout'} ${lauf.stderr.slice(0, 300)}`);
+			}
+		} finally {
+			await rm(tmp, { recursive: true, force: true });
+		}
+	};

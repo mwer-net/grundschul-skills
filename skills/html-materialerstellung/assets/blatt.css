@@ -544,6 +544,39 @@ body.lehrkraft .fuss-zeile{font:400 10px/1 Arial,Helvetica,"Liberation Sans",san
 .lk-unter{color:#555;margin:0 0 10px}
 .lk-stunde{break-inside:avoid;margin-top:12px}
 .lk-stunde>h2{margin-top:0}
+/* >> 216 Vorleseheft: body.lehrkraft.vorleseheft. Die Lehrkraft liest laut vor und blickt dabei immer wieder auf:
+   große Zeilen, kurze Absätze, alle Marken in einer eigenen Spalte am linken Rand. Die Marke „Bild“ steht inline an
+   der Stelle des Wechsels (schmaler Strich im Text) und mit ihrer Nummer aus data-bild in der Randspalte. */
+body.lehrkraft.vorleseheft .seite{font-size:19px}
+body.lehrkraft.vorleseheft h1{font-size:28px;line-height:1.15;margin:0 0 4px}
+.vl-legende{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:center;font-size:13px;line-height:1.35;
+  border-top:1px solid #b5b5b5;border-bottom:1px solid #b5b5b5;padding:9px 0;margin:0 0 10px}
+.vl-legende .vl-muster{position:static;margin:0}
+.vl-rollen{width:100%;border-collapse:collapse;font-size:13px;line-height:1.35;margin:0 0 6px}
+.vl-rollen td{padding:2px 10px 2px 0;vertical-align:top}
+.vl-rollen td:first-child{font-weight:700;white-space:nowrap}
+.vl-rollen td:last-child{color:#555;white-space:nowrap;padding-right:0}
+.vl-kapitel{padding-left:104px;margin-top:22px}
+.vl-kopf{margin:0 0 16px -104px;padding-bottom:6px;border-bottom:2px solid #1d1d1b}
+.vl-stunde{display:block;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#555}
+body.lehrkraft.vorleseheft .vl-kopf h2{font-size:25px;line-height:1.2;margin:2px 0 0;padding:0;border:0}
+.vl-dauer{display:block;font-size:13px;color:#555;margin-top:3px}
+.vl-kapitel p{position:relative;font-size:19px;line-height:1.6;margin:0 0 13px;hyphens:manual}
+.vl-bild{display:inline-block;width:3px;height:21px;margin:0 6px 0 1px;vertical-align:-4px;background:#1d1d1b;
+  font-size:0;color:transparent;overflow:hidden}
+.vl-bild::before,.vl-frage::before,.vl-weiter::before,.vl-muster{position:absolute;left:-104px;width:84px;box-sizing:border-box;
+  font:700 13px/1 Arial,Helvetica,"Liberation Sans",sans-serif;text-align:center;border-radius:4px;padding:6px 0;margin-top:5px}
+.vl-bild::before{content:"Bild " attr(data-bild);color:#fff;background:#1d1d1b}
+.vl-muster.bild{color:#fff;background:#1d1d1b}
+.vl-frage{border-left:3px solid #1d1d1b;padding:2px 0 2px 14px}
+.vl-frage::before{content:"Frage";top:0;left:-107px;color:#1d1d1b;border:2px solid #1d1d1b;padding:4px 0}
+.vl-muster.frage{color:#1d1d1b;border:2px solid #1d1d1b;padding:4px 0}
+.vl-frage b{display:block}
+.vl-regie{font-size:15px;font-style:italic;color:#666}
+p.vl-weiter{font-size:15px;line-height:1.4;color:#1d1d1b;border-top:1px solid #b5b5b5;padding-top:10px;margin-top:18px}
+.vl-weiter::before{content:"Weiter";top:10px;color:#555;border:1px dashed #777;padding:5px 0}
+.vl-muster.weiter{color:#555;border:1px dashed #777;padding:5px 0}
+/* << 216 Vorleseheft */
 
 .kapitel-marke{flex:none;align-self:center;font:600 18px/1.2 Fredoka,sans-serif;color:var(--dunkel);
   border:2.5px solid var(--dunkel);border-radius:22px;padding:2px 14px;white-space:nowrap;background:#fff}
@@ -824,3 +857,144 @@ body[data-satz="2"] :is(.karten,x-bingo,x-domino,x-spielplan){--fs:var(--fs-scha
 
 /* >> 129 Hülle */
 /* << 129 */
+
+/* >> 215 Bilder (references/bilder.md, Abschnitt 4): Bild mit Ebenen. .bild-lagen füllt einen Platz mit fester Höhe
+   wie object-fit:cover; .lagen-flaeche darin hat das Seitenverhältnis des Bilds (--ar) und liegt nach --bx/--by wie
+   object-position. Jede .lage steht in Prozent der Fläche (--x, --y oben links, --b Breite) und wandert so mit dem
+   Ausschnitt. */
+body[data-satz="2"] :is(.fall-bild,.db-bild)>img{object-position:var(--bx,50%) var(--by,50%)}
+.bild-lagen{position:absolute;inset:0;overflow:hidden;container-type:size}
+.lagen-flaeche{position:absolute;aspect-ratio:var(--ar,16/9);width:max(100cqw,100cqh*(var(--ar,16/9)));
+  left:var(--bx,50%);top:var(--by,50%);translate:calc(-1*var(--bx,50%)) calc(-1*var(--by,50%))}
+.lagen-flaeche>:first-child:not(.lage){position:absolute;inset:0;width:100%;height:100%}
+.lagen-flaeche>img:first-child:not(.lage){object-fit:cover;display:block}
+.lagen-flaeche>.platzhalter:first-child{align-items:flex-end;padding:0 60px 28px;box-sizing:border-box}
+.lagen-flaeche>.lage{position:absolute;left:var(--x,0%);top:var(--y,0%);width:var(--b,auto);height:auto;
+  rotate:var(--dreh,0deg)}
+.lagen-flaeche>img.lage{display:block;object-fit:contain}
+.lage-zettel{background:#fffdf3;border:2px solid color-mix(in srgb,var(--dunkel) 30%,#fff);border-radius:4px;
+  padding:14px 12px 10px;box-shadow:0 5px 12px rgba(0,0,0,.28);font-size:var(--zs,18px);line-height:1.25;color:#1d1d1b;
+  text-align:center}
+.lage-zettel::before{content:"";position:absolute;left:50%;top:-9px;width:18px;height:18px;margin-left:-9px;
+  border-radius:50%;background:var(--akzent);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.lage-zettel.gehalten::before{display:none}
+.lage-zettel>*{margin:0 auto}
+/* << 215 */
+
+/* >> 217 Auftakt */
+/* Auftakt (Skill praesentation): Folien als Schauseite ohne Schema, nur unter body.folie.auftakt. Bewegung läuft nur
+   beim Präsentieren (praesentation.js setzt .praesentieren); Ansicht, Editor, Vorschau und PDF zeigen den Endzustand.
+   Bewegung über translate, scale und rotate, nicht transform: Lage und Drehen der Gestaltung bleiben erhalten.
+   Ein Auftritt an einem Schritt beginnt, wenn der Schritt aufgedeckt wird (.schritt-zu fällt weg). */
+body.folie.auftakt .seite h1{font:600 var(--gr,88px)/1.05 Fredoka,sans-serif;color:var(--farbe,var(--dunkel));margin:0}
+body.folie.auftakt .seite.dunkel{color:#fff;--text:#fff;--strich:#fff;--linie:rgb(255 255 255/.7)}
+body.folie.auftakt .seite.dunkel h1{color:var(--farbe,#fff)}
+body.folie.auftakt .seite.dunkel .nr{background:#fff;color:#1d1d1b}
+/* Bildfolie zur Geschichte: die Nummer aus dem Vorleseheft klein unten links; unten rechts steht beim Präsentieren
+   die Foliennummer */
+body.folie.auftakt .seite.bildfolie[data-bild]::after{content:"Bild " attr(data-bild);position:absolute;left:18px;
+  bottom:14px;z-index:2;font:600 18px/1 Fredoka,sans-serif;color:#fff;background:rgb(0 0 0/.5);border-radius:999px;
+  padding:6px 12px;pointer-events:none}
+@keyframes auftakt-einblenden{from{opacity:0}}
+@keyframes auftakt-von-links{from{opacity:0;translate:-360px 0}}
+@keyframes auftakt-von-rechts{from{opacity:0;translate:360px 0}}
+@keyframes auftakt-von-unten{from{opacity:0;translate:0 260px}}
+@keyframes auftakt-von-oben{from{opacity:0;translate:0 -260px}}
+@keyframes auftakt-wachsen{from{opacity:0;scale:.15}}
+@keyframes auftakt-ploppen{0%{opacity:0;scale:.15}60%{opacity:1;scale:1.12}to{scale:1}}
+@keyframes auftakt-schweben{to{translate:0 -16px}}
+@keyframes auftakt-wackeln{0%,100%{rotate:-5deg}50%{rotate:5deg}}
+@keyframes auftakt-flattern{50%{scale:1 .55}}
+@keyframes auftakt-funkeln{50%{opacity:.25}}
+@keyframes auftakt-ausbreiten{from{opacity:1;scale:.4}to{opacity:0;scale:1.25}}
+@keyframes auftakt-drehen{to{rotate:360deg}}
+body.praesentieren.auftakt .seite.aktiv [data-auftritt]:not(:where(.schritt-zu)){
+  animation:var(--dauer,.9s) cubic-bezier(.2,.8,.25,1) var(--verzug,0s) both}
+body.praesentieren.auftakt .seite.aktiv [data-auftritt="einblenden"]{animation-name:auftakt-einblenden}
+body.praesentieren.auftakt .seite.aktiv [data-auftritt="von-links"]{animation-name:auftakt-von-links}
+body.praesentieren.auftakt .seite.aktiv [data-auftritt="von-rechts"]{animation-name:auftakt-von-rechts}
+body.praesentieren.auftakt .seite.aktiv [data-auftritt="von-unten"]{animation-name:auftakt-von-unten}
+body.praesentieren.auftakt .seite.aktiv [data-auftritt="von-oben"]{animation-name:auftakt-von-oben}
+body.praesentieren.auftakt .seite.aktiv [data-auftritt="wachsen"]{animation-name:auftakt-wachsen}
+body.praesentieren.auftakt .seite.aktiv [data-auftritt="ploppen"]{animation-name:auftakt-ploppen}
+body.praesentieren.auftakt .seite.aktiv [data-bewegung]{transform-box:fill-box;transform-origin:var(--ursprung,50% 50%);
+  animation:var(--dauer,3s) ease-in-out var(--verzug,0s) infinite alternate both}
+body.praesentieren.auftakt .seite.aktiv [data-bewegung="schweben"]{animation-name:auftakt-schweben}
+body.praesentieren.auftakt .seite.aktiv [data-bewegung="wackeln"]{animation-name:auftakt-wackeln;animation-direction:normal}
+body.praesentieren.auftakt .seite.aktiv [data-bewegung="flattern"]{animation-name:auftakt-flattern;
+  animation-duration:var(--dauer,.35s);animation-direction:normal}
+body.praesentieren.auftakt .seite.aktiv [data-bewegung="funkeln"]{animation-name:auftakt-funkeln;
+  animation-duration:var(--dauer,2s);animation-direction:normal}
+body.praesentieren.auftakt .seite.aktiv [data-bewegung="ausbreiten"]{animation-name:auftakt-ausbreiten;
+  animation-duration:var(--dauer,2s);animation-timing-function:ease-out;animation-direction:normal}
+body.praesentieren.auftakt .seite.aktiv [data-bewegung="drehen"]{animation-name:auftakt-drehen;
+  animation-duration:var(--dauer,20s);animation-timing-function:linear;animation-direction:normal}
+@media (prefers-reduced-motion:reduce){
+  body.praesentieren.auftakt .seite.aktiv :is([data-auftritt],[data-bewegung]){animation:none}}
+/* << 217 */
+
+/* >> 214 Karten */
+/* Ausschneide- und Legematerial ist Schauseite (Entscheidung 64), nur mit data-satz="2". Maße und Regeln:
+   grundschul-didaktik/references/druck-und-platz.md, „Ausschneide- und Legematerial“. --k ist die Setfarbe: --set am
+   Kartenbogen oder an der Karte, sonst die Hauptfarbe. Die Karte schneidet an ihrem Rand; der Farbrahmen (3 mm) und
+   das weiße Innenfeld liegen innen, Inhalt hält 6 mm Abstand zur Schnittkante. Ohne --fuge teilen sich die Karten die
+   Schnittlinie (weiße Haarlinie), mit --fuge (6–10 mm) liegt Weiß dazwischen. Der Pass (.karte.pass) bleibt, wie er ist. */
+body[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft,.minibuch,.a5-hoch) .seite:has(> .karten){padding:var(--rand)}
+body[data-satz="2"] .karten{gap:var(--fuge,0px);grid-template-columns:repeat(var(--spalten,2),var(--karte-b,1fr));
+  grid-template-rows:repeat(var(--zeilen,1),var(--karte-h,1fr));grid-auto-rows:var(--karte-h,1fr);place-content:center}
+body[data-satz="2"] .karten.streifen{--spalten:3;--karte-h:195mm}
+/* Rückseiten in derselben Reihenfolge wie die Vorderseiten schreiben: Der Bogen spiegelt die Spalten selbst
+   (Duplex über die lange Kante, bei a4-quer über die kurze) */
+body[data-satz="2"] .karten.rueckseiten{direction:rtl}
+body[data-satz="2"] .karten.rueckseiten>*{direction:ltr}
+body[data-satz="2"] .karte:not(.pass){--k:var(--set,var(--haupt));border:0;background:var(--k);padding:6mm;gap:2mm;
+  isolation:isolate;box-shadow:inset 0 0 0 .6px #fff}
+body[data-satz="2"]:not(.farbe) .karte:not(.pass){--k:var(--set,#8c8c8c)}
+body[data-satz="2"] .karte:not(.pass)::before{content:"";position:absolute;inset:3mm;z-index:-1;border-radius:3mm;background:#fff}
+body[data-satz="2"] .karte:not(.pass):has(> .ecke){padding-top:15mm}
+body[data-satz="2"] .karte:not(.pass) .ecke{top:5.5mm;left:5.5mm;right:auto;min-width:8mm;height:8mm;padding:0 2mm;
+  border-radius:4mm;background:color-mix(in srgb,var(--k) 25%,#fff);font-weight:700;font-size:calc(var(--fs)*.75);
+  line-height:8mm;text-align:center}
+body[data-satz="2"] .karte:not(.pass) img{flex:1 1 0;min-height:0;width:100%;max-width:100%;max-height:100%;object-fit:contain}
+body[data-satz="2"] .karte:not(.pass) :is(ol,ul){margin:0;padding-left:1.3em;text-align:left;font-size:calc(var(--fs)*.85);line-height:1.3}
+body[data-satz="2"] .karte:not(.pass) li+li{margin-top:1.5mm}
+body[data-satz="2"].farbe :is(.karte,.schneidebogen>*) x-gitter .kaestchen{fill:color-mix(in srgb,var(--k,var(--haupt)) 72%,#fff)}
+/* Farbgrund: blasse Setfarbe mit Punkten, Innenfeld mit Kontur */
+body[data-satz="2"] .karte.grund{padding:7mm;background:radial-gradient(circle,color-mix(in srgb,var(--k) 45%,#fff) 0 .9mm,transparent 1.1mm) 0 0/5mm 5mm,
+  color-mix(in srgb,var(--k) 22%,#fff)}
+body[data-satz="2"] .karte.grund::before{inset:4mm;border:.6mm solid var(--k)}
+/* Rückseite: Streifen in der Setfarbe, Inhalt auf weißem Schild (Name des Sets oder die Lösung zur Selbstkontrolle) */
+body[data-satz="2"] .karte.rueckseite{background:repeating-linear-gradient(-45deg,color-mix(in srgb,var(--k) 80%,#fff) 0 3mm,color-mix(in srgb,var(--k) 55%,#fff) 3mm 6mm)}
+body[data-satz="2"] .karte.rueckseite::before{content:none}
+body[data-satz="2"] .karte.rueckseite>:not(.ecke){background:#fff;border-radius:4mm;padding:2mm 5mm;text-align:center;
+  box-shadow:0 0 0 1.2mm color-mix(in srgb,var(--k) 35%,#fff)}
+body[data-satz="2"] .rueckseite .kartentext{font-size:calc(var(--fs)*2);line-height:1.1}
+/* Deckkarte: vorn im Set, nennt Spiel, Inhalt und Klasse */
+body[data-satz="2"] .karte.deckkarte{background:color-mix(in srgb,var(--k) 78%,#1D1D1B);color:#fff;text-align:center}
+body[data-satz="2"] .karte.deckkarte::before{background:none;border:.7mm solid rgb(255 255 255/.8)}
+body[data-satz="2"] .deckkarte .kartentext{font:600 calc(var(--fs)*1.5)/1.05 Fredoka,sans-serif}
+body[data-satz="2"] .deckkarte img{flex:0 1 auto;width:auto;max-height:42%;max-width:80%}
+body[data-satz="2"] .deckkarte>div:not(.kartentext){font-size:calc(var(--fs)*.8);line-height:1.25}
+/* Legeteil: ohne Innenfeld, ganz in blasser Setfarbe */
+body[data-satz="2"] .karte.legeteil{padding:5mm;background:color-mix(in srgb,var(--k) 25%,#fff);box-shadow:inset 0 0 0 .6mm var(--k)}
+body[data-satz="2"] .karte.legeteil::before{content:none}
+/* Domino (x-domino): Steine im Farbrahmen, zwei weiße Felder, Start und Ziel hervorgehoben */
+body[data-satz="2"] .domino-bogen{grid-template-columns:repeat(var(--domino-spalten,2),var(--stein-b,1fr));gap:0;justify-content:center}
+body[data-satz="2"] .domino-stein{--k:var(--set,var(--haupt));border:0;padding:3mm;column-gap:1.2mm;background:var(--k);box-shadow:inset 0 0 0 .6px #fff}
+body[data-satz="2"]:not(.farbe) .domino-stein{--k:var(--set,#8c8c8c)}
+body[data-satz="2"] .domino-stein .spiel-zelle{border-radius:3mm;padding:2mm}
+body[data-satz="2"] .domino-stein .spiel-zelle+.spiel-zelle{border-left:0}
+body[data-satz="2"] .domino-stein :is(.spiel-start,.spiel-ziel){background:color-mix(in srgb,var(--k) 22%,#fff);font:600 1.15em Fredoka,sans-serif}
+body[data-satz="2"] .domino-nr{top:3.5mm;left:4.5mm}
+/* Schneidebogen: Teile, die Kinder selbst schneiden. Gerade, gestrichelte Linien im Raster, Schere an der ersten Linie.
+   Neue Klasse, darum ohne data-satz; --teil-b und --teil-h (Kl. 1/2: 40–50 mm). */
+.schneidebogen{display:grid;grid-template-columns:repeat(var(--spalten,3),var(--teil-b,45mm));grid-auto-rows:var(--teil-h,45mm);
+  width:max-content;margin:5mm auto 0;position:relative;border-top:1.5px dashed var(--text);border-left:1.5px dashed var(--text);line-height:1.2}
+body[data-satz="2"] .schneidebogen{--fs:var(--fs-schau,24px);font-size:var(--fs)}
+.schneidebogen .kartentext{font-size:calc(var(--fs)*1.8);line-height:1.1}
+.schneidebogen>*{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2mm;padding:5mm;min-width:0;min-height:0;
+  text-align:center;border-right:1.5px dashed var(--text);border-bottom:1.5px dashed var(--text)}
+.schneidebogen>* img{flex:1 1 0;min-height:0;width:100%;object-fit:contain}
+.schneidebogen::before{content:"";position:absolute;left:4mm;top:calc(-3.5mm - .75px);width:7mm;height:7mm;
+  background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1D1B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='6' cy='6.5' r='3'/%3E%3Ccircle cx='6' cy='17.5' r='3'/%3E%3Cpath d='M8.5 8L21 18M8.5 16L21 6'/%3E%3C/svg%3E") center/6mm no-repeat}
+/* << 214 */

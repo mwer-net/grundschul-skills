@@ -8,7 +8,7 @@ Maße in CSS-px (96 dpi): A4 = 794 × 1123 px, 1 cm ≈ 38 px.
 
 | Regel | Wert | Umsetzung |
 |---|---|---|
-| Seitenrand | links und rechts 60 px (Lochung), oben 38 px, unten 49 px; Karten, Folien und ältere Blätter ringsum 60 px (Bürodrucker drucken nicht randlos) | `.seite` hat das Padding; nichts mit negativen Rändern oder `position:absolute` hinausschieben |
+| Seitenrand | links und rechts 60 px (Lochung), oben 38 px, unten 49 px; Kartenseiten (`.seite` mit `.karten`), Folien und ältere Blätter ringsum 60 px (Bürodrucker drucken nicht randlos) | `.seite` hat das Padding; nichts mit negativen Rändern oder `position:absolute` hinausschieben |
 | Spalte | eine Inhaltsspalte, alle Aufgaben bündig | `.aufgabe` mit hängender Nummer |
 | Aufgaben | ohne Kasten, ohne Fläche | keine `background` oder `border` an Aufgaben |
 | Abstand zwischen Aufgaben | je Klasse, Tabelle in `grundschul-didaktik/references/druck-und-platz.md` | `--abstand`, setzt `blatt.css`; nicht von Hand senken |
@@ -25,7 +25,7 @@ Satzspiegel 1036 px Höhe: Kopf ca. 70 px, Fuß ca. 95 px (nur mit Selbsteinsch�
 
 Faustwerte Kl. 2 (16 px Schrift): Anweisungszeile 21 px, Uhr 84 px + Antwortlinie ≈ 120 px, Rechenzeile mit Antwortlinie 31 px, Schreiblinie 46 px, Leitfigur mit Sprechblase ≈ 64 px. Schreibflächen sind so hoch wie im älteren Satz; nur Lesetext ist kleiner.
 
-**Folien** (`folie`): 1280 × 720 px, Rand 48 px, Satzspiegel 1184 × 624 px. Kopf mit Überschrift und Ziel ≈ 150 px, zweizeilige Überschrift ohne Ziel ≈ 175 px; den Rest füllt `.buehne`. Text 40 px (Kl. 1/2: 48 px), eine Textzeile ≈ 56 px, Nummernkreis 52 px, Abstand zwischen Aufgaben 32 px. Kein Fuß und keine Namenszeile; Platz bleibt frei, statt ihn zu füllen.
+**Folien** (`folie`): 1280 × 720 px, Rand 48 px, Satzspiegel 1184 × 624 px. Kopf mit Überschrift und Ziel ≈ 150 px, zweizeilige Überschrift ohne Ziel ≈ 175 px; den Rest füllt `.buehne`. Text 40 px (Kl. 1/2: 48 px), eine Textzeile ≈ 56 px, Nummernkreis 52 px, Abstand zwischen Aufgaben 32 px. Kein Fuß und keine Namenszeile; Platz bleibt frei, statt ihn zu füllen. Ein Auftakt (`folie auftakt`) ist davon frei: Szenen über die ganze Folie bis an den Rand, Schmuckschrift frei; die Prüfung meldet dort keinen Druckrand und keinen Kit-Anteil, Überlauf und Schriftgröße prüft sie wie sonst (`praesentation/SKILL.md`, „Auftakt“).
 
 ## 3. Sauberes HTML
 
@@ -81,5 +81,7 @@ Das Bauen meldet Abweichungen als Hinweis (`thema-layout`, `thema-klasse`, `kit-
 - [ ] Visuelle Endkontrolle bestanden (`visuelle-endkontrolle.md`)
 
 **Hervorheben im Text:** `<mark>…</mark>` (Palettenfarbe; in s/w fett und unterstrichen).
+
+**Karten und Ausschneidematerial:** `.karten` füllt die Seite mit `--spalten` × `--zeilen` gleich großen Karten; Größe und Zahl je A4 nicht frei wählen, sondern nach `grundschul-didaktik/references/druck-und-platz.md`, „Ausschneide- und Legematerial“. Den Innenabstand der Karte (5 mm zur Schnittkante) nicht überschreiben; Bilder ohne feste Größe und `x-gitter` ohne `kaestchen` füllen die Karte selbst. Muster: `assets/beispiel-kartensatz.html`.
 
 **Tabellen:** `<table class="kit-tabelle">` mit `thead`/`tbody`; Varianten `kopfspalte`, `schreibzeilen`, `kompakt`, `nach-inhalt`, `erste-schmal`, `ohne-linien-innen`. Lösung je Zelle über `data-l`, Beispielzeile mit `.beispiel`. Maße stehen in `blatt.css`. Muster: `assets/muster/tabellen.html`.

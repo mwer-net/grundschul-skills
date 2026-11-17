@@ -89,6 +89,15 @@
 		}
 	],
 	"beispiel-zehner-einer-kl2.html": [],
+	"beispiel-vorleseheft.html": [],
+	"beispiel-auftakt.html": [],
+	"beispiel-kartensatz.html": [
+		{
+			"stufe": "HINWEIS",
+			"seite": 1,
+			"text": "In Originalgröße drucken (100 %, nicht „An Seite anpassen“) → --druckhinweis beim Anlegen setzen"
+		}
+	],
 	"vorlage-arbeitsblatt.html": [],
 	"vorlage-praesentation.html": [
 		{

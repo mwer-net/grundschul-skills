@@ -81,6 +81,11 @@ describe('pruefung.js (mit blatt.py)', () => {
 					'zahlenraum',
 					// Die Dichte (213) prüft „pruefung.js: Arbeitsseite gefüllt wie im Schulbuch“.
 					'inhalt-wenig',
+					// Ausschneidematerial (214) prüft „pruefung.js: Ausschneide- und Legematerial“.
+					'teile-viele',
+					'teil-klein',
+					'motiv-klein',
+					'schnitt-knapp',
 				].includes(c),
 		);
 		assert.deepEqual(fehlt, [], 'jede Regel kommt in den Testdaten vor');
@@ -501,5 +506,137 @@ describe('pruefung.js: Arbeitsseite gefüllt wie im Schulbuch (213)', { skip: br
 		const meldungen = await melde(blatt(' data-satz="2"', '', [1, 2, 3, 4].map((nr) => aufgabe(nr, 3)).join('')));
 		assert.ok(meldungen.some((m) => m.code === 'platz-frei' && m.stufe === 'WARNUNG'));
 		assert.equal(stufe(meldungen, 'inhalt-wenig'), undefined);
+	});
+});
+
+describe('pruefung.js: Bild mit Ebenen (215)', { skip: browserSkip() }, () => {
+	const fallKarte = (bild: string) =>
+		[
+			'<!doctype html><html lang="de"><head><meta charset="utf-8"><title>215</title>',
+			'<link rel="stylesheet" href="blatt.css"><script src="abbildungen.js"></script></head>',
+			'<body class="kl2 farbe" data-satz="2"><section class="seite fall">',
+			`<div class="fall-bild" style="--h:660px">${bild}<div class="fall-band">Kapitel 1</div></div>`,
+			'<div class="fall-innen"><h1>Die Turmuhr</h1><div class="fall-text"><p>Willi schaut hinauf.</p></div></div>',
+			'</section></body></html>',
+		].join('\n');
+	const ebenen =
+		'<img src="bilder/wachstum.png" alt="Szene">' +
+		'<img class="lage" src="bilder/willi.png" alt="Willi" style="--x:2%;--y:40%;--b:30%">' +
+		'<div class="lage lage-zettel" style="--x:20%;--y:50%;--b:20%"><x-uhr zeit="7:30" groesse="100"></x-uhr></div>';
+	const melde = async (html: string) => {
+		const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-215-'));
+		try {
+			const datei = path.join(tmp, 'blatt.html');
+			await writeFile(datei, html);
+			return (await pruefe(datei)).filter((m) =>
+				['ueberlappung', 'ueberlauf', 'rand', 'abgeschnitten'].includes(m.code ?? ''),
+			);
+		} finally {
+			await rm(tmp, { recursive: true, force: true });
+		}
+	};
+
+	it('Ebenen in .bild-lagen liegen mit Absicht übereinander und am Platz beschnitten', async () => {
+		const html = fallKarte(
+			`<div class="bild-lagen"><div class="lagen-flaeche" style="--ar:16/9">${ebenen}</div></div>`,
+		);
+		assert.deepEqual(await melde(html), []);
+	});
+
+	it('ohne .bild-lagen meldet die Prüfung die Überlappung weiter', async () => {
+		const html = fallKarte(
+			`<div style="position:relative;height:100%">${ebenen.replaceAll('class="lage', 'class="frei')}</div>`,
+		);
+		assert.ok((await melde(html)).some((m) => m.code === 'ueberlappung'));
+	});
+});
+
+describe('pruefung.js: Ausschneide- und Legematerial (214)', { skip: browserSkip() }, () => {
+	const CODES = ['teile-viele', 'teil-klein', 'motiv-klein', 'schnitt-knapp'];
+	const figur = '1 1 0 / 1 1 1 / 0 1 1';
+	const blatt = (body: string, inhalt: string) =>
+		[
+			'<!doctype html><html lang="de"><head><meta charset="utf-8"><title>214</title>',
+			'<link rel="stylesheet" href="blatt.css"><script src="abbildungen.js"></script></head>',
+			`<body class="kl2 farbe"${body}><section class="seite">${inhalt}</section></body></html>`,
+		].join('\n');
+	const karten = (stil: string, n: number, gitter: string) =>
+		`<div class="karten" style="${stil}">${`<div class="karte"><x-gitter spalten="3" zeilen="3" figur="${figur}"${gitter}></x-gitter></div>`.repeat(n)}</div>`;
+	const melde = async (html: string) => {
+		const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-214-'));
+		try {
+			const datei = path.join(tmp, 'blatt.html');
+			await writeFile(datei, html);
+			return (await pruefe(datei)).filter((m) => CODES.includes(m.code ?? ''));
+		} finally {
+			await rm(tmp, { recursive: true, force: true });
+		}
+	};
+	const stufe = (meldungen: Meldung[], code: string) => meldungen.find((m) => m.code === code)?.stufe;
+
+	it('zwölf Karten mit kleinem Gitter: „teile-viele“ und „motiv-klein“ als WARNUNG', async () => {
+		const meldungen = await melde(
+			blatt(' data-satz="2"', karten('--spalten:3;--zeilen:4', 12, ' kaestchen="0.5"')),
+		);
+		assert.equal(stufe(meldungen, 'teile-viele'), 'WARNUNG');
+		assert.equal(stufe(meldungen, 'motiv-klein'), 'WARNUNG');
+	});
+
+	it('ohne data-satz bleibt die Prüfung, wie sie war', async () => {
+		assert.deepEqual(await melde(blatt('', karten('--spalten:3;--zeilen:4', 12, ' kaestchen="0.5"'))), []);
+	});
+
+	it('3 × 3 Karten, Gitter ohne kaestchen füllt die Karte: keine Meldung', async () => {
+		assert.deepEqual(await melde(blatt(' data-satz="2"', karten('--spalten:3;--zeilen:3', 9, ''))), []);
+	});
+
+	it('Schneidebogen mit 30 mm breiten Teilen: „teil-klein“', async () => {
+		const bogen = `<div class="schneidebogen" style="--spalten:4;--teil-b:30mm;--teil-h:45mm">${'<div><span class="kartentext">7</span></div>'.repeat(4)}</div>`;
+		const meldungen = await melde(blatt(' data-satz="2"', bogen));
+		assert.match(
+			meldungen.find((m) => m.code === 'teil-klein')?.text ?? '',
+			/^4 Teile zum Selbstschneiden sind zu klein \(30 × 45 mm\)/,
+		);
+	});
+
+	it('Karte mit 1 mm Innenabstand: „schnitt-knapp“', async () => {
+		const karte =
+			'<div class="karte" style="padding:1mm;justify-content:flex-start"><span class="kartentext">Ein langes Wort hier</span></div>';
+		const meldungen = await melde(
+			blatt(' data-satz="2"', `<div class="karten" style="--spalten:2;--zeilen:2">${karte.repeat(4)}</div>`),
+		);
+		assert.equal(stufe(meldungen, 'schnitt-knapp'), 'WARNUNG');
+	});
+});
+
+describe('pruefung.js: Auftakt (217)', { skip: browserSkip() }, () => {
+	const folien = (body: string, inhalt: string) =>
+		[
+			'<!doctype html><html lang="de"><head><meta charset="utf-8"><title>217</title>',
+			'<link rel="stylesheet" href="blatt.css"></head>',
+			`<body class="kl2 farbe folie${body}" data-satz="2"><section class="seite">${inhalt}</section></body></html>`,
+		].join('\n');
+	const szene =
+		'<aside class="notiz"><p>Schauen lassen.</p></aside><div class="ebene hinten">' +
+		'<svg data-frei data-frei-titel="Szene" data-lage="frei" viewBox="0 0 1280 720" style="--b:1280px;--h:720px"><rect width="1280" height="720" fill="#123"/></svg></div>';
+	const melde = async (html: string) => {
+		const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-217-'));
+		try {
+			const datei = path.join(tmp, 'folien.html');
+			await writeFile(datei, html);
+			return await pruefe(datei);
+		} finally {
+			await rm(tmp, { recursive: true, force: true });
+		}
+	};
+
+	it('Szene bis an den Rand: im Auftakt kein „druckrand“, auf anderen Folien schon', async () => {
+		assert.equal((await melde(folien(' auftakt', szene))).filter((m) => m.code === 'druckrand').length, 0);
+		assert.ok((await melde(folien('', szene))).some((m) => m.code === 'druckrand'));
+	});
+
+	it('kleine Schrift meldet die Prüfung auch im Auftakt', async () => {
+		const klein = `${szene}<div class="ebene vorne"><div class="schmuck" data-lage="frei" data-schmuck="titel" style="--x:100px;--y:100px;--gr:20px">Zu klein</div></div>`;
+		assert.ok((await melde(folien(' auftakt', klein))).some((m) => m.code === 'schrift-klein'));
 	});
 });

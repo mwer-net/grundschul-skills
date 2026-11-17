@@ -20,8 +20,19 @@
      mit wörtlicher Rede, Frage der Stunde. Das Bild erzählt, der Text gibt nur den Auftrag. -->
 <section class="seite fall">
   <div class="fall-bild" style="--h:660px">
-    <!-- im Material steht hier das Szenenbild als img, Querformat 16:9, aus dem Ordner bilder der Mappe -->
-    <div class="platzhalter">Bild: Marktplatz von Uhrenhausen am Morgen, die Turmuhr steht still, am Fensterbrett liegt eine Feder</div>
+    <!-- Bild mit Ebenen (html-materialerstellung/references/bilder.md, Abschnitt 4). Platz 794 × 660 → Szene in 5:4
+         (--ar), ohne Figur und ohne Schrift; im Material steht statt des Platzhalters das img aus ../../bilder/.
+         Darüber die Pose der Leitfigur als feste Ebene und der Zettel als HTML mit berechneter Uhr. -->
+    <div class="bild-lagen">
+      <div class="lagen-flaeche" style="--ar:5/4">
+        <div class="platzhalter">Bild: Marktplatz von Uhrenhausen am Morgen, Turm mit leerem Zifferblatt, am Fensterbrett liegt eine Feder</div>
+        <img class="lage" src="bilder/willi.png" alt="Willi zeigt zum Turm" style="--x:3%;--y:42%;--b:30%">
+        <div class="lage lage-zettel" style="--x:60%;--y:20%;--b:22%;--dreh:4deg">
+          <x-uhr zeit="7:30" groesse="120"></x-uhr>
+          <div>So steht die Turmuhr.</div>
+        </div>
+      </div>
+    </div>
     <div class="fall-band">Kapitel 1</div>
   </div>
   <div class="fall-innen">

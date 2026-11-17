@@ -46,19 +46,19 @@ Die Spielform muss nicht gefragt werden: 2–3 Entwürfe mit verschiedenen passe
 2. **Kurzinfo für die Lehrkraft:** Ich-kann-Ziel, Vorbereitung (Ausschneiden, Laminieren), Varianten.
 3. **Ich-kann-Ziel und Reflexion** auf der Anleitungskarte: „Ich kann …" oben, unten eine Reflexionsfrage („Welche Aufgabe war eine gute Herausforderung?").
 4. **Selbstkontrolle:** Lösung auf der Rückseite, Kontrollbild, geschlossene Kette oder Lösungskarte.
-5. **Schneidelinien** gestrichelt, Karten gleich groß, Rückseite zum doppelseitigen Druck.
+5. **Kartensatz wie gekauft:** Deckkarte, Karten gleich groß in der Setfarbe, gestaltete Rückseite zum doppelseitigen Druck, beim Domino Start und Ziel. Maße, Schnitt und Bausteine: `grundschul-didaktik/references/druck-und-platz.md`, „Ausschneide- und Legematerial“.
 
 ## Gestaltungsregeln
 
 Satzstreifen zum Legen und Umstellen: `x-satzglieder` mit `ausschneiden="ja"` (`fach-deutsch`).
 
-- Karten mind. 6 × 6 cm (Kl. 1/2), ein Element pro Karte, Text groß (mind. 20 pt), Bild eindeutig.
-- Niveaus (falls gewählt) nur mit Punkten ● / ●● / ●●● in der Kartenecke, nicht mit Farbe; Farbe nur zur Unterscheidung verschiedener Spiele.
-- Rückseiten gestalten (Muster + Spielname), damit Sets nicht vermischt werden.
+- Karten so groß und so viele je A4, wie `druck-und-platz.md`, „Ausschneide- und Legematerial“, sagt: ein Element pro Karte, das Motiv füllt die Karte, Bild eindeutig. Lieber eine Seite mehr als kleine Karten.
+- Niveaus (falls gewählt) mit Punkten ● / ●● / ●●● in der Kartenecke; die Setfarbe trennt Spiele und darf Kartensätze je Niveau trennen.
+- Rückseiten gestalten (`.karte.rueckseite`: Muster in der Setfarbe mit Spielname oder Lösung), damit Sets nicht vermischt werden.
 - Kein Gewinnen durch reines Glück: Inhalt entscheidet.
 - Der Spielplan ist eine Schauseite (`grundschul-didaktik/references/kindgerecht-gestalten.md`): Er soll aussehen wie ein Spiel, das man gern aufklappt, mit Weg, Start und Ziel, Bild oder Szene zum Thema und Farbe, über den ganzen Bogen (`x-spielplan`). Ein Tabellenraster mit Kästchen ist kein Spielplan.
-- Karten so groß wie ihr Inhalt es braucht und so viele je Bogen, dass der Bogen gefüllt ist; kein halbleerer Bogen, keine Riesenkarte mit einem Wort. Vorder- und Rückseite liegen nach dem Wenden genau aufeinander.
-- Die Kurzinfo für die Lehrkraft ist nüchtern (`body.lehrkraft`, Muster `html-materialerstellung/assets/beispiel-lehrkraft-hinweise.html`); in einer Reihe steht sie in den Hinweisen für die Lehrkraft statt im Spiel.
+- Vorder- und Rückseite liegen nach dem Wenden genau aufeinander. Ein letzter Bogen mit wenigen Karten bleibt so; die Karten werden dafür nicht kleiner.
+- Die Kurzinfo für die Lehrkraft ist nüchtern (`body.lehrkraft`, Muster `html-materialerstellung/assets/beispiel-lehrkraft-hinweise.html`); in einer Reihe steht sie in den Hinweisen für die Lehrkraft statt im Spiel. Zu jedem Spiel zum Ausschneiden gehört dort ein Abschnitt „Drucken und Basteln“ (Inhalt: `druck-und-platz.md`, „Ausschneide- und Legematerial“).
 - Wenn möglich eine kooperative Variante anbieten (gemeinsam gegen die Zeit, Klassenziel). Keine Ranglisten über mehrere Runden; wer eine Aufgabe nicht weiß, darf eine Tippkarte nehmen.
 
 Würfel für Spielregeln und Spielkarten kommen aus `<x-wuerfel>` (`html-materialerstellung/references/abbildungen.md`), nie als Bild. Spielwürfel mit eigenen Seiten: `<x-wuerfelnetz flaechen="…" bastel="ja">`, Druckhinweis „Originalgröße, festes Papier“.
@@ -74,8 +74,8 @@ Würfel für Spielregeln und Spielkarten kommen aus `<x-wuerfel>` (`html-materia
 
 ## Umsetzung (`html-materialerstellung`)
 
-- Bingo, Domino, Würfel-/Laufspiel und Leiterspiel über die Elemente, Abschnitt „Spiele“ in `html-materialerstellung/references/abbildungen.md`. Kartenraster: Memory/Wortkarten 2 × 4 pro A4, Domino 2 × 6 (quer liegende Steine), Bingo 1–2 Karten pro A4.
+- Bingo, Domino, Würfel-/Laufspiel und Leiterspiel über die Elemente, Abschnitt „Spiele“ in `html-materialerstellung/references/abbildungen.md`. `x-domino` setzt mit `data-satz="2"` Größe, Start und Ziel selbst (`je-seite` weglassen); Bingo 1–2 Karten pro A4.
 - Spielwürfel mit eigenen Seiten über `x-wuerfelnetz`. Druckhinweise: festes Papier, laminieren, ausschneiden.
-- Kartenraster mit `.karten` (`--spalten`), Schneidelinien sind die gestrichelten Kartenränder.
-- Rückseiten als eigene `.seite`, horizontal gespiegelt zur Vorderseite (Reihenfolge je Zeile umkehren).
-- Mit Schoolbox die Druckhinweise am Dokument hinterlegen (`schoolbox dokument … --druckhinweis "…"`, je Hinweis einmal), z. B. „Doppelseitig drucken, an der langen Kante wenden“, „Auf festes Papier drucken und laminieren“, „Karten an den gestrichelten Linien ausschneiden“.
+- Kartenraster mit `.karten` (`--spalten`, `--zeilen`, `--set`), vorn die `.karte.deckkarte`. Abschauen in `html-materialerstellung/assets/beispiel-kartensatz.html`.
+- Rückseiten als eigene `.seite` mit `.karten.rueckseiten` in derselben Reihenfolge wie vorn; die Klasse spiegelt die Spalten für den Duplexdruck.
+- Mit Schoolbox die Druckhinweise am Dokument hinterlegen (`schoolbox dokument … --druckhinweis "…"`, je Hinweis einmal), z. B. „Doppelseitig drucken, an der langen Kante wenden“, „Auf festes Papier drucken und laminieren“, „Karten an den weißen Linien zwischen den Rahmen ausschneiden“.

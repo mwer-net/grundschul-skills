@@ -84,7 +84,7 @@ process.stdin.on('end', () => {
 	const ende = (extra) => sag({ type: 'result', subtype: 'success', is_error: false, result: 'Annahme: Klasse 2', num_turns: 2, total_cost_usd: 0.01, usage: { output_tokens: 5 }, permission_denials: [], ...extra });
 	// 139: eine Einheit mit zwei Materialien; „einheit-skript“ baut erst ein Skript ein, „einheit-haenger“ schreibt erst das zweite, bleibt nach dem ersten fertigen stehen.
 	if (fall.startsWith('einheit')) {
-		const blatt = (titel, extra = '') => '<!doctype html><html lang="de"><head><meta charset="utf-8"><title>' + titel + '</title><link rel="stylesheet" href="blatt.css"><link rel="stylesheet" href="../../thema.css"></head><body class="kl2 a4-hoch farbe"><section class="seite"><h1>' + titel + '</h1><img src="../../bilder/uhr.png" alt="Uhr">' + extra + '</section></body></html>';
+		const blatt = (titel, extra = '', satz = ' data-satz="2"') => '<!doctype html><html lang="de"><head><meta charset="utf-8"><title>' + titel + '</title><link rel="stylesheet" href="blatt.css"><link rel="stylesheet" href="../../thema.css"></head><body class="kl2 a4-hoch farbe"' + satz + '><section class="seite"><h1>' + titel + '</h1><img src="../../bilder/uhr.png" alt="Uhr">' + extra + '</section></body></html>';
 		const plan = (fertig) => fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Uhrzeit', annahmen: ['Klasse 2'], dokumente: [{ slug: 'fall-1', titel: 'Fall 1', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Einstieg', fertig: fertig >= 1 }, { slug: 'fall-2', titel: 'Fall 2', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Üben', fertig: fertig >= 2 }] }));
 		const warte = (ms) => new Promise((r) => setTimeout(r, ms));
 		(async () => {
@@ -102,9 +102,9 @@ process.stdin.on('end', () => {
 			plan(1);
 			await warte(2500);
 			if (fall === 'einheit-haenger') { setInterval(() => {}, 1000); return; }
-			// „einheit-niveau“: Niveau-Punkte, obwohl der Auftrag ohne Niveaus ist (210).
+			// „einheit-niveau“: Niveau-Punkte, obwohl der Auftrag ohne Niveaus ist (210). „einheit-altsatz“: Body ohne data-satz (212).
 			const extra = { 'einheit-skript': '<script>window.boese = 1</script>', 'einheit-niveau': '<span class="niveau"><i></i><i></i></span>' }[fall] ?? '';
-			fs.writeFileSync('dokumente/fall-2/material.html', blatt('Fall 2', extra));
+			fs.writeFileSync('dokumente/fall-2/material.html', blatt('Fall 2', extra, fall === 'einheit-altsatz' ? '' : undefined));
 			plan(2);
 			ende({ result: 'Zwei Fälle gebaut.' });
 		})();

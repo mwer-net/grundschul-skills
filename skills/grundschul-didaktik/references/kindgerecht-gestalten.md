@@ -16,7 +16,7 @@ Wie viel gestaltet wird, folgt dem Zweck der Seite, nicht einer Vorlage. Die Mus
 | Seitenart | Beispiele | Gestaltung |
 |---|---|---|
 | **Arbeitsseite** | Arbeitsblatt, Lernzielkontrolle, Klassenarbeit, Lesetext mit Aufgaben, Aufgabenkarte mit viel Inhalt | Der Platz gehört den Aufgaben. Gestaltet wird nur, was ohnehin da ist und kaum Fläche kostet: Titel, Farbakzent, Nummernkreise, Leitfigur mit Tipp, eine Marke in der Namenszeile. Kein Seitenrahmen, keine Symbole hinter der Aufgabennummer, keine Linien oder Balken am Text, keine Kästen um Aufgaben. Je weniger Aufgaben eine Seite trägt (Kl. 1, Forscherbogen, Malseite), desto mehr Spielraum. |
-| **Schauseite** | Deckblatt, Fall- oder Szenenkarte, Plakat, Ausweis oder Pass, Sammelkarte, Urkunde, Spielplan, Spielkarten, Folien, Titel eines Hefts | Hier wird gestaltet und Platz ist zweitrangig: Szenenbild, Seitenfläche, Rahmen, Formen, Schmuckschrift, Streuung (`html-materialerstellung/references/gestaltung.md`). Eigene Ideen statt Nachbau des Musters. Maßstab: Würde ein Kind sie gern behalten, würde eine Lehrkraft in der Vorschau hängen bleiben? |
+| **Schauseite** | Deckblatt, Fall- oder Szenenkarte, Plakat, Ausweis oder Pass, Sammelkarte, Urkunde, Spielplan, Spielkarten, Folien, Titel eines Hefts, Ausschneide- und Legematerial (Karten, Dominosteine, Legeteile, Schneidebögen) | Hier wird gestaltet und Platz ist zweitrangig: Szenenbild, Seitenfläche, Rahmen, Formen, Schmuckschrift, Streuung (`html-materialerstellung/references/gestaltung.md`). Maße und Bausteine für Ausschneidematerial: `druck-und-platz.md`, „Ausschneide- und Legematerial“. Eigene Ideen statt Nachbau des Musters. Maßstab: Würde ein Kind sie gern behalten, würde eine Lehrkraft in der Vorschau hängen bleiben? |
 | **Seite für die Lehrkraft** | Hinweise zur Reihe, Ablauf der Stunden, Lösungen, Erwartungshorizont | Nüchtern und schnell zu überfliegen: `<body class="… lehrkraft">` (Arial, kleine Schrift), Stichpunkte und Tabellen statt Fließtext, keine Kästen, keine Kinderschrift. |
 
 Im Zweifel bei Arbeitsseiten weglassen, bei Schauseiten mutiger sein.
@@ -99,51 +99,23 @@ Dosierung: Leitfigur plus nur die Bilder, die die Aufgaben brauchen.
 
 ## KI-Bilder und -Grafiken (Canva `generate-image`)
 
-Bilder und Grafiken, die das Material braucht, erzeugt der Skill nach Bedarf mit der Canva-KI und baut sie ins HTML ein (Ablauf: `html-materialerstellung/references/bilder.md`, Abschnitt 2). Es gilt der Weglass-Test aus Abschnitt 4.
+Bilder und Grafiken, die das Material braucht, erzeugt der Skill nach Bedarf mit der Canva-KI und baut sie ins HTML ein. Es gilt der Weglass-Test aus Abschnitt 4. Format, Bildvertrag, Stilblock, Prompt-Regeln, Prüfung und Reparatur stehen in `html-materialerstellung/references/bilder.md`, Abschnitte 2 bis 4.
 
-**Stil-Satz einmal pro Material festlegen und für jedes Bild wörtlich wiederverwenden** – so bleibt der Stil einheitlich.
-
-Farbbild:
-
-> Kindgerechte Illustration im flachen Vektorstil, runde, weiche Formen, klare dunkle Konturen, warme Pastellfarben ({Palette}), freundliche Gesichter, weißer Hintergrund, freigestellt, keine Schrift, keine Zahlen, keine Buchstaben im Bild, kein Hintergrundmuster.
-
-Strichzeichnung zum Anmalen (`name-strich.png`):
-
-> Kindgerechte Strichzeichnung wie ein Ausmalbild, runde, weiche Formen, klare schwarze Konturen gleichmäßiger Stärke, weiße Füllung, keine Grautöne, keine Schraffur, freundliche Gesichter, weißer Hintergrund, freigestellt, keine Schrift, keine Zahlen, keine Buchstaben im Bild, kein Hintergrundmuster.
-
-Szenenbild mit Hintergrund (für Geschichten und Erzählanlässe, nicht freigestellt):
-
-> Kindgerechte Illustration im flachen Vektorstil, runde, weiche Formen, klare dunkle Konturen, warme fröhliche Farben, freundliche Gesichter, keine Schrift, keine Zahlen, keine Buchstaben im Bild.
-
-Danach Motiv konkret beschreiben: wer, was, Pose, Blickrichtung (zur Aufgabe hin), Bildausschnitt.
-
-Regeln:
-- **Keine Schrift, Zahlen oder Uhren im KI-Bild.** KI erzeugt dabei regelmäßig Fehler. Fachlich exakte Elemente (Uhren, Zahlenstrahl, Mengenbilder) werden berechnet und als Vektor gesetzt (`html-materialerstellung/assets/abbildungen.js`). Auch Gegenstände meiden, die Schrift anziehen (Schilder, Plakate, offene Bücher, Tafeln, Hausnummern), oder sie ausdrücklich „leer“ beschreiben.
-- **Keine Anzahl, auf die es ankommt.** Würfelaugen, Fächer, Anzahl Häuser oder Gegenstände in Reihen stimmen im KI-Bild fast nie. Was gezählt werden soll, wird berechnet (`html-materialerstellung/references/bilder.md`, Abschnitt 3).
-- Leitfigur: immer Willi oder Wilma Waschbär (Dateien in `html-materialerstellung/assets/bilder/`, neue Posen nach `html-materialerstellung/references/bilder.md`).
+Was hier entschieden wird:
+- **Nichts Lesbares und nichts Exaktes aus der KI:** Schrift, Zahlen, Uhren, Mengen und Geometrie werden berechnet oder als HTML gesetzt (`bilder.md`, Abschnitt 3).
+- Leitfigur: immer Willi oder Wilma Waschbär (Dateien in `html-materialerstellung/assets/bilder/`, neue Posen nach `bilder.md`, Abschnitt 4).
 - Sachabbildungen (Tiere, Pflanzen, Körper) auf fachliche Richtigkeit prüfen.
 - Diversität: Kinder unterschiedlicher Herkunft, Geschlechter und mit/ohne Brille, Rollstuhl usw. selbstverständlich abbilden, ohne es zum Thema zu machen.
-
-Prompt-Regeln für Figuren und Szenen (jede verhindert einen Fehler, der in der Erprobung vorkam):
-- **Jede Figur mit ihrem Aussehen beschreiben**, auch wenn ihr Referenzbild dabei ist: Art, Fellfarbe, Augenfarbe, Kleidung, Erkennungszeichen („Willi: grauer Waschbär-Junge, schwarze Augenmaske, dunkelbraune Augen, oranges T-Shirt“).
-- **„Jede Figur genau einmal im Bild.“** ausdrücklich in den Prompt schreiben. Ohne den Satz erscheint dieselbe Figur gelegentlich zweimal, mit anderer Kleidung.
-- **Höchstens drei bis vier Figuren je Szene.** Jede weitere Figur erhöht die Zahl der Fehler an Pfoten und Gesichtern.
-- **Einfache, eindeutige Posen und Griffe:** wer hält was in welcher Pfote und wie („hält die Lupe am Griff vor sich, das Auge bleibt frei“). Ein Gegenstand direkt vor dem Auge verschmilzt mit dem Auge; ein Gegenstand ohne beschriebenen Griff schwebt oder wächst aus dem Arm.
-- **Nie auf eine andere Figur verweisen** („genau wie Wilma“, „im selben Stil wie die andere Figur“): Die KI überträgt dann Merkmale wie Augenfarbe, Wimpern oder Schleife.
-- **Nur Referenzbilder der Figuren, die vorkommen**, je Figur eins. Ein überzähliges Referenzbild holt seine Figur zusätzlich ins Bild.
-- Erzeugt wird erst, wenn der Text der Szene steht, damit Bild und Text dieselbe Handlung zeigen.
-
-Geprüft wird jedes KI-Bild in voller Auflösung, Figur für Figur (`html-materialerstellung/references/bilder.md`, Abschnitt 2, Schritt 5); Fehler werden nach Abschnitt 2a dort repariert.
 
 ## Geschichten-Rahmen für eine Reihe
 
 Eine durchgehende Geschichte trägt eine ganze Unterrichtsreihe besser als einzelne Blätter: Die Kinder wollen wissen, wie es weitergeht, und jede Stunde hat einen Anlass. Die Geschichte ist der Impuls des Kreisinputs, nicht Deko auf dem Arbeitsblatt.
 
 - **Rahmen:** ein Problem, das sich nur mit dem Lernziel der Reihe lösen lässt (etwas ist verschwunden, kaputt, verzaubert); jede Stunde ein Kapitel oder Fall, dessen Rätsel genau das Ich-kann-Ziel der Stunde ist. Die letzte Stunde löst den Rahmen auf (Überprüfung als „Prüfung“, Fest, Urkunde).
-- **Szenenkarte je Stunde** (Karte, Plakat oder Folie für den Kreisinput, eine Schauseite): Das Szenenbild trägt die Seite (etwa zwei Drittel der Höhe), dazu Titel des Kapitels, eine kurze Geschichte und die Frage der Stunde. Die Geschichte ist kurz: Kl. 1/2 höchstens 40 Wörter, Kl. 3/4 höchstens 60. Lieber zwei, drei Sätze wörtliche Rede der Figuren (auch als Sprechblasen) als Erzählprosa; was das Bild zeigt, muss der Text nicht beschreiben. Das Szenenbild ist hier Erzählanlass mit Funktion; der Weglass-Test gilt weiter für die Arbeitsblätter.
+- **Szenenkarte je Stunde** (Karte, Plakat oder Folie für den Kreisinput, eine Schauseite): Das Szenenbild trägt die Seite (etwa zwei Drittel der Höhe), dazu Titel des Kapitels, ein kurzer Text und die Frage der Stunde. Der Text hat in Kl. 1/2 höchstens 40 Wörter, in Kl. 3/4 höchstens 60 (diese Grenze gilt überall für Fall- und Szenenkarten); erzählt wird in einer Reihe im Vorleseheft (`unterrichtsplanung/references/reihe-als-geschichte.md`, „Das Vorleseheft“). Lieber zwei, drei Sätze wörtliche Rede der Figuren (auch als Sprechblasen) als Erzählprosa; was das Bild zeigt, muss der Text nicht beschreiben. Das Szenenbild ist hier Erzählanlass mit Funktion; der Weglass-Test gilt weiter für die Arbeitsblätter.
 - **Arbeitsblätter bleiben ruhig:** Sie sind Arbeitsseiten. Sie greifen das Kapitel im Titel auf („Fall 3: …“) und haben höchstens die Leitfigur mit Tipp, keine Szenenbilder. Was die Blätter einer Reihe zusammenhält (Kapitel-Marke, Farbe, Fußzeile), kostet keinen Platz; ein Seitenrahmen gehört nicht dazu (`unterrichtsplanung/references/reihe-als-geschichte.md`, Abschnitt 3).
 - **Leitfigur in Bewegung:** Willi oder Wilma zeigt in jeder Szene eine andere Handlung und Pose passend zur Geschichte (rennt, kniet und misst, staunt, zeigt auf eine Spur, jubelt). Immer dieselbe Standardpose wirkt langweilig und erzählt nichts.
-- **Wiedererkennbar:** Leitfigur und höchstens ein bis zwei Nebenfiguren mit fester Aussehen-Beschreibung und denselben Referenzbildern in allen Szenen; der Szenen-Stil-Satz ist für die ganze Reihe gleich.
+- **Wiedererkennbar:** Leitfigur und höchstens drei Nebenfiguren (in einer Reihe die Verdächtigen) mit fester Aussehen-Beschreibung; sie liegen als feste Ebenen über den Szenen, und der Stilblock ist für die ganze Reihe gleich (`html-materialerstellung/references/bilder.md`, Abschnitte 2 und 4).
 - Szenen erst erzeugen, wenn alle Geschichten der Reihe stehen; danach jede Szene gegen ihren Text prüfen.
 
 ## Prüffragen „ansprechend, aber nicht überladen"

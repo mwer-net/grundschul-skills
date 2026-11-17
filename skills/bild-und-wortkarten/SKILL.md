@@ -27,10 +27,10 @@ Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Medi
 
 - **Ein Begriff pro Karte**, Bild eindeutig und typisch (prototypischer Vertreter: "Vogel" = Spatz/Amsel, nicht Pinguin).
 - Nomen immer mit Artikel (DaZ: Artikel farbig und fett mit Symbol – Klassenkonvention erfragen).
-- Schrift: Tafelkarten 72–120 pt, Tischkarten 24–36 pt; Druckschrift der Klasse.
+- Schrift: Tafelkarten so groß, wie `grundschul-didaktik/references/druck-und-platz.md`, „Ausschneide- und Legematerial“, verlangt, Tischkarten 24–36 pt; Druckschrift der Klasse.
 - Anlautkarten: Anlaut muss eindeutig hörbar sein (Igel für I, nicht Indianer; Ei nicht für E). Für Vokale langen und kurzen Laut beachten; mit der Anlauttabelle des Lehrwerks abgleichen.
 - Englisch-Flashcards: Bild vorne ohne Text (für Hör- und Sprechphase), Wort auf der Rückseite oder separate Wortkarte zum späteren Zuordnen.
-- Einheitlicher Rahmen und Stil, Rückseite mit Themensymbol.
+- Einheitlicher Rahmen in der Setfarbe und Stil, Rückseite mit Themensymbol oder Wort. Kartengröße, Motivgröße, Schnitt, Deckkarte: `druck-und-platz.md`, „Ausschneide- und Legematerial“.
 
 ## Varianten
 
@@ -48,6 +48,6 @@ Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Medi
 
 ## Umsetzung (`html-materialerstellung`)
 
-- Tafelkarten: `a4-quer`, eine Karte pro Seite. Tischkarten: 8 pro A4 (`.karten` mit `--spalten:2`, 4 Zeilen), Schneidelinien sind die gestrichelten Ränder.
-- Mit Schoolbox die Druckhinweise am Dokument hinterlegen (`schoolbox dokument … --druckhinweis "…"`, je Hinweis einmal), z. B. „Doppelseitig drucken, an der langen Kante wenden“ (Bild vorn, Wort hinten), „Laminieren“, „An den gestrichelten Linien ausschneiden“.
-- Bilder für ein Set in einem Rutsch mit gleichem Stil-Satz per Canva `generate-image` erzeugen und als Dateien holen (`html-materialerstellung/references/bilder.md`).
+- Tafelkarten: `a4-quer`, eine Karte pro Seite. Tischkarten: 4–9 pro A4 (`.karten` mit `--spalten`, `--zeilen`, `--set`), gemeinsame Schnittlinien, Rückseiten mit `.karten.rueckseiten` auf der nächsten Seite. Abschauen in `html-materialerstellung/assets/beispiel-kartensatz.html`.
+- Mit Schoolbox die Druckhinweise am Dokument hinterlegen (`schoolbox dokument … --druckhinweis "…"`, je Hinweis einmal), z. B. „Doppelseitig drucken, an der langen Kante wenden“ (Bild vorn, Wort hinten), „Laminieren“, „An den weißen Linien zwischen den Rahmen ausschneiden“.
+- Bilder für ein Set in einem Rutsch mit demselben Stilblock per Canva `generate-image` erzeugen, je Motiv ein Bild, freigestellt, und als Dateien holen (`html-materialerstellung/references/bilder.md`, Abschnitt 2).

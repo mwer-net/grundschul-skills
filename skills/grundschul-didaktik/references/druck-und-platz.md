@@ -185,6 +185,28 @@ Passt der Inhalt nicht auf die Seite: erst die Anweisungen kürzen und die Reihe
 
 Bleiben unten mehr als ca. 90 px frei, meldet `blatt.py` das; dann Item, Reihe oder Aufgabe ergänzen.
 
+### Ausschneide- und Legematerial
+
+Karten, Dominosteine, Legeteile und Schneidebögen sind Schauseiten (`kindgerecht-gestalten.md`): Die Kinder nehmen sie in die Hand, legen sie auf den Tisch und erkennen sie aus einem Meter. Hier stehen die Maße für alle Skills; die Bausteine in `blatt.css` (`html-materialerstellung/SKILL.md`, „Gestaltungssystem kurz“) setzen sie mit `data-satz="2"` um. Geprüftes Muster: `html-materialerstellung/assets/beispiel-kartensatz.html`.
+
+| Teil | Maß | Je A4 |
+|---|---|---|
+| Spiel- und Lernkarte (Memory, Quartett, Zuordnen, Lösungskarte) | kurze Kante mindestens 50 mm, Standard 70 × 100 mm; im Raster 3 × 3 sind es 65 × 94 mm | höchstens 9, lieber 4–6 |
+| Dominostein | mindestens 105 × 50 mm, Kl. 1 etwa 150 × 75 mm | 4 (hoch) oder 6 (`a4-quer`) |
+| Streifenkarte (Satzstreifen, Zahlenstrahl-Abschnitt) | 65–75 × 195 mm | 3 |
+| Tafelkarte (Wortkarte, Bildkarte für die Tafel) | Großbuchstaben mindestens 25 mm hoch | 2–4 |
+| Teil, das die Kinder selbst schneiden (Kl. 1/2) | 40–50 mm, nur gerade Schnitte | so viele, wie der Bogen bei diesem Maß trägt |
+
+- **Das Motiv füllt die Karte:** 60–70 % der Fläche, ein Bild oder ein Wort je Karte. Geometrische Motive groß und farbig, Kästchen 8–10 mm; `x-gitter` ohne `kaestchen` füllt die Karte von selbst.
+- **Schnitt:** Karten teilen sich die Schnittlinien (ein Schnitt trennt zwei Karten) oder haben 6–10 mm Abstand (`--fuge`). Text und Bild bleiben mindestens 5 mm von der Schnittkante; den Innenabstand setzt `blatt.css`.
+- **Schneidebogen für die Kinder:** gerade, gestrichelte Linien (mindestens 1 pt), Schere an der ersten Linie (`.schneidebogen`). Keine Rundungen, keine Umrisse ausschneiden lassen.
+- **Ein Set, eine Farbe:** Rahmen oder Grund der Karten in einer Setfarbe (`--set`), je Set eine eigene. Kartensätze je Niveau dürfen eigene Setfarben haben, damit sie beim Aufräumen getrennt bleiben; das Niveau steht trotzdem als Punkte ● / ●● / ●●● in der Ecke (`.ecke`), nie nur als Farbe. Innen ein weißes Feld für Bild und Text. In s/w bleibt der Rahmen grau.
+- **Zum Set gehören** eine Deckkarte (Titel, Spielidee, Zahl der Karten), eine gestaltete Rückseite (Muster in der Setfarbe, nicht leer), bei Domino Start und Ziel, und eine Selbstkontrolle (Lösung auf der Rückseite, Lösungskarte oder Bildpaar). Rückseiten stehen auf der nächsten Seite in derselben Reihenfolge; `.karten.rueckseiten` spiegelt die Spalten für den Duplexdruck.
+- **Schmuck** aus der Figurenbibliothek ist erlaubt, nie Pflicht. KI-Bilder für Karten: `html-materialerstellung/references/bilder.md`.
+- **Drucken und Basteln** steht in den Hinweisen für die Lehrkraft als eigener Abschnitt: doppelseitig über die lange Kante (Hochformat) oder die kurze Kante (`a4-quer`), Schneiden mit Hebelschneider, Laminieren mit 3–5 mm Folienrand um jede Karte, Zubehör (Würfel, Spielfiguren, Klammern, Umschlag oder Dose je Set). Muster: `html-materialerstellung/assets/beispiel-lehrkraft-hinweise.html`.
+
+`blatt.py` meldet mit `data-satz="2"` als WARNUNG: mehr als 9 Teile je Seite (`teile-viele`), zu kleine Teile (`teil-klein`), ein Motiv unter der Hälfte der Karte (`motiv-klein`) und Inhalt näher als 5 mm an der Schnittkante (`schnitt-knapp`).
+
 
 ## 5. Checkliste
 

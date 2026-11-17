@@ -25,7 +25,6 @@ import {
 	EINHEIT_THEMA,
 	einheitAuftragAus,
 	formatBefund,
-	satzBefund,
 	freierName,
 	lebenderOrdner,
 	lesePlan,
@@ -35,6 +34,7 @@ import {
 	neueMappe,
 	neuesDokument,
 	pruefeEinheitAngaben,
+	satzBefund,
 	schreibeAtomar,
 	themaBefund,
 	uebernimmBilder,
@@ -45,7 +45,7 @@ import {
 import type { Router as RouterTyp } from 'express';
 
 import type { BildLader } from './canva-bild';
-import { erstelleBildLader, notiereCanvaId } from './canva-bild';
+import { ANSICHT_BILDER, erstelleBildLader, erstelleZuschnitt, notiereCanvaId } from './canva-bild';
 import { schreibeQuelle } from './dokumente';
 import { HttpFehler } from './fehler';
 import type { Ergebnis, KiPruefer, LaufStand } from './ki';
@@ -289,9 +289,11 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			return;
 		}
 		// Verbotenes kommt gar nicht erst in die Ablage; die Korrekturrunde bekommt den Befund.
-		const sperre = [...neueFunde(ERLAUBTER_KOPF, roh).map((f) => f.text), formatBefund(roh), satzBefund(roh)].filter(
-			(t): t is string => typeof t === 'string',
-		);
+		const sperre = [
+			...neueFunde(ERLAUBTER_KOPF, roh).map((f) => f.text),
+			formatBefund(roh),
+			satzBefund(roh),
+		].filter((t): t is string => typeof t === 'string');
 		if (sperre.length) {
 			befund(s, d.slug, s.importiert[d.slug]?.dok ?? null, sperre);
 			return;
@@ -412,9 +414,11 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 				return { text: `dokumente/${dokument}/material.html fehlt oder ist zu groß.`, fehler: true };
 			}
 			const roh = await readFile(datei, 'utf8');
-			const sperre = [...neueFunde(ERLAUBTER_KOPF, roh).map((f) => f.text), formatBefund(roh), satzBefund(roh)].filter(
-				(t): t is string => typeof t === 'string',
-			);
+			const sperre = [
+				...neueFunde(ERLAUBTER_KOPF, roh).map((f) => f.text),
+				formatBefund(roh),
+				satzBefund(roh),
+			].filter((t): t is string => typeof t === 'string');
 			if (sperre.length) {
 				return { text: `Nicht gebaut, der Server lehnt das Material ab: ${sperre.join(' · ')}`, fehler: true };
 			}
@@ -595,7 +599,14 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			stand: s,
 			kind: null,
 			abbruch: false,
-			lader: s.bilder ? erstelleBildLader(arbeitDir(s.id), path.join(arbeitDir(s.id), 'bilder')) : null,
+			lader: s.bilder
+				? erstelleBildLader(
+						arbeitDir(s.id),
+						path.join(arbeitDir(s.id), 'bilder'),
+						undefined,
+						erstelleZuschnitt(kontext.konfig.pythonBin, path.join(arbeitDir(s.id), ANSICHT_BILDER)),
+					)
+				: null,
 			takt: null,
 			abgleich: Promise.resolve(),
 			letzterPlan: '',

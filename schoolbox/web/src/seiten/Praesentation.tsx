@@ -117,7 +117,7 @@ const Startseite = ({ folien, phase, starten, titel, zurueck, zurueckGehen }: St
 };
 
 interface LeistenKnopfEigenschaften {
-	symbol: SymbolName;
+	symbol?: SymbolName;
 	titel: string;
 	/** Nur das Symbol zeigen; der Titel steht dann im `aria-label`. */
 	knapp?: boolean;
@@ -136,7 +136,7 @@ const LeistenKnopf = ({ disabled, gedrueckt, knapp, onClick, symbol, titel }: Le
 		aria-pressed={gedrueckt}
 		className="inline-flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-md px-2.5 text-sm font-medium enabled:hover:bg-white/15 enabled:active:bg-white/25 disabled:opacity-40 aria-pressed:bg-white/25"
 	>
-		<Symbol name={symbol} />
+		{symbol && <Symbol name={symbol} />}
 		{!knapp && titel}
 	</button>
 );
@@ -161,8 +161,47 @@ const praesentationTitel = (titel: string | null, geladen: boolean) => {
 const phaseFuer = (format: string | undefined, geladen: Phase): Phase =>
 	format !== undefined && format !== 'folie' ? { art: 'ohne-folien' } : geladen;
 
+interface Kapitel {
+	name: string;
+	folie: number;
+}
+
+/** Ein Auftakt (217) hat je Kapitel eine kurze Folge; ihre erste Folie trägt `data-kapitel`. */
+const kapitelVon = (iframe: HTMLIFrameElement | null): Kapitel[] =>
+	[...(iframe?.contentDocument?.querySelectorAll('.seite') ?? [])].flatMap((f, i) => {
+		const name = f.getAttribute('data-kapitel');
+		return name ? [{ name, folie: i + 1 }] : [];
+	});
+
 /** „3 / 12“ in der Steuerleiste; vor der ersten Meldung leer. */
 const folienText = (stand: FolienStand | null) => (stand ? `${stand.folie} / ${stand.folien}` : '');
+
+interface KapitelKnoepfeEigenschaften {
+	kapitel: Kapitel[];
+	stand: FolienStand | null;
+	gehe: (folie: number) => void;
+}
+
+/** Sprung an den Anfang eines Kapitels; gedrückt ist das Kapitel, in dem die gezeigte Folie liegt. */
+const KapitelKnoepfe = ({ gehe, kapitel, stand }: KapitelKnoepfeEigenschaften) => {
+	if (kapitel.length === 0) {
+		return null;
+	}
+	const aktuell = stand ? kapitel.findLast((k) => stand.folie >= k.folie) : undefined;
+	return (
+		<>
+			<span className="mx-1 h-8 w-px bg-flaeche/30" aria-hidden="true" />
+			{kapitel.map((k) => (
+				<LeistenKnopf
+					key={k.folie}
+					titel={`Kapitel ${k.name}`}
+					gedrueckt={k === aktuell}
+					onClick={() => gehe(k.folie)}
+				/>
+			))}
+		</>
+	);
+};
 
 /** Gleich geht es los: schwarz, nur der Ladestand. Keine Komponente: React nimmt das `div` an dieser Stelle weiter. */
 const sofortLaden = (phase: Phase) => (
@@ -193,6 +232,7 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 	const phase = phaseFuer(dokument?.meta.format, geladenPhase);
 	const [laeuft, setLaeuft] = useState(false);
 	const [stand, setStand] = useState<FolienStand | null>(null);
+	const [kapitel, setKapitel] = useState<Kapitel[]>([]);
 	const [vollbild, setVollbild] = useState(false);
 	const [leiste, setLeiste] = useState(true);
 	const [nummer, setNummer] = useState(() => localStorage.getItem(NUMMER_SPEICHER) !== 'aus');
@@ -263,6 +303,7 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 		fenster.addEventListener('pointermove', regung);
 		fenster.addEventListener('pointerdown', tippen);
 		setStand(laufzeit.stand());
+		setKapitel(kapitelVon(iframe.current));
 		laufzeit
 			.vorladen((fertig, gesamt) => setPhase({ art: 'laedt', fertig, gesamt }))
 			.then(
@@ -426,6 +467,11 @@ export const Praesentation = ({ dok, zugang }: Eigenschaften) => {
 							knapp
 							disabled={stand?.ende ?? false}
 							onClick={mit(() => laufzeit()?.weiter())}
+						/>
+						<KapitelKnoepfe
+							kapitel={kapitel}
+							stand={stand}
+							gehe={(folie) => mit(() => laufzeit()?.gehe(folie))()}
 						/>
 						<span className="mx-1 h-8 w-px bg-flaeche/30" aria-hidden="true" />
 						<LeistenKnopf

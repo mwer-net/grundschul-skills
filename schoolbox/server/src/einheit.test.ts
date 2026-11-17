@@ -94,6 +94,32 @@ describe('Plan und Thema der Einheit (139)', () => {
 		);
 	});
 
+	it('Plan: Geschichte mit Verdächtigen, falscher Fährte, Kapiteln und Auflösung; ohne Angaben keine (216)', () => {
+		const plan = lesePlan({
+			geschichte: ' Im Werkraum wandern Nägel. ',
+			verdaechtige: ['Herr Brandt: Schlüssel', '', 7],
+			falscheFaehrte: 'Alufolie unter dem Tisch',
+			aufloesung: 'Herr Brandt testet nachts eine Magnetbahn.',
+			kapitel: [
+				{ nr: 0, titel: 'Auftakt', offenesEnde: 'Seid ihr dabei?', bildfolien: ['0.1 Flur', '0.2 Spur'] },
+				{ nr: 1.5, titel: 'kaputt' },
+				{ nr: 1, titel: 'Was der Spuk mag' },
+			],
+			dokumente: [],
+		});
+		assert.deepEqual(plan?.geschichte, {
+			kurz: 'Im Werkraum wandern Nägel.',
+			verdaechtige: ['Herr Brandt: Schlüssel'],
+			falscheFaehrte: 'Alufolie unter dem Tisch',
+			aufloesung: 'Herr Brandt testet nachts eine Magnetbahn.',
+			kapitel: [
+				{ nr: 0, titel: 'Auftakt', offenesEnde: 'Seid ihr dabei?', bildfolien: ['0.1 Flur', '0.2 Spur'] },
+				{ nr: 1, titel: 'Was der Spuk mag', offenesEnde: '', bildfolien: [] },
+			],
+		});
+		assert.equal('geschichte' in (lesePlan({ dokumente: [] }) ?? {}), false);
+	});
+
 	it('Thema: kein @import, kein url(), keine Skripte', () => {
 		assert.equal(themaBefund(':root { --akzent: #c33; }'), null);
 		for (const css of [
@@ -230,6 +256,17 @@ describe('Lauf einer Einheit (139)', () => {
 		assert.ok(mit.includes('--settings'));
 		assert.ok(mit.includes('--strict-mcp-config'));
 		assert.ok(mit.includes(CANVA_MCP));
+	});
+
+	it('Material ohne data-satz (212): nicht übernommen, eine Korrekturrunde nennt die Angabe', async () => {
+		await fall('einheit-altsatz');
+		const { id } = await starte();
+		const s = await bis(id, 'fertig');
+		assert.equal(s.korrigiert, true);
+		assert.deepEqual(s.befunde, []);
+		assert.deepEqual(Object.keys(s.importiert).sort(), ['fall-1', 'fall-2']);
+		const prompts = (await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8')).split('\n---\n');
+		assert.match(prompts.filter((p) => p.includes('Korrekturrunde')).at(-1) ?? '', /data-satz="2"/);
 	});
 
 	it('Skript im Material: nicht übernommen, eine Korrekturrunde, danach sauber', async () => {

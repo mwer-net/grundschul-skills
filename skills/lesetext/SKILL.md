@@ -33,6 +33,8 @@ Nach den Rückfragen 2–3 Entwürfe zeigen (jeweils Überschrift, die ersten 2�
 | C – Kl. 2/3 | Text mit Absätzen | 120–250 | bis 12 Wörter | einzelne Fachwörter mit Erklärung |
 | D – Kl. 3/4 | Sachtext mit Zwischenüberschriften | 200–400 | bis 15 Wörter | Fachwörter im Wortspeicher |
 
+Diese Normen gelten fürs Selbstlesen. Eine Geschichte, die die Lehrkraft einer Reihe vorliest, folgt `unterrichtsplanung/references/reihe-als-geschichte.md`, „Das Vorleseheft“.
+
 Regeln:
 - Bei Stufe A nur Buchstaben verwenden, die die Klasse schon kennt – Buchstabenliste erfragen.
 - Ein Satz pro Zeile in Stufe A/B; Umbruch nach Sinneinheiten, nie mitten in einer Wortgruppe.

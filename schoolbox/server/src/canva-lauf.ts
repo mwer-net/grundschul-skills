@@ -31,7 +31,15 @@ import {
 } from '@schoolbox/kern';
 import type { Router as RouterTyp } from 'express';
 
-import { erstelleBildLader, leseBildWuensche, MAX_BILD_BYTES, pruefeDateiname, typAus } from './canva-bild';
+import {
+	ANSICHT_BILDER,
+	erstelleBildLader,
+	erstelleZuschnitt,
+	leseBildWuensche,
+	MAX_BILD_BYTES,
+	pruefeDateiname,
+	typAus,
+} from './canva-bild';
 import { HttpFehler } from './fehler';
 import type { KiLimit, LaufStand } from './ki';
 import {
@@ -310,7 +318,12 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 	const fuehreAus = async (a: Auftrag) => {
 		const arbeit = arbeitDir(a.stand.id);
 		const start = Date.now();
-		const lader = erstelleBildLader(arbeit, path.join(arbeit, 'bilder'));
+		const lader = erstelleBildLader(
+			arbeit,
+			path.join(arbeit, 'bilder'),
+			undefined,
+			erstelleZuschnitt(kontext.konfig.pythonBin, path.join(arbeit, ANSICHT_BILDER)),
+		);
 		const takt = setInterval(() => void lader.pruefe(), TAKT_MS);
 		let grund: string | null = null;
 		let datei: string | undefined;

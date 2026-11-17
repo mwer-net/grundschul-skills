@@ -29,6 +29,8 @@
    const falsch = [...r.style].filter((n) => (n.startsWith("--") ? !THEMA_VARIABLEN.includes(n) : !THEMA_SCHMUCK.some((e) => n === e || n.startsWith(`${e}-`))));
    if (falsch.length > 0) melde("HINWEIS", 0, "thema-layout", `thema.css: „${r.selectorText}“ setzt ${[...new Set(falsch)].join(", ")} → ein Thema ändert nur das Aussehen, nicht das Layout`);
   }
+  // Auftakt (217): Schauseite ohne Schema, eigene Klassen für Szenen sind erwünscht.
+  if (document.body.matches(".folie.auftakt")) return null;
   const el = [...document.querySelectorAll(".seite *")].filter((e) => e.classList.length > 0 && !e.closest("svg") && !istInAbbildung(e) && !e.hasAttribute("data-erzeugt"));
   if (el.length === 0) return null;
   const imKit = el.filter((e) => [...e.classList].every((k) => kit.has(k))).length, anteil = Math.round((imKit / el.length) * 100);
@@ -160,7 +162,8 @@
       melde("HINWEIS", nr, "masstab", "In Originalgröße drucken (100 %, nicht „An Seite anpassen“) → --druckhinweis beim Anlegen setzen", [ziel(S.querySelector("[data-masstab]"))]);
 
     // Gestaltung (091): die zwei Ebenen und alles, was frei liegt oder an einem Baustein hängt. Eigene Codes: 096.
-    const GESTALTUNG = ".ebene,[data-lage]";
+    // 215: Ebenen über einem Bild (.bild-lagen) liegen mit Absicht übereinander und werden am Platz beschnitten.
+    const GESTALTUNG = ".ebene,[data-lage],.bild-lagen";
 
     // 1. Seitenrand und Seitenende
     // Zeilennummern (data-zeilennummern) setzt abbildungen.js mit Absicht in den Rand und kleiner als den Text (194-35).
@@ -179,7 +182,7 @@
 
     // 2. Abgeschnittener oder zu breiter Text; eine Ebene schneidet mit Absicht am Blattrand ab
     // 107: Text in einer Form mit Text (.form-inhalt) läuft nach unten über, darum dort auch die Höhe
-    alle.filter((e) => !e.classList.contains("ebene") && !e.classList.contains("flaeche") && ((e.scrollWidth > e.clientWidth + 2 && e.clientWidth > 0 && getComputedStyle(e).overflowX !== "visible") || (e.classList.contains("form-inhalt") && e.scrollHeight > e.clientHeight + 2 && e.clientHeight > 0)))
+    alle.filter((e) => !e.classList.contains("ebene") && !e.classList.contains("flaeche") && !e.classList.contains("bild-lagen") && ((e.scrollWidth > e.clientWidth + 2 && e.clientWidth > 0 && getComputedStyle(e).overflowX !== "visible") || (e.classList.contains("form-inhalt") && e.scrollHeight > e.clientHeight + 2 && e.clientHeight > 0)))
       .forEach((e) => melde("FEHLER", nr, "abgeschnitten", `„${kurz(e)}“ ist abgeschnitten`, [ziel(e)]));
     // 2b. Fläche im Stapel (115): sie schneidet an ihrem Rand ab; ein Element, das darüber hinausragt, wird gekappt
     alle.filter((f) => f.classList.contains("flaeche")).forEach((f) => {
@@ -222,7 +225,8 @@
     gestaltung.forEach(([e, r]) => {
       const ganz = flaecheVon(r), sichtbarer = schnitt(r, P);
       if (ganz > 0 && flaecheVon(sichtbarer) < ganz / 2) return melde("FEHLER", nr, "aussen", `„${kurz(e)}“ liegt außerhalb der Seite → in die Seite holen`, [ziel(e)]);
-      if (!e.matches(IM_DRUCKRAND) || e.closest("[data-rand-ok]") || flaecheVon(sichtbarer) === 0) return;
+      // Auftakt (217): nur für den Beamer, Szenen laufen bis an den Rand.
+      if (!e.matches(IM_DRUCKRAND) || e.closest("[data-rand-ok]") || B.matches(".folie.auftakt") || flaecheVon(sichtbarer) === 0) return;
       const abstand = { o: sichtbarer.top - P.top, l: sichtbarer.left - P.left, u: P.bottom - sichtbarer.bottom, r: P.right - sichtbarer.right };
       const knapp = [...kanten].map((k) => abstand[k]).filter((a) => a < DRUCKRAND);
       if (knapp.length) melde("WARNUNG", nr, "druckrand", `„${kurz(e)}“ liegt im Druckrand (${Math.max(0, Math.round(Math.min(...knapp)))} px vom Blattrand) → etwas nach innen ziehen`, [ziel(e)]);
@@ -324,7 +328,7 @@
     const rest = Math.round((fuss ? fuss.getBoundingClientRect().top - 16 : innen.b) - unten);
     // Folgt eine automatische Seite (data-weiter="auto", Schoolbox 206), passte der nächste Block nicht mehr hierher.
     const folgtAuto = !!S.nextElementSibling?.matches('.seite[data-weiter="auto"]');
-    const freiZaehlt = !folgtAuto && !S.querySelector(".karten") && !folie && !B.classList.contains("minibuch");
+    const freiZaehlt = !folgtAuto && !S.querySelector(".karten,.schneidebogen") && !folie && !B.classList.contains("minibuch");
     // Satz 2: Arbeitsseite heißt A4 mit Aufgaben. `data-dicht-ok` an der Seite, wenn sie mit Absicht wenig trägt
     // (Forscherbogen, Bastelvorlage, große Zeichnung); A5 sind Stationskarten.
     const arbeitsseite = satz2 && auf.length > 0 && freiZaehlt && !B.classList.contains("a5-hoch") && !S.matches("[data-dicht-ok],.fall,.deckblatt,.lk");
@@ -361,6 +365,72 @@
       if (leer > LEER_MAX && rest <= FREI_MAX)
         melde("WARNUNG", nr, "inhalt-wenig", `${leer} % der Seite sind leer (höchstens ${LEER_MAX} %) → Reihen mit mehr Spalten, Items oder eine Aufgabe ergänzen, Abbildungen nebeneinander`, [ziel(S)]);
       seitenLeer = leer;
+    }
+    // 8c. Satz 2: Ausschneide- und Legematerial (214). Karten und Dominosteine schneidet die Lehrkraft, Teile im
+    // Schneidebogen die Kinder. Maße: grundschul-didaktik/references/druck-und-platz.md, „Ausschneide- und Legematerial“.
+    if (satz2) {
+      const MM = 96 / 25.4, mm = (px) => Math.round(px / MM);
+      const stuecke = [
+        ...[...S.querySelectorAll(".karten > .karte:not(.pass)")].map((e) => ["karte", e]),
+        ...[...S.querySelectorAll(".domino-stein")].map((e) => ["stein", e]),
+        ...[...S.querySelectorAll(".schneidebogen > *")].map((e) => ["kind", e]),
+      ].filter(([, e]) => !ausgeblendet(e) && sichtbar(e));
+      if (stuecke.length > 9 && !B.classList.contains("a5-hoch"))
+        melde("WARNUNG", nr, "teile-viele", `${stuecke.length} Teile zum Ausschneiden auf der Seite (höchstens 9 je A4, lieber 4–6) → größere Teile: weniger Spalten und Zeilen, der Rest auf die nächste Seite`, stuecke.slice(0, 3).map(([, e]) => ziel(e)));
+      const NAME = { karte: ["Karte", "Karten"], stein: ["Dominostein", "Dominosteine"], kind: ["Teil zum Selbstschneiden", "Teile zum Selbstschneiden"] };
+      const anzahl = (art, n) => `${n} ${NAME[art][n === 1 ? 0 : 1]}`;
+      const RAT_KLEIN = {
+        karte: "kurze Kante unter 50 mm → weniger Spalten oder Zeilen in .karten (Standard 70 × 100 mm, höchstens 9 je A4)",
+        stein: "kleiner als 105 × 50 mm → je-seite weglassen, bei vielen Steinen a4-quer",
+        kind: "kurze Kante unter 40 mm → --teil-b und --teil-h auf 40–50 mm, weniger Teile je Bogen",
+      };
+      for (const art of ["karte", "stein", "kind"]) {
+        const eigene = stuecke.filter(([a]) => a === art).map(([, e]) => e);
+        if (!eigene.length) continue;
+        const mass = (e) => { const r = e.getBoundingClientRect(); return [r.width / MM, r.height / MM]; };
+        const klein = eigene.filter((e) => {
+          const [b, h] = mass(e), kurz = Math.min(b, h), lang = Math.max(b, h);
+          return art === "stein" ? kurz < 49.5 || lang < 104.5 : kurz < (art === "kind" ? 39.5 : 49.5);
+        });
+        if (klein.length) {
+          const [b, h] = mass(klein[0]);
+          melde("WARNUNG", nr, "teil-klein", `${anzahl(art, klein.length)} ${klein.length === 1 ? "ist" : "sind"} zu klein (${Math.round(b)} × ${Math.round(h)} mm): ${RAT_KLEIN[art]}`, klein.slice(0, 3).map(ziel));
+        }
+        // Motiv: Bilder, Zeichnungen und Abbildungen einer Karte zusammen, gemessen an der Karte ohne 5 mm Rand
+        if (art !== "stein") {
+          let kleinstes = 1;
+          const motivKlein = eigene.filter((e) => {
+            if (e.matches(".rueckseite,.deckkarte")) return false;
+            const motive = [...e.querySelectorAll("img,svg,canvas")].filter((m) => !m.closest(".ecke") && !m.parentElement.closest("svg") && sichtbar(m));
+            if (!motive.length) return false;
+            const K = e.getBoundingClientRect(), rs = motive.map((m) => m.getBoundingClientRect());
+            const flaeche = (Math.max(...rs.map((r) => r.right)) - Math.min(...rs.map((r) => r.left))) * (Math.max(...rs.map((r) => r.bottom)) - Math.min(...rs.map((r) => r.top)));
+            const anteil = flaeche / Math.max(1, (K.width - 10 * MM) * (K.height - 10 * MM));
+            if (anteil < 0.5) kleinstes = Math.min(kleinstes, anteil);
+            return anteil < 0.5;
+          });
+          if (motivKlein.length)
+            melde("WARNUNG", nr, "motiv-klein", `${anzahl(art, motivKlein.length)} mit kleinem Motiv (${Math.round(kleinstes * 100)} % der Fläche, Ziel 60–70 %) → Motiv größer: Bild ohne feste Größe, x-gitter ohne kaestchen (füllt die Karte von selbst), oder die Karte kleiner`, motivKlein.slice(0, 3).map(ziel));
+        }
+        // Abstand zur Schnittkante: Text und Bilder mindestens 5 mm vom Rand des Teils
+        let naechster = Infinity;
+        const knapp = eigene.filter((e) => {
+          const K = e.getBoundingClientRect(), rechtecke = [];
+          const leser = document.createTreeWalker(e, NodeFilter.SHOW_TEXT), bereich = document.createRange();
+          while (leser.nextNode()) {
+            const t = leser.currentNode;
+            if (!t.textContent.trim() || !t.parentElement || t.parentElement.closest("svg") || !sichtbar(t.parentElement)) continue;
+            bereich.selectNodeContents(t);
+            rechtecke.push(...bereich.getClientRects());
+          }
+          [...e.querySelectorAll("img,svg,canvas")].filter((m) => !m.parentElement.closest("svg") && sichtbar(m)).forEach((m) => rechtecke.push(m.getBoundingClientRect()));
+          const abstand = Math.min(Infinity, ...rechtecke.filter((r) => r.width > 0 && r.height > 0).map((r) => Math.min(r.left - K.left, r.top - K.top, K.right - r.right, K.bottom - r.bottom)));
+          if (abstand < 5 * MM - 1) naechster = Math.min(naechster, abstand);
+          return abstand < 5 * MM - 1;
+        });
+        if (knapp.length)
+          melde("WARNUNG", nr, "schnitt-knapp", `${anzahl(art, knapp.length)} mit Inhalt nur ${Math.max(0, mm(naechster))} mm an der Schnittkante (mindestens 5 mm) → Innenabstand aus blatt.css lassen, Text kürzen oder Motiv kleiner`, knapp.slice(0, 3).map(ziel));
+      }
     }
     if (folie && mitNotizen && !S.querySelector(".notiz")) melde("HINWEIS", nr, "notiz-fehlt", "Folie ohne Notiz für die Lehrkraft", [ziel(S)]);
 

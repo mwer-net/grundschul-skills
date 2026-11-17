@@ -42,6 +42,7 @@ Nach den Rückfragen 2–3 Entwürfe zeigen (Stationsübersicht + eine Musterkar
 
 ### Lösungskarten
 - Gleiche Nummer/Farbe wie Station, an der Kontrollstation ausgelegt
+- Lösungskarten, Legeteile und Karten zum Zuordnen sind Ausschneidematerial: Maße, Setfarbe und Rückseite nach `grundschul-didaktik/references/druck-und-platz.md`, „Ausschneide- und Legematerial“ (`.karte.legeteil`, Teile für die Kinder im `.schneidebogen`)
 
 ### Regeln-Plakat / Ritualkarte
 - Leise arbeiten, Station aufgeräumt verlassen, Hilfe: erst Tippkarte, dann ein anderes Kind, dann Lehrkraft.

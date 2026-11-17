@@ -19,6 +19,14 @@ export const MELDUNG_CODES = [
 	'platz-frei',
 	/** Nur neues Material (`data-satz="2"`): Eine Arbeitsseite trägt weniger als ein Schulbuch (213). */
 	'inhalt-wenig',
+	/** Nur neues Material (`data-satz="2"`): Mehr als 9 Teile zum Ausschneiden auf einer A4-Seite (214). */
+	'teile-viele',
+	/** Nur neues Material: Karte, Dominostein oder Teil zum Selbstschneiden ist kleiner als das Mindestmaß (214). */
+	'teil-klein',
+	/** Nur neues Material: Das Motiv füllt weniger als die Hälfte der Karte (214). */
+	'motiv-klein',
+	/** Nur neues Material: Text oder Bild liegt näher als 5 mm an der Schnittkante (214). */
+	'schnitt-knapp',
 	/** Nur mit Zeitziel (`data-zeit`): Die geplanten Minuten der Aufgaben reichen nicht für das Ziel. */
 	'zeit-knapp',
 	/** Nur mit Zeitziel: Aufgaben ohne geschätzte Minuten (`data-min`). */
@@ -92,6 +100,13 @@ type Uebersetzung = (namen: string[], text: string) => Erklaerung;
 const KUERZEN = 'Text kürzen, einen Eintrag löschen oder die Spalten erhöhen.';
 
 /** Code → verständlicher Satz. `namen` sind die betroffenen Elemente, schon so geschrieben, wie sie dastehen sollen. */
+const teilArt = (text: string) => {
+	if (text.includes('Selbstschneiden')) {
+		return 'Teile zum Ausschneiden für die Kinder sind';
+	}
+	return text.includes('Dominostein') ? 'Dominosteine sind' : 'Karten sind';
+};
+
 const TABELLE: Record<MeldungCode, Uebersetzung> = {
 	'schrift-fehlt': (_n, text) => ({
 		satz: `Die Schrift ${/^Schrift (\S+)/.exec(text)?.[1] ?? ''} fehlt, das Blatt sieht dadurch anders aus.`,
@@ -168,6 +183,22 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 			? `Auf der Seite ist viel Fläche leer (${/^(\d+) %/.exec(text)?.[1] ?? ''} %).`
 			: 'Auf der Seite stehen wenige Aufgaben. Die Kinder sind schnell fertig.',
 		tipp: 'Einträge oder eine Aufgabe ergänzen, zum Beispiel durch Duplizieren. Oder Claude darum bitten.',
+	}),
+	'teile-viele': (_n, text) => ({
+		satz: `Auf der Seite sind ${/^(\d+)/.exec(text)?.[1] ?? 'viele'} Teile zum Ausschneiden. Sie werden klein und mühsam zu schneiden.`,
+		tipp: 'Claude bitten, die Karten größer zu machen und auf mehr Seiten zu verteilen.',
+	}),
+	'teil-klein': (_n, text) => ({
+		satz: `${teilArt(text)} zu klein (${/\((\d+ × \d+ mm)\)/.exec(text)?.[1] ?? ''}).`,
+		tipp: 'Claude bitten, weniger Teile je Seite zu setzen.',
+	}),
+	'motiv-klein': (_n, text) => ({
+		satz: `Das Bild füllt die Karte nur zu ${/\((\d+) %/.exec(text)?.[1] ?? 'einem kleinen Teil'}${/\(\d+ %/.test(text) ? ' %' : ''}. Aus der Entfernung ist es schwer zu erkennen.`,
+		tipp: 'Das Bild größer ziehen oder Claude bitten, das Motiv die Karte füllen zu lassen.',
+	}),
+	'schnitt-knapp': () => ({
+		satz: 'Text oder Bild liegt sehr nah an der Schnittkante und wird beim Ausschneiden leicht angeschnitten.',
+		tipp: 'Text kürzen oder das Bild kleiner machen.',
 	}),
 	'zeit-knapp': (_n, text) => {
 		const [, hat, ziel] = /etwa (\d+) min, Ziel sind (\d+) min/.exec(text) ?? [];

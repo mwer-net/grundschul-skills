@@ -13,6 +13,22 @@
   const satz2 = () => document.body.dataset.satz === "2";
   /** Kästchen im Gitter: wie im Rechenheft, in Klasse 1 etwas größer; ältere Blätter 1 cm bis Klasse 2. */
   const gitterKaestchen = () => (satz2() ? (klasse() <= 1 ? 0.7 : 0.5) : klasse() <= 2 ? 1 : 0.5);
+  /**
+   * Satz 2: freier Platz auf einer Karte oder einem Teil zum Ausschneiden (214), in px; sonst null. Ein Motiv ohne feste
+   * Größe füllt ihn, statt im Maß des Arbeitsblatts klein in der Mitte zu stehen.
+   */
+  const platzAufKarte = (el) => {
+    const karte = satz2() ? el.closest(".karte:not(.pass),.schneidebogen>*") : null;
+    if (!karte) return null;
+    const c = getComputedStyle(karte), luecke = parseFloat(c.rowGap) || 0;
+    const b = karte.clientWidth - parseFloat(c.paddingLeft) - parseFloat(c.paddingRight);
+    let h = karte.clientHeight - parseFloat(c.paddingTop) - parseFloat(c.paddingBottom);
+    for (const kind of karte.children) {
+      if (kind.contains(el) || getComputedStyle(kind).position === "absolute") continue;
+      h -= kind.getBoundingClientRect().height + luecke;
+    }
+    return b > 0 && h > 0 ? { b, h } : null;
+  };
   const num = (el, a, d) => (el.hasAttribute(a) && el.getAttribute(a) !== "" ? parseFloat(el.getAttribute(a)) : d);
   const attr = (el, a, d) => (el.hasAttribute(a) && el.getAttribute(a) !== "" ? el.getAttribute(a) : d);
   const svg = (w, h, inner, px) =>
@@ -1048,13 +1064,14 @@
   function gitter(el) {
     const art = attr(el, "art", "karo");
     const spalten = num(el, "spalten", 10), zeilen = num(el, "zeilen", 8);
-    const k = cm(num(el, "kaestchen", gitterKaestchen()));
     const figur = raster(el, "figur");
     const linienRoh = attr(el, "linien", "");
     const aufgabe = attr(el, "aufgabe", "keine");
     const achse = attr(el, "achse", "");
     const faktor = attr(el, "faktor", "2") === "0.5" ? 0.5 : 2;
     const zaehlen = liste(el, "zaehlen");
+    const platz = el.hasAttribute("kaestchen") || !["keine", "spiegeln"].includes(aufgabe) || zaehlen.length ? null : platzAufKarte(el);
+    const k = platz ? Math.max(cm(0.5), Math.floor(Math.min((platz.b - 4) / spalten, (platz.h - (achse ? 16 : 4)) / zeilen))) : cm(num(el, "kaestchen", gitterKaestchen()));
     const wegart = attr(el, "wegart", "gehen");
     const schritte = liste(el, "weg");
     const startRoh = attr(el, "start", "0,0");
@@ -4582,17 +4599,24 @@
     if (!["nein", "nummer"].includes(rueckseite)) abbruch(`„${rueckseite}“ gibt es bei der Nummer nicht.`);
     const fehler = dominoFehler(paare);
     if (fehler) abbruch(fehler);
-    const je = num(el, "je-seite", 12), { b, h } = blattMass();
-    if (je < 2 || je > 16 || je % 2 === 1) abbruch("Auf eine Seite passen 2 bis 16 Steine, immer eine gerade Zahl.");
-    const steinH = Math.floor(Math.min(h / (je / 2) - 6, 120)), steinB = Math.floor((b - 12) / 2), halb = steinB / 2 - 10;
+    // Satz 2 (214): Steine ab 105 × 50 mm mit gemeinsamen Schnittlinien; A4 hoch eine Spalte, A4 quer zwei.
+    const gross = satz2(), spalten = gross && !document.body.classList.contains("a4-quer") ? 1 : 2;
+    const je = num(el, "je-seite", gross ? (spalten === 1 ? 4 : 6) : 12), { b, h } = blattMass();
+    if (je < 2 || je > 16 || je % spalten === 1) abbruch("Auf eine Seite passen 2 bis 16 Steine, immer eine gerade Zahl.");
+    const steinH = gross ? Math.floor(Math.min(h / Math.ceil(je / spalten), cm(7.5))) : Math.floor(Math.min(h / (je / 2) - 6, 120));
+    const steinB = gross ? Math.floor(Math.min(b / spalten, cm(15))) : Math.floor((b - 12) / 2);
+    const halb = gross ? steinB / 2 - cm(0.85) : steinB / 2 - 10, feldH = gross ? steinH - cm(1) : steinH - 10;
     const steine = dominoSteine(paare, kette), loesung = loesungSichtbar(el);
     const seed = samen(el, `${el.getAttribute("paare")}|${kette}`);
     const folge = loesung ? steine : gemischt(steine, zufall(seed));
+    const offen = kette === "offen";
+    const feld = (inhalt, klasse) => `<div class="spiel-zelle${klasse ? ` ${klasse}` : ""}">${miniHtml(el, gross && klasse === "spiel-ziel" ? "Ziel" : inhalt, halb, feldH)}</div>`;
     const stein = (s) => `<div class="domino-stein" data-stein="${s.nr}" style="--stein-h:${steinH}px">` +
       (loesung || rueckseite === "nummer" ? `<span class="domino-nr" data-klein-ok>${s.nr}</span>` : "") +
-      `<div class="spiel-zelle">${miniHtml(el, s.links, halb, steinH - 10)}</div><div class="spiel-zelle">${miniHtml(el, s.rechts, halb, steinH - 10)}</div></div>`;
+      feld(s.links, gross && offen && s.nr === 1 ? "spiel-start" : "") + feld(s.rechts, gross && offen && s.nr === steine.length ? "spiel-ziel" : "") + "</div>";
     el.setAttribute("data-steine", String(steine.length));
-    setzeStuecke(el, stueckeln(folge.map(stein), je).map((t) => `<div class="domino-bogen">${t.join("")}</div>`));
+    const bogen = gross ? `<div class="domino-bogen" data-flaeche-ok style="--domino-spalten:${spalten};--stein-b:${steinB}px">` : '<div class="domino-bogen">';
+    setzeStuecke(el, stueckeln(folge.map(stein), je).map((t) => `${bogen}${t.join("")}</div>`));
   }
 
   /** Reihenfolge der Felder im Gitter. Benachbarte Felder berühren sich, kein Weg kreuzt sich selbst. */

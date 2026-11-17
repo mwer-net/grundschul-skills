@@ -5,6 +5,7 @@ Aufrufe:
     python3 blatt.py bauen blatt.html [-o ausgabe/] [--ohne-loesung] [--nur-pruefen] [--bericht bericht.json]
                            [--schritte] [--notizen] [--nur-zusatz] [--profil farbe|sw]
     python3 blatt.py uebersicht a.html b.html [c.html] [-o ausgabe/]
+    python3 blatt.py viertel bilder/motiv.jpg [-o ordner/] [--platz 794x660] [--blick 50,50]
 
 bauen erzeugt in ausgabe/ (Standard: Ordner der Quelle):
     NAME.html             eigenständige HTML-Datei (Schriften, Bilder, Skripte eingebettet)
@@ -708,6 +709,49 @@ def uebersicht(quellen, ausgabe=None):
     print(f"Übersicht: {ziel}\n           {aus / 'entwuerfe.html'}")
 
 
+def viertel(bild, ausgabe=None, platz=None, blick=(50.0, 50.0)):
+    """Prüfansichten eines KI-Bilds (references/bilder.md, Abschnitt 2, Schritt 5): NAME-v1.png … NAME-v4.png sind die
+    Viertel in voller Auflösung (oben links, oben rechts, unten links, unten rechts). Mit platz (Breite, Höhe des Platzes
+    im Material) zusätzlich NAME-platz.png: der Ausschnitt, den object-fit:cover mit object-position blick (x, y in %)
+    dort zeigt. Gibt die Dateien und den sichtbaren Bereich in Prozent der Bildmaße zurück."""
+    Image, ImageOps = pillow()
+    quelle = Path(bild)
+    ziel = Path(ausgabe) if ausgabe else quelle.parent
+    ziel.mkdir(parents=True, exist_ok=True)
+    with Image.open(quelle) as roh:
+        roh.load()
+        b = ImageOps.exif_transpose(roh)
+    b = b.convert("RGBA" if "A" in b.getbands() or "transparency" in b.info else "RGB")
+    w, h = b.size
+    xs, ys = (0, w // 2, w), (0, h // 2, h)
+    dateien = []
+    for i, (z, s) in enumerate(((0, 0), (0, 1), (1, 0), (1, 1)), 1):
+        datei = ziel / f"{quelle.stem}-v{i}.png"
+        b.crop((xs[s], ys[z], xs[s + 1], ys[z + 1])).save(datei)
+        dateien.append(datei.name)
+    ausschnitt = ziel / f"{quelle.stem}-platz.png"
+    sichtbar = {"links": 0.0, "rechts": 100.0, "oben": 0.0, "unten": 100.0}
+    if platz:
+        verhaeltnis = platz[0] / platz[1]
+        vw, vh = (round(h * verhaeltnis), h) if w / h > verhaeltnis else (w, round(w / verhaeltnis))
+        x0, y0 = round((w - vw) * blick[0] / 100), round((h - vh) * blick[1] / 100)
+        b.crop((x0, y0, x0 + vw, y0 + vh)).save(ausschnitt)
+        dateien.append(ausschnitt.name)
+        sichtbar = {"links": round(100 * x0 / w, 1), "rechts": round(100 * (x0 + vw) / w, 1),
+                    "oben": round(100 * y0 / h, 1), "unten": round(100 * (y0 + vh) / h, 1)}
+    elif ausschnitt.exists():
+        ausschnitt.unlink()
+    return {"breite": w, "hoehe": h, "dateien": dateien, "sichtbar": sichtbar}
+
+
+def zahlenpaar(text, trenner):
+    try:
+        a, b = (float(t) for t in text.split(trenner))
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"erwartet zwei Zahlen mit „{trenner}“, z. B. 794{trenner}660")
+    return a, b
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -726,7 +770,18 @@ def main():
     u.add_argument("-o", "--ausgabe")
     f = sub.add_parser("fassung", help="welche Datei s/w gedruckt wird: JSON mit strich (Dateiname oder null)")
     f.add_argument("bild")
+    v = sub.add_parser("viertel", help="Viertel eines KI-Bilds und der Ausschnitt seines Platzes, zum Prüfen")
+    v.add_argument("bild")
+    v.add_argument("-o", "--ausgabe", help="Ordner für die Prüfbilder (Standard: neben dem Bild)")
+    v.add_argument("--platz", type=lambda t: zahlenpaar(t, "x"), help="Breite x Höhe des Platzes, z. B. 794x660")
+    v.add_argument("--blick", type=lambda t: zahlenpaar(t, ","), default=(50.0, 50.0),
+                   help="object-position in Prozent, z. B. 60,40")
     a = ap.parse_args()
+    if a.cmd == "viertel":
+        if a.platz and min(a.platz) <= 0:
+            ap.error("--platz braucht zwei positive Zahlen")
+        print(json.dumps(viertel(a.bild, a.ausgabe, a.platz, a.blick)))
+        return
     if a.cmd == "fassung":
         strich = strich_fassung(Path(a.bild))
         print(json.dumps({"strich": strich.name if strich else None}))

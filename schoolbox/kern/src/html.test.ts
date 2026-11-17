@@ -3,7 +3,8 @@ import { describe, it } from 'node:test';
 
 import { bodyKlassen, hatSatz, satzBefund, setzeBodyKlassen } from './html';
 
-const blatt = (body: string) => `<html><head><title>T</title></head>${body}<section class="seite"></section></body></html>`;
+const blatt = (body: string) =>
+	`<html><head><title>T</title></head>${body}<section class="seite"></section></body></html>`;
 const EINSTELLUNGEN = { druckprofil: 'farbe', format: 'a4-hoch', klasse: 2 } as const;
 
 describe('Satz wie im Schulbuch (212)', () => {

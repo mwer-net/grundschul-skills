@@ -29,7 +29,7 @@ export const EINHEIT_AUSSEHEN = ['eigen', 'schlicht'] as const;
  * (Reihenplanung); die Empfehlung ist der Kern daraus: Einstieg, Übung, Spiel, Überprüfung, Lösungen.
  */
 export const EINHEIT_BESTANDTEILE = [
-	{ name: 'Einführung (Präsentation)', empfohlen: true },
+	{ name: 'Auftakt (Präsentation)', empfohlen: true },
 	{ name: 'Arbeitsblätter', empfohlen: true },
 	{ name: 'Lesetexte', empfohlen: false },
 	{ name: 'Lernspiel', empfohlen: true },
@@ -231,13 +231,68 @@ export interface PlanDokument {
 	fertig: boolean;
 }
 
+/** Ein Kapitel im Vorleseheft (216); `nr` 0 ist der Auftakt. `bildfolien` beginnen mit ihrer Nummer („1.2 …“). */
+export interface PlanKapitel {
+	nr: number;
+	titel: string;
+	offenesEnde: string;
+	bildfolien: string[];
+}
+
+/** Die Geschichte der Reihe (216): Kurzfassung für die Lehrkraft, dazu was das Vorleseheft tragen muss. */
+export interface PlanGeschichte {
+	kurz: string;
+	verdaechtige: string[];
+	falscheFaehrte: string;
+	aufloesung: string;
+	kapitel: PlanKapitel[];
+}
+
 export interface EinheitPlan {
 	titel: string;
 	annahmen: string[];
 	dokumente: PlanDokument[];
+	/** Fehlt bei Plänen ohne Geschichte und bei Einheiten vor 216. */
+	geschichte?: PlanGeschichte;
 }
 
 const kurz = (wert: unknown, max: number) => (typeof wert === 'string' ? wert.trim().slice(0, max) : '');
+
+const kurzListe = (wert: unknown, max: number, laenge: number) =>
+	(Array.isArray(wert) ? wert : [])
+		.map((w) => kurz(w, max))
+		.filter(Boolean)
+		.slice(0, laenge);
+
+const MAX_KAPITEL = 30;
+
+const leseGeschichte = (p: Record<string, unknown>): PlanGeschichte | undefined => {
+	const kapitel = (Array.isArray(p.kapitel) ? p.kapitel : [])
+		.map((k): PlanKapitel | null => {
+			const x = (k ?? {}) as Record<string, unknown>;
+			const nr = Number(x.nr);
+			if (!Number.isInteger(nr) || nr < 0 || nr > MAX_KAPITEL) {
+				return null;
+			}
+			return {
+				nr,
+				titel: kurz(x.titel, EINHEIT_ZEICHEN.titel),
+				offenesEnde: kurz(x.offenesEnde, 400),
+				bildfolien: kurzListe(x.bildfolien, 200, 6),
+			};
+		})
+		.filter((k): k is PlanKapitel => k !== null)
+		.slice(0, MAX_KAPITEL + 1);
+	const g: PlanGeschichte = {
+		kurz: kurz(p.geschichte, 1200),
+		verdaechtige: kurzListe(p.verdaechtige, 300, 4),
+		falscheFaehrte: kurz(p.falscheFaehrte, 600),
+		aufloesung: kurz(p.aufloesung, 600),
+		kapitel,
+	};
+	const leer = !g.kurz && !g.verdaechtige.length && !g.falscheFaehrte && !g.aufloesung && !g.kapitel.length;
+	return leer ? undefined : g;
+};
 
 /** Claude nennt als Art gern den Namen des Skills. Eine unbekannte Art darf kein fertiges Dokument verstecken. */
 const ART_AUS_SKILL: Record<string, Art> = {
@@ -282,13 +337,12 @@ export const lesePlan = (roh: unknown, max = EINHEIT_MAX_DOKUMENTE): EinheitPlan
 		})
 		.filter((d): d is PlanDokument => d !== null)
 		.slice(0, max);
+	const geschichte = leseGeschichte(p);
 	return {
 		titel: kurz(p.titel, EINHEIT_ZEICHEN.titel),
-		annahmen: (Array.isArray(p.annahmen) ? p.annahmen : [])
-			.map((a) => kurz(a, 300))
-			.filter(Boolean)
-			.slice(0, 12),
+		annahmen: kurzListe(p.annahmen, 300, 12),
 		dokumente,
+		...(geschichte ? { geschichte } : {}),
 	};
 };
 
