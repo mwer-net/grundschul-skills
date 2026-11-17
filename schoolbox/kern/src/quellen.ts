@@ -82,19 +82,31 @@ const klassenWerte = (wurzel: string) => {
 	const mitZeitziel = new Map(
 		[...css.matchAll(/^body\.kl([1-4])\[data-zeit\]\{--fs:(\d+)px(?:;--abstand:(\d+)px)?/gm)].map((t) => [
 			t[1],
-			`${t[2]} px${t[3] ? `, Abstand ${t[3]} px` : ''}`,
+			`; mit \`data-zeit\` ${t[2]} px${t[3] ? `, Abstand ${t[3]} px` : ''}`,
 		]),
 	);
-	const zeilen = [...css.matchAll(/^body\.kl([1-4])\{--fs:(\d+)px;--abstand:(\d+)px\}/gm)].map((t) => [
+	const aelter = new Map(
+		[...css.matchAll(/^body\.kl([1-4])\{--fs:(\d+)px;--abstand:(\d+)px\}/gm)].map((t) => [
+			t[1],
+			`${t[2]} px, Abstand ${t[3]} px${mitZeitziel.get(t[1] ?? '') ?? ''}`,
+		]),
+	);
+	const zeilen = [
+		...css.matchAll(/^body\.kl([1-4])\[data-satz="2"\][^{]*\{--fs:(\d+)px;--abstand:(\d+)px;--zh:([\d.]+)/gm),
+	].map((t) => [
 		`Kl. ${t[1]}`,
-		`${t[2]} px`,
+		`${t[2]} px (${String(Math.round(Number(t[2]) * 0.75)).replace('.', ',')} pt)`,
 		`${t[3]} px`,
-		mitZeitziel.get(t[1]) ?? 'wie ohne',
+		(t[4] ?? '').replace('.', ','),
+		aelter.get(t[1] ?? '') ?? '',
 	]);
-	if (zeilen.length !== 4) {
+	if (zeilen.length !== 4 || aelter.size !== 4) {
 		throw new Error(`${BLATT_CSS}: Schrift und Abstand von Kl. 1 bis 4 nicht gefunden.`);
 	}
-	return tabelle(['Klasse', 'Schrift', 'Abstand zwischen Aufgaben', 'Schrift mit Zeitziel (`data-zeit`)'], zeilen);
+	return tabelle(
+		['Klasse', 'Schrift', 'Abstand zwischen Aufgaben', 'Zeilenhöhe', 'Ältere Blätter (ohne `data-satz`)'],
+		zeilen,
+	);
 };
 
 const lueckenBreite = (wurzel: string) => {

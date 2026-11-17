@@ -13,18 +13,18 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 
 | Datei | Zweck |
 |---|---|
-| `assets/blatt.css` | Gestaltungssystem: A4-Seite, 60 px Rand (mit `data-zeit` oben und unten weniger), Kopf, Aufgaben mit hängender Nummer, Niveau-Punkte, Punktfelder, Antwortlinien, Sprechblase, Fuß, Karten, Platzhalter, Folien. Profile über Klassen am `<body>`. |
+| `assets/blatt.css` | Gestaltungssystem: A4-Seite, 60 px Rand (oben und unten weniger), Satz wie im Schulbuch (`data-satz="2"`), Kopf, Aufgaben mit hängender Nummer, Niveau-Punkte, Punktfelder, Antwortlinien, Sprechblase, Fuß, Karten, Platzhalter, Folien. Profile über Klassen am `<body>`. |
 | `assets/praesentation.js` | Präsentationsmodus für Folien: blättern, Schritte und Aufdecken, Timer, Schwarzbild; nur mit `?praesentation=1` aktiv. `blatt.py` bettet es in die Offline-Präsentation ein und baut damit `--schritte` und `--notizen` (Abschnitt „Folien“) |
 | `assets/abbildungen.js` | Exakte Abbildungen als SVG (`x-…`-Elemente), berechnet statt gezeichnet. Welche es gibt, wie man sie schreibt und welche Mindestgrößen gelten, steht im Katalog: `references/abbildungen.md`. Musterblätter: `assets/muster/`. |
 | `assets/vorlage-arbeitsblatt.html` | Muster mit allen Bausteinen; Ausgangspunkt für jedes Blatt |
 | `assets/vorlage-praesentation.html` | Kreisinput mit sechs Folien und allen Folien-Bausteinen; Ausgangspunkt für Präsentationen (Abschnitt „Folien“) |
 | `assets/vorlage-minibuch.html` | Faltbuch aus einem A4-Blatt, acht Seiten mit Satzmuster, Faltanleitung auf dem Lösungsblatt (Abschnitt „Mini-Book“) |
 | `assets/vorlage-forscherbogen-12.html`, `assets/vorlage-forscherbogen-34.html` | Forscherbogen bildgestützt (Kl. 1/2) und schriftlich (Kl. 3/4); Sicherheitshinweise als `.nur-loesung` im Kopf, Malfläche `.malfeld` |
-| `assets/beispiel-zehner-einer-kl2.html` | geprüftes Beispiel in s/w (Bündeln, Stellentafel, Sternchenaufgabe, Lösungen) |
+| `assets/beispiel-zehner-einer-kl2.html` | geprüftes Beispiel in s/w (Bündeln, Stellentafel, Sternchenaufgabe, Lösungen); steht im älteren, großen Satz ohne `data-satz` und zeigt Bausteine, nicht die Dichte |
 | `assets/beispiel-reihe-kapitel.html` | geprüftes Kapitel einer Reihe: Fall-Karte, Arbeitsblatt mit Kapitel-Marke, Beweis-Rätsel und Fußzeile; zeigt die Technik, keine Schablone |
 | `assets/beispiel-lehrkraft-hinweise.html` | geprüfte Hinweise für die Lehrkraft (`body.lehrkraft`): Überblick der Reihe und je Stunde ein kurzer Block; Muster für jede Seite, die nur die Lehrkraft liest (Handreichung, Verlaufsplan) |
 | `assets/beispiel-deckblatt-formen.html` | geprüftes Deckblatt mit frei liegender Gestaltung: Seitenfläche, Formen, Schmuckschrift, Figur am Anker, Sprechblase, Konfetti (`references/gestaltung.md`) |
-| `assets/fonts/` | Fredoka (Überschrift), Andika (Text, einstöckiges a/g, Schulziffern), Playwrite DE VA (Vereinfachte Ausgangsschrift für Schreibvorlagen), OFL-Lizenz |
+| `assets/fonts/` | Andika (Text und Überschriften, einstöckiges a/g, Schulziffern, l mit Bogen), Fredoka (Schmuck auf Schauseiten), Playwrite DE VA (Vereinfachte Ausgangsschrift für Schreibvorlagen), OFL-Lizenz |
 | `assets/bilder/` | Willi, Wilma, Wachstumsgrafik farbig und als Strichzeichnung (`references/bilder.md`) |
 | `scripts/blatt.py` | baut, prüft, erzeugt PDF, Lösungsblatt, Vorschau und Ausschnitte; bei Folien die Offline-Präsentation, auf Wunsch `--schritte` und `--notizen`; `uebersicht` für Entwürfe |
 | `references/layout.md` | Raster, Platzbudget, Klassen und Regeln für sauberes HTML |
@@ -48,7 +48,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 3. Bauen und prüfen:
    `python3 scripts/blatt.py bauen Kl2_Mathe_Uhrzeit_AB1.html -o ausgabe/`
    Ergebnis: eigenständige `.html` (alles eingebettet), `.pdf`, `-loesung.pdf`, Vorschau je Seite (`-s1.png`) und Ausschnitt je Aufgabe (`-s1-a1.png` …). Der Prüfbericht meldet FEHLER (Seitenrand, abgeschnitten, Überlappung, Schrift oder Bild fehlt; Lösungsblatt wird mitgeprüft), WARNUNGEN (Schrift zu klein für die Klasse, zu viele Aufgaben, Aufgaben zu dicht) und HINWEISE (unscharfe Bilder, viel Leerraum, Platzhalter; mit `--profil sw` auch Kontrast, Farbwörter und Bilder in s/w).
-4. FEHLER beheben und neu bauen, bis keiner bleibt. Passt der Inhalt nicht: erst `--abstand` am `<body>` um wenige px senken (nie unter 24 px), dann Item streichen, dann zweite Seite; nie Schrift oder Rand verkleinern.
+4. FEHLER beheben und neu bauen, bis keiner bleibt. Passt der Inhalt nicht: erst Anweisungen kürzen und Reihen füllen (mehr Spalten), dann Item streichen, dann Rückseite (`data-weiter`); nie Schrift, Rand oder Schreibfläche von Hand verkleinern. Meldet der Bericht `inhalt-wenig` oder `platz-frei`: Items, Reihen oder eine Aufgabe ergänzen, bis die Seite gefüllt ist wie im Schulbuch.
 5. **Visuelle Endkontrolle** (`references/visuelle-endkontrolle.md`): Seitenvorschau, jeden Aufgaben-Ausschnitt und das Lösungsblatt ansehen, Befunde beheben, neu bauen.
 6. Der Lehrkraft geben: PDF (Arbeitsblatt und Lösung) und die eigenständige HTML-Datei, mit einem Satz, was die Endkontrolle korrigiert hat. Mit Schoolbox stattdessen den Link (Abschnitt „Mit Schoolbox“).
 
@@ -70,9 +70,9 @@ Ist im Projekt eine Schoolbox eingerichtet (Ordner `schoolbox/`, Projektanweisun
 
 ## Gestaltungssystem kurz
 
-- `<body class="kl2 farbe palette-himmel">` (Paletten: sonnig, himmel, wiese, beere). Die Klasse setzt Schriftgröße (Kl. 1: 28 px, 2: 24, 3: 20, 4: 18; mit `data-zeit` am `<body>` ab Kl. 2 kleiner: 21, 19, 16) und Aufgabenabstand; die Palette Farben. s/w ist eine Ansicht davon, nicht `class="sw"` setzen (`grundschul-didaktik/references/gestaltung.md`). Text bleibt immer schwarz.
-- Seite: `<section class="seite">`, mehrere Seiten = mehrere Sections.
-- Kopf: `.namenszeile`, `.kopf` mit `.titel` (h1, `.ziel`, `.wahlhilfe`) und optional `.tipp` (Leitfigur mit Sprechblase), `.loesung-marke`.
+- `<body class="kl2 farbe palette-himmel" data-satz="2">` (Paletten: sonnig, himmel, wiese, beere). `data-satz="2"` steht an jedem neuen Material: Es setzt Schrift, Abstände und Rechenkästchen wie im Schulbuch der Klasse (Werte: `grundschul-didaktik/references/druck-und-platz.md`, „Schrift und Abstand je Klasse“); ohne die Angabe gilt der ältere, große Satz, in dem bestehende Blätter bleiben. Die Klasse setzt Schriftgröße und Aufgabenabstand; die Palette Farben. s/w ist eine Ansicht davon, nicht `class="sw"` setzen (`grundschul-didaktik/references/gestaltung.md`). Text bleibt immer schwarz.
+- Seite: `<section class="seite">`, mehrere Seiten = mehrere Sections. Eine Arbeitsseite trägt mindestens vier Aufgaben; `data-dicht-ok` an der Section nimmt eine Seite davon aus, die mit Absicht wenig trägt (Forscherbogen, Bastelvorlage).
+- Kopf: `.namenszeile`, dann `.kopf` mit `.titel` (h1, `.ziel`, `.wahlhilfe`), `.loesung-marke`. Die Namenszeile steht im HTML vor dem Kopf und erscheint rechts neben der Überschrift. Der Tipp der Leitfigur (`.tipp`) steht im `.koerper` seiner Aufgabe, nicht im Kopf.
 - Aufgabe: `.aufgabe` > `.nr` (oder `.nr.stern`) + `.anw` (`.text` + `.niveau` mit `<i>` je Punkt, in Klassenarbeiten stattdessen `.punkte`) + `.koerper`.
 - Items: `.reihe` mit `--spalten`, darin `.zelle` (`.links` für linksbündig), `.zeile` für Rechenzeilen, `.antwort` (`.kurz`, `.breit`, `.lang`), `.schreiblinie`, `.box` (Ankreuzkästchen).
 - Fuß (nur mit Selbsteinschätzung): `.fuss` mit Text, Wachstumsgrafik, `.reflexion`.

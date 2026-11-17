@@ -7,6 +7,10 @@
 @font-face{font-family:Andika;font-weight:400;src:url(fonts/Andika-Regular.woff2) format("woff2")}
 @font-face{font-family:Andika;font-weight:700;src:url(fonts/Andika-Bold.woff2) format("woff2")}
 @font-face{font-family:Fredoka;font-weight:600;src:url(fonts/Fredoka-SemiBold.woff2) format("woff2")}
+/* Nur mit data-satz="2": ẞ, Pfeile, Haken und Kreuz in der Leseschrift. Eigene Familie, damit ältere Blätter diese
+   Zeichen weiter aus der Ersatzschrift nehmen und so bleiben, wie sie sind. */
+@font-face{font-family:"Andika Zeichen";font-weight:400;src:url(fonts/Andika-Zeichen-Regular.woff2) format("woff2")}
+@font-face{font-family:"Andika Zeichen";font-weight:700;src:url(fonts/Andika-Zeichen-Bold.woff2) format("woff2")}
 /* Vereinfachte Ausgangsschrift für Schreibvorlagen; die Buchstaben verbinden sich von selbst (calt) */
 @font-face{font-family:"Playwrite DE VA";font-weight:400;src:url(fonts/PlaywriteDEVA-Regular.woff2) format("woff2")}
 
@@ -752,6 +756,65 @@ body.sw[data-aufmachung] .kopf>.titel,body.sw[data-aufmachung] .namenszeile:has(
 /* Fläche im Stapel */
 /* Eine Fläche steht im Stapel wie ein Baustein; ihre Elemente liegen in ihren Koordinaten und werden am Rand abgeschnitten. */
 .flaeche { position: relative; flex: none; height: var(--h, 200px); overflow: hidden; }
+
+/* == Satz 2 (212, 213): neues Material, gesetzt wie ein Schulbuch ==
+   data-satz="2" am <body>. Ohne die Angabe trifft keine dieser Regeln: Ältere Blätter bleiben, wie sie sind.
+   Schrift: l mit Bogen (cv39), Überschriften und Nummern in der Leseschrift; Fredoka bleibt den Schauseiten
+   (Deckblatt, Fall-Karte, Pass) und der Schmuckschrift.
+   Dichte auf Arbeitsseiten (nicht Folie, A3, Seiten für die Lehrkraft): Lesetext 14, 12, 11, 11 pt. --schreib (altes
+   Maß durch neues) hält alles, worauf Kinder schreiben, so groß wie bisher. --fs-schau ist das alte, große Maß für
+   Karten und Spiele: Was ausgeschnitten auf dem Tisch liegt, wird nicht kleiner. */
+body[data-satz="2"]:not(.lehrkraft){font-family:Andika,"Andika Zeichen",sans-serif;font-feature-settings:"cv01","cv04","cv07","cv39"}
+body[data-satz="2"] .seite:not(.fall,.deckblatt) h1,
+body[data-satz="2"] :is(.nr,.kreuz-titel,.bingo-kopf,.rufliste h2,.faltanleitung h2,.loesung-marke,.kapitel-marke,.fuss-zeile,.beweis-marke,.lk-marke,.lk-leiste span,.seite.lk h2,.phase-kopf,.kasten>b:first-child){font-family:inherit;font-weight:700}
+body.kl1[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft){--fs:19px;--abstand:20px;--zh:1.35;--schreib:1.474;--fs-schau:28px}
+body.kl2[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft){--fs:16px;--abstand:16px;--zh:1.3;--schreib:1.5;--fs-schau:24px}
+body.kl3[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft){--fs:15px;--abstand:16px;--zh:1.3;--schreib:1.333;--fs-schau:20px}
+body.kl4[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft){--fs:15px;--abstand:16px;--zh:1.3;--schreib:1.2;--fs-schau:18px}
+body[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft){line-height:var(--zh,1.4);--nr:max(20px,calc(var(--fs)*1.3));--figur:64px}
+/* Rand wie mit data-zeit: oben und unten weniger, links und rechts bleiben 16 mm für die Lochung */
+body[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft,.minibuch,.a5-hoch) .seite:not(.fall,.deckblatt){padding-top:38px;padding-bottom:49px}
+body.loesung[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft,.minibuch,.a5-hoch) .loesung-marke{top:14px;font-size:13px;line-height:1.25}
+/* Kopf in einer Zeile: Name und Datum rechts neben dem Titel. Die Namenszeile bleibt im HTML vor dem Kopf (Editor);
+   mit Kapitel-Marke oder Niveau-Punkten in der Namenszeile steht sie wie bisher darüber, mit Tipp im Kopf rechts darüber.
+   :has() lässt sich nicht schachteln, darum rückt dann der Kopf nach unten statt die Namenszeile nach oben. */
+body[data-satz="2"]:not(.folie,.a3-hoch) .seite>.namenszeile{font-size:13px;gap:14px;margin-bottom:8px}
+body[data-satz="2"]:not(.folie,.a3-hoch) .seite>.namenszeile .datum::after{width:84px}
+body[data-satz="2"]:not(.folie,.a3-hoch) .seite>.namenszeile:not(:has(.kapitel-marke,.niveau)):has(~ .kopf){align-self:flex-end;width:46%;height:24px;margin-bottom:-24px;position:relative;z-index:1}
+body[data-satz="2"]:not(.folie,.a3-hoch) .seite>.namenszeile:not(:has(.kapitel-marke,.niveau)) ~ .kopf:not(:has(> .tipp)) h1{padding-right:48%}
+body[data-satz="2"]:not(.folie,.a3-hoch) .seite>.namenszeile:not(:has(.kapitel-marke,.niveau)) ~ .kopf:has(> .tipp){margin-top:32px}
+body[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft) .kopf{gap:14px;margin-bottom:12px}
+body[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft) .seite:not(.fall,.deckblatt,.lk) h1{font-size:calc(var(--fs)*1.5);margin-bottom:2px}
+body[data-satz="2"]:not(.folie,.a3-hoch) .ziel{font-weight:400}
+/* Aufgabe: Die Nummer trägt die Auszeichnung, die Anweisung steht normal */
+body[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft) .aufgabe{grid-template-columns:var(--nr) 1fr;column-gap:10px;row-gap:6px}
+body[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft) .nr{width:var(--nr);height:var(--nr);font-size:calc(var(--nr)*.62);line-height:var(--nr);
+  margin-top:calc((var(--fs)*var(--zh,1.4) - var(--nr))/2)}
+body[data-satz="2"]:not(.folie,.a3-hoch) .anw{font-weight:400;gap:10px}
+body[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft) .koerper>*+*{margin-top:8px}
+body[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft) .reihe{column-gap:18px;row-gap:10px}
+body[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft) .zelle{gap:5px}
+body[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft) .fuss{padding-top:8px;row-gap:4px}
+body[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft) .fuss .wachstum{width:128px;padding-bottom:20px}
+body[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft) .wachstum i{width:15px;height:15px;margin-left:-7.5px}
+/* Schreibflächen: so groß wie bisher */
+body[data-satz="2"] .antwort{min-width:calc(2.4em*var(--schreib,1));line-height:calc(1.2*var(--schreib,1))}
+body[data-satz="2"] .antwort.kurz{min-width:calc(1.6em*var(--schreib,1))}
+body[data-satz="2"] .antwort.breit{min-width:calc(5em*var(--schreib,1))}
+body[data-satz="2"] .antwort.lang{height:calc(1.5em*var(--schreib,1))}
+body[data-satz="2"] .schreiblinie{height:calc(var(--fs)*1.9*var(--schreib,1))}
+body[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft) .box{width:1.15em;height:1.15em}
+body[data-satz="2"] .stellentafel{font-size:calc(var(--fs)*var(--schreib,1))}
+body[data-satz="2"] .kit-tabelle.schreibzeilen td{height:calc(var(--fs)*2.4*var(--schreib,1))}
+body[data-satz="2"] x-lueckentext{line-height:calc(1.6*var(--schreib,1))}
+body[data-satz="2"] x-rechenreihe .platz{min-width:calc(2.2em*var(--schreib,1));min-height:calc(1.5em*var(--schreib,1))}
+body[data-satz="2"] x-rechenreihe .platz.breit{min-width:calc(3.6em*var(--schreib,1))}
+body[data-satz="2"] x-satzglieder .sg-kasten.leer{min-height:calc(1.9em*var(--schreib,1))}
+body[data-satz="2"] x-wortbausteine .wb-wort.leer{min-height:calc(1.5em*var(--schreib,1))}
+body[data-satz="2"] :is(x-sortieren,x-beschriften,x-schreibrahmen) .zeile-frei{min-height:calc(1.9em*var(--schreib,1))}
+body[data-satz="2"] :is(x-sortieren,x-beschriften,x-schreibrahmen) .zeile-frei>span{min-height:calc(1.3em*var(--schreib,1))}
+/* Karten und Spiele: das große Maß */
+body[data-satz="2"] :is(.karten,x-bingo,x-domino,x-spielplan){--fs:var(--fs-schau,24px);font-size:var(--fs);line-height:1.4}
 
 /* >> 125 Stapel */
 /* << 125 */

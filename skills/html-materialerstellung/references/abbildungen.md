@@ -192,7 +192,7 @@ Muster: `assets/muster/ebene-geometrie.html`. Gitter und Figuren mit `masse` sin
 |---|---|
 | `art` | `karo` (Standard), `punkte`, `geobrett` |
 | `spalten`, `zeilen` | Größe, höchstens Satzspiegelbreite |
-| `kaestchen` | `1` oder `0.5` cm; ohne Angabe 1 cm in Kl. 1/2, 0,5 cm ab Kl. 3 |
+| `kaestchen` | Kantenlänge in cm; ohne Angabe wie im Rechenheft: 0,7 cm in Kl. 1, 0,5 cm ab Kl. 2 (ältere Blätter ohne `data-satz`: 1 cm in Kl. 1/2, 0,5 cm ab Kl. 3) |
 | `figur` | gefüllte Kästchen zeilenweise, `0` leer, `1` voll |
 | `linien` | stattdessen Vielecke über Gitterpunkte, `0,0 3,0 3,2`, mehrere mit `;` (im Editor nur über Claude änderbar) |
 | `aufgabe` | `spiegeln`, `fortsetzen`, `vergroessern`, `weg`, ohne Angabe keine |

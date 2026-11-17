@@ -53,7 +53,13 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
 | Forscheraufgabe / offene Aufgabe | Alle Fächer, natürliche Differenzierung | "Finde möglichst viele …" |
 | Fehler finden („Willi hat sich vertan") | Rechnen ab Kl. 2, Rechtschreibung erst ab Kl. 3 | Fehleranzahl angeben ("Finde 3 Fehler.") |
 
+| Legen, bauen, falten und festhalten | Geometrie, Mengen, Sachunterricht | Material nennen („Lege mit Plättchen.“), das Blatt hält das Ergebnis fest (zeichnen, ankreuzen) |
+| Zu zweit | Messen, Spiegeln, Fragen stellen | „Zu zweit:“ am Anfang der Anweisung; ein Kind tut, das andere prüft, dann Wechsel |
+| Ins Heft | Zeichnen, Rechnen, Schreiben | „Im Heft:“ mit dem Anfang des Eintrags als Heft-Beispiel (`.kasten`) |
+
 Mathe-Rechenformate (`x-zahlenmauer`, `x-rechendreieck`, `x-zahlenhaus`) als Item-Reihen in `.reihe`, alle gleich groß.
+
+**Abwechslung über mehrere Blätter.** Gehört das Blatt zu einer Reihe oder Mappe, zählt die ganze Reihe: Ein Aufgabenformat kommt höchstens zweimal vor, beim zweiten Mal mit erkennbar höherem Anspruch (andere Achse, größerer Zahlenraum, ohne Hilfe). Dieselbe Figur, dasselbe Bild, dieselben Zahlen oder Wörter kommen nie zweimal vor. Lernzielkontrolle und Wiederholung nutzen bekannte Formate, aber neue Items. Vor dem Bau die Formate der anderen Blätter ansehen.
 
 Die Elemente beschreibt `html-materialerstellung/references/abbildungen.md`, Abschnitt „Aufgabenformate“; eigenes Aussehen einer Reihe: `html-materialerstellung/references/layout.md`, Abschnitt „Baukasten und Thema“.
 
@@ -70,7 +76,9 @@ Suchsel und Kreuzworträtsel (`x-suchsel`, `x-kreuzwort`) nur mit Anschlussaufga
 
 Zusätzlich zur Basis-Checkliste:
 - [ ] Erstes Item jeder neuen Aufgabenart vorgelöst
-- [ ] Aufgaben steigen im Anspruch
+- [ ] Aufgaben steigen im Anspruch; Anforderungsbereiche I–III gemischt, in Kl. 1/2 höchstens eine Erklär- oder Schreibaufgabe
+- [ ] Anweisungen: kurze Sätze, ein Verb je Satz, Reihenfolge wie das Tun, Fachwort wie im Wortspeicher
+- [ ] In einer Reihe: kein Format öfter als zweimal, keine Figur und keine Zahlen doppelt, mindestens eine Aufgabe mit Material oder fürs Heft
 - [ ] Platz reicht für Kinderschrift (Mindestgrößen eingehalten), keine Kästen, schlanker Kopf und Fuß, keine Leerstreifen
 - [ ] Zeitziel erreicht: Minuten je Aufgabe geschätzt, Summe je Niveau stimmt, jedes Niveau auf eigener Seite, Formate wechseln
 - [ ] Keine Flächen hinter Aufgaben, Text schwarz, Farbe nur als Akzent und nie als einzige Information (`grundschul-didaktik/references/gestaltung.md`)

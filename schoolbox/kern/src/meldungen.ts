@@ -17,6 +17,8 @@ export const MELDUNG_CODES = [
 	'aufgaben-viele',
 	'abstand-knapp',
 	'platz-frei',
+	/** Nur neues Material (`data-satz="2"`): Eine Arbeitsseite trägt weniger als ein Schulbuch (213). */
+	'inhalt-wenig',
 	/** Nur mit Zeitziel (`data-zeit`): Die geplanten Minuten der Aufgaben reichen nicht für das Ziel. */
 	'zeit-knapp',
 	/** Nur mit Zeitziel: Aufgaben ohne geschätzte Minuten (`data-min`). */
@@ -160,6 +162,12 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 		tipp: text.includes('--abstand')
 			? 'Im Reiter „Blatt“ den Abstand vergrößern.'
 			: 'Einen Eintrag oder eine Aufgabe ergänzen, zum Beispiel durch Duplizieren.',
+	}),
+	'inhalt-wenig': (_n, text) => ({
+		satz: text.includes('% der Seite')
+			? `Auf der Seite ist viel Fläche leer (${/^(\d+) %/.exec(text)?.[1] ?? ''} %).`
+			: 'Auf der Seite stehen wenige Aufgaben. Die Kinder sind schnell fertig.',
+		tipp: 'Einträge oder eine Aufgabe ergänzen, zum Beispiel durch Duplizieren. Oder Claude darum bitten.',
 	}),
 	'zeit-knapp': (_n, text) => {
 		const [, hat, ziel] = /etwa (\d+) min, Ziel sind (\d+) min/.exec(text) ?? [];

@@ -3,7 +3,6 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { ASSETS } from './konfig';
 import {
 	andereBeispiele,
 	fehlendeLoesungen,
@@ -16,7 +15,7 @@ import {
 import type { Knoten } from './quelltext';
 import { attribut, klassenVon, zerlege } from './quelltext';
 
-const vorlage = () => readFile(path.join(ASSETS, 'vorlage-arbeitsblatt.html'), 'utf8');
+const vorlage = () => readFile(path.join(__dirname, 'testdaten', 'arbeitsblatt-struktur.html'), 'utf8');
 
 const mitKlasse = (quelle: string, klasse: string) =>
 	zerlege(quelle).knoten.filter((k) => klassenVon(k).includes(klasse));

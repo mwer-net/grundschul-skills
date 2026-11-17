@@ -72,8 +72,15 @@
   // Zeitziel in Minuten (`data-zeit` am body): Material, dessen Menge nach Arbeitszeit geplant ist (druck-und-platz.md,
   // „Menge nach Arbeitszeit“). Ohne die Angabe gelten die alten Richtwerte, damit Bestand unverändert geprüft wird.
   const zeitziel = +B.dataset.zeit || 0, loesungsblatt = B.classList.contains("loesung");
-  const RICHTWERT = zeitziel ? { 1: 5, 2: 6, 3: 7, 4: 8 }[kl] || 8 : { 1: 3, 2: 4, 3: 5, 4: 6 }[kl] || 6;
+  // Neues Material (`data-satz="2"`, blatt.css): gesetzt wie ein Schulbuch. Eine Arbeitsseite ist dort eher zu leer als
+  // zu voll; Folien, Plakate (A3) und Seiten für die Lehrkraft setzt der Satz nicht dichter.
+  const satz2 = B.dataset.satz === "2" && !B.matches(".folie,.a3-hoch,.lehrkraft");
+  const RICHTWERT = satz2 ? { 1: 6, 2: 8, 3: 9, 4: 10 }[kl] || 8 : zeitziel ? { 1: 5, 2: 6, 3: 7, 4: 8 }[kl] || 8 : { 1: 3, 2: 4, 3: 5, 4: 6 }[kl] || 6;
   const KOPF_MAX = 210, FUSS_MAX = 150, FREI_MAX = 90;
+  const AUFGABEN_MIN = 4, TEILE_MIN = 12, LEER_MAX = 35, ABSTAND_MIN = satz2 ? 10 : 20;
+  // Woran ein Kind auf der Seite etwas tut: Items einer Reihe oder Stellen zum Schreiben, je Aufgabe mindestens eine.
+  const TEIL = ".antwort,.schreiblinie,.luecke,.platz,.malfeld,td[data-l],x-ankreuzen .ankreuzen,x-richtigfalsch tbody tr,.zeile-frei";
+  const teilaufgaben = (a) => Math.max(1, a.querySelectorAll(".reihe > .zelle").length, a.querySelectorAll(TEIL).length);
   const zeitGruppen = new Map(); // Punkte des Niveaus → Minuten; 0 steht für Aufgaben ohne Niveau
   let zeitSeite = 0, zeitFehlt = [];
   const meldeZeit = () => {
@@ -131,6 +138,7 @@
   if (B.classList.contains("minibuch") && feldzahl !== 8) melde("FEHLER", 0, "minibuch-seiten", `Ein Mini-Book hat genau 8 Seiten, dieses hat ${feldzahl} → --vorlage minibuch als Ausgangspunkt nehmen`);
   // nur äußere Seiten: In „Folien mit Notizen“ stecken die Folien verkleinert in einem Blatt
   [...document.querySelectorAll(".seite")].filter((s) => !s.parentElement.closest(".seite")).forEach((S, si) => {
+    let seitenLeer = null;
     const nr = si + 1, P = S.getBoundingClientRect(), stil = getComputedStyle(S), rand = parseFloat(stil.paddingLeft), randOben = parseFloat(stil.paddingTop), randUnten = parseFloat(stil.paddingBottom);
     const innen = { l: P.left + rand - 1, t: P.top + randOben - 1, r: P.right - rand + 1, b: P.bottom - randUnten + 1 };
     const rel = (r) => [Math.round(r.left - P.left), Math.round(r.top - P.top), Math.round(r.width), Math.round(r.height)];
@@ -306,7 +314,7 @@
     for (let i = 1; i < gezeigt.length; i++) {
       const [vorige, v] = gezeigt[i - 1], [a, n] = gezeigt[i];
       const gap = a.getBoundingClientRect().top - vorige.getBoundingClientRect().bottom;
-      if (gap < 20) melde("WARNUNG", nr, "abstand-knapp", `Nur ${Math.round(gap)} px zwischen Aufgabe ${v} und ${n}`, [ziel(vorige), ziel(a)]);
+      if (gap < ABSTAND_MIN) melde("WARNUNG", nr, "abstand-knapp", `Nur ${Math.round(gap)} px zwischen Aufgabe ${v} und ${n}`, [ziel(vorige), ziel(a)]);
     }
 
     // 8. Ungenutzter Platz (Folien dürfen leer sein: eine Aussage je Folie)
@@ -317,15 +325,48 @@
     // Folgt eine automatische Seite (data-weiter="auto", Schoolbox 206), passte der nächste Block nicht mehr hierher.
     const folgtAuto = !!S.nextElementSibling?.matches('.seite[data-weiter="auto"]');
     const freiZaehlt = !folgtAuto && !S.querySelector(".karten") && !folie && !B.classList.contains("minibuch");
+    // Satz 2: Arbeitsseite heißt A4 mit Aufgaben. `data-dicht-ok` an der Seite, wenn sie mit Absicht wenig trägt
+    // (Forscherbogen, Bastelvorlage, große Zeichnung); A5 sind Stationskarten.
+    const arbeitsseite = satz2 && auf.length > 0 && freiZaehlt && !B.classList.contains("a5-hoch") && !S.matches("[data-dicht-ok],.fall,.deckblatt,.lk");
     if (zeitziel && auf.length && rest > FREI_MAX && freiZaehlt)
       melde("WARNUNG", nr, "platz-frei", `${rest} px frei unten → Item, Reihe oder Aufgabe ergänzen (Menge nach Arbeitszeit)`, [ziel(S)]);
+    else if (arbeitsseite && rest > FREI_MAX)
+      melde("WARNUNG", nr, "platz-frei", `${rest} px frei unten → Item, Reihe oder Aufgabe ergänzen (eine Arbeitsseite ist gefüllt wie im Schulbuch)`, [ziel(S)]);
     else if (rest > 150 && freiZaehlt)
       melde("HINWEIS", nr, "platz-frei", `${rest} px frei unten → Item, Reihe oder Aufgabe ergänzen`, [ziel(S)]);
+    // 8b. Satz 2: zu wenig auf einer Arbeitsseite. Die Fläche zählt in Feldern von 6 px; jedes Stück Inhalt belegt sich
+    // selbst und eine halbe Schrifthöhe ringsum, damit Wort- und Zeilenabstände nicht als leer gelten. Ist unten ohnehin
+    // Platz frei (platz-frei), sagt die Fläche nichts Neues.
+    if (arbeitsseite && !loesungsblatt) {
+      const teile = auf.reduce((n, a) => n + teilaufgaben(a), 0);
+      if (auf.length < AUFGABEN_MIN || teile < TEILE_MIN)
+        melde("WARNUNG", nr, "inhalt-wenig", `${auf.length} ${auf.length === 1 ? "Aufgabe" : "Aufgaben"} mit ${teile} Teilaufgaben: Eine Arbeitsseite trägt mindestens ${AUFGABEN_MIN} Aufgaben und ${TEILE_MIN} Teilaufgaben → Items in Reihen ergänzen, weitere Aufgabe; trägt die Seite mit Absicht wenig (Forscherbogen, Bastelvorlage), data-dicht-ok an die Seite`, [ziel(S)]);
+      const Z = 6, um = fs / 2, sp = Math.ceil((innen.r - innen.l) / Z), ze = Math.ceil((innen.b - innen.t) / Z), feld = new Uint8Array(sp * ze);
+      const belege = (r) => {
+        if (r.width < 1 || r.height < 1) return;
+        const x1 = Math.max(0, Math.floor((r.left - um - innen.l) / Z)), x2 = Math.min(sp - 1, Math.floor((r.right + um - innen.l) / Z));
+        const y1 = Math.max(0, Math.floor((r.top - um - innen.t) / Z)), y2 = Math.min(ze - 1, Math.floor((r.bottom + um - innen.t) / Z));
+        for (let y = y1; y <= y2; y++) if (x2 >= x1) feld.fill(1, y * sp + x1, y * sp + x2 + 1);
+      };
+      const umrandet = (e) => { const c = getComputedStyle(e); return parseFloat(c.borderTopWidth) > 0 && parseFloat(c.borderBottomWidth) > 0 && parseFloat(c.borderLeftWidth) > 0; };
+      alle.filter((e) => !e.closest(GESTALTUNG) && e !== S && (e.matches(`img,svg,canvas,table,.nr,${TEIL}`) || umrandet(e))).forEach((e) => belege(e.getBoundingClientRect()));
+      const leser = document.createTreeWalker(S, NodeFilter.SHOW_TEXT), bereich = document.createRange();
+      while (leser.nextNode()) {
+        const t = leser.currentNode, p = t.parentElement;
+        if (!t.textContent.trim() || !p || p.closest(`svg,${GESTALTUNG}`) || !sichtbar(p)) continue;
+        bereich.selectNodeContents(t);
+        [...bereich.getClientRects()].forEach(belege);
+      }
+      const leer = Math.round(100 * (1 - feld.reduce((n, v) => n + v, 0) / feld.length));
+      if (leer > LEER_MAX && rest <= FREI_MAX)
+        melde("WARNUNG", nr, "inhalt-wenig", `${leer} % der Seite sind leer (höchstens ${LEER_MAX} %) → Reihen mit mehr Spalten, Items oder eine Aufgabe ergänzen, Abbildungen nebeneinander`, [ziel(S)]);
+      seitenLeer = leer;
+    }
     if (folie && mitNotizen && !S.querySelector(".notiz")) melde("HINWEIS", nr, "notiz-fehlt", "Folie ohne Notiz für die Lehrkraft", [ziel(S)]);
 
     const ph = [...S.querySelectorAll(".platzhalter")].filter((e) => !ausgeblendet(e));
     if (ph.length) melde("HINWEIS", nr, "platzhalter", `${ph.length} Platzhalter (Entwurf)`, ph.map(ziel));
-    seiten.push({ nr, rest, breite: Math.round(P.width), aufgaben: auf.map((a) => rel(a.getBoundingClientRect())) });
+    seiten.push({ nr, rest, breite: Math.round(P.width), aufgaben: auf.map((a) => rel(a.getBoundingClientRect())), ...(seitenLeer === null ? {} : { leer: seitenLeer }) });
   });
   meldeZeit();
 

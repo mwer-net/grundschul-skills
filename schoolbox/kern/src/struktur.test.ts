@@ -33,7 +33,7 @@ import {
 } from './struktur';
 
 const lies = (name: string) => readFileSync(path.join(ASSETS, name), 'utf8');
-const ARBEITSBLATT = lies('vorlage-arbeitsblatt.html');
+const ARBEITSBLATT = readFileSync(path.join(__dirname, 'testdaten', 'arbeitsblatt-struktur.html'), 'utf8');
 const PRAESENTATION = lies('vorlage-praesentation.html');
 const BLATT = { jeSeite: false };
 const FOLIEN = { jeSeite: true };

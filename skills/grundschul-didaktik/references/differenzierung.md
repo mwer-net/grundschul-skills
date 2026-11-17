@@ -16,6 +16,20 @@
 
 Die Niveaus entsprechen grob den Anforderungsbereichen I–III der Bildungsstandards (Reproduzieren, Zusammenhänge herstellen, Verallgemeinern und Reflektieren).
 
+## Anforderungsbereiche auf jedem Arbeitsblatt
+
+Jedes Arbeitsblatt mischt die drei Bereiche, auch ohne Niveaus (Richtwerte wie in `klassenarbeit`):
+
+| Bereich | Was das Kind tut | Anteil der Arbeitszeit |
+|---|---|---|
+| I Reproduzieren | Gelerntes ausführen: ablesen, benennen, nach dem Beispiel rechnen, nachlegen | etwa die Hälfte |
+| II Zusammenhänge herstellen | anwenden, ordnen, vergleichen, ergänzen, Fehler finden, Darstellung wechseln | etwa ein Drittel |
+| III Verallgemeinern und Reflektieren | erklären, begründen, erfinden, ein Muster beschreiben | eine Aufgabe; in Kl. 1/2 höchstens eine je Blatt |
+
+- Das Blatt steigt von I nach III. Ein Blatt nur aus Bereich I ist Beschäftigung, eines mit drei Erklär-Aufgaben eine Schreibstunde.
+- Erklären und Begründen in Kl. 1/2 immer mit Satzanfang oder zum Ankreuzen, sonst mündlich im Kreis (`sprachsensibel.md`).
+- Eine Aufgabe ist zu schwer, wenn sie mehr als einen neuen Schritt auf einmal verlangt. Was eine Klasse bei einem Thema können soll, steht im Bildungsplan (vor dem Plan nachschlagen); wie das Thema aufgebaut wird, im Fach-Skill. Im Zweifel gilt das Lehrwerk der Klasse.
+
 ## Differenzierungswege (kombinierbar)
 
 1. **Quantitativ:** Anzahl der Aufgaben (Pflicht- und Zusatzaufgaben).

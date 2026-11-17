@@ -33,7 +33,7 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 - [ ] Für jede Aufgabe: Was soll ich tun? Wohin schreibe ich? Beides in wenigen Sekunden klar.
 - [ ] Eine Handlung pro Aufgabe, Anweisung in einer Zeile, nur bekannte Begriffe und Symbole.
 - [ ] Jeder Antwortplatz gehört eindeutig zu einem Item (Nähe, gleiche Spalte).
-- [ ] Tipp der Leitfigur steht bei seiner Aufgabe oder mit „Zu 1: …" im Kopf und unterbricht keine Item-Reihe.
+- [ ] Tipp der Leitfigur steht im Körper seiner Aufgabe über der Item-Reihe und unterbricht keine Reihe.
 
 **D. Keine Darstellungsfehler**
 - [ ] Nichts abgeschnitten, nichts überlappt, nichts ragt über Linien oder Rand.
@@ -77,9 +77,9 @@ Der Prüfbericht sieht keine inhaltlichen Fehler. Deshalb jede Aussage, die man 
 | Befund | Korrektur |
 |---|---|
 | Abbildung ungenau (Anzahl falsch, Kreise schneiden sich, Menge gestreut) | Attribute des `x-…`-Elements prüfen (`n`, `z`, `e`, `zeit`); fehlt eine Darstellung, `abbildungen.js` erweitern statt freihand zeichnen |
-| Beispiel gequetscht | Beispiel auf Item-Größe bringen, Nachbarn auf 24–32 px Abstand; reicht die Breite nicht, ein Item der Reihe streichen |
+| Beispiel gequetscht | Beispiel auf Item-Größe bringen, Abstand zu den Nachbarn wie in der Reihe; reicht die Breite nicht, ein Item der Reihe streichen |
 | Hinweis `kit-anteil`, `thema-layout` oder `thema-klasse` beim Bauen | Eigene Klassen durch Kit-Bausteine ersetzen, Aussehen in `thema.css` (`references/layout.md`, „Baukasten und Thema“) |
-| Seite zu voll oder Aufgabe unklar | Aufgabe auf die Rückseite verschieben (`data-weiter`) und beide Seiten füllen; unklare Aufgabe vereinfachen oder ein Beispiel ergänzen; nie Schrift oder Abstände verkleinern, nie unter das Zeitziel streichen |
+| Seite zu voll oder Aufgabe unklar | Aufgabe auf die Rückseite verschieben (`data-weiter`) und beide Seiten füllen; unklare Aufgabe vereinfachen oder ein Beispiel ergänzen; nie Schrift, Abstände oder Schreibflächen von Hand verkleinern, nie unter das Zeitziel streichen |
 | Aufgabe mit zwei Darstellungsformen in einer Reihe | Auf eine Form reduzieren oder in zwei Aufgaben teilen (wenn der Richtwert es zulässt) |
 | Ungewollter Umbruch | Anweisung kürzen, `--spalten` senken oder `white-space:nowrap` für Rechenzeilen (`.zeile`); nie Schrift unter die Mindestgröße |
 | Tipp unterbricht die Reihe oder steht zwischen Anweisung und Arbeitsfläche | Tipp in den Kopf (`.kopf .tipp`, „Zu 1: …“) oder ans Reihenende |

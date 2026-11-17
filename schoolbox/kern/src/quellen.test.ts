@@ -174,7 +174,7 @@ describe('Erzeugte Abschnitte', () => {
 	it('Probe: Eine geänderte Zahl in blatt.css schlägt an, Schreiben behebt es', () => {
 		const wurzel = kopie('css');
 		const css = path.join(wurzel, 'skills/html-materialerstellung/assets/blatt.css');
-		writeFileSync(css, readFileSync(css, 'utf8').replace('body.kl1{--fs:28px', 'body.kl1{--fs:29px'));
+		writeFileSync(css, readFileSync(css, 'utf8').replace('body.kl1[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft){--fs:19px', 'body.kl1[data-satz="2"]:not(.folie,.a3-hoch,.lehrkraft){--fs:29px'));
 		assert.deepEqual(abgleichen(wurzel, false), [
 			'skills/grundschul-didaktik/references/druck-und-platz.md: schrift-und-abstand',
 		]);

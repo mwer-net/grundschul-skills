@@ -14,7 +14,7 @@
      in der Namenszeile, dasselbe Beweis-Rätsel), Selbsteinschätzung (.fuss mit .wachstum), Anweisungs-Symbole (.sym).
      In einer Mappe kommen die Farben aus thema.css (references/layout.md, „Baukasten und Thema“) statt aus der
      Palette, und Szenenbild und Pose der Figur liegen unter ../../bilder/. -->
-<body class="kl2 farbe palette-himmel" data-zeit="20">
+<body class="kl2 farbe palette-himmel" data-zeit="45" data-satz="2">
 
 <!-- Seite 1: Fall-Karte für den Kreisinput (Schauseite). Großes Bild randlos, Marke im Bild, kurzes Stück Geschichte
      mit wörtlicher Rede, Frage der Stunde. Das Bild erzählt, der Text gibt nur den Auftrag. -->
@@ -36,8 +36,10 @@
   <div class="fuss-zeile">Das Rätsel der Turmuhr · Kapitel 1</div>
 </section>
 
-<!-- Seite 2: Arbeitsblatt für alle, Vorderseite (Arbeitsseite). Kein Rahmen, keine Symbole: Der Platz gehört den
-     Aufgaben. Wiedererkennung über Kapitel-Marke in der Namenszeile, Überschrift und die Figur in ihrer Pose im Tipp. -->
+<!-- Seite 2: Arbeitsblatt für alle, Vorderseite (Arbeitsseite, gefüllt wie im Schulbuch). Kein Rahmen: Der Platz
+     gehört den Aufgaben. Wiedererkennung über Kapitel-Marke in der Namenszeile, Überschrift und die Figur in ihrer
+     Pose im Tipp bei der Aufgabe. Anweisungen: kurze Sätze, ein Satz Geschichte, dann was zu tun ist. Jedes
+     Aufgabenformat kommt in der ganzen Reihe höchstens zweimal vor, keine Figur und keine Zahl doppelt. -->
 <section class="seite">
   <div class="namenszeile"><span class="kapitel-marke">Kapitel 1</span><span class="name">Name:</span><span class="datum">Datum:</span></div>
   <span class="loesung-marke">Lösung</span>
@@ -46,65 +48,91 @@
       <h1>Spuren am Turm</h1>
       <div class="ziel">Ich kann volle und halbe Stunden ablesen und einstellen.</div>
     </div>
-    <div class="tipp"><!-- in der Reihe die Pose der Figur zur Geschichte (Willi mit Lupe) aus dem Ordner bilder der Mappe -->
-      <img class="figur" style="--figur:104px" src="bilder/willi.png" alt="Willi"><div class="blase">Erst der kleine Zeiger. Er zeigt die Stunde.</div></div>
   </div>
 
   <div class="aufgabe" data-min="5">
     <span class="nr">1</span>
-    <div class="anw"><span class="text">Jede Seite vom Turm zeigt eine andere Zeit. Lies ab und schreibe auf.</span></div>
+    <div class="anw"><span class="text">Der Turm hat acht Uhren. Jede zeigt eine andere Zeit. Lies ab.</span></div>
     <div class="koerper">
+      <div class="tipp"><!-- in der Reihe die Pose der Figur zur Geschichte (Willi mit Lupe) aus dem Ordner bilder der Mappe -->
+        <img class="figur" src="bilder/willi.png" alt="Willi"><div class="blase">Erst der kleine Zeiger. Er zeigt die Stunde.</div></div>
       <div class="reihe" style="--spalten:4">
-        <div class="zelle beispiel"><x-uhr zeit="3:00"></x-uhr><span class="antwort breit" data-l="3 Uhr"></span></div>
-        <div class="zelle"><x-uhr zeit="7:00"></x-uhr><span class="antwort breit" data-l="7 Uhr"></span></div>
-        <div class="zelle"><x-uhr zeit="4:30"></x-uhr><span class="antwort breit" data-l="halb 5"></span></div>
-        <div class="zelle"><x-uhr zeit="9:30"></x-uhr><span class="antwort breit" data-l="halb 10"></span></div>
-        <div class="zelle"><x-uhr zeit="12:00"></x-uhr><span class="antwort breit" data-l="12 Uhr"></span></div>
-        <div class="zelle"><x-uhr zeit="1:30"></x-uhr><span class="antwort breit" data-l="halb 2"></span></div>
-        <div class="zelle"><x-uhr zeit="10:00"></x-uhr><span class="antwort breit" data-l="10 Uhr"></span></div>
-        <div class="zelle"><x-uhr zeit="6:30"></x-uhr><span class="antwort breit" data-l="halb 7"></span></div>
+        <div class="zelle beispiel"><x-uhr groesse="84" zeit="3:00"></x-uhr><span class="antwort breit" data-l="3 Uhr"></span></div>
+        <div class="zelle"><x-uhr groesse="84" zeit="7:00"></x-uhr><span class="antwort breit" data-l="7 Uhr"></span></div>
+        <div class="zelle"><x-uhr groesse="84" zeit="4:30"></x-uhr><span class="antwort breit" data-l="halb 5"></span></div>
+        <div class="zelle"><x-uhr groesse="84" zeit="9:30"></x-uhr><span class="antwort breit" data-l="halb 10"></span></div>
+        <div class="zelle"><x-uhr groesse="84" zeit="12:00"></x-uhr><span class="antwort breit" data-l="12 Uhr"></span></div>
+        <div class="zelle"><x-uhr groesse="84" zeit="1:30"></x-uhr><span class="antwort breit" data-l="halb 2"></span></div>
+        <div class="zelle"><x-uhr groesse="84" zeit="10:00"></x-uhr><span class="antwort breit" data-l="10 Uhr"></span></div>
+        <div class="zelle"><x-uhr groesse="84" zeit="6:30"></x-uhr><span class="antwort breit" data-l="halb 7"></span></div>
       </div>
     </div>
   </div>
 
   <!-- Eine Aufgabe, die es nur in dieser Geschichte gibt: Zeugen befragen und ihre Zeiten festhalten. -->
-  <div class="aufgabe" data-min="5">
+  <div class="aufgabe" data-min="6">
     <span class="nr">2</span>
-    <div class="anw"><span class="text">Wilma fragt die Zeugen: Wann hast du gemerkt, dass die Glocke fehlt? Zeichne die Zeiger in Wilmas Notizbuch.</span></div>
+    <div class="anw"><span class="text">Wilma fragt die Zeugen: „Wann fehlte die Glocke?“ Zeichne die Zeiger ein.</span></div>
     <div class="koerper">
-      <div class="reihe" style="--spalten:4">
-        <div class="zelle"><b>Bäcker</b><span>„Um 6 Uhr.“</span><x-uhr loesung="6:00" groesse="100"></x-uhr></div>
-        <div class="zelle"><b>Busfahrerin</b><span>„Um halb 7.“</span><x-uhr loesung="6:30" groesse="100"></x-uhr></div>
-        <div class="zelle"><b>Eule</b><span>„Um halb 4.“</span><x-uhr loesung="3:30" groesse="100"></x-uhr></div>
-        <div class="zelle"><b>Milchmann</b><span>„Um 5 Uhr.“</span><x-uhr loesung="5:00" groesse="100"></x-uhr></div>
+      <div class="reihe" style="--spalten:3">
+        <div class="zelle"><span><b>Bäcker:</b> „Um 6 Uhr.“</span><x-uhr loesung="6:00" groesse="84"></x-uhr></div>
+        <div class="zelle"><span><b>Busfahrerin:</b> „Um halb 7.“</span><x-uhr loesung="6:30" groesse="84"></x-uhr></div>
+        <div class="zelle"><span><b>Eule:</b> „Um halb 4.“</span><x-uhr loesung="3:30" groesse="84"></x-uhr></div>
+        <div class="zelle"><span><b>Milchmann:</b> „Um 5 Uhr.“</span><x-uhr loesung="5:00" groesse="84"></x-uhr></div>
+        <div class="zelle"><span><b>Lehrerin:</b> „Um halb 8.“</span><x-uhr loesung="7:30" groesse="84"></x-uhr></div>
+        <div class="zelle"><span><b>Postbote:</b> „Um 8 Uhr.“</span><x-uhr loesung="8:00" groesse="84"></x-uhr></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="aufgabe" data-min="4">
+    <span class="nr">3</span>
+    <div class="anw"><span class="text">Wer hat es zuerst gemerkt? Schreibe die Zeugen der Reihe nach auf.</span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:3">
+        <div class="zelle links"><div class="zeile">1. <span class="antwort breit" data-l="Eule"></span></div></div>
+        <div class="zelle links"><div class="zeile">2. <span class="antwort breit" data-l="Milchmann"></span></div></div>
+        <div class="zelle links"><div class="zeile">3. <span class="antwort breit" data-l="Bäcker"></span></div></div>
+        <div class="zelle links"><div class="zeile">4. <span class="antwort breit" data-l="Busfahrerin"></span></div></div>
+        <div class="zelle links"><div class="zeile">5. <span class="antwort breit" data-l="Lehrerin"></span></div></div>
+        <div class="zelle links"><div class="zeile">6. <span class="antwort breit" data-l="Postbote"></span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="aufgabe" data-min="4">
+    <span class="nr">4</span>
+    <div class="anw"><span class="text">Die Glocke schlägt nur zur vollen Stunde: um 3 Uhr 3-mal. Wie oft schlägt sie?</span></div>
+    <div class="koerper">
+      <div class="reihe" style="--spalten:3">
+        <div class="zelle links beispiel"><div class="zeile">um 3 Uhr: <span class="antwort" data-l="3"></span>-mal</div></div>
+        <div class="zelle links"><div class="zeile">um 7 Uhr: <span class="antwort" data-l="7"></span>-mal</div></div>
+        <div class="zelle links"><div class="zeile">um 11 Uhr: <span class="antwort" data-l="11"></span>-mal</div></div>
+        <div class="zelle links"><div class="zeile">um 9 Uhr: <span class="antwort" data-l="9"></span>-mal</div></div>
+        <div class="zelle links"><div class="zeile">um 12 Uhr: <span class="antwort" data-l="12"></span>-mal</div></div>
+        <div class="zelle links"><div class="zeile">um halb 5: <span class="antwort" data-l="0"></span>-mal</div></div>
       </div>
     </div>
   </div>
 
   <div class="aufgabe" data-min="3">
-    <span class="nr">3</span>
-    <div class="anw"><span class="text">Wer hat es zuerst gemerkt, wer zuletzt? Schreibe die Zeugen in der richtigen Reihenfolge auf.</span></div>
-    <div class="koerper">
-      <div class="reihe" style="--spalten:2">
-        <div class="zelle links"><div class="zeile">1. <span class="antwort breit" data-l="Eule"></span></div></div>
-        <div class="zelle links"><div class="zeile">2. <span class="antwort breit" data-l="Milchmann"></span></div></div>
-        <div class="zelle links"><div class="zeile">3. <span class="antwort breit" data-l="Bäcker"></span></div></div>
-        <div class="zelle links"><div class="zeile">4. <span class="antwort breit" data-l="Busfahrerin"></span></div></div>
-      </div>
-    </div>
+    <span class="nr stern">★</span>
+    <div class="anw"><span class="text">Knobeln: Wie oft schlägt die Glocke von 1 Uhr bis 4 Uhr zusammen?</span></div>
+    <div class="koerper"><div class="zeile">Sie schlägt <span class="antwort" data-l="10"></span>-mal. So rechne ich: <span class="antwort breit" data-l="1 + 2 + 3 + 4"></span></div></div>
   </div>
 
   <div class="fuss-zeile">Das Rätsel der Turmuhr · Kapitel 1</div>
 </section>
 
-<!-- Seite 3: Rückseite. Das Beweis-Rätsel steht am Ende und liefert das Stück der Lösung. -->
+<!-- Seite 3: Rückseite. Eine Aufgabe zum Handeln mit Material (Lernuhr, zu zweit), eine fürs Heft; das Beweis-Rätsel
+     steht am Ende und liefert das Stück der Lösung. -->
 <section class="seite" data-weiter>
   <span class="loesung-marke">Lösung</span>
   <div class="aufgabe" data-min="5">
-    <span class="nr">4</span>
+    <span class="nr">5</span>
     <div class="anw"><span class="text">Der Uhrmacher kommt immer eine Stunde später. Wann ist er da?</span></div>
     <div class="koerper">
-      <div class="reihe" style="--spalten:2">
+      <div class="reihe" style="--spalten:3">
         <div class="zelle links beispiel"><div class="zeile">3 Uhr → <span class="antwort breit" data-l="4 Uhr"></span></div></div>
         <div class="zelle links"><div class="zeile">8 Uhr → <span class="antwort breit" data-l="9 Uhr"></span></div></div>
         <div class="zelle links"><div class="zeile">halb 2 → <span class="antwort breit" data-l="halb 3"></span></div></div>
@@ -113,44 +141,67 @@
         <div class="zelle links"><div class="zeile">halb 10 → <span class="antwort breit" data-l="halb 11"></span></div></div>
         <div class="zelle links"><div class="zeile">12 Uhr → <span class="antwort breit" data-l="1 Uhr"></span></div></div>
         <div class="zelle links"><div class="zeile">halb 4 → <span class="antwort breit" data-l="halb 5"></span></div></div>
+        <div class="zelle links"><div class="zeile">halb 12 → <span class="antwort breit" data-l="halb 1"></span></div></div>
       </div>
     </div>
   </div>
 
-  <div class="aufgabe" data-min="3">
-    <span class="nr">5</span>
-    <div class="anw"><span class="text">Stell dir vor, bei dir zu Hause bleiben alle Uhren stehen. Was geht dann schief? Schreibe.</span></div>
+  <!-- Handeln vor Papier: Material nennen, zu zweit; das Blatt hält nur fest, was die Kinder getan haben. Symbole vor der
+       Anweisung nur, wenn der Auftrag sie nennt. -->
+  <div class="aufgabe" data-min="6">
+    <span class="nr">6</span>
+    <div class="anw"><span class="text">Zu zweit: Ein Kind stellt die Lernuhr. Das andere liest ab. Zeichnet drei eurer Uhren.</span></div>
     <div class="koerper">
-      <div class="schreiblinie nicht-loesung"></div>
-      <div class="schreiblinie nicht-loesung"></div>
-      <div class="schreiblinie nicht-loesung"></div>
-      <div class="nur-loesung"><b>Eigene Antwort, zum Beispiel: Ich komme zu spät in die Schule.</b></div>
+      <div class="reihe" style="--spalten:3">
+        <div class="zelle"><x-uhr groesse="84"></x-uhr><span class="antwort breit"></span></div>
+        <div class="zelle"><x-uhr groesse="84"></x-uhr><span class="antwort breit"></span></div>
+        <div class="zelle"><x-uhr groesse="84"></x-uhr><span class="antwort breit"></span></div>
+      </div>
     </div>
   </div>
 
-  <div class="aufgabe" data-min="3">
-    <span class="nr">6</span>
+  <div class="aufgabe" data-min="4">
+    <span class="nr">7</span>
     <div class="anw"><span class="text">Willi stellt die Turmuhr wieder. Zeichne beide Zeiger ein.</span></div>
     <div class="koerper">
-      <div class="reihe" style="--spalten:4">
-        <div class="zelle"><x-uhr loesung="8:00" groesse="96"></x-uhr><span>8 Uhr</span></div>
-        <div class="zelle"><x-uhr loesung="2:30" groesse="96"></x-uhr><span>halb 3</span></div>
-        <div class="zelle"><x-uhr loesung="11:00" groesse="96"></x-uhr><span>11 Uhr</span></div>
-        <div class="zelle"><x-uhr loesung="7:30" groesse="96"></x-uhr><span>halb 8</span></div>
+      <div class="reihe" style="--spalten:6">
+        <div class="zelle"><x-uhr loesung="8:00" groesse="84"></x-uhr><span>8 Uhr</span></div>
+        <div class="zelle"><x-uhr loesung="2:30" groesse="84"></x-uhr><span>halb 3</span></div>
+        <div class="zelle"><x-uhr loesung="11:00" groesse="84"></x-uhr><span>11 Uhr</span></div>
+        <div class="zelle"><x-uhr loesung="7:30" groesse="84"></x-uhr><span>halb 8</span></div>
+        <div class="zelle"><x-uhr loesung="1:00" groesse="84"></x-uhr><span>1 Uhr</span></div>
+        <div class="zelle"><x-uhr loesung="10:30" groesse="84"></x-uhr><span>halb 11</span></div>
       </div>
+    </div>
+  </div>
+
+  <div class="aufgabe" data-min="4">
+    <span class="nr">8</span>
+    <div class="anw"><span class="text">Zu Hause stehen alle Uhren still. Was geht schief? Schreibe ins Heft.</span></div>
+    <div class="koerper">
+      <!-- Heft-Beispiel wie im Schulbuch: So fängt der Eintrag an -->
+      <div class="kasten"><b>Im Heft:</b> Ohne Uhr komme ich zu spät …</div>
+    </div>
+  </div>
+
+  <div class="aufgabe" data-min="4">
+    <span class="nr">9</span>
+    <div class="anw"><span class="text">Wilma schreibt in ihr Notizbuch. Ergänze. Schau auf Seite 2 nach.</span></div>
+    <div class="koerper">
+      <x-lueckentext>Zuerst merkt es die [Eule]. Da ist es [halb 4]. Um 5 Uhr kommt der [Milchmann]. Eine Stunde später merkt es der [Bäcker]. Zuletzt merkt es der [Postbote]. Da ist es schon [8 Uhr].</x-lueckentext>
     </div>
   </div>
 
   <div class="aufgabe beweis" data-min="3">
     <span class="beweis-marke">Beweis-Rätsel</span>
-    <span class="nr">7</span>
+    <span class="nr">10</span>
     <div class="anw"><span class="text">Die Eule hat es zuerst gemerkt: um halb 4. Welche Uhr zeigt halb 4? Ihr Buchstabe ist euer Beweis.</span></div>
     <div class="koerper">
       <div class="reihe" style="--spalten:4">
-        <div class="zelle"><x-uhr zeit="4:30" groesse="96"></x-uhr><b>A</b></div>
-        <div class="zelle"><x-uhr zeit="3:00" groesse="96"></x-uhr><b>R</b></div>
-        <div class="zelle"><x-uhr zeit="3:30" groesse="96"></x-uhr><b>T</b></div>
-        <div class="zelle"><x-uhr zeit="6:15" groesse="96"></x-uhr><b>U</b></div>
+        <div class="zelle"><x-uhr zeit="4:30" groesse="84"></x-uhr><b>A</b></div>
+        <div class="zelle"><x-uhr zeit="3:00" groesse="84"></x-uhr><b>R</b></div>
+        <div class="zelle"><x-uhr zeit="3:30" groesse="84"></x-uhr><b>T</b></div>
+        <div class="zelle"><x-uhr zeit="6:15" groesse="84"></x-uhr><b>U</b></div>
       </div>
       <div class="zeile">Unser Beweis: <span class="antwort kurz" data-l="T"></span></div>
     </div>

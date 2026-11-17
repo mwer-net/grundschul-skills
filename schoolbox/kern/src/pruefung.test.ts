@@ -79,6 +79,8 @@ describe('pruefung.js (mit blatt.py)', () => {
 					'ausgeblendet',
 					// Zahlenraum (207) prüft „pruefung.js: was die Fassung selbst so setzt“.
 					'zahlenraum',
+					// Die Dichte (213) prüft „pruefung.js: Arbeitsseite gefüllt wie im Schulbuch“.
+					'inhalt-wenig',
 				].includes(c),
 		);
 		assert.deepEqual(fehlt, [], 'jede Regel kommt in den Testdaten vor');
@@ -451,5 +453,53 @@ describe('pruefung.js: was die Fassung selbst so setzt (207)', { skip: browserSk
 		} finally {
 			await rm(tmp, { recursive: true, force: true });
 		}
+	});
+});
+
+describe('pruefung.js: Arbeitsseite gefüllt wie im Schulbuch (213)', { skip: browserSkip() }, () => {
+	const aufgabe = (nr: number, items: number) =>
+		`<div class="aufgabe"><span class="nr">${nr}</span><div class="anw"><span class="text">Rechne.</span></div>` +
+		`<div class="koerper"><div class="reihe" style="--spalten:3">${'<div class="zelle links"><div class="zeile">3 + 4 = <span class="antwort" data-l="7"></span></div></div>'.repeat(items)}</div></div></div>`;
+	const blatt = (body: string, seite: string, aufgaben: string) =>
+		[
+			'<!doctype html><html lang="de"><head><meta charset="utf-8"><title>213</title>',
+			'<link rel="stylesheet" href="blatt.css"><script src="abbildungen.js"></script></head>',
+			`<body class="kl2 farbe"${body}>`,
+			`<section class="seite"${seite}><div class="kopf"><div class="titel"><h1>Plus</h1></div></div>${aufgaben}</section>`,
+			'</body></html>',
+		].join('\n');
+	const WENIG = [1, 2, 3].map((nr) => aufgabe(nr, 3)).join('');
+	const melde = async (html: string) => {
+		const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-213-'));
+		try {
+			const datei = path.join(tmp, 'blatt.html');
+			await writeFile(datei, html);
+			return await pruefe(datei);
+		} finally {
+			await rm(tmp, { recursive: true, force: true });
+		}
+	};
+	const stufe = (meldungen: Meldung[], code: string) => meldungen.find((m) => m.code === code)?.stufe;
+
+	it('drei Aufgaben mit neun Teilaufgaben: „inhalt-wenig“ und „platz-frei“ als WARNUNG', async () => {
+		const meldungen = await melde(blatt(' data-satz="2"', '', WENIG));
+		assert.equal(stufe(meldungen, 'inhalt-wenig'), 'WARNUNG');
+		assert.equal(stufe(meldungen, 'platz-frei'), 'WARNUNG');
+	});
+
+	it('data-dicht-ok an der Seite nimmt sie aus', async () => {
+		const meldungen = await melde(blatt(' data-satz="2"', ' data-dicht-ok', WENIG));
+		assert.equal(stufe(meldungen, 'inhalt-wenig'), undefined);
+		assert.equal(stufe(meldungen, 'platz-frei'), 'HINWEIS');
+	});
+
+	it('ohne data-satz bleibt die Prüfung, wie sie war', async () => {
+		assert.equal(stufe(await melde(blatt('', '', WENIG)), 'inhalt-wenig'), undefined);
+	});
+
+	it('vier Aufgaben und zwölf Teilaufgaben auf halb leerer Seite: „platz-frei“ meldet, „inhalt-wenig“ nicht doppelt', async () => {
+		const meldungen = await melde(blatt(' data-satz="2"', '', [1, 2, 3, 4].map((nr) => aufgabe(nr, 3)).join('')));
+		assert.ok(meldungen.some((m) => m.code === 'platz-frei' && m.stufe === 'WARNUNG'));
+		assert.equal(stufe(meldungen, 'inhalt-wenig'), undefined);
 	});
 });

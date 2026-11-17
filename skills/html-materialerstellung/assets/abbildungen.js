@@ -9,6 +9,10 @@
   const loesungSichtbar = (el) => document.body.classList.contains("loesung") || !!el.closest(".beispiel");
   const istSw = () => !document.body.classList.contains("farbe");
   const klasse = () => +((document.body.className.match(/kl(\d)/) || [0, 2])[1]);
+  /** Neues Material (`data-satz="2"`, blatt.css): gesetzt wie ein Schulbuch. Ohne die Angabe zeichnet alles wie bisher. */
+  const satz2 = () => document.body.dataset.satz === "2";
+  /** Kästchen im Gitter: wie im Rechenheft, in Klasse 1 etwas größer; ältere Blätter 1 cm bis Klasse 2. */
+  const gitterKaestchen = () => (satz2() ? (klasse() <= 1 ? 0.7 : 0.5) : klasse() <= 2 ? 1 : 0.5);
   const num = (el, a, d) => (el.hasAttribute(a) && el.getAttribute(a) !== "" ? parseFloat(el.getAttribute(a)) : d);
   const attr = (el, a, d) => (el.hasAttribute(a) && el.getAttribute(a) !== "" ? el.getAttribute(a) : d);
   const svg = (w, h, inner, px) =>
@@ -1044,7 +1048,7 @@
   function gitter(el) {
     const art = attr(el, "art", "karo");
     const spalten = num(el, "spalten", 10), zeilen = num(el, "zeilen", 8);
-    const k = cm(num(el, "kaestchen", klasse() <= 2 ? 1 : 0.5));
+    const k = cm(num(el, "kaestchen", gitterKaestchen()));
     const figur = raster(el, "figur");
     const linienRoh = attr(el, "linien", "");
     const aufgabe = attr(el, "aufgabe", "keine");
@@ -4410,7 +4414,8 @@
     if (k.contains("a3-hoch")) return { b: 1003, h: 1340 };
     return { b: 620, h: 870 };
   };
-  const spielSchrift = () => parseFloat(getComputedStyle(document.body).getPropertyValue("--fs")) || 20;
+  // --fs-schau (blatt.css, Satz 2): Spiele liegen ausgeschnitten auf dem Tisch und behalten das große Maß.
+  const spielSchrift = () => { const stil = getComputedStyle(document.body); return parseFloat(stil.getPropertyValue("--fs-schau")) || parseFloat(stil.getPropertyValue("--fs")) || 20; };
   /**
    * Passt der Text umbrochen in die Fläche? Mit der mittleren Zeichenbreite, wie die anderen Platzrechnungen.
    * Ein Leerzeichen steht nur zwischen zwei Wörtern einer Zeile; ein Wort allein bricht nicht um.

@@ -15,6 +15,7 @@ Vor dem ersten Material steht der Plan der ganzen Geschichte:
 - **Wer dahintersteckt:** Hinter dem Problem steht jemand mit einem freundlichen Grund (die Elster sammelt Glänzendes für ihr Nest, der Uhrmacher wollte einmal ausschlafen). Die Kinder kennen ihn bis zum letzten Kapitel nicht. Jedes Kapitel bringt eine Spur näher, und in jedem Szenenbild ist diese Spur zu entdecken (eine Feder, ein Abdruck, ein offenes Fenster). Welche Spur das ist, steht in den Hinweisen für die Lehrkraft.
 - **Die Kinder gehören dazu:** Sie sind Detektive, Forscherinnen oder Lehrlinge der Werkstatt, mit einem Namen für die Gruppe, einem Ausweis oder Pass und einem kurzen Ritual zu Beginn jeder Stunde (Ausweis zeigen, Losung sagen).
 - **Je Kapitel eine eigene Idee:** Auf jedem Niveau steht mindestens eine Aufgabe, die es nur in dieser Geschichte gibt und die die Handlung voranbringt: Zeugen befragen und ihre Aussagen ordnen, eine Geheimschrift entschlüsseln, den Bauplan einer Maschine ergänzen, ein Phantombild nach Beschreibung zeichnen, eine eigene Spur für ein anderes Kind legen. Eine übliche Aufgabe mit dem Namen der Figur im Satz zählt nicht. Kein Kapitel wiederholt die Idee eines anderen. Die übrigen Aufgaben üben, wie es das Ziel verlangt.
+- **Die Aufgaben der ganzen Reihe:** Vor dem ersten Blatt steht je Stunde fest, was die Kinder tun: die Handlungsform mit Material (falten, legen, bauen, messen, spielen), die Aufgabenformate des Blatts und das neue Fachwort. Über die Reihe gilt: Ein Aufgabenformat kommt höchstens zweimal vor, beim zweiten Mal mit erkennbar höherem Anspruch. Dieselbe Figur, dasselbe Bild und dieselben Zahlen kommen nie zweimal vor, auch nicht auf Stationskarte, Folie oder Spiel. Jede Stunde hat eine Handlungsform; keine Stunde besteht nur aus Ankreuzen und Einzeichnen. Das Fachwort wird in der Stunde eingeführt, in der es zuerst gebraucht wird, und heißt danach überall gleich. Die Lernzielkontrolle nutzt die Formate der Reihe mit neuen Items. Was die Klasse können soll, steht im Bildungsplan (vor dem Plan nachschlagen); wie das Thema aufgebaut wird, im Fach-Skill.
 - **Die Auflösung:** Das letzte Kapitel löst alles auf, freundlich und ohne Schuldige, die bloßgestellt werden. Es ist zugleich die Lernzielkontrolle („Prüfung der Detektive“) und endet mit einer Urkunde.
 
 Die Rätselkette vor dem Bauen einmal durchrechnen: Ergeben die Stücke wirklich das Lösungswort? Kommt jedes Stück genau einmal vor?
@@ -56,13 +57,15 @@ Die Lösung jeder Seite entsteht wie immer mit; die Lösung des Beweis-Rätsels 
 2. Das gemeinsame Aussehen (Thema) und die Figuren-Beschreibungen festlegen.
 3. Alle Kapitel-Texte der Geschichte schreiben, dann erst die Szenenbilder erzeugen, mit denselben Figuren-Referenzen in jeder Szene; jedes Bild gegen seinen Text prüfen.
 4. Dokument für Dokument bauen, prüfen und ansehen. Erst wenn eines ohne Fehler ist, kommt das nächste.
-5. Zum Schluss alle Dokumente gegeneinander lesen: Stimmen Namen, Kapitelzahlen, Seitenverweise, die Stücke der Rätselkette, das Lösungswort? Sieht jede Figur überall gleich aus?
+5. Zum Schluss alle Dokumente gegeneinander lesen: Stimmen Namen, Kapitelzahlen, Seitenverweise, die Stücke der Rätselkette, das Lösungswort? Sieht jede Figur überall gleich aus? Dann die Aufgaben aller Dokumente nebeneinander auflisten (Format, Figur oder Zahlen): Kommt ein Format öfter als zweimal vor, eine Figur doppelt? Solche Aufgaben ersetzen, nicht umbenennen.
 
 ## 5. Prüffragen
 
 - [ ] Die Geschichte hat Anfang, Spannung und Auflösung; jedes Kapitel bringt sie voran
 - [ ] Jedes Rätsel ist das Ich-kann-Ziel seiner Stunde, nicht bloß Verpackung
 - [ ] Jedes Kapitel hat eine Aufgabe, die es nur in dieser Geschichte gibt; keine Idee kommt zweimal vor
+- [ ] Kein Aufgabenformat öfter als zweimal, keine Figur und keine Zahlen doppelt; jede Stunde mit Handlungsform und Material
+- [ ] Fachwörter ab der ersten Stunde, in der sie gebraucht werden, überall gleich; Anweisungen in kurzen Sätzen in der Reihenfolge des Tuns
 - [ ] Jedes Szenenbild zeigt die Spur seines Kapitels; wer dahintersteckt, erfährt man erst am Ende
 - [ ] Alles, was der Auftrag abwählt (Niveaus, Selbsteinschätzung, Sternchen, Symbole, Bestandteile), fehlt wirklich, auch auf Deckblatt, Folien und in den Hinweisen
 - [ ] Die Rätselkette geht auf; die Sammelkarte hat für jedes Stück einen Platz

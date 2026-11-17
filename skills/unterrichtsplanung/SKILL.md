@@ -42,7 +42,7 @@ Grundsätze:
 - Tabelle: Stunde | Thema | Ich-kann-Ziel | Kreisinput | Lernaufgaben ● / ●● / ●●● | Material.
 - Am Ende der Reihe eine Lernlandkarte bzw. Selbsteinschätzung mit Wachstumsstufen (siehe `lernzielkontrolle`).
 - Endet die Reihe in Kl. 3/4 mit einer Klassenarbeit: Lernlandkarte zu Beginn, „Fit für die Arbeit" mit Lernaufgaben ● / ●● / ●●● zum gezielten Üben, Probearbeit 1–2 Wochen vorher, Termin nach den BW-Regeln (nicht montags, nicht nach Ferien oder Feiertag), Rückgabestunde mit Kommentar vor der Note und Berichtigung als Lernaufgabe (`klassenarbeit`).
-- Bezug zum Bildungsplan BW (Kompetenzbereich, Leitidee bzw. Perspektive) angeben.
+- Bezug zum Bildungsplan BW angeben: Kompetenzbereich, Leitidee bzw. Perspektive und die Teilkompetenzen im Wortlaut mit Fundstelle. Sie werden vor der Planung nachgeschlagen (`grundschul-didaktik`, „Bildungsplan zuerst nachschlagen“), nicht aus dem Gedächtnis genannt.
 - Materialliste am Ende mit Verweis, welcher Skill es erzeugt (`arbeitsblatt`, `lernspiel`, `praesentation` …).
 
 ## Unterrichtsentwurf (Lehrprobe)

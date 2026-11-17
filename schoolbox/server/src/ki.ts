@@ -13,12 +13,14 @@ import {
 	bausteinVerstoesse,
 	dokumentDir,
 	formatBefund,
+	hatSatz,
 	ID_MUSTER,
 	istEinElement,
 	leseMeta,
 	mappenDir,
 	neueFunde,
 	quelleVon,
+	satzBefund,
 	schreibeAtomar,
 	WURZEL,
 	zerlege,
@@ -1365,14 +1367,23 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 		}
 	};
 
-	/** Ein geändertes Format übernimmt `schreibeQuelle` beim Annehmen; ein unbekanntes ist ein Fehler wie jeder andere (131). */
-	const mitFormat = (html: string, bericht: Pruefbericht): Pruefbericht => {
-		const befund = formatBefund(html);
-		return befund
+	/**
+	 * Ein geändertes Format übernimmt `schreibeQuelle` beim Annehmen; ein unbekanntes ist ein Fehler wie jeder andere (131).
+	 * Ebenso der Satz: Ein Blatt mit `data-satz="2"` behält die Angabe, ein älteres bekommt sie nicht (212).
+	 */
+	const kopfBefunde = (quelle: string, html: string): string[] =>
+		[formatBefund(html), hatSatz(quelle) ? satzBefund(html) : null].filter((t): t is string => t !== null);
+
+	const mitFormat = (quelle: string, html: string, bericht: Pruefbericht): Pruefbericht => {
+		const befunde = kopfBefunde(quelle, html);
+		return befunde.length
 			? {
 					...bericht,
-					fehler: bericht.fehler + 1,
-					meldungen: [...bericht.meldungen, { stufe: 'FEHLER', seite: 1, text: befund }],
+					fehler: bericht.fehler + befunde.length,
+					meldungen: [
+						...bericht.meldungen,
+						...befunde.map((text): Meldung => ({ stufe: 'FEHLER', seite: 1, text })),
+					],
 				}
 			: bericht;
 	};
@@ -1433,11 +1444,9 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			const eingesetzt = ausschnitt.einsetzen(neu);
 			const ganz = bilder ? await bilder.einsetzen(eingesetzt) : eingesetzt;
 			const gebaut = await ansicht(dir, ganz, path.join(arbeit, ANSICHT_ORDNER));
-			const format = formatBefund(ganz);
+			const kopf = kopfBefunde(quelle, ganz).map((t) => `FEHLER: ${t}`);
 			const auftrag = bausteinVerstoesse(ganz, bausteine ?? {}).map((t) => `FEHLER: ${t}`);
-			return {
-				text: [ansichtText(gebaut), format ? `FEHLER: ${format}` : null, ...auftrag].filter(Boolean).join('\n'),
-			};
+			return { text: [ansichtText(gebaut), ...kopf, ...auftrag].join('\n') };
 		};
 
 	/** Neue Bilder gibt es nur beim Bau eines neuen Blatts: Der freigegebene Plan nennt sie. */
@@ -1533,7 +1542,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			// Die Sperre zuerst: Die Blattprüfung öffnet das Ergebnis im Browser, und was hier hängen bleibt, soll dort nie laufen.
 			const blattPruefung = async (html: string) => {
 				const ganz = await mitBildern(ausschnitt.einsetzen(html));
-				return mitBausteinen(ganz, mitFormat(ganz, await pruefeSicher(dir, ganz)), w.bausteine);
+				return mitBausteinen(ganz, mitFormat(quelle, ganz, await pruefeSicher(dir, ganz)), w.bausteine);
 			};
 			let neu = erstesErgebnis;
 			let funde = sperrFunde(quelle, ausschnitt, neu);

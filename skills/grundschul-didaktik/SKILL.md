@@ -20,6 +20,7 @@ Jedes Material folgt zwei Konzepten. Drei Bausteine sind wählbar und werden in 
 Alle Materialien sind für Grundschulen in Baden-Württemberg; das Bundesland wird nicht gefragt. Quellen: `references/quellen.md`.
 
 - **Bildungsplan 2016**, Deutsch und Mathematik neu gefasst auf Grundlage der KMK-Bildungsstandards 2022 (seit 2024/25 aufsteigend), Englisch/Französisch überarbeitet (seit 2025/26 aufsteigend). Kompetenzen gelten für die Klassen 1/2 und 3/4.
+- **Bildungsplan zuerst nachschlagen.** Vor jedem neuen Material und vor jeder Reihe: mit der Websuche den Bildungsplan Baden-Württemberg für Fach, Klassenstufe (1/2 oder 3/4) und Thema öffnen (bildungsplaene-bw.de, Einstieg und Aufbau der Adressen in `references/quellen.md`) und die Teilkompetenzen zum Thema im Wortlaut lesen, auch die der anderen Stufe: Sie zeigt, was die Klasse noch nicht oder schon können soll. Der Plan nennt die Teilkompetenzen wörtlich mit Fundstelle; jede Aufgabe gehört zu einer davon, und nichts verlangt, was erst für die nächste Stufe vorgesehen ist. Die Skills nennen bewusst keine einzelnen Teilkompetenzen, weil der Bildungsplan sich ändert. Geht die Websuche nicht, steht das im Plan unter den Annahmen.
 - Fächer: Deutsch, Mathematik, Sachunterricht, Englisch bzw. Französisch ab Kl. 3 (an der Rheinschiene Französisch ab Kl. 1), Kunst/Werken, Musik.
 - Rechtschreibung nach **Grundwortschatz BW** und **Rechtschreibrahmen**; Schrift: Druckschrift, danach Lateinische oder Vereinfachte Ausgangsschrift nach Schulbeschluss (`fach-deutsch`).
 - Leistung: Kl. 1/2 Schulbericht und unbenotete Lernzielkontrollen (`lernzielkontrolle`), Noten ab Ende Kl. 2; Klassenarbeiten in Kl. 3/4 nach der Grundschul-Leistungsbeurteilungsverordnung (`klassenarbeit`).
@@ -52,36 +53,36 @@ Ist nur Kleines unklar, triff eine sinnvolle Annahme und nenne sie. Bei „mach 
 
 ## 2. Verbindliche Leitlinien
 
-1. **Kompetenzorientierung:** Jedes Material benennt sein Lernziel als beobachtbare Handlung ("Die Kinder können Zahlen bis 20 im Zwanzigerfeld darstellen."). Orientierung am Bildungsplan Baden-Württemberg (Deutsch und Mathematik auf Grundlage der KMK-Bildungsstandards 2022).
+1. **Kompetenzorientierung:** Jedes Material benennt sein Lernziel als beobachtbare Handlung ("Die Kinder können Zahlen bis 20 im Zwanzigerfeld darstellen."). Das Ziel folgt aus den Teilkompetenzen des Bildungsplans Baden-Württemberg, die vor dem Plan nachgeschlagen werden (oben, „Bildungsplan zuerst nachschlagen“).
 2. **Ein Ziel pro Material:** Ein Arbeitsblatt, ein Spiel, ein Plakat übt genau eine Sache. Lieber zwei schlanke Blätter als ein überladenes. Nennt die Anfrage mehrere Themen, prüfen: Sind es Schritte zu einem Ziel (bündeln, in die Stellenwerttafel schreiben, zerlegen → „Ich kann Zahlen in Zehner und Einer zerlegen."), ein gemeinsames Ich-kann-Ziel formulieren und jedem Thema höchstens eine Aufgabe geben; sind es verschiedene Ziele, in den Entwürfen zwei Blätter vorschlagen.
 3. **Kognitive Belastung gering halten (Cognitive Load):** Nur Bilder, die zur Aufgabe gehören. Dekorative Bilder ohne Bezug ("seductive details") lenken nachweislich ab. Cliparts als Füllmaterial nie.
-4. **Handeln – Bild – Symbol (EIS-Prinzip, Bruner) plus Sprache:** Inhalte möglichst enaktiv vorbereiten (Material, Handlung), ikonisch darstellen und dann symbolisch notieren. Darstellungswechsel ausdrücklich verlangen ("Lege – zeichne – schreibe").
-5. **Differenzierung ist Standard, nicht Extra:** Mit Churer Modell drei Niveaus zur Selbstwahl; ohne Churer Modell Aufgaben steigend im Anspruch, mit Tipps und offenen Aufgaben, ggf. Sternchenaufgabe (siehe `references/kernkonzepte.md` und `references/differenzierung.md`). Gemeinsamer Lerngegenstand für alle, unterschiedliche Zugänge.
+4. **Handeln – Bild – Symbol (EIS-Prinzip, Bruner) plus Sprache:** Inhalte möglichst enaktiv vorbereiten (Material, Handlung), ikonisch darstellen und dann symbolisch notieren. Darstellungswechsel ausdrücklich verlangen ("Lege – zeichne – schreibe"). Jede Stunde einer Reihe nennt eine Handlungsform und das Material dazu; Aufgaben mit Material, zu zweit und fürs Heft gehören auf jedes Blatt, nicht nur in die Sternchenaufgabe.
+5. **Differenzierung ist Standard, nicht Extra:** Mit Churer Modell drei Niveaus zur Selbstwahl; ohne Churer Modell Aufgaben steigend im Anspruch, mit Tipps und offenen Aufgaben, ggf. Sternchenaufgabe (siehe `references/kernkonzepte.md` und `references/differenzierung.md`). Gemeinsamer Lerngegenstand für alle, unterschiedliche Zugänge. Jedes Blatt mischt die Anforderungsbereiche I–III und bleibt in den Grenzen der Klasse (`references/differenzierung.md`, „Anforderungsbereiche auf jedem Arbeitsblatt“).
 6. **Sprachsensibel:** Kurze Sätze, bekannte Wörter, Wortspeicher und Satzanfänge als Hilfe. Siehe `references/sprachsensibel.md`.
-7. **Selbstständigkeit:** Klare, gleichbleibende Arbeitsanweisungen, mit den Symbolen der Klasse, wo sie eingeführt sind; Selbstkontrolle wo möglich (Lösungskarte, Kontrollzahl, Bildpuzzle).
-8. **Altersgerecht ansprechend (Emotional Design):** Das schön machen, was ohnehin da ist – nicht etwas dazustellen. Runde Formen, Aufgabennummern in Kreisen, Farbe als Akzent, als Leitfigur immer Willi oder Wilma Waschbär mit Funktion (zeigt das Beispiel, gibt Tipps), kindgerechte Überschriftenschrift, Geschichten-Rahmen ("Hilf Willi Waschbär …"; über eine ganze Reihe mit Szenenkarten). Das verbessert nachweislich Motivation und Behalten. Bilder nur, wenn das Kind sie zum Lösen braucht – unnütze Grafiken lenken ab. Höchstens eine Figur pro Seite; jedes KI-Bild wird in voller Auflösung auf Fehler geprüft. Details und Prüffragen: `references/kindgerecht-gestalten.md`.
+7. **Selbstständigkeit:** Klare, gleichbleibende Arbeitsanweisungen (kurze Sätze, ein Verb je Satz, in der Reihenfolge des Tuns, Fachwort wie im Wortspeicher; `references/druck-und-platz.md`, „Aufgaben auf einen Blick verständlich“), mit den Symbolen der Klasse, wo sie eingeführt sind; Selbstkontrolle wo möglich (Lösungskarte, Kontrollzahl, Bildpuzzle).
+8. **Altersgerecht ansprechend (Emotional Design):** Das schön machen, was ohnehin da ist – nicht etwas dazustellen. Runde Formen, Aufgabennummern in Kreisen, Farbe als Akzent, als Leitfigur immer Willi oder Wilma Waschbär mit Funktion (zeigt das Beispiel, gibt Tipps), Schmuckschrift auf Schauseiten, Geschichten-Rahmen ("Hilf Willi Waschbär …"; über eine ganze Reihe mit Szenenkarten). Das verbessert nachweislich Motivation und Behalten. Bilder nur, wenn das Kind sie zum Lösen braucht – unnütze Grafiken lenken ab. Höchstens eine Figur pro Seite; jedes KI-Bild wird in voller Auflösung auf Fehler geprüft. Details und Prüffragen: `references/kindgerecht-gestalten.md`.
 9. **Fachlich korrekt:** Rechtschreibung nach amtlichem Regelwerk, mathematisch saubere Sprache ("Ergebnis", nicht "Lösungszahl"), sachlich richtige Abbildungen (Tierteile, Pflanzen, Uhrzeiten).
 10. **Vielfalt und Inklusion:** Namen, Familien, Hautfarben und Lebenswelten divers und unaufgeregt darstellen. Keine Klischees.
-11. **Farbe und kompaktes Layout:** Material wird in Farbe angelegt (Akzent an Nummern, Überschrift, Figur und Bildern, keine Farbflächen hinter Aufgaben); s/w ist eine Ansicht davon (`references/gestaltung.md`, Abschnitt „Farbe“). Die Seite nutzt ihren Platz für Aufgaben statt für Kästen und Innenabstände. Details: `references/druck-und-platz.md`.
+11. **Farbe und kompaktes Layout:** Material wird in Farbe angelegt (Akzent an Nummern, Überschrift, Figur und Bildern, keine Farbflächen hinter Aufgaben); s/w ist eine Ansicht davon (`references/gestaltung.md`, Abschnitt „Farbe“). Die Seite nutzt ihren Platz für Aufgaben statt für Kästen und Innenabstände und ist gefüllt wie eine Schulbuchseite. Details: `references/druck-und-platz.md`.
 12. **Datenschutz:** Material und Gespräch enthalten keine personenbezogenen Daten von Kindern: keine echten Namen aus der Klasse, keine Fotos von Kindern, keine Förderbedarfe oder Diagnosen einzelner Kinder. Nennt die Lehrkraft solche Daten, nicht übernehmen, in einem Satz freundlich erklären und eine gleichwertige Lösung vorschlagen: Fantasienamen (divers gewählt, Leitlinie 10) oder leere Felder, in die die Kinder ihre Namen selbst schreiben. Angaben zur Lerngruppe ohne Namen sind erwünscht („zwei Kinder mit LRS“). Hintergrund: `references/quellen.md`, Abschnitt Datenschutz.
 
 ## 3. Gestaltung – Kurzfassung
 
 Ausführlich in `references/gestaltung.md`. Die wichtigsten Werte:
 
-| Klasse | Schriftgröße Fließtext | Zeilenabstand | Textmenge pro Aufgabe |
-|---|---|---|---|
-| 1 (Anfang) | 20–28 pt | 1,5–2 | Ein Satz oder nur Symbol + Wort |
-| 1 (Ende) – 2 | 16–20 pt | 1,5 | 1–2 kurze Sätze |
-| 3 | 14–16 pt | 1,5 | 2–3 Sätze |
-| 4 | 12–14 pt | 1,3–1,5 | bis 4 Sätze |
+| Klasse | Textmenge pro Aufgabe |
+|---|---|
+| 1 | Ein Satz oder nur Symbol + Wort |
+| 2 | 1–2 kurze Sätze |
+| 3 | 2–3 Sätze |
+| 4 | bis 4 Sätze |
 
-`blatt.css` setzt das um: Kl. 1 28 px (21 pt), Kl. 2 24 px (18 pt), Kl. 3 20 px (15 pt), Kl. 4 18 px (13,5 pt). Blätter mit Zeitziel (`data-zeit`, Menge nach Arbeitszeit) setzen ab Kl. 2 am unteren Rand der Spanne: 21 px (16 pt), 19 px (14 pt), 16 px (12 pt). Antwortlinien und Kästchen bleiben dabei so groß wie bisher.
+Neues Material ist gesetzt wie ein Schulbuch der Klasse: Lesetext in Buchgröße, vier bis sechs Aufgaben je Seite, viele Items in Reihen. Schriftgröße, Abstand und Zeilenhöhe je Klasse setzt `blatt.css` (Tabelle in `references/druck-und-platz.md`, „Schrift und Abstand je Klasse“). Klein wird nur der Lesetext: Antwortlinien, Lineatur und Rechenkästchen behalten das Maß für Kinderhände, Schauseiten (Karten, Spiele, Plakat, Folien) ihre große Schrift.
 
-- Fließtext: serifenlose, kindgerechte Schrift mit eindeutigen Formen (I/l unterscheidbar, in Klasse 1/2 einstöckiges a und g). Bevorzugt die Druckschrift der Klasse (Lehrwerk), sonst Andika. Überschriften: eine runde, freundliche Display-Schrift (z. B. Fredoka, Baloo 2).
+- Fließtext: serifenlose, kindgerechte Schrift mit eindeutigen Formen (I/l unterscheidbar, in Klasse 1/2 einstöckiges a und g). Bevorzugt die Druckschrift der Klasse (Lehrwerk), sonst Andika mit l mit Bogen. Überschriften und Nummern auf Arbeitsseiten in derselben Schrift, fett. Die runde Schmuckschrift (Fredoka) nur auf Deckblatt, Szenenkarte, Plakat und als Schmucktext.
 - Eine Palette als Akzent an Nummernkreisen, Überschrift, Linien, Figur und Bildern; Text schwarz; keine Farbflächen hinter Aufgaben. Aufgaben ohne Kasten mit hängender Nummer, getrennt durch Abstand. Niveaus (falls gewählt) nur mit Punkten kennzeichnen (`references/druck-und-platz.md`).
 - Linksbündiger Flattersatz, keine Silbentrennung, Zeilenumbruch nach Sinneinheiten.
-- Seitenränder ≥ 1,5 cm, ausreichende Schreibflächen; Lineatur passend zur Klassenstufe. Platz geht an Übung, nicht an Rahmen: schlanker Kopf und Fuß. Die Menge folgt dem Zeitziel (Standard 20 Minuten Arbeit je Kind und Niveau), nicht der Seitenzahl (`references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“).
+- Seitenränder ≥ 1,5 cm, ausreichende Schreibflächen; Lineatur passend zur Klassenstufe. Platz geht an Übung, nicht an Rahmen: Kopf in einer Zeile, schlanker Fuß, kurze Anweisungen in normaler Stärke. Die Menge folgt dem Zeitziel (Standard 20 Minuten Arbeit je Kind und Niveau), nicht der Seitenzahl (`references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“).
 - Klare Aufgaben mit Nummer; Arbeitsanweisungs-Symbole nur auf Wunsch oder bei eingeführtem Symbolset (`references/gestaltung.md`).
 - Kontrast mindestens 4,5:1; Farbe als einzige Information: siehe `references/gestaltung.md`, Abschnitt „Farbe“.
 

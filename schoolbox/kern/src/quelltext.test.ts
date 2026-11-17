@@ -33,6 +33,8 @@ const BEISPIELE = readdirSync(ASSETS)
 	.filter((n) => n.endsWith('.html'))
 	.map((name) => ({ name, quelle: readFileSync(path.join(ASSETS, name), 'utf8') }));
 
+const ARBEITSBLATT = readFileSync(path.join(__dirname, 'testdaten', 'arbeitsblatt-struktur.html'), 'utf8');
+
 const mitKlasse = (z: Zerlegung, klasse: string) => z.knoten.filter((k) => klassenVon(k).includes(klasse));
 
 /** Ein einfacher Zufall mit Startwert, damit ein Fehlschlag sich wiederholen lässt. */
@@ -143,7 +145,7 @@ describe('Änderungen', () => {
 	});
 
 	it('löscht eine Aufgabe samt ihrer Zeilen und fügt sie an anderer Stelle wieder ein', () => {
-		const { quelle } = BEISPIELE.find((b) => b.name === 'vorlage-arbeitsblatt.html') ?? { quelle: '' };
+		const quelle = ARBEITSBLATT;
 		const z = zerlege(quelle);
 		const [a1, , a3] = mitKlasse(z, 'aufgabe');
 		assert.ok(a1 && a3);
@@ -159,7 +161,7 @@ describe('Änderungen', () => {
 	});
 
 	it('dupliziert ein Item mit seiner Lösung auf eine eigene Zeile', () => {
-		const { quelle } = BEISPIELE.find((b) => b.name === 'vorlage-arbeitsblatt.html') ?? { quelle: '' };
+		const quelle = ARBEITSBLATT;
 		const z = zerlege(quelle);
 		const zelle = mitKlasse(z, 'zelle')[1];
 		assert.ok(zelle);

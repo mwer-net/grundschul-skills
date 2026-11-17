@@ -29,7 +29,7 @@ Vor jedem schriftlichen Minus zusätzlich: Welches Subtraktionsverfahren lernt d
 | Elemente für Größen | `x-geld`, `x-uhr` | `x-geld`, `x-uhr`, `x-strecke`, `x-skala` (Lineal), `x-kalender`, `x-zeitspanne` | `x-skala` (Waage, Maßband), `x-zeitspanne` | `x-skala` (Messbecher), `x-zeitspanne` |
 | Daten, Häufigkeit, Wahrscheinlichkeit | Strichlisten | Tabellen, Diagramme lesen | Diagramme erstellen | Wahrscheinlichkeit (sicher/möglich/unmöglich) |
 
-Immer mit dem Bildungsplan (Kl. 1/2 und 3/4) und dem Lehrwerk abgleichen; die Tabelle ist eine Orientierung.
+Die Tabelle ist eine Orientierung. Verbindlich ist der Bildungsplan: vor jedem neuen Material und jeder Reihe die Teilkompetenzen zum Thema nachschlagen (`grundschul-didaktik`, „Rahmen: Baden-Württemberg“) und mit dem Lehrwerk abgleichen.
 
 Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizieren, Argumentieren, Darstellen, Modellieren, technische Grundfertigkeiten. Mindestens eine Aufgabe pro Blatt mit "Erkläre …", "Was fällt dir auf?" oder "Finde …".
 
@@ -74,6 +74,28 @@ Substanzielle Aufgabenformate (Wittmann) tragen Übung und Entdecken zugleich: `
 - Diagramm: Skala ab 0 und gleichmäßig (`x-diagramm`).
 - Glücksrad: immer mit Legende, sonst sind die Felder in s/w nicht zu unterscheiden (`x-gluecksrad`).
 
+## Geometrie (Raum und Form): erst handeln, dann Papier
+
+Geometrie lernen Kinder mit den Händen. Jede Geometrie-Stunde nennt eine Handlungsform und das Material dazu; das Blatt hält fest, was die Kinder getan haben, und übt danach weiter. Die Folge ist immer: herstellen (falten, legen, bauen, spannen) → erkennen und prüfen → mit dem Fachwort beschreiben → zeichnen. Eine Reihe, in der nur angekreuzt und eingezeichnet wird, verfehlt den Bildungsplan.
+
+### Achsensymmetrie
+
+Was die Klassenstufe können soll, steht im Bildungsplan und wird vor dem Plan nachgeschlagen (`grundschul-didaktik`, „Rahmen: Baden-Württemberg“); hier steht nur, wie das Thema aufgebaut wird.
+
+| Stufe | Handlungsform und Material | Auf dem Blatt |
+|---|---|---|
+| 1 Herstellen | Faltschnitt (Papier, Schere), Klecksbild (Farbe), Legen an einer Achse (Plättchen, Steckwürfel, Muggelsteine), Spannen auf dem Geobrett, Drucken | festhalten: aufkleben, abzeichnen, „Das habe ich gefaltet“ |
+| 2 Erkennen und prüfen | Spiegel an die Figur stellen, Figur ausschneiden und falten; Dinge aus der Umwelt (Schmetterling, Blatt, Buchstaben, Verkehrszeichen) | symmetrisch oder nicht, Achse zeigen oder einzeichnen |
+| 3 Ergänzen | erst legen (ein Kind legt, das andere ergänzt, Kontrolle mit dem Spiegel), dann Kästchen ausmalen, dann Linien zeichnen | `x-gitter aufgabe="spiegeln"`; zuerst berührt die Figur die Achse, später hat sie Abstand |
+| 4 Beschreiben und begründen | „Die Figur ist symmetrisch, weil …“ | im Anfangsunterricht mündlich oder ein Satz mit Satzanfang |
+
+- **Vom Leichten zum Schweren:** eine Achse vor mehreren, senkrecht und waagerecht vor schräg, Kästchen vor Linien, Figur an der Achse vor Figur mit Abstand, einmal falten vor zweimal falten, kleine Figuren (je Hälfte höchstens etwa 5 × 6 Kästchen) vor großen. Wie weit die Klasse auf dieser Leiter geht, bestimmen Bildungsplan und Lehrwerk; im Zweifel eine Sprosse tiefer.
+- **Typische Fehler** (für Tipps und „Willi hat sich vertan“): Die Hälfte wird verschoben statt gespiegelt, vor allem wenn die Figur die Achse nicht berührt. Der Abstand zur Achse stimmt nicht (ein Kästchen zu nah oder zu weit). Bei waagerechter Achse wird trotzdem nach rechts gespiegelt. Eine Faltlinie, die keine Spiegelachse ist (Diagonale im Rechteck), wird für eine gehalten.
+- **Wörter:** Faltlinie, dann Spiegelachse (oder Symmetrieachse, wie im Lehrwerk der Klasse), symmetrisch, Spiegelbild. Das Fachwort steht ab dem ersten Blatt im Wortspeicher und in jeder Anweisung gleich. Wörter aus der Geschichte („echt“, „nachgemacht“, „Zwilling“) dürfen dazukommen, ersetzen es aber nie.
+- **Elemente:** `x-gitter aufgabe="spiegeln"` (Kästchen, Linien oder Punkte; die Achse liegt auf einer Gitterlinie, die Lösung wird berechnet), Faltvorlagen und Legekarten als Ausschneidematerial. Ein gedrucktes Punktefeld heißt Punktefeld, nicht Geobrett. Jede Figur kommt in einer Reihe nur einmal vor.
+
+Andere Geometrie-Themen folgen demselben Muster (Körper: bauen und kneten vor dem Benennen; Würfelgebäude: bauen vor dem Bauplan; Muster: legen vor dem Zeichnen). Die Stufen dazu im Plan nennen.
+
 ## Typische Fehlvorstellungen (für Aufgaben und Tipps)
 
 - Zählendes Rechnen (Ergebnis ±1 daneben)
@@ -81,6 +103,7 @@ Substanzielle Aufgabenformate (Wittmann) tragen Übung und Entdecken zugleich: `
 - Übertrag vergessen bei schriftlichen Verfahren
 - "Mal macht immer größer"
 - Uhr: Stunden- und Minutenzeiger vertauscht
+- Symmetrie: verschieben statt spiegeln, falscher Abstand zur Achse (Abschnitt „Geometrie“)
 
 ## Klassenarbeiten
 
@@ -99,6 +122,8 @@ Kl. 1/2 unbenotet (`lernzielkontrolle`), Kl. 3/4 höchstens 6 Arbeiten im Schulj
 - [ ] Zahlenraum eingehalten (auch Zwischenergebnisse!)
 - [ ] Darstellungen strukturiert und wie in der Klasse
 - [ ] Mindestens eine Aufgabe zum Entdecken/Erklären
+- [ ] Teilkompetenzen des Bildungsplans nachgeschlagen und im Plan genannt; nichts verlangt, was erst für die nächste Stufe vorgesehen ist
+- [ ] Geometrie: jede Stunde mit Handlungsform und Material; Fachwort wie im Wortspeicher
 - [ ] Domino/Bingo: kein Ergebnis doppelt
 - [ ] Uhren, Zahlenstrahl, Felder und Mengen berechnet statt generiert (Abbildungen unten)
 - [ ] Jedes Zählwort im Text („die beiden“, „nur ein“, „alle drei“) gegen die Items gezählt, auf die es sich bezieht; jedes Beispiel auf Plakat, Folie und Merkkasten durchgerechnet
@@ -142,14 +167,14 @@ Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abb
 | `<x-urne kugeln="rot: 3; blau: 5">` | Kugeln im Säckchen oder Glas |
 | `<x-wahrscheinlichkeit ereignisse="A: sicher">` | Skala unmöglich, möglich, sicher |
 | `<x-kombinatorik stufen="Waffel Becher / Erdbeer Schoko">` | Möglichkeiten als Baum, Tabelle, Liste |
-| `<x-gitter figur="1 1 / 1 0" aufgabe="spiegeln" achse="senkrecht">` | Spiegeln, Fortsetzen, Vergrößern, Weg, Fläche und Umfang im Gitter |
+| `<x-gitter figur="1 1 / 1 0" aufgabe="spiegeln" achse="senkrecht">` | Spiegeln (erst Kästchen, dann Linien), Fortsetzen, Vergrößern, Weg, Fläche und Umfang im Gitter |
 | `<x-figur form="dreieck" loesung="rechter-winkel">` | Ebene Figur mit Normsymbolen |
 | `<x-tangram umriss="katze">` | Tangram mit Umriss, Bogen zum Ausschneiden |
 | `<x-wuerfelbau bauplan="2 1 / 3 1" fragen="anzahl">` | Würfelgebäude: Schrägbild, Bauplan, Ansichten |
 | `<x-wuerfelnetz netz="3" aufgabe="gegenueber">` | Würfelnetz, Nicht-Netz, Bastelwürfel |
 | `<x-koerper form="pyramide" markiere="ecken">` | Körper im Schrägbild, Kantenmodell |
 
-Zur Leitidee „Raum und Form“: Kl. 1/2 Formen (`x-figur`), Wege und Auslegen (`x-gitter`), Tangram, Ansichten zum Würfelgebäude (`x-wuerfelbau`), Körper benennen (`x-koerper`); Kl. 3/4 Spiegeln, Fortsetzen, Vergrößern, Fläche und Umfang (`x-gitter`), Eigenschaften (`x-figur`), Baupläne (`x-wuerfelbau`), Netze (`x-wuerfelnetz`), Ecken, Kanten, Flächen (`x-koerper`).
+Zur Leitidee „Raum und Form“ (Aufbau im Abschnitt „Geometrie“): Kl. 1/2 Formen (`x-figur`), Wege und Auslegen (`x-gitter`), Tangram, Ansichten zum Würfelgebäude (`x-wuerfelbau`), Körper benennen (`x-koerper`); Kl. 3/4 Spiegeln, Fortsetzen, Vergrößern, Fläche und Umfang (`x-gitter`), Eigenschaften (`x-figur`), Baupläne (`x-wuerfelbau`), Netze (`x-wuerfelnetz`), Ecken, Kanten, Flächen (`x-koerper`).
 
 Zur Leitidee „Daten, Häufigkeit, Wahrscheinlichkeit“: Kl. 1/2 Strichliste, Würfel, Glücksrad; Kl. 3/4 Diagramm, Wahrscheinlichkeit, Möglichkeiten.
 

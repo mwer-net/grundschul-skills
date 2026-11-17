@@ -31,8 +31,8 @@ Die Bausteine (Selbsteinschätzung, Niveaus, Sternchenaufgabe) legt die Start-Ab
 
 ## Schrift
 
-- Schulschrift oder kindgerechte Druckschrift: in Klasse 1/2 einstöckiges "a" und "g" (wie die Kinder schreiben), "I" (groß i) und "l" (klein L) unterscheidbar, deutliche Ober- und Unterlängen. Bewährt: Andika oder die Druckschrift des Lehrwerks der Klasse. Standard im HTML: Andika (eingebettet in `html-materialerstellung/assets/fonts/`) mit Schulziffern: 1 ohne Fuß, offene 4, 7 mit Querstrich. Für Schreibvorlagen in verbundener Schrift liegt die Vereinfachte Ausgangsschrift bei (`x-lineatur schrift="va"`). Eine andere Schulschrift der Klasse als WOFF2/TTF (Lizenz beachten) in `fonts/` legen und per `@font-face` einbinden.
-- Maximal zwei Schriften: eine für Überschriften, eine für alles andere.
+- Schulschrift oder kindgerechte Druckschrift: in Klasse 1/2 einstöckiges "a" und "g" (wie die Kinder schreiben), "I" (groß i) und "l" (klein L) unterscheidbar, deutliche Ober- und Unterlängen. Bewährt: Andika oder die Druckschrift des Lehrwerks der Klasse. Standard im HTML: Andika (eingebettet in `html-materialerstellung/assets/fonts/`) mit Schulziffern (1 ohne Fuß, offene 4, 7 mit Querstrich) und l mit Bogen, damit es sich vom großen I unterscheidet. Für Schreibvorlagen in verbundener Schrift liegt die Vereinfachte Ausgangsschrift bei (`x-lineatur schrift="va"`). Eine andere Schulschrift der Klasse als WOFF2/TTF (Lizenz beachten) in `fonts/` legen und per `@font-face` einbinden.
+- Arbeitsseiten kommen mit einer Schrift aus: Überschriften und Nummern stehen in der fetten Leseschrift, wie im Schulbuch. Eine zweite, runde Schrift (Fredoka) nur als Schmuck auf Deckblatt, Szenenkarte, Plakat und in Schmucktext.
 - Keine Großbuchstaben-Texte, kein Kursivsatz, keine Schmuckschriften für Lesetext. Hervorhebung durch Fettdruck.
 - Größen siehe Tabelle im SKILL.md. Überschriften ca. 1,5-fach.
 - Silbenfärbung oder Silbenbögen nur, wenn die Klasse damit arbeitet (Lehrwerk) – die Forschungslage zur generellen Wirksamkeit ist uneinheitlich.
@@ -51,7 +51,7 @@ Schreibzeilen immer mit `x-lineatur` (Katalog `html-materialerstellung/reference
 
 **Mittelband:** Standard sind graue Linien (`#808080`), weil getönte Flächen beim Kopieren wegfallen. Das getönte Band (`mittelband="getoent"`) nur auf Wunsch der Lehrkraft.
 
-Mathe: Kästchen 1 cm (Kl. 1) bzw. 0,5 cm (ab Kl. 2/3), passend zum Heft der Klasse; Gitter mit Figuren: `x-gitter`.
+Mathe: Kästchen 0,7 cm (Kl. 1) bzw. 0,5 cm (ab Kl. 2), passend zum Rechenheft der Klasse; `x-gitter` setzt das von selbst, ein anderes Maß mit `kaestchen`.
 Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 
 ## Bilder und Illustrationen

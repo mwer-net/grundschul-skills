@@ -36,6 +36,21 @@ export const setzeTitel = (html: string, titel: string): string => {
 	return html.replace(/<head[^>]*>/, (kopf) => `${kopf}\n${neu}`);
 };
 
+/**
+ * Neues Material trägt `data-satz="2"` am `<body>`: `blatt.css` setzt es wie ein Schulbuch (l mit Bogen, kleinere
+ * Schrift, engere Abstände, 5-mm-Kästchen). Blätter ohne die Angabe bleiben, wie sie sind (Entscheidungen 26 und 61).
+ */
+const SATZ = 'data-satz="2"';
+const BODY_TAG = /<body\b[^>]*>/;
+
+export const hatSatz = (html: string): boolean => (BODY_TAG.exec(html)?.[0] ?? '').includes(` ${SATZ}`);
+
+/** Claude schreibt das `<body>` eines neuen Blatts selbst; ohne die Angabe fiele es still auf den alten Satz zurück. */
+export const satzBefund = (html: string): string | null =>
+	hatSatz(html)
+		? null
+		: `Am <body> fehlt ${SATZ}. Neues Material wird wie ein Schulbuch gesetzt: die Angabe ergänzen und das Blatt danach neu prüfen.`;
+
 export const bodyKlassen = (html: string): string[] => BODY_KLASSEN.exec(html)?.[2]?.split(/\s+/).filter(Boolean) ?? [];
 
 export const formatAusHtml = (html: string): Format =>
@@ -85,10 +100,10 @@ export const setzeBodyKlassen = (html: string, { druckprofil, format, klasse }: 
 		...rest,
 	].filter((k): k is string => k !== null);
 	const attribut = `class="${klassen.join(' ')}"`;
-	if (BODY_KLASSEN.test(html)) {
-		return html.replace(BODY_KLASSEN, (_ganz, vorher: string) => `<body${vorher} ${attribut}`);
-	}
-	return html.replace(/<body/, `<body ${attribut}`);
+	const mitKlassen = BODY_KLASSEN.test(html)
+		? html.replace(BODY_KLASSEN, (_ganz, vorher: string) => `<body${vorher} ${attribut}`)
+		: html.replace(/<body/, `<body ${attribut}`);
+	return hatSatz(mitKlassen) ? mitKlassen : mitKlassen.replace(BODY_TAG, (tag) => `${tag.slice(0, -1)} ${SATZ}>`);
 };
 
 /** „B · Willis Tag – Geschichte als Rahmen, Uhrzeiten zuordnen“ → Titel „Willis Tag“, Idee „Geschichte als …“. */

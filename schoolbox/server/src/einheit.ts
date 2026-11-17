@@ -25,6 +25,7 @@ import {
 	EINHEIT_THEMA,
 	einheitAuftragAus,
 	formatBefund,
+	satzBefund,
 	freierName,
 	lebenderOrdner,
 	lesePlan,
@@ -288,7 +289,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			return;
 		}
 		// Verbotenes kommt gar nicht erst in die Ablage; die Korrekturrunde bekommt den Befund.
-		const sperre = [...neueFunde(ERLAUBTER_KOPF, roh).map((f) => f.text), formatBefund(roh)].filter(
+		const sperre = [...neueFunde(ERLAUBTER_KOPF, roh).map((f) => f.text), formatBefund(roh), satzBefund(roh)].filter(
 			(t): t is string => typeof t === 'string',
 		);
 		if (sperre.length) {
@@ -411,7 +412,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 				return { text: `dokumente/${dokument}/material.html fehlt oder ist zu groß.`, fehler: true };
 			}
 			const roh = await readFile(datei, 'utf8');
-			const sperre = [...neueFunde(ERLAUBTER_KOPF, roh).map((f) => f.text), formatBefund(roh)].filter(
+			const sperre = [...neueFunde(ERLAUBTER_KOPF, roh).map((f) => f.text), formatBefund(roh), satzBefund(roh)].filter(
 				(t): t is string => typeof t === 'string',
 			);
 			if (sperre.length) {
