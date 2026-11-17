@@ -27,6 +27,7 @@ import type {
 	RechercheStand,
 } from '@schoolbox/kern';
 import {
+	abbildungenFehlen,
 	ANSICHT_ORDNER,
 	ART_NAME,
 	bausteinVerstoesse,
@@ -1931,12 +1932,20 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 		return { arbeit, ablage, sitzung: null, ende };
 	};
 
-	/** Was noch nicht gelesen ist. Der Strom kann dem Aufruf von `bauen` knapp nachlaufen: dann einmal kurz warten. */
-	const fehlendeLektuere = async (pflicht: readonly string[], gelesen: ReadonlySet<string>) => {
-		const offen = () => pflicht.filter((p) => !gelesen.has(p));
-		if (offen().length) {
-			await new Promise((r) => setTimeout(r, LEKTUERE_WARTEN_MS));
+	/**
+	 * Was noch nicht gelesen ist: Pflichtlektüre und die Dateien des Katalogs zu den Elementen in `html` (226). Der Strom
+	 * kann dem Aufruf von `bauen` knapp nachlaufen: dann einmal kurz warten.
+	 */
+	const fehlendeLektuere = async (pflicht: readonly string[], gelesen: ReadonlySet<string>, html: string) => {
+		const offen = () => ({
+			pflicht: pflicht.filter((p) => !gelesen.has(p)),
+			teile: abbildungenFehlen(html, gelesen),
+		});
+		const jetzt = offen();
+		if (!jetzt.pflicht.length && !jetzt.teile.length) {
+			return jetzt;
 		}
+		await new Promise((r) => setTimeout(r, LEKTUERE_WARTEN_MS));
 		return offen();
 	};
 
@@ -1985,9 +1994,11 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			const versuch: BauVersuch = { zeit: new Date().toISOString(), fehlend: [], seiten: null, fehler: null };
 			if (lektuere && l) {
 				l.eintrag.bauen.push(versuch);
-				versuch.fehlend = await fehlendeLektuere(lektuere.pflicht, l.gelesen);
+				const html = await leseErgebnis(arbeit).catch(() => '');
+				const offen = await fehlendeLektuere(lektuere.pflicht, l.gelesen, html);
+				versuch.fehlend = [...new Set([...offen.pflicht, ...offen.teile.map((t) => t.datei)])];
 				if (versuch.fehlend.length) {
-					return { text: lektuereFehltText(versuch.fehlend), fehler: true };
+					return { text: lektuereFehltText(offen.pflicht, offen.teile), fehler: true };
 				}
 			}
 			const neu = await leseErgebnis(arbeit);

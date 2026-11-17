@@ -136,7 +136,7 @@ process.stdin.on('end', () => {
 		const lektuere = [...eingabe.matchAll(/^- (?:Skill (\S+) laden|Read (\S+))$/gm)].map((t) => t[1] ? { type: 'tool_use', name: 'Skill', input: { skill: t[1] } } : { type: 'tool_use', name: 'Read', input: { file_path: path.join(neben('--add-dir'), '.claude', 'skills', t[2]) } });
 		const lies = (teile) => { if (teile.length) { sag({ type: 'assistant', message: { content: teile } }); } };
 		// „bauen“ geht wie beim echten MCP-Server über den Socket aus der Konfiguration des Laufs.
-		const bauen = (slug) => new Promise((fertig) => {
+		const einmal = (slug) => new Promise((fertig) => {
 			const konfig = JSON.parse(fs.readFileSync(neben('--mcp-config'), 'utf8'));
 			const v = require('node:net').connect(konfig.mcpServers.schoolbox.args[1]);
 			let antwort = '';
@@ -145,6 +145,14 @@ process.stdin.on('end', () => {
 			v.on('close', () => { const a = JSON.parse(antwort || '{}'); fs.appendFileSync(path.join(__dirname, 'bauen.jsonl'), JSON.stringify({ slug, ...a }) + '\n'); fertig(a); });
 			v.on('error', () => fertig({ fehler: true }));
 		});
+		// 226: Verlangt bauen den Katalog zu einem Element, liest die Attrappe die genannten Dateien und baut noch einmal.
+		const bauen = async (slug) => {
+			const a = await einmal(slug);
+			if (!a.fehler || !/Du verwendest </.test(a.text ?? '')) { return a; }
+			lies([...(a.text ?? '').matchAll(/^- Read (\S+)$/gm)].map((t) => ({ type: 'tool_use', name: 'Read', input: { file_path: path.join(neben('--add-dir'), '.claude', 'skills', t[1]) } })));
+			await warte(200);
+			return einmal(slug);
+		};
 		(async () => {
 			// Schritt 1 schreibt nur den Plan; gebaut wird nach der Freigabe.
 			if (eingabe.includes('Schritt 1')) { plan(); ende({ result: (eingabe.includes('möchte ihn anders') ? 'Geänderter Plan. ' : '') + 'Die Uhr im Rathaus ist stehen geblieben. Zwei Fälle.' }); return; }
@@ -242,9 +250,11 @@ process.stdin.on('end', () => {
 		let antwort = '';
 		v.on('connect', () => v.write(JSON.stringify({ dokument: 'blatt' }) + '\n'));
 		v.on('data', (t) => { antwort += t; });
-		v.on('close', () => { fs.appendFileSync(path.join(__dirname, 'bauen.jsonl'), JSON.stringify(JSON.parse(antwort || '{}')) + '\n'); fertig(); });
-		v.on('error', () => fertig());
+		v.on('close', () => { const a = JSON.parse(antwort || '{}'); fs.appendFileSync(path.join(__dirname, 'bauen.jsonl'), JSON.stringify(a) + '\n'); fertig(a); });
+		v.on('error', () => fertig({ fehler: true }));
 	});
+	const leseDatei = (datei, extra = {}) => ({ type: 'tool_use', name: 'Read', input: { file_path: path.join(neben('--add-dir'), '.claude', 'skills', datei), ...extra } });
+	const leseAus = (text) => [...text.matchAll(/^- (?:Skill (\S+) laden|Read (\S+))$/gm)].map((t) => t[1] ? { type: 'tool_use', name: 'Skill', input: { skill: t[1] } } : leseDatei(t[2]));
 	// „aendern-bauen“ ändert ein vorhandenes Blatt und ruft bauen einmal (225: ohne Laufwarnungen).
 	if (fall === 'aendern-bauen') { aendere(); ruf().then(() => ende({})); return; }
 	// Neues Blatt in zwei Schritten: erst der Aufgabenplan als Antwort, nach der Freigabe das Blatt.
@@ -260,9 +270,26 @@ process.stdin.on('end', () => {
 		if (fall === 'plan-bauen' && !(eingabe.includes('Aufgabenplan') && !eingabe.includes('freigegeben'))) {
 			aendere();
 			(async () => {
+				// Die Abweisung nennt Pflichtlektüre und Katalog zu den Elementen des Beispielblatts auf einmal (226).
+				const a = await ruf();
+				sag({ type: 'assistant', message: { content: [...leseAus(eingabe), ...leseAus(a.text ?? '')] } });
+				await new Promise((r) => setTimeout(r, 200));
 				await ruf();
-				const teile = [...eingabe.matchAll(/^- (?:Skill (\S+) laden|Read (\S+))$/gm)].map((t) => t[1] ? { type: 'tool_use', name: 'Skill', input: { skill: t[1] } } : { type: 'tool_use', name: 'Read', input: { file_path: path.join(neben('--add-dir'), '.claude', 'skills', t[2]) } });
-				sag({ type: 'assistant', message: { content: teile } });
+				ende({});
+			})();
+			return;
+		}
+		// 226: „plan-gitter“ setzt ein x-gitter ein und liest alles außer mathe-geometrie.md; bauen weist ab, bis es gelesen ist.
+		if (fall === 'plan-gitter' && !(eingabe.includes('Aufgabenplan') && !eingabe.includes('freigegeben'))) {
+			const GEOMETRIE = 'html-materialerstellung/references/abbildungen/mathe-geometrie.md';
+			const d = 'material.html';
+			fs.writeFileSync(d, fs.readFileSync(d, 'utf8').replace('</section>', '<x-gitter art="punkt" spalten="6" zeilen="4"></x-gitter></section>'));
+			(async () => {
+				const a = await ruf();
+				sag({ type: 'assistant', message: { content: [...leseAus(eingabe), ...leseAus(a.text ?? '')].filter((t) => !String(t.input.file_path ?? '').endsWith(GEOMETRIE)) } });
+				await new Promise((r) => setTimeout(r, 200));
+				await ruf();
+				sag({ type: 'assistant', message: { content: [leseDatei(GEOMETRIE)] } });
 				await new Promise((r) => setTimeout(r, 200));
 				await ruf();
 				ende({});

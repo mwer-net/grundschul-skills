@@ -81,6 +81,8 @@ Bevor ein Material zum ersten Mal gebaut wird, sind die Skills und Dateien seine
 | Anderes Material | grundschul-didaktik, Fach-Skill, html-materialerstellung | `html-materialerstellung/references/layout.md`, `html-materialerstellung/references/visuelle-endkontrolle.md` |  |  |
 <!-- /erzeugt: pflichtlektuere -->
 
+Dazu kommt der Katalog der Abbildungen nach dem, was das Material verwendet: Für jedes `x-…`-Element die Datei, die es beschreibt (Index in `references/abbildungen.md`), und der Einstieg `references/abbildungen.md` selbst. Beim Ändern eines vorhandenen Blatts prüft die Schoolbox das nicht.
+
 ### 3. Änderungen
 
 Änderungswünsche werden in der HTML-Quelle umgesetzt und neu gebaut (Sekunden). Die eigenständige HTML-Datei lässt sich im Browser öffnen und drucken; wer in Canva weiterarbeiten will, lädt das PDF dort hoch.

@@ -763,8 +763,17 @@ describe('Lauf einer Einheit (139)', () => {
 		it('Doppelte Abbildung: der Server meldet sie dem zweiten Material und dem Schlusslauf', async () => {
 			await fall('einheit-dopplung');
 			const vorher = (await prompts()).length;
+			const gebaut = (await jsonl('bauen.jsonl')).length;
 			const { id } = await starte();
 			const s = await bis(id, 'fertig');
+			// 226: Das Gitter verlangt seine Teil-Datei; die Attrappe liest sie nach der Abweisung und baut dann.
+			const antworten = (await jsonl<{ slug: string; text?: string; fehler?: boolean }>('bauen.jsonl')).slice(gebaut);
+			assert.equal(antworten[0]?.slug, 'fall-1');
+			assert.equal(antworten[0]?.fehler, true);
+			assert.match(antworten[0]?.text ?? '', /^Nicht gebaut: Du verwendest <x-gitter>\./);
+			assert.match(antworten[0]?.text ?? '', /^- Read html-materialerstellung\/references\/abbildungen\/mathe-geometrie\.md$/m);
+			assert.equal(antworten[1]?.slug, 'fall-1');
+			assert.notEqual(antworten[1]?.fehler, true);
 			assert.deepEqual(s.pruefung?.['fall-1']?.server ?? [], []);
 			assert.match(s.pruefung?.['fall-2']?.server[0] ?? '', /Dieselbe Abbildung steht schon in „Fall 1“/);
 			assert.equal(s.pruefung?.['fall-2']?.korrekturen, 2);

@@ -13,7 +13,7 @@ Alle `x-…`-Elemente aus `assets/abbildungen.js`. Sie sind berechnet, nie von H
 
 ## Wo steht welches Element
 
-Die Elemente stehen nach Bereich in eigenen Dateien. Lies vor dem Einsatz eines Elements seine Datei ganz.
+Die Elemente stehen nach Bereich in eigenen Dateien. Lies vor dem Einsatz eines Elements seine Datei ganz. Beim Bau neuen Materials verlangt die Schoolbox das, bevor sie baut.
 
 <!-- erzeugt: abbildungen-index -->
 | Element | Wofür | Datei |

@@ -34,6 +34,7 @@ import type {
 	SchlussStand,
 } from '@schoolbox/kern';
 import {
+	abbildungenFehlen,
 	ANSICHT_ORDNER,
 	ART_NAME,
 	aufgabenFuerBau,
@@ -581,15 +582,25 @@ export const erstelleEinheiten = (
 
 	// ── Lauf ──
 
-	/** Was noch nicht gelesen ist. Der Strom kann dem Aufruf von `bauen` knapp nachlaufen: dann einmal kurz warten. */
-	const fehlendeLektuere = async (pflicht?: string[]) => {
+	/**
+	 * Was noch nicht gelesen ist: Pflichtlektüre und die Dateien des Katalogs zu den Elementen in `html` (226). Der Strom
+	 * kann dem Aufruf von `bauen` knapp nachlaufen: dann einmal kurz warten.
+	 */
+	const fehlendeLektuere = async (html: string, pflicht?: string[]) => {
 		const offen = () => {
 			const lauf = aktiv?.lauf;
-			return lauf ? (pflicht ?? lauf.pflicht).filter((p) => !lauf.gelesen.has(p)) : [];
+			return lauf
+				? {
+						pflicht: (pflicht ?? lauf.pflicht).filter((p) => !lauf.gelesen.has(p)),
+						teile: abbildungenFehlen(html, lauf.gelesen),
+					}
+				: { pflicht: [], teile: [] };
 		};
-		if (offen().length) {
-			await new Promise((r) => setTimeout(r, LEKTUERE_WARTEN_MS));
+		const jetzt = offen();
+		if (!jetzt.pflicht.length && !jetzt.teile.length) {
+			return jetzt;
 		}
+		await new Promise((r) => setTimeout(r, LEKTUERE_WARTEN_MS));
 		return offen();
 	};
 
@@ -632,12 +643,15 @@ export const erstelleEinheiten = (
 				...(slug === null ? { material: d.slug } : {}),
 			};
 			aktiv?.lauf?.eintrag.bauen.push(versuch);
-			versuch.fehlend = await fehlendeLektuere(slug === null ? lektuereFuer(s, rolleVon(d)) : undefined);
+			const datei = path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html');
+			const lesbar = existsSync(datei) && (await stat(datei)).size <= KI_GRENZEN.materialBytes;
+			const html = lesbar ? await readFile(datei, 'utf8') : '';
+			const offen = await fehlendeLektuere(html, slug === null ? lektuereFuer(s, rolleVon(d)) : undefined);
+			versuch.fehlend = [...new Set([...offen.pflicht, ...offen.teile.map((t) => t.datei)])];
 			if (versuch.fehlend.length) {
 				await schreibeProtokoll();
-				return { text: lektuereFehltText(versuch.fehlend), fehler: true };
+				return { text: lektuereFehltText(offen.pflicht, offen.teile), fehler: true };
 			}
-			const datei = path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html');
 			if (!existsSync(datei) || (await stat(datei)).size > KI_GRENZEN.materialBytes) {
 				return { text: `dokumente/${d.slug}/material.html fehlt oder ist zu groß.`, fehler: true };
 			}

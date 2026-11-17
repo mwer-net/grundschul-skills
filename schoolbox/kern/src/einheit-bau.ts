@@ -256,13 +256,28 @@ export const pflichtAbschnitt = (pflicht: readonly string[], wann: string) =>
 		...pflicht.map((p) => `- ${lektuereZeile(p)}`),
 	].join('\n');
 
-/** Die Antwort von `bauen`, solange Pflichtlektüre fehlt. */
-export const lektuereFehltText = (fehlend: readonly string[]) =>
-	[
-		'Nicht gebaut: Die Pflichtlektüre fehlt noch. Lies zuerst ganz:',
-		...fehlend.map((f) => `- ${lektuereZeile(f)}`),
+/** Eine Datei des Katalogs, die ein Lauf vor `bauen` noch lesen muss, und die Elemente des Materials, die sie verlangen. */
+export interface TeilFehlt {
+	datei: string;
+	elemente: string[];
+}
+
+/**
+ * Die Antwort von `bauen`, solange Pflichtlektüre oder eine Datei des Katalogs zu den verwendeten Elementen fehlt (226).
+ * Sie nennt alles Fehlende auf einmal.
+ */
+export const lektuereFehltText = (fehlend: readonly string[], teile: readonly TeilFehlt[] = []) => {
+	const elemente = [...new Set(teile.flatMap((t) => t.elemente))];
+	const grund = [
+		...(fehlend.length ? ['Die Pflichtlektüre fehlt noch.'] : []),
+		...(elemente.length ? [`Du verwendest ${elemente.map((e) => `<${e}>`).join(', ')}.`] : []),
+	];
+	return [
+		`Nicht gebaut: ${grund.join(' ')} Lies zuerst ganz:`,
+		...[...new Set([...fehlend, ...teile.map((t) => t.datei)])].map((f) => `- ${lektuereZeile(f)}`),
 		'Rufe bauen danach wieder auf.',
 	].join('\n');
+};
 
 // ——— Katalog der Abbildungen ———
 
@@ -298,6 +313,32 @@ const ELEMENT_UEBERSCHRIFT = /^#{2,4} `(x-[a-z0-9-]+)`(?::[ \t]*(.*\S))?[ \t]*$/
 /** Die Elemente, die eine Datei des Katalogs mit eigener Überschrift beschreibt; eine bloße Erwähnung zählt nicht. */
 export const beschreibungenAus = (datei: string, text: string): ElementBeschreibung[] =>
 	[...text.matchAll(ELEMENT_UEBERSCHRIFT)].map((t) => ({ element: t[1] ?? '', wofuer: t[2] ?? '', datei }));
+
+const KOMMENTAR = /<!--[\s\S]*?(?:-->|$)/g;
+const ELEMENT_IM_HTML = /<(x-[a-z0-9-]+)(?=[\s/>])/g;
+
+/**
+ * Was ein neues Material an Katalog verlangt (226): je verwendetem Element die Datei, die es beschreibt, und dazu den
+ * Einstieg, dessen Kopf für alle Elemente gilt. Heraus kommt nur, was in `gelesen` (Einträge wie in `pflichtFuer`)
+ * noch fehlt. Elemente in Kommentaren zählen nicht, unbekannte `x-…` auch nicht.
+ */
+export const fehlendeAbbildungsTeile = (
+	html: string,
+	gelesen: ReadonlySet<string>,
+	katalog: readonly ElementBeschreibung[],
+): TeilFehlt[] => {
+	const datei = new Map(katalog.map((b) => [b.element, b.datei]));
+	const fehlt = new Map<string, string[]>();
+	for (const element of new Set([...html.replace(KOMMENTAR, '').matchAll(ELEMENT_IM_HTML)].map((t) => t[1] ?? ''))) {
+		const eigene = datei.get(element);
+		for (const d of eigene ? [ABBILDUNGEN, eigene] : []) {
+			if (!gelesen.has(d)) {
+				fehlt.set(d, [...new Set([...(fehlt.get(d) ?? []), element])]);
+			}
+		}
+	}
+	return [...fehlt].map(([d, elemente]) => ({ datei: d, elemente }));
+};
 
 const tabellenZelle = (eintraege: readonly string[]) => eintraege.map((e) => `\`${e}\``).join(', ');
 

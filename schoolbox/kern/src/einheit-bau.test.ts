@@ -5,11 +5,14 @@ import { describe, it } from 'node:test';
 
 import type { EinheitPlan } from './einheit';
 import { lesePlan } from './einheit';
+import { leseAbbildungsKatalog } from './abbildungen-katalog';
 import {
 	bauReihenfolge,
 	BILDER_SCHRITT,
+	fehlendeAbbildungsTeile,
 	fertigText,
 	gelesenAus,
+	lektuereFehltText,
 	lektuereZeile,
 	leseSteckbrief,
 	pflichtFuer,
@@ -146,5 +149,60 @@ describe('Reihenfolge und fertige Materialien (220)', () => {
 			/- dokumente\/kapitel-1 „kapitel-1“: 2 Seiten\. Formate: zuordnen\. Figuren: Willi\. Rätselkette: U\. Merken: Minutenzeiger/,
 		);
 		assert.doesNotMatch(text, /kapitel-2/);
+	});
+});
+
+describe('Katalog der Abbildungen je Element (226)', () => {
+	const katalog = leseAbbildungsKatalog();
+	const EINSTIEG = 'html-materialerstellung/references/abbildungen.md';
+	const GEOMETRIE = 'html-materialerstellung/references/abbildungen/mathe-geometrie.md';
+	const ZAHLEN = 'html-materialerstellung/references/abbildungen/mathe-zahlen.md';
+
+	it('verlangt je Element seine Datei und den Einstieg, nur was noch fehlt', () => {
+		const html = '<p>Zähle.</p><x-gitter art="punkt"></x-gitter><x-uhr zeit="4:30"/><x-gitter></x-gitter>';
+		assert.deepEqual(fehlendeAbbildungsTeile(html, new Set(), katalog), [
+			{ datei: EINSTIEG, elemente: ['x-gitter', 'x-uhr'] },
+			{ datei: GEOMETRIE, elemente: ['x-gitter'] },
+			{ datei: ZAHLEN, elemente: ['x-uhr'] },
+		]);
+		assert.deepEqual(fehlendeAbbildungsTeile(html, new Set([EINSTIEG, ZAHLEN]), katalog), [
+			{ datei: GEOMETRIE, elemente: ['x-gitter'] },
+		]);
+		assert.deepEqual(fehlendeAbbildungsTeile(html, new Set([EINSTIEG, ZAHLEN, GEOMETRIE]), katalog), []);
+	});
+
+	it('Elemente aus dem Einstieg verlangen nur ihn; Kommentare, unbekannte x-… und ein Text ohne Element nichts', () => {
+		assert.deepEqual(fehlendeAbbildungsTeile('<x-lueckentext>Der [Hund]</x-lueckentext>', new Set(), katalog), [
+			{ datei: EINSTIEG, elemente: ['x-lueckentext'] },
+		]);
+		const ohne = '<!-- <x-gitter></x-gitter> --><p>x-gitter</p><x-gibt-es-nicht></x-gibt-es-nicht><x-gitterchen>';
+		assert.deepEqual(fehlendeAbbildungsTeile(ohne, new Set(), katalog), []);
+		assert.deepEqual(fehlendeAbbildungsTeile('<p>Lesetext</p>', new Set(), katalog), []);
+	});
+
+	it('die Antwort von bauen nennt alles Fehlende auf einmal', () => {
+		assert.equal(
+			lektuereFehltText([], [{ datei: GEOMETRIE, elemente: ['x-gitter'] }]),
+			`Nicht gebaut: Du verwendest <x-gitter>. Lies zuerst ganz:\n- Read ${GEOMETRIE}\nRufe bauen danach wieder auf.`,
+		);
+		const beides = lektuereFehltText(
+			[EINSTIEG, 'skill:fach-mathematik'],
+			[
+				{ datei: EINSTIEG, elemente: ['x-gitter', 'x-uhr'] },
+				{ datei: GEOMETRIE, elemente: ['x-gitter'] },
+				{ datei: ZAHLEN, elemente: ['x-uhr'] },
+			],
+		);
+		assert.equal(
+			beides,
+			[
+				'Nicht gebaut: Die Pflichtlektüre fehlt noch. Du verwendest <x-gitter>, <x-uhr>. Lies zuerst ganz:',
+				`- Read ${EINSTIEG}`,
+				'- Skill fach-mathematik laden',
+				`- Read ${GEOMETRIE}`,
+				`- Read ${ZAHLEN}`,
+				'Rufe bauen danach wieder auf.',
+			].join('\n'),
+		);
 	});
 });

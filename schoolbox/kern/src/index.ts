@@ -1,3 +1,4 @@
+export * from './abbildungen-katalog';
 export * from './ablage';
 export * from './anmeldung';
 export * from './assistent';

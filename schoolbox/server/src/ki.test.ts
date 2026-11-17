@@ -811,7 +811,7 @@ describe('Aufträge an Claude', () => {
 			version: number;
 			einheit: string | null;
 			dokument: string;
-			laeufe: { art: string; pflicht: string[]; befunde: string[]; bauen: { fehlend: string[] }[] }[];
+			laeufe: { art: string; pflicht: string[]; gelesen: string[]; befunde: string[]; bauen: { fehlend: string[] }[] }[];
 		};
 		const baue = async (name: string, mitSatz = false) => {
 			await fall(name);
@@ -892,12 +892,36 @@ describe('Aufträge an Claude', () => {
 				.slice(vorher)
 				.map((z) => JSON.parse(z) as { text?: string; fehler?: boolean });
 			assert.equal(antworten[0]?.fehler, true);
-			assert.match(antworten[0]?.text ?? '', /Die Pflichtlektüre fehlt noch/);
+			assert.match(antworten[0]?.text ?? '', /Die Pflichtlektüre fehlt noch\. Du verwendest <x-menge>/);
+			assert.match(antworten[0]?.text ?? '', /^- Read html-materialerstellung\/references\/abbildungen\/mathe-zahlen\.md$/m);
 			assert.notEqual(antworten[1]?.fehler, true);
 			assert.match(antworten[1]?.text ?? '', /Am <body> fehlt data-zeit/, 'Laufwarnung beim neuen Blatt (225)');
 			const bau = protokoll.laeufe.find((e) => e.art === 'bau');
 			assert.ok((bau?.bauen[0]?.fehlend.length ?? 0) > 0);
 			assert.deepEqual(bau?.bauen[1]?.fehlend, []);
+		});
+
+		it('bauen mit <x-gitter>: abgewiesen, solange mathe-geometrie.md fehlt, danach gebaut (226)', async () => {
+			const jsonl = path.join(path.dirname(bin), 'bauen.jsonl');
+			const vorher = (await readFile(jsonl, 'utf8').catch(() => '')).trim().split('\n').filter(Boolean).length;
+			const { protokoll } = await baue('plan-gitter', true);
+			const antworten = (await readFile(jsonl, 'utf8'))
+				.trim()
+				.split('\n')
+				.slice(vorher)
+				.map((z) => JSON.parse(z) as { text?: string; fehler?: boolean });
+			const geometrie = 'html-materialerstellung/references/abbildungen/mathe-geometrie.md';
+			assert.equal(antworten.length, 3);
+			assert.equal(antworten[1]?.fehler, true);
+			assert.equal(
+				antworten[1]?.text,
+				`Nicht gebaut: Du verwendest <x-gitter>. Lies zuerst ganz:\n- Read ${geometrie}\nRufe bauen danach wieder auf.`,
+			);
+			assert.notEqual(antworten[2]?.fehler, true);
+			const bau = protokoll.laeufe.find((e) => e.art === 'bau');
+			assert.deepEqual(bau?.bauen[1]?.fehlend, [geometrie]);
+			assert.deepEqual(bau?.bauen[2]?.fehlend, []);
+			assert.ok(bau?.gelesen.includes(geometrie));
 		});
 
 		it('Ändern eines vorhandenen Blatts: bauen ohne Laufwarnungen (225)', async () => {
