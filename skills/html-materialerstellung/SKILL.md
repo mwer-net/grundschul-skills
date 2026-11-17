@@ -1,6 +1,6 @@
 ---
 name: html-materialerstellung
-description: Technischer Ablauf, um Grundschulmaterial (Arbeitsblätter, Klassenarbeiten, Lernzielkontrollen, Lesetexte, Karten, Plakate, Stationskarten, Folien) als HTML/CSS zu bauen, automatisch zu prüfen und als druckfertiges A4-PDF mit Lösungsblatt auszugeben. Laden für die Entwürfe (Phase 2) und die Umsetzung des freigegebenen Aufgabenplans. Bilder und Grafiken nach Bedarf mit Canva-KI.
+description: Technischer Ablauf, um Grundschulmaterial (Arbeitsblätter, Klassenarbeiten, Lernzielkontrollen, Lesetexte, Karten, Plakate, Stationskarten, Folien) als HTML/CSS zu bauen, automatisch zu prüfen und als druckfertiges A4-PDF mit Lösungsblatt auszugeben. Laden vor jedem Bau eines Materials: für die Entwürfe (Phase 2), die Umsetzung des freigegebenen Aufgabenplans und den Bau ohne Entwurf, etwa im Lauf der Schoolbox. Bilder und Grafiken nach Bedarf mit Canva-KI.
 ---
 
 # Material mit HTML erstellen
@@ -88,18 +88,7 @@ Fehlt eine Darstellung, kommt es darauf an, wo du arbeitest. Nie gilt: von Hand 
 
 **Im Chat und in Lehrkraft-Sitzungen:** Vorhandene Elemente zuerst, denn sie lassen sich einstellen. Sonst baue die Darstellung als freies Element aus HTML und SVG mit `data-frei`: [Freies Element](references/abbildungen.md#freies-element). Den Code der Schoolbox änderst du dabei nicht. Schmuck, der frei auf der Seite liegt (Formen, Figuren, Schmuckschrift, Konfetti), schreibst du nach [Gestaltung](references/gestaltung.md); freie Elemente (`data-frei`) bleiben, was sie sind.
 
-**Im Repo:** als neues Element. **Neues Element = Zeichenfunktion in `abbildungen.js` + Eintrag in `ABBILDUNG_SCHEMA` (`schoolbox/kern/src/abbildungen.ts`) + Katalogeintrag + Musterblatt.** Ohne Schema lässt es sich im Editor nicht einstellen, und der Test dazu schlägt fehl.
-
-1. Zeichenfunktion im passenden Abschnitt, nur mit den Helfern aus dem Kern.
-2. Palette, Gelb nie für Linien oder Schrift, Unterschiede auch über Form und Muster. Text immer schwarz. Eigene Linien ≥ 1,5 px, die Linien des Kits setzt `blatt.css`.
-3. Lösung nur über `loesungSichtbar` (Lösungsblatt, `.beispiel`).
-4. Unzulässige Angaben → `meldeFehler` (in der Zeichenfunktion: `abbruch("Satz für die Lehrkraft")`).
-5. Mindestgrößen nach `grundschul-didaktik/references/druck-und-platz.md`; fehlt das Element dort, Zeile ergänzen.
-6. Eintrag in `ABBILDUNG_SCHEMA` mit deutschem Namen, Feldern, Grenzen und Regeln, derselbe Name in `NAMEN`.
-7. Abschnitt in der Teil-Datei seines Bereichs unter `references/abbildungen/`, ein Aufgabenformat in `references/abbildungen.md`, ein Element für Folien in `references/folien.md` (der Test meldet fehlende Abschnitte, Attribute und falsche Beispiele; den Index schreibt `pnpm run quellen`), Zeile in der Tabelle des Fach-Skills. Zeichnet das Element HTML statt SVG: `INHALT` in `pruefung.js`. Immer: Elementliste in `blatt.css`; hat es keine Lösungsangabe, auch `OHNE_LOESUNGSANGABE` in `blatt.py`.
-8. Im Musterblatt des Bereichs (`assets/muster/`); `blatt.py bauen` in sw und farbe ohne FEHLER, Lösungsblatt stimmt.
-9. e2e: ein Feld im Panel ändern → ein Rückgängig-Schritt, die Quelle ändert nur dieses Attribut.
-10. Skill-Anbindung mit einem `claude -p`-Lauf je Issue prüfen; Fehler danach an einer Kopie nachbauen.
+**Im Repo:** als neues Element nach der `README.md` des Repos, Abschnitt „Neues Element“.
 
 Maßstäbliche Elemente (echte Zentimeter): `masstab(el)` im Element, und beim Anlegen `--druckhinweis "In Originalgröße drucken (100 %)"`.
 
