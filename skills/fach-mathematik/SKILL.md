@@ -63,7 +63,7 @@ Substanzielle Aufgabenformate (Wittmann) tragen Übung und Entdecken zugleich: `
 - Zwanzigerfeld: 2 × 10 Kreise, nach 5 Spalten Lücke oder Farbwechsel; Wendeplättchen rot/blau, mit Legende: rot = gefüllter Kreis, blau = leerer Kreis, damit es auch in s/w lesbar bleibt.
 - Hunderterfeld: 10 × 10, Fünferkreuz hervorgehoben (`x-hunderterfeld`).
 - Rechenstrich, leerer Zahlenstrahl, Kl. 2: `x-rechenstrich`; Sprünge mit gleichem Vorzeichen in einer Aufgabe.
-- Stellenwerte: Farben der Klasse (häufig E blau, Z rot, H grün) – Konvention erfragen, dann `data-stellenfarben` am `<body>` (Katalog, Abschnitt „Zahldarstellungen“). Buchstaben E/Z/H über der Stelle bleiben dabei, damit es in s/w lesbar ist.
+- Stellenwerte: Farben der Klasse (häufig E blau, Z rot, H grün) – Konvention erfragen, dann `data-stellenfarben` am `<body>` (`html-materialerstellung/references/abbildungen/mathe-zahlen.md`, Abschnitt „Zahldarstellungen“). Buchstaben E/Z/H über der Stelle bleiben dabei, damit es in s/w lesbar ist.
 - Uhren, Felder, Zahlenstrahl in Schwarz auf Weiß (Farbe nur für Hervorhebungen wie den Fünferwechsel), Reihen gleichmäßig verteilt; Mindestgrößen in `grundschul-didaktik/references/druck-und-platz.md`.
 - Zahlenstrahl: gleichmäßige Abstände, Zehner deutlich markiert.
 - Uhr: analoges Zifferblatt mit großen Ziffern, Stundenzeiger deutlich kürzer und dicker. **Nie von der KI zeichnen lassen** – `<x-uhr>` aus `html-materialerstellung/assets/abbildungen.js` berechnet exakte Zifferblätter.

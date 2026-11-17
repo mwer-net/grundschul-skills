@@ -160,7 +160,7 @@ Fehlt eine Darstellung, kommt es darauf an, wo du arbeitest. Nie gilt: von Hand 
 4. Unzulässige Angaben → `meldeFehler` (in der Zeichenfunktion: `abbruch("Satz für die Lehrkraft")`).
 5. Mindestgrößen nach `grundschul-didaktik/references/druck-und-platz.md`; fehlt das Element dort, Zeile ergänzen.
 6. Eintrag in `ABBILDUNG_SCHEMA` mit deutschem Namen, Feldern, Grenzen und Regeln, derselbe Name in `NAMEN`.
-7. Abschnitt in der Teil-Datei seines Bereichs unter `references/abbildungen/` (der Test meldet fehlende Abschnitte, Attribute und falsche Beispiele; den Index schreibt `pnpm run quellen`), Zeile in der Tabelle des Fach-Skills. Zeichnet das Element HTML statt SVG: `INHALT` in `pruefung.js`. Immer: Elementliste in `blatt.css`; hat es keine Lösungsangabe, auch `OHNE_LOESUNGSANGABE` in `blatt.py`.
+7. Abschnitt in der Teil-Datei seines Bereichs unter `references/abbildungen/`, ein Aufgabenformat in `references/abbildungen.md`, ein Element für Folien in `references/folien.md` (der Test meldet fehlende Abschnitte, Attribute und falsche Beispiele; den Index schreibt `pnpm run quellen`), Zeile in der Tabelle des Fach-Skills. Zeichnet das Element HTML statt SVG: `INHALT` in `pruefung.js`. Immer: Elementliste in `blatt.css`; hat es keine Lösungsangabe, auch `OHNE_LOESUNGSANGABE` in `blatt.py`.
 8. Im Musterblatt des Bereichs (`assets/muster/`); `blatt.py bauen` in sw und farbe ohne FEHLER, Lösungsblatt stimmt.
 9. e2e: ein Feld im Panel ändern → ein Rückgängig-Schritt, die Quelle ändert nur dieses Attribut.
 10. Skill-Anbindung mit einem `claude -p`-Lauf je Issue prüfen; Fehler danach an einer Kopie nachbauen.
