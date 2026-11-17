@@ -152,7 +152,7 @@ an Teilen in einer Aufgabe. Am Anker liegt Gestaltung immer vor dem Inhalt.
 
 ## 6. Druck und s/w
 
-- **Druckrand 19 px** (5 mm) an jeder Seite. Text, Bild, Figur und Form mit Text gehören nicht hinein, sonst fehlen sie
+- **Druckrand 5 mm** an jeder Seite (Prüfung `druckrand`, `grundschul-didaktik/references/druck-und-platz.md`, „Was die Prüfung meldet“). Text, Bild, Figur und Form mit Text gehören nicht hinein, sonst fehlen sie
   im Druck. Seitenfläche, Kopfband, Streuung und Formen ohne Text dürfen bis an den Blattrand.
 - Den Seitenrahmen 24 px vom Blattrand setzen, damit er nicht angeschnitten wirkt.
 - In s/w ist jedes Gestaltungselement entweder **grau** (Farben werden umgerechnet) oder **weg** (`data-sw="weg"`).
@@ -168,9 +168,9 @@ an Teilen in einer Aufgabe. Am Anker liegt Gestaltung immer vor dem Inhalt.
 
 | Code | Stufe | Wann |
 |---|---|---|
-| `druckrand` | WARNUNG | Bild, Figur, Form mit Text, Schmuckschrift oder `[data-frei]` liegt sichtbar in den äußeren 19 px (im Mini-Book nur an Kanten, die am Blattrand liegen, nicht an der Falz) |
+| `druckrand` | WARNUNG | Bild, Figur, Form mit Text, Schmuckschrift oder `[data-frei]` liegt sichtbar im Druckrand (im Mini-Book nur an Kanten, die am Blattrand liegen, nicht an der Falz) |
 | `aussen` | FEHLER | mehr als die Hälfte eines Gestaltungselements liegt außerhalb der Seite |
-| `verdeckt` | HINWEIS | ein Element in `.ebene.vorne` oder am Anker überdeckt Inhalt oder die `.loesung-marke` um mehr als 400 px² |
+| `verdeckt` | HINWEIS | ein Element in `.ebene.vorne` oder am Anker überdeckt Inhalt oder die `.loesung-marke` über eine Mindestfläche hinaus (Grenze in `grundschul-didaktik/references/druck-und-platz.md`, „Was die Prüfung meldet“) |
 | `ausgeblendet` | HINWEIS | einmal je Material: Elemente mit `data-aus`, die nicht gedruckt werden |
 
 Gemessen wird das Rechteck nach dem Drehen. `data-rand-ok` schaltet `druckrand` ab, `data-ueberlagert-ok` schaltet

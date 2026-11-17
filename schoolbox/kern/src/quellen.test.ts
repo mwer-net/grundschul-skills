@@ -21,6 +21,7 @@ import {
 	zahlStandard,
 } from './abbildungen';
 import { browserSkip } from './browsertest';
+import { LAUF_MELDUNGEN } from './einheit';
 import { ASSETS, BLATT_PY, SKILL_DIR, WURZEL } from './konfig';
 import { MELDUNG_CODES } from './meldungen';
 import { abgleichen, ABSCHNITTE, setzeAbschnitt } from './quellen';
@@ -160,8 +161,6 @@ describe('Erzeugte Abschnitte', () => {
 			...new Set(ABSCHNITTE.map((a) => a.datei)),
 			'skills/html-materialerstellung/assets/blatt.css',
 			'skills/html-materialerstellung/assets/pruefung.js',
-			'schoolbox/kern/src/einheit.ts',
-			'schoolbox/server/src/ki-werkzeug.ts',
 		]) {
 			mkdirSync(path.dirname(path.join(ziel, datei)), { recursive: true });
 			cpSync(path.join(WURZEL, datei), path.join(ziel, datei));
@@ -214,6 +213,15 @@ describe('Erzeugte Abschnitte', () => {
 			readFileSync(path.join(wurzel, 'skills/grundschul-didaktik/references/druck-und-platz.md'), 'utf8'),
 			/\| `platz-frei` \| WARNUNG, HINWEIS \| mehr als 120 px/,
 		);
+	});
+
+	it('pruef-schwellen: Lauf-Meldungen aus LAUF_MELDUNGEN stehen drin, Meldungen ohne Schwelle nicht', () => {
+		const text = readFileSync(path.join(WURZEL, 'skills/grundschul-didaktik/references/druck-und-platz.md'), 'utf8');
+		const abschnitt = text.split('<!-- erzeugt: pruef-schwellen -->')[1]?.split('<!-- /erzeugt')[0] ?? '';
+		for (const [code, stufe] of Object.entries(LAUF_MELDUNGEN)) {
+			assert.match(abschnitt, new RegExp(`\\| \`${code}\` \\| ${stufe} \\|`));
+		}
+		assert.doesNotMatch(abschnitt, /`platzhalter`|`ueberlauf`/);
 	});
 
 	it('Probe: Eine neue Meldung ohne Zeile in pruef-schwellen ist ein Fehler', () => {

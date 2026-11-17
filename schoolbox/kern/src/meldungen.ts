@@ -70,6 +70,9 @@ export const MELDUNG_CODES = [
 
 export type MeldungCode = (typeof MELDUNG_CODES)[number];
 
+/** Hinweise, die Claude im Lauf nicht bekommt: `ausgeblendet` ist gewollt, die Kit-Pflicht ist zurückgestellt (222). */
+export const HINWEIS_OHNE: readonly MeldungCode[] = ['ausgeblendet', 'kit-anteil'];
+
 /** Ein betroffenes Element: `data-sb` im Editor (sonst `null`), Kurzname und Rechteck `[x, y, b, h]` auf der Seite. */
 export interface MeldungZiel {
 	sb: number | null;
