@@ -235,6 +235,18 @@ process.stdin.on('end', () => {
 	if (fall === 'fehler') { sag({ type: 'assistant', error: 'rate_limit', message: { content: [] } }); ende({ is_error: true, result: 'limit' }); process.exit(1); }
 	if (fall === 'abmeldung') { sag({ type: 'assistant', error: 'authentication_failed', message: { content: [] } }); ende({ is_error: true, result: 'Not logged in' }); process.exit(1); }
 	if (fall === 'limit-budget') { ende({ subtype: 'error_max_budget_usd', is_error: true, result: '' }); process.exit(1); }
+	const neben = (name) => args[args.indexOf(name) + 1] ?? '';
+	const ruf = () => new Promise((fertig) => {
+		const konfig = JSON.parse(fs.readFileSync(neben('--mcp-config'), 'utf8'));
+		const v = require('node:net').connect(konfig.mcpServers.schoolbox.args[1]);
+		let antwort = '';
+		v.on('connect', () => v.write(JSON.stringify({ dokument: 'blatt' }) + '\n'));
+		v.on('data', (t) => { antwort += t; });
+		v.on('close', () => { fs.appendFileSync(path.join(__dirname, 'bauen.jsonl'), JSON.stringify(JSON.parse(antwort || '{}')) + '\n'); fertig(); });
+		v.on('error', () => fertig());
+	});
+	// „aendern-bauen“ ändert ein vorhandenes Blatt und ruft bauen einmal (225: ohne Laufwarnungen).
+	if (fall === 'aendern-bauen') { aendere(); ruf().then(() => ende({})); return; }
 	// Neues Blatt in zwei Schritten: erst der Aufgabenplan als Antwort, nach der Freigabe das Blatt.
 	// 220, Teil 2: „plan-unklar“ baut eine unklare Anweisung, die die Korrektur nach der Prüfung behebt, „plan-stur“ nicht;
 	// „plan-bauen“ ruft bauen einmal vor und einmal nach der Pflichtlektüre.
@@ -246,16 +258,6 @@ process.stdin.on('end', () => {
 			return;
 		}
 		if (fall === 'plan-bauen' && !(eingabe.includes('Aufgabenplan') && !eingabe.includes('freigegeben'))) {
-			const neben = (name) => args[args.indexOf(name) + 1] ?? '';
-			const ruf = () => new Promise((fertig) => {
-				const konfig = JSON.parse(fs.readFileSync(neben('--mcp-config'), 'utf8'));
-				const v = require('node:net').connect(konfig.mcpServers.schoolbox.args[1]);
-				let antwort = '';
-				v.on('connect', () => v.write(JSON.stringify({ dokument: 'blatt' }) + '\n'));
-				v.on('data', (t) => { antwort += t; });
-				v.on('close', () => { fs.appendFileSync(path.join(__dirname, 'bauen.jsonl'), JSON.stringify(JSON.parse(antwort || '{}')) + '\n'); fertig(); });
-				v.on('error', () => fertig());
-			});
 			aendere();
 			(async () => {
 				await ruf();

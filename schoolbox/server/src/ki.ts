@@ -9,6 +9,8 @@ import { createInterface } from 'node:readline';
 
 import type {
 	Ansicht,
+	AnsichtOptionen,
+	Art,
 	Bausteine,
 	BauVersuch,
 	Fund,
@@ -337,7 +339,7 @@ export interface KiWunsch {
 
 export type KiPruefer = (dokDir: string, html: string) => Promise<Pruefbericht>;
 /** Baut eine Fassung mit Seitenbildern nach `ziel`, für das Werkzeug „bauen“. */
-export type KiAnsicht = (dokDir: string, html: string, ziel: string) => Promise<Ansicht>;
+export type KiAnsicht = (dokDir: string, html: string, ziel: string, optionen?: AnsichtOptionen) => Promise<Ansicht>;
 
 type KiKonfig = Pick<Konfig, 'claudeBin' | 'kiAn' | 'kiModell' | 'materialDir' | 'pythonBin'>;
 
@@ -1946,7 +1948,9 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 
 	/**
 	 * Das Werkzeug „bauen“ für diesen Lauf: derselbe Bau wie später in der Schoolbox, mit dem Teil wieder im ganzen
-	 * Blatt. Die Sperre zuerst: Was nicht ins Material darf, soll auch hier nie im Browser laufen.
+	 * Blatt. Die Sperre zuerst: Was nicht ins Material darf, soll auch hier nie im Browser laufen. `neuesBlatt`: die Art, wenn
+	 * der Lauf ein neues Blatt baut; nur dann kommen Zeitziel und fehlende Lösungen dazu (225). An einem vorhandenen
+	 * Blatt der Lehrkraft sollen sie Claude nicht zum Umbau über den Auftrag hinaus bewegen.
 	 */
 	const bauenFuer =
 		(
@@ -1956,7 +1960,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			ausschnitt: Ausschnitt,
 			bilder: BlattBilder | null,
 			bausteine: Partial<Bausteine> | undefined,
-			art: string,
+			neuesBlatt: Art | null,
 			lektuere: { pflicht: string[]; lauf: () => BlattLauf | null } | null = null,
 		): Bauen =>
 		async () => {
@@ -1981,7 +1985,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			versuch.fehler = gebaut.bericht.meldungen.filter((m) => m.stufe === 'FEHLER').length;
 			const kopf = kopfBefunde(quelle, ganz).map((t) => `FEHLER: ${t}`);
 			const auftrag = bausteinVerstoesse(ganz, bausteine ?? {}).map((t) => `FEHLER: ${t}`);
-			return { text: [ansichtText(gebaut, ANSICHT_ORDNER, laufMeldungen(ganz, art)), ...kopf, ...auftrag].join('\n') };
+			return { text: [ansichtText(gebaut, ANSICHT_ORDNER, neuesBlatt ? laufMeldungen(ganz, neuesBlatt) : []), ...kopf, ...auftrag].join('\n') };
 		};
 
 	/** Neue Bilder gibt es nur beim Bau eines neuen Blatts: Der freigegebene Plan nennt sie. */
@@ -2060,7 +2064,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 				ausschnitt,
 				blattBilder,
 				w.bausteine,
-				meta.art,
+				imBau ? meta.art : null,
 				imBau ? { pflicht, lauf: () => laufJetzt } : null,
 			),
 		).catch((fehler: unknown) => {
@@ -2230,7 +2234,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 				await rm(ordner, { recursive: true, force: true });
 				await mkdir(ordner, { recursive: true });
 				const ganz = await mitBildern(ausschnitt.einsetzen(html));
-				const gebaut = await ansicht(dir, ganz, ordner);
+				const gebaut = await ansicht(dir, ganz, ordner, { sw: false });
 				const teile = await richtePruefOrdnerEin(ordner, gebaut.bilder, ganz, arbeit);
 				const weise = pruefWeise(rolle, teile.bilder.length > 0);
 				if (!weise.kind && !weise.blick) {

@@ -192,6 +192,12 @@ const entschluesseleEng = (roh: string): string | null => {
 
 const kurz = (text: string) => (text.length > 80 ? `${text.slice(0, 80)} …` : text);
 
+/** Der erlaubte Weg statt `url()`: ein Sprung im SVG geht als Attribut, ein Bild nur als `<img>` (225). */
+const URL_STATT = (inhalt: string) =>
+	/^\s*["']?#/.test(inhalt)
+		? ' → im SVG als Attribut statt im style, z. B. fill="url(#verlauf)" (auch stroke, clip-path, mask)'
+		: ' → Bilder als <img src="bilder/…">, keine Hintergrundbilder';
+
 /** Probleme in CSS, je mit dem Stück, das sie auslöst. */
 const stilProbleme = (css: string): { text: string; stueck: string }[] => {
 	const probleme: { text: string; stueck: string }[] = [];
@@ -208,9 +214,9 @@ const stilProbleme = (css: string): { text: string; stueck: string }[] => {
 			probleme.push({ text: `Die CSS-Regel ${stueck} ist nicht erlaubt`, stueck });
 		}
 	}
-	for (const [stueck, name = ''] of klein.matchAll(/([-\w]+)\s*\(([^)]*)\)?/g)) {
+	for (const [stueck, name = '', inhalt = ''] of klein.matchAll(/([-\w]+)\s*\(([^)]*)\)?/g)) {
 		if (!CSS_FUNKTIONEN.has(name)) {
-			const statt = name === 'url' ? ' → Bilder als <img src="bilder/…">, keine Hintergrundbilder' : '';
+			const statt = name !== 'url' ? '' : URL_STATT(inhalt);
 			probleme.push({ text: `Die CSS-Funktion ${name}() ist nicht erlaubt${statt}`, stueck: kurz(stueck) });
 		}
 	}

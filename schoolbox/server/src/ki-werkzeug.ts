@@ -10,7 +10,7 @@ import { createServer } from 'node:net';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 
-import type { Ansicht, Meldung } from '@schoolbox/kern';
+import type { Ansicht, Meldung, MeldungCode } from '@schoolbox/kern';
 import { ANSICHT_ORDNER, WURZEL } from '@schoolbox/kern';
 
 export const WERKZEUG_SERVER = 'schoolbox';
@@ -21,7 +21,7 @@ const MAX_MELDUNGEN = 60;
 export type Bauen = (dokument: string | undefined) => Promise<{ text: string; fehler?: boolean }>;
 
 /** Hinweise, die Claude nicht bekommt: `ausgeblendet` ist gewollt, die Kit-Pflicht ist zurückgestellt (222). */
-const HINWEIS_OHNE: readonly string[] = ['ausgeblendet', 'kit-anteil'];
+const HINWEIS_OHNE: readonly MeldungCode[] = ['ausgeblendet', 'kit-anteil'];
 const MAX_HINWEISE = 15;
 
 const zeile = (m: Meldung) => `${m.stufe}${m.seite > 0 ? ` Seite ${m.seite}` : ''}: ${m.text}`;

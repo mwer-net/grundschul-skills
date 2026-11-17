@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, afterEach, before, describe, it } from 'node:test';
 
-import type { EinheitStand, LaufProtokoll, Pruefbericht } from '@schoolbox/kern';
+import type { Art, EinheitStand, LaufProtokoll, Pruefbericht } from '@schoolbox/kern';
 import {
 	aufgabenFuerBau,
 	bausteinVerstoesse,
@@ -185,7 +185,7 @@ describe('Prüfungen im Lauf (225)', () => {
 	const AUFGABE = '<div class="aufgabe" data-min="5"><span class="nr">1</span><div class="anw">Rechne.</div></div>';
 	const blatt = (body: string, inhalt = AUFGABE) =>
 		`<html><body class="kl2 a4-hoch farbe"${body}><section class="seite">${inhalt}</section></body></html>`;
-	const codes = (html: string, art: string) => laufMeldungen(html, art).map((m) => `${m.stufe} ${m.code ?? ''}`);
+	const codes = (html: string, art: Art) => laufMeldungen(html, art).map((m) => `${m.stufe} ${m.code ?? ''}`);
 
 	it('Zeitziel fehlt: nur neues Arbeitsmaterial mit Aufgaben', () => {
 		const ohne = blatt(' data-satz="2"');
@@ -197,7 +197,7 @@ describe('Prüfungen im Lauf (225)', () => {
 				text: 'Am <body> fehlt data-zeit. Ohne Zeitziel prüft der Bau die Menge nicht → ergänzen und je Aufgabe data-min setzen.',
 			},
 		]);
-		for (const art of ['stationen', 'lernzielkontrolle', 'klassenarbeit']) {
+		for (const art of ['stationen', 'lernzielkontrolle', 'klassenarbeit'] as const) {
 			assert.deepEqual(codes(ohne, art), ['WARNUNG zeitziel-fehlt'], art);
 		}
 		assert.deepEqual(codes(blatt(' data-satz="2" data-zeit="20"'), 'arbeitsblatt'), []);
@@ -214,7 +214,7 @@ describe('Prüfungen im Lauf (225)', () => {
 		assert.deepEqual(
 			laufMeldungen(html, 'arbeitsblatt').map(({ seite, stufe, text }) => ({ seite, stufe, text })),
 			[
-				{ seite: 1, stufe: 'WARNUNG', text: 'Aufgabe 2 hat keine Lösung → data-l, loesung= oder .nur-loesung ergänzen' },
+				{ seite: 1, stufe: 'WARNUNG', text: 'Aufgabe 2 hat keine Lösung → data-l, loesung= oder, bei offener Aufgabe, ein Satz als .nur-loesung' },
 				{ seite: 1, stufe: 'WARNUNG', text: 'Aufgabe 3: 1 von 2 Antwortlinien ohne Lösung → data-l ergänzen' },
 			],
 		);

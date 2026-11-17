@@ -17,6 +17,7 @@ import { createInterface } from 'node:readline';
 import type {
 	Aktion,
 	Ansicht,
+	AnsichtOptionen,
 	BauVersuch,
 	EinheitAngaben,
 	EinheitBefund,
@@ -189,7 +190,7 @@ export interface LaufOptionen {
 }
 
 /** Baut eine Fassung wie `blatt.py bauen`; Tests setzen eine ohne Browser ein. */
-export type EinheitAnsicht = (quelle: string, ziel: string) => Promise<Ansicht>;
+export type EinheitAnsicht = (quelle: string, ziel: string, optionen?: AnsichtOptionen) => Promise<Ansicht>;
 const BILD_IM_DOKUMENT = /\.\.\/\.\.\/bilder\/([a-z0-9][a-z0-9-]{0,59}\.(?:png|jpg))/g;
 
 const kennung = (inhalt: string) => createHash('sha256').update(inhalt).digest('hex').slice(0, 16);
@@ -264,7 +265,7 @@ const PLAN_ABSCHNITT = (plan: EinheitPlan) => {
 export const erstelleEinheiten = (
 	kontext: Kontext,
 	pruefer: KiPruefer,
-	baueAnsicht: EinheitAnsicht = (quelle, ziel) => baueAnsichtAus(kontext.konfig, quelle, ziel),
+	baueAnsicht: EinheitAnsicht = (quelle, ziel, optionen) => baueAnsichtAus(kontext.konfig, quelle, ziel, optionen),
 ) => {
 	const { materialDir } = kontext.konfig;
 	const wurzel = einheitenWurzel(materialDir);
@@ -1181,7 +1182,9 @@ export const erstelleEinheiten = (
 		await schreibeProtokoll();
 		let ergebnis;
 		try {
-			const ansicht = await baueAnsicht(path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html'), ordner);
+			const ansicht = await baueAnsicht(path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html'), ordner, {
+				sw: false,
+			});
 			const teile = await richtePruefOrdnerEin(ordner, ansicht.bilder, html, arbeitDir(s.id));
 			const ablage = ablageDir(s.id);
 			ergebnis = await pruefeLauf({

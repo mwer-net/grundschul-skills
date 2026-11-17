@@ -479,7 +479,7 @@ export const bausteinVerstoesse = (html: string, bausteine: Partial<Bausteine>):
 // ——— Prüfungen, die nur Claude im Lauf bekommt (225) ———
 
 /** Material, dessen Menge nach Arbeitszeit geplant wird (`druck-und-platz.md`, „Menge nach Arbeitszeit“). */
-const MIT_ZEITZIEL: readonly string[] = ['arbeitsblatt', 'stationen', 'lernzielkontrolle', 'klassenarbeit'];
+const MIT_ZEITZIEL: readonly Art[] = ['arbeitsblatt', 'stationen', 'lernzielkontrolle', 'klassenarbeit'];
 const BODY_TAG = /<body\b[^>]*>/i;
 
 /**
@@ -487,7 +487,7 @@ const BODY_TAG = /<body\b[^>]*>/i;
  * nicht. Ohne `data-zeit` prüft `pruefung.js` die Menge nicht; nur neues Material (`data-satz="2"`), damit ein älteres
  * Blatt beim Nachbessern nicht in die Zeitprüfung rutscht.
  */
-export const laufMeldungen = (html: string, art: string): Meldung[] => {
+export const laufMeldungen = (html: string, art: Art): Meldung[] => {
 	const quelle = html.replace(/<!--[\s\S]*?-->/g, '');
 	const meldungen: Meldung[] = [];
 	const body = BODY_TAG.exec(quelle)?.[0] ?? '';
@@ -513,7 +513,7 @@ export const laufMeldungen = (html: string, art: string): Meldung[] => {
 			g.aufgabe === 0
 				? `${g.fehlend} ${g.fehlend === 1 ? 'Antwortlinie' : 'Antwortlinien'} außerhalb einer Aufgabe ohne Lösung → data-l ergänzen`
 				: g.fehlend === g.linien
-					? `Aufgabe ${g.aufgabe} hat keine Lösung → data-l, loesung= oder .nur-loesung ergänzen`
+					? `Aufgabe ${g.aufgabe} hat keine Lösung → data-l, loesung= oder, bei offener Aufgabe, ein Satz als .nur-loesung`
 					: `Aufgabe ${g.aufgabe}: ${g.fehlend} von ${g.linien} Antwortlinien ohne Lösung → data-l ergänzen`;
 		meldungen.push({ stufe: 'WARNUNG', seite: g.seite, code: 'loesung-fehlt', text });
 	}

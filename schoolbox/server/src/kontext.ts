@@ -90,7 +90,7 @@ export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Ba
 			konfig,
 			ereignisse,
 			pruefer,
-			ansicht: bauer.kiAnsicht ?? ((dokDir, html, ziel) => baueAnsicht(konfig, dokDir, html, ziel)),
+			ansicht: bauer.kiAnsicht ?? ((dokDir, html, ziel, optionen) => baueAnsicht(konfig, dokDir, html, ziel, optionen)),
 		}),
 		ordner: erstelleOrdnerSpeicher(materialDir, sperre, ereignisse),
 		version,

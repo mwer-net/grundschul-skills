@@ -307,6 +307,14 @@ describe('neueFunde: nur was dazukam (Entscheidung 26)', () => {
 			'Die Bildadresse „https://x.example/b.png“ ist nicht erlaubt → nur Bilder aus der Mappe (bilder/…) oder als data:image',
 		]);
 	});
+
+	it('url(#…) im style einer SVG-Form nennt das Attribut, das erlaubt ist (225)', () => {
+		assert.deepEqual(
+			pruefeFreiesHtml('<svg><rect style="fill:url(#v)"/></svg>').map((f) => f.text),
+			['Die CSS-Funktion url() ist nicht erlaubt → im SVG als Attribut statt im style, z. B. fill="url(#verlauf)" (auch stroke, clip-path, mask)'],
+		);
+		assert.deepEqual(pruefeFreiesHtml('<svg><rect fill="url(#v)"/></svg>'), []);
+	});
 });
 
 describe('Vorhandenes Material besteht die Prüfung', () => {

@@ -23,7 +23,7 @@ import { SchoolboxFehler } from './fehler';
 import { druckprofilAusHtml } from './html';
 import type { Konfig } from './konfig';
 import { BLATT_PY } from './konfig';
-import type { Meldung } from './meldungen';
+import type { Meldung, MeldungCode } from './meldungen';
 import { ohneZiele } from './meldungen';
 import { entwurfVorschauDatei } from './namen';
 import type { DokumentMeta, Entwurf, EntwurfPruefung, Pruefung } from './schema';
@@ -263,8 +263,13 @@ export interface Ansicht {
 	bilder: string[];
 }
 
+export interface AnsichtOptionen {
+	/** Zweiter Prüfdurchgang in s/w; Standard ja. */
+	sw?: boolean;
+}
+
 /** Was nur die s/w-Ansicht meldet (`pruefung.js` bei `body.sw`). */
-const SW_CODES: readonly string[] = ['kontrast-sw', 'farbwort-sw', 'bild-kontrast-sw'];
+const SW_CODES: readonly MeldungCode[] = ['kontrast-sw', 'farbwort-sw', 'bild-kontrast-sw'];
 
 const swPruefen = async (konfig: Pick<Konfig, 'pythonBin'>, quelle: string, ordner: string) => {
 	const berichtDatei = path.join(ordner, 'pruefbericht.json');
@@ -306,17 +311,18 @@ const swMeldungen = async (konfig: Pick<Konfig, 'pythonBin'>, quelle: string): P
 /**
  * Baut eine Fassung so, wie `blatt.py bauen` es in der Claude-App tut, und legt Prüfbericht und Seitenbilder für die
  * visuelle Endkontrolle ab. `quelle` ist eine Datei, die neben den Bildern des Dokuments liegt; sie bleibt, wie sie ist.
- * Die Hinweise der s/w-Ansicht stehen mit im Bericht.
+ * Die Hinweise der s/w-Ansicht stehen mit im Bericht; `sw: false`, wo niemand den Bericht liest (Prüflauf).
  */
 export const baueAnsichtAus = async (
 	konfig: Pick<Konfig, 'pythonBin'>,
 	quelle: string,
 	ziel: string,
+	{ sw: mitSw = true }: AnsichtOptionen = {},
 ): Promise<Ansicht> => {
 	const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-ansicht-'));
 	const berichtDatei = path.join(tmp, 'pruefbericht.json');
 	// Neben dem Bau: danach kostete der zweite Durchgang rund 7 s je Bau, daneben rund 4–5 s (225).
-	const sw = swMeldungen(konfig, quelle).catch(() => []);
+	const sw = mitSw ? swMeldungen(konfig, quelle).catch(() => []) : Promise.resolve([]);
 	try {
 		const lauf = await fuehreAus(konfig.pythonBin, [
 			BLATT_PY,
@@ -365,11 +371,17 @@ export const baueAnsichtAus = async (
 };
 
 /** Wie `pruefeFassung`, aber mit Seitenbildern: Die Fassung liegt dafür kurz im Dokumentordner. */
-export const baueAnsicht = async (konfig: Pick<Konfig, 'pythonBin'>, dokDir: string, html: string, ziel: string) => {
+export const baueAnsicht = async (
+	konfig: Pick<Konfig, 'pythonBin'>,
+	dokDir: string,
+	html: string,
+	ziel: string,
+	optionen?: AnsichtOptionen,
+) => {
 	const quelle = path.join(dokDir, KI_PRUEFDATEI);
 	try {
 		await writeFile(quelle, html);
-		return await baueAnsichtAus(konfig, quelle, ziel);
+		return await baueAnsichtAus(konfig, quelle, ziel, optionen);
 	} finally {
 		await rm(quelle, { force: true });
 	}

@@ -14,6 +14,7 @@ import {
 	dokumentDir,
 	FREITEXT,
 	KI_AKTIONEN,
+	laufMeldungen,
 	leereAntworten,
 	listeVersionen,
 	WURZEL,
@@ -35,6 +36,14 @@ import {
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
 import { KI_ATTRAPPE, legeDokumentAn, starteTestServer } from './testhilfe';
+
+/** Macht das Beispielblatt zu einem Blatt nach Satz 2 ohne Zeitziel, für das laufMeldungen warnt (225). */
+const mitSatzstand = async (dir: string) => {
+	const datei = path.join(dir, 'material.html');
+	const html = (await readFile(datei, 'utf8')).replace('<body ', '<body data-satz="2" ');
+	assert.match(laufMeldungen(html, 'arbeitsblatt').map((m) => m.text).join('\n'), /fehlt data-zeit/);
+	await writeFile(datei, html);
+};
 
 const warte = async (bedingung: () => Promise<boolean> | boolean, ms = 15_000) => {
 	const ende = Date.now() + ms;
@@ -803,9 +812,10 @@ describe('Aufträge an Claude', () => {
 			dokument: string;
 			laeufe: { art: string; pflicht: string[]; befunde: string[]; bauen: { fehlend: string[] }[] }[];
 		};
-		const baue = async (name: string) => {
+		const baue = async (name: string, mitSatz = false) => {
 			await fall(name);
 			const blatt = await legeDokumentAn(server.materialDir, { beispiel: true });
+			if (mitSatz) await mitSatzstand(blatt.dir);
 			const pfad = `/dokumente/${blatt.mappe}/${blatt.dok}`;
 			const los = async (ziel: string, body: object = {}) => {
 				const res = await api(ziel, { method: 'POST', body: JSON.stringify(body) });
@@ -874,7 +884,7 @@ describe('Aufträge an Claude', () => {
 				.trim()
 				.split('\n')
 				.filter(Boolean).length;
-			const { protokoll } = await baue('plan-bauen');
+			const { protokoll } = await baue('plan-bauen', true);
 			const antworten = (await readFile(path.join(path.dirname(bin), 'bauen.jsonl'), 'utf8'))
 				.trim()
 				.split('\n')
@@ -883,9 +893,38 @@ describe('Aufträge an Claude', () => {
 			assert.equal(antworten[0]?.fehler, true);
 			assert.match(antworten[0]?.text ?? '', /Die Pflichtlektüre fehlt noch/);
 			assert.notEqual(antworten[1]?.fehler, true);
+			assert.match(antworten[1]?.text ?? '', /Am <body> fehlt data-zeit/, 'Laufwarnung beim neuen Blatt (225)');
 			const bau = protokoll.laeufe.find((e) => e.art === 'bau');
 			assert.ok((bau?.bauen[0]?.fehlend.length ?? 0) > 0);
 			assert.deepEqual(bau?.bauen[1]?.fehlend, []);
+		});
+
+		it('Ändern eines vorhandenen Blatts: bauen ohne Laufwarnungen (225)', async () => {
+			const blatt = await legeDokumentAn(server.materialDir, { beispiel: true });
+			await mitSatzstand(blatt.dir);
+			const jsonl = path.join(path.dirname(bin), 'bauen.jsonl');
+			const vorher = (await readFile(jsonl, 'utf8').catch(() => '')).trim().split('\n').filter(Boolean).length;
+			await fall('aendern-bauen');
+			try {
+				const res = await api(`/dokumente/${blatt.mappe}/${blatt.dok}/ki`, {
+					method: 'POST',
+					body: JSON.stringify({ auftrag: 'Mach es schöner' }),
+				});
+				assert.equal(res.status, 202);
+				const a = await fertig(((await res.json()) as { auftrag: { id: string } }).auftrag.id);
+				assert.equal(a.status, 'fertig', a.fehler ?? '');
+			} finally {
+				await fall('gut');
+			}
+			const antworten = (await readFile(jsonl, 'utf8'))
+				.trim()
+				.split('\n')
+				.slice(vorher)
+				.map((z) => JSON.parse(z) as { text?: string; fehler?: boolean });
+			assert.equal(antworten.length, 1);
+			assert.notEqual(antworten[0]?.fehler, true);
+			assert.match(antworten[0]?.text ?? '', /\S/);
+			assert.doesNotMatch(antworten[0]?.text ?? '', /fehlt data-zeit|hat keine Lösung|ohne Lösung/);
 		});
 	});
 
