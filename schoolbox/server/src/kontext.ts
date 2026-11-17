@@ -10,7 +10,7 @@ import type { Bremse } from './bremse';
 import { erstelleBremse } from './bremse';
 import type { CanvaLaeufe } from './canva-lauf';
 import { erstelleCanvaLaeufe } from './canva-lauf';
-import type { Einheiten } from './einheit';
+import type { EinheitAnsicht, Einheiten } from './einheit';
 import { erstelleEinheiten } from './einheit';
 import type { Ereignisse } from './ereignisse';
 import { erstelleEreignisse } from './ereignisse';
@@ -59,6 +59,8 @@ export interface Bauer {
 	folien?: FolienBauer;
 	/** Ohne prüft blatt.py die Vorschläge von Claude. */
 	kiPruefer?: KiPruefer;
+	/** Ohne baut blatt.py das Werkzeug `bauen` der Einheit. */
+	einheitAnsicht?: EinheitAnsicht;
 }
 
 export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Bauer = {}): Kontext => {
@@ -92,7 +94,7 @@ export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Ba
 		version,
 	};
 	// Die Einheiten brauchen den fertigen Kontext (Ordner, Sperre, Quelle schreiben).
-	kontext.einheiten = erstelleEinheiten(kontext as Kontext, pruefer);
+	kontext.einheiten = erstelleEinheiten(kontext as Kontext, pruefer, bauer.einheitAnsicht);
 	kontext.canva = erstelleCanvaLaeufe(kontext as Kontext);
 	return kontext as Kontext;
 };

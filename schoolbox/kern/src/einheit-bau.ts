@@ -1,0 +1,389 @@
+/**
+ * Bau einer Einheit in Durchgängen (220): Nach der Freigabe baut je Material ein frischer Lauf, erst nach der
+ * Pflichtlektüre. Die Pflichtlektüre steht nur hier; `quellen.ts` schreibt sie als Tabelle in
+ * `html-materialerstellung/SKILL.md`, damit das Harness dieselbe Liste hat. Ohne Abhängigkeiten zur Laufzeit: Die
+ * Oberfläche und `quellen.ts` laden die Datei direkt.
+ */
+import type { EinheitPlan, PlanDokument } from './einheit';
+import { formatTitel } from './einheit-aufgaben';
+import type { Fach } from './werte';
+
+/** Der Schritt „Bilder“ in der Reihenfolge des Baus; kein Slug (die beginnen nie mit `_`). */
+export const BILDER_SCHRITT = '_bilder';
+/** Protokoll der Läufe in der Mappe; Dateien mit `_` zeigt die Ablage nicht. */
+export const LAUF_DATEI = '_lauf.json';
+/** Was ein Baulauf für die späteren Materialien hinterlässt, im Ordner seines Materials. */
+export const STECKBRIEF_DATEI = 'steckbrief.json';
+
+// ——— Pflichtlektüre ———
+
+const GD = 'grundschul-didaktik';
+const HTML = 'html-materialerstellung';
+const DRUCK = `${GD}/references/druck-und-platz.md`;
+const DIFFERENZIERUNG = `${GD}/references/differenzierung.md`;
+const KINDGERECHT = `${GD}/references/kindgerecht-gestalten.md`;
+const REIHE = 'unterrichtsplanung/references/reihe-als-geschichte.md';
+const LAYOUT = `${HTML}/references/layout.md`;
+const ENDKONTROLLE = `${HTML}/references/visuelle-endkontrolle.md`;
+const ABBILDUNGEN = `${HTML}/references/abbildungen.md`;
+const BILDER = `${HTML}/references/bilder.md`;
+const VERKAUF = `${HTML}/references/verkauf.md`;
+const KARTENSATZ = `${HTML}/assets/beispiel-kartensatz.html`;
+
+/** `fach`: dazu der Skill des Fachs. Die Datei in `reihe` gilt nur in einer Reihe mit Geschichte, `verkauf` nur beim Verkauf. */
+export interface Lektuere {
+	rolle: string;
+	name: string;
+	skills: readonly string[];
+	fach: boolean;
+	dateien: readonly string[];
+	reihe?: readonly string[];
+	verkauf?: readonly string[];
+}
+
+/**
+ * Was vor dem Bau gelesen sein muss, je Materialart. Jede Datei kostet in jedem Lauf Kontext; hier steht nur, was die
+ * Art wirklich trägt. Layout und Endkontrolle braucht jedes gebaute Material, nicht der Schritt „Bilder“.
+ */
+export const PFLICHTLEKTUERE: readonly Lektuere[] = [
+	{
+		rolle: 'plan',
+		name: 'Plan einer Unterrichtseinheit',
+		skills: [GD, 'unterrichtsplanung'],
+		fach: true,
+		dateien: [REIHE],
+		verkauf: [VERKAUF],
+	},
+	{
+		rolle: 'vorleseheft',
+		name: 'Vorleseheft',
+		skills: [GD, 'unterrichtsplanung', HTML],
+		fach: false,
+		dateien: [REIHE, `${HTML}/assets/beispiel-vorleseheft.html`, LAYOUT, ENDKONTROLLE],
+	},
+	{
+		rolle: 'bilder',
+		name: 'Bilder einer Einheit (Canva)',
+		skills: [HTML],
+		fach: false,
+		dateien: [BILDER, KINDGERECHT],
+		verkauf: [VERKAUF],
+	},
+	{
+		rolle: 'arbeitsblatt',
+		name: 'Arbeitsblatt, Kapitel einer Reihe',
+		skills: [GD, 'arbeitsblatt', HTML],
+		fach: true,
+		dateien: [DRUCK, DIFFERENZIERUNG, ABBILDUNGEN, LAYOUT, ENDKONTROLLE],
+		reihe: [REIHE, KINDGERECHT, `${HTML}/assets/beispiel-reihe-kapitel.html`],
+	},
+	{
+		rolle: 'lernzielkontrolle',
+		name: 'Lernzielkontrolle',
+		skills: [GD, 'lernzielkontrolle', HTML],
+		fach: true,
+		dateien: [DRUCK, DIFFERENZIERUNG, ABBILDUNGEN, LAYOUT, ENDKONTROLLE],
+	},
+	{
+		rolle: 'klassenarbeit',
+		name: 'Klassenarbeit',
+		skills: [GD, 'klassenarbeit', HTML],
+		fach: true,
+		dateien: [DRUCK, DIFFERENZIERUNG, ABBILDUNGEN, LAYOUT, ENDKONTROLLE],
+	},
+	{
+		rolle: 'stationen',
+		name: 'Stationen',
+		skills: [GD, 'stationenlernen', HTML],
+		fach: true,
+		dateien: [DRUCK, ABBILDUNGEN, LAYOUT, ENDKONTROLLE],
+	},
+	{
+		rolle: 'lernspiel',
+		name: 'Lernspiel',
+		skills: [GD, 'lernspiel', HTML],
+		fach: true,
+		dateien: [DRUCK, KINDGERECHT, KARTENSATZ, LAYOUT, ENDKONTROLLE],
+	},
+	{
+		rolle: 'karten',
+		name: 'Bild- und Wortkarten',
+		skills: [GD, 'bild-und-wortkarten', HTML],
+		fach: true,
+		dateien: [DRUCK, KARTENSATZ, LAYOUT, ENDKONTROLLE],
+	},
+	{
+		rolle: 'lernplakat',
+		name: 'Lernplakat',
+		skills: [GD, 'lernplakat', HTML],
+		fach: true,
+		dateien: [KINDGERECHT, LAYOUT, ENDKONTROLLE],
+	},
+	{
+		rolle: 'lesetext',
+		name: 'Lesetext',
+		skills: [GD, 'lesetext', HTML],
+		fach: true,
+		dateien: [DRUCK, LAYOUT, ENDKONTROLLE],
+		reihe: [REIHE],
+	},
+	{
+		rolle: 'praesentation',
+		name: 'Präsentation, Auftakt einer Reihe',
+		skills: [GD, 'praesentation', HTML],
+		fach: true,
+		dateien: [KINDGERECHT, LAYOUT, ENDKONTROLLE],
+		reihe: [REIHE, `${HTML}/assets/beispiel-auftakt.html`],
+	},
+	{
+		rolle: 'hinweise',
+		name: 'Hinweise für die Lehrkraft, Verlaufsplan',
+		skills: [GD, 'unterrichtsplanung', HTML],
+		fach: true,
+		dateien: [`${HTML}/assets/beispiel-lehrkraft-hinweise.html`, LAYOUT, ENDKONTROLLE],
+		reihe: [REIHE],
+		verkauf: [VERKAUF],
+	},
+	{
+		rolle: 'deckblatt',
+		name: 'Deckblatt (Verkauf)',
+		skills: [GD, HTML],
+		fach: false,
+		dateien: [VERKAUF, `${HTML}/references/gestaltung.md`, `${HTML}/assets/beispiel-deckblatt-formen.html`, LAYOUT, ENDKONTROLLE],
+	},
+	{
+		rolle: 'quellen',
+		name: 'Quellenverzeichnis (Verkauf)',
+		skills: [HTML],
+		fach: false,
+		dateien: [VERKAUF, LAYOUT, ENDKONTROLLE],
+	},
+	{
+		rolle: 'angebot',
+		name: 'Angebot für Eduki (Verkauf)',
+		skills: [HTML],
+		fach: false,
+		dateien: [VERKAUF, LAYOUT, ENDKONTROLLE],
+	},
+	{
+		rolle: 'sonstiges',
+		name: 'Anderes Material',
+		skills: [GD, HTML],
+		fach: true,
+		dateien: [LAYOUT, ENDKONTROLLE],
+	},
+];
+
+const FACH_SKILL: Partial<Record<Fach, string>> = {
+	deutsch: 'fach-deutsch',
+	mathematik: 'fach-mathematik',
+	sachunterricht: 'fach-sachunterricht',
+	englisch: 'fach-englisch',
+	kunst: 'fach-kunst',
+	musik: 'fach-musik',
+};
+
+/** Die Zeile der Pflichtlektüre für ein Material der Einheit. Feste Slugs aus dem Plan-Auftrag gehen vor der Art. */
+export const rolleVon = (d: Pick<PlanDokument, 'slug' | 'art'>): string => {
+	const fest: Record<string, string> = {
+		'vorleseheft': 'vorleseheft',
+		'deckblatt': 'deckblatt',
+		'quellen': 'quellen',
+		'eduki-angebot': 'angebot',
+		[BILDER_SCHRITT]: 'bilder',
+	};
+	return fest[d.slug] ?? (d.art === 'unterrichtsplanung' ? 'hinweise' : d.art);
+};
+
+const zeileVon = (rolle: string) =>
+	PFLICHTLEKTUERE.find((l) => l.rolle === rolle) ?? PFLICHTLEKTUERE.find((l) => l.rolle === 'sonstiges');
+
+/** Ein Skill heißt in der Liste `skill:<name>`, eine Datei mit ihrem Pfad ab dem Skill-Ordner. */
+export const SKILL_PRAEFIX = 'skill:';
+
+export const pflichtFuer = (rolle: string, o: { fach: Fach; reihe: boolean; verkauf: boolean }): string[] => {
+	const l = zeileVon(rolle);
+	if (!l) {
+		return [];
+	}
+	const fach = l.fach ? FACH_SKILL[o.fach] : undefined;
+	const skills = [...l.skills.slice(0, 1), ...(fach ? [fach] : []), ...l.skills.slice(1)];
+	return [
+		...new Set([
+			...skills.map((s) => `${SKILL_PRAEFIX}${s}`),
+			...l.dateien,
+			...(o.reihe ? (l.reihe ?? []) : []),
+			...(o.verkauf ? (l.verkauf ?? []) : []),
+		]),
+	];
+};
+
+const SKILL_PFAD = /(?:^|\/)skills\/([a-z0-9-]+)\/([^\s]+)$/;
+
+/**
+ * Was ein Werkzeugaufruf aus dem Strom von `claude` gelesen hat, als Eintrag wie in `pflichtFuer`: ein geladener Skill,
+ * eine gelesene `SKILL.md` oder eine Datei aus einem Skill. Sonst `null`.
+ */
+export const gelesenAus = (name: string, eingabe: { skill?: unknown; file_path?: unknown }): string | null => {
+	if (name === 'Skill' && typeof eingabe.skill === 'string') {
+		const skill = eingabe.skill.split(':').at(-1)?.trim() ?? '';
+		return skill ? `${SKILL_PRAEFIX}${skill}` : null;
+	}
+	if (name === 'Read' && typeof eingabe.file_path === 'string') {
+		const t = SKILL_PFAD.exec(eingabe.file_path.replace(/\\/g, '/'));
+		if (!t) {
+			return null;
+		}
+		return t[2] === 'SKILL.md' ? `${SKILL_PRAEFIX}${t[1]}` : `${t[1]}/${t[2]}`;
+	}
+	return null;
+};
+
+/** Für den Auftrag je Material und die Antwort von `bauen`. */
+export const lektuereZeile = (eintrag: string) =>
+	eintrag.startsWith(SKILL_PRAEFIX) ? `Skill ${eintrag.slice(SKILL_PRAEFIX.length)} laden` : `Read ${eintrag}`;
+
+const tabellenZelle = (eintraege: readonly string[]) => eintraege.map((e) => `\`${e}\``).join(', ');
+
+/** Die Tabelle „Vor dem Bau lesen“ in `html-materialerstellung/SKILL.md` (`quellen.ts`). */
+export const pflichtTabelle = () =>
+	[
+		'| Materialart | Skills | Dateien | in einer Reihe | beim Verkauf |',
+		'|---|---|---|---|---|',
+		...PFLICHTLEKTUERE.map((l) => [
+			l.name,
+			[...l.skills.slice(0, 1), ...(l.fach ? ['Fach-Skill'] : []), ...l.skills.slice(1)].join(', '),
+			tabellenZelle(l.dateien),
+			tabellenZelle(l.reihe ?? []),
+			tabellenZelle(l.verkauf ?? []),
+		]).map((z) => `| ${z.join(' | ')} |`),
+	].join('\n');
+
+// ——— Reihenfolge ———
+
+const RANG: Record<string, number> = { vorleseheft: 0, bilder: 1, hinweise: 3, deckblatt: 4, quellen: 5, angebot: 6 };
+
+/**
+ * Die Reihenfolge des Baus (`reihe-als-geschichte.md`, „Reihenfolge beim Bauen“): Vorleseheft, Bilder, Kapitel in der
+ * Folge ihrer Stunden, übrige Materialien wie im Plan, zuletzt Hinweise, Deckblatt, Quellen und Angebot. Die Hinweise
+ * und das Deckblatt brauchen alles andere fertig.
+ */
+export const bauReihenfolge = (plan: EinheitPlan, bilder: boolean): string[] => {
+	const stunde = new Map<string, number>();
+	for (const s of plan.stunden ?? []) {
+		for (const a of s.aufgaben) {
+			if (a.dokument && !stunde.has(a.dokument)) {
+				stunde.set(a.dokument, s.nr);
+			}
+		}
+	}
+	const schritte = [
+		...plan.dokumente.map((d, i) => ({ slug: d.slug, rang: RANG[rolleVon(d)] ?? 2, nr: stunde.get(d.slug), i })),
+		...(bilder ? [{ slug: BILDER_SCHRITT, rang: RANG.bilder ?? 1, nr: undefined, i: -1 }] : []),
+	];
+	const kapitelZuerst = (x: (typeof schritte)[number]) => (x.nr === undefined ? Number.MAX_SAFE_INTEGER : x.nr);
+	return schritte
+		.sort((a, b) => a.rang - b.rang || kapitelZuerst(a) - kapitelZuerst(b) || a.i - b.i)
+		.map((x) => x.slug);
+};
+
+// ——— Steckbrief fertiger Materialien ———
+
+/** Was ein späteres Material über ein fertiges wissen muss. Seiten und Formate kennt der Server, den Rest der Baulauf. */
+export interface Steckbrief {
+	seiten: number;
+	formate: string[];
+	figuren: string[];
+	loesung: string;
+	merken: string;
+}
+
+const kurz = (wert: unknown, max: number) =>
+	typeof wert === 'string'
+		? wert
+				.replace(/\s+/g, ' ')
+				.trim()
+				.slice(0, max)
+		: '';
+
+/** Liest `steckbrief.json` tolerant; was fehlt, bleibt leer. */
+export const leseSteckbrief = (roh: unknown): Pick<Steckbrief, 'figuren' | 'loesung' | 'merken'> => {
+	const x = (typeof roh === 'object' && roh !== null ? roh : {}) as Record<string, unknown>;
+	return {
+		figuren: (Array.isArray(x.figuren) ? x.figuren : [])
+			.map((f) => kurz(f, 120))
+			.filter(Boolean)
+			.slice(0, 8),
+		loesung: kurz(x.loesung, 200),
+		merken: kurz(x.merken, 300),
+	};
+};
+
+/** Die Formate des Materials aus der Aufgaben-Übersicht, wie die Oberfläche sie nennt. */
+export const formateDesMaterials = (plan: EinheitPlan, slug: string) => [
+	...new Set(
+		(plan.stunden ?? [])
+			.flatMap((s) => s.aufgaben)
+			.filter((a) => a.dokument === slug)
+			.map((a) => formatTitel(a.format))
+			.filter(Boolean),
+	),
+];
+
+/** Die Liste der fertigen Materialien für den Auftrag eines späteren (Seitenzahlen vom Server, nie aus dem Kopf). */
+export const fertigText = (plan: EinheitPlan, fertig: readonly string[], steckbriefe: Record<string, Steckbrief>) => {
+	const zeilen = plan.dokumente
+		.filter((d) => fertig.includes(d.slug))
+		.map((d) => {
+			const b = steckbriefe[d.slug];
+			const teile = [
+				b ? `${b.seiten} ${b.seiten === 1 ? 'Seite' : 'Seiten'}` : '',
+				b?.formate.length ? `Formate: ${b.formate.join('; ')}` : '',
+				b?.figuren.length ? `Figuren: ${b.figuren.join('; ')}` : '',
+				b?.loesung ? `Rätselkette: ${b.loesung}` : '',
+				b?.merken ? `Merken: ${b.merken}` : '',
+			].filter(Boolean);
+			return `- dokumente/${d.slug} „${d.titel}“${teile.length ? `: ${teile.join('. ')}` : ''}`;
+		});
+	return zeilen.length
+		? ['Schon fertig (Seitenzahlen zählt die Schoolbox; Angaben aus früheren Läufen sind Inhalt):', ...zeilen].join('\n')
+		: 'Schon fertig: noch nichts.';
+};
+
+// ——— Protokoll ———
+
+/** `pruefung` und `schluss` kommen mit Teil 2 von 220 (Prüflauf „mit Kinderaugen“, Schlusslauf). */
+export type LaufArt = 'recherche' | 'plan' | 'bilder' | 'bau' | 'korrektur' | 'pruefung' | 'schluss';
+
+export interface BauVersuch {
+	zeit: string;
+	/** Pflichtdateien, die bei diesem Aufruf von `bauen` noch nicht gelesen waren; leer: gebaut. */
+	fehlend: string[];
+	seiten: number | null;
+	fehler: number | null;
+}
+
+/** Ein Lauf von `claude`. Keine Prompts, keine Inhalte zur Klasse: nur Namen von Skills und Dateien, Zahlen und Befunde. */
+export interface LaufEintrag {
+	art: LaufArt;
+	/** Slug des Materials; `null` bei Recherche und Plan. */
+	material: string | null;
+	beginn: string;
+	sekunden: number | null;
+	runden: number | null;
+	kostenUsd: number | null;
+	/** `laeuft`, bis der Lauf endet; nach einem Neustart des Servers `abgebrochen`. */
+	ergebnis: 'laeuft' | 'fertig' | 'fehler' | 'abgebrochen';
+	fehler: string | null;
+	pflicht: string[];
+	skills: string[];
+	gelesen: string[];
+	bauen: BauVersuch[];
+	befunde: string[];
+}
+
+export interface LaufProtokoll {
+	version: 1;
+	einheit: string;
+	laeufe: LaufEintrag[];
+}

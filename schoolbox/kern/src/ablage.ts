@@ -6,6 +6,7 @@ import path from 'node:path';
 import { istTempDatei, kopiereAtomar, schreibeAtomar, schreibeJson } from './atomar';
 import type { Zusatz } from './einfuegen';
 import { fuegeZusatzEin } from './einfuegen';
+import { LAUF_DATEI } from './einheit-bau';
 import { SchoolboxFehler } from './fehler';
 import { druckprofilAusHtml, entwurfAusTitel, formatAusHtml, setzeBodyKlassen, setzeTitel, titelAusHtml } from './html';
 import { leseStarter } from './katalog-starter';
@@ -375,8 +376,9 @@ export const dupliziereMappe = async (
 			ordner === 'dokumente' &&
 			rest.length === 0 &&
 			[...NICHT_KOPIEREN, ...NUR_IM_ORIGINAL].includes(unterordner ?? '');
-		const mappenAusgabe = path.relative(quelle, von) === 'ausgabe';
-		return !imDokument && !mappenAusgabe && !istTempDatei(path.basename(von));
+		// Das Protokoll der Einheit (220) gehört zu den Läufen der Quelle, nicht zur Kopie.
+		const mappenEigen = ['ausgabe', LAUF_DATEI].includes(path.relative(quelle, von));
+		return !imDokument && !mappenEigen && !istTempDatei(path.basename(von));
 	};
 	try {
 		await cp(quelle, bau, { recursive: true, filter: kopieren });

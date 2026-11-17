@@ -1,14 +1,17 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { chmod, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, afterEach, before, describe, it } from 'node:test';
 
-import type { EinheitStand, Pruefbericht } from '@schoolbox/kern';
+import type { EinheitStand, LaufProtokoll, Pruefbericht } from '@schoolbox/kern';
 import {
+	aufgabenFuerBau,
 	bausteinVerstoesse,
 	einheitAuftragAus,
+	LAUF_DATEI,
+	lektuereZeile,
 	lesePlan,
 	mappenDir,
 	pruefeEinheitAngaben,
@@ -200,6 +203,14 @@ describe('Lauf einer Einheit (139)', () => {
 		assert.equal((await api(`/einheiten/${einheit.id}/freigeben`, { method: 'POST', body: '{}' })).status, 200);
 		return einheit;
 	};
+	const prompts = async () =>
+		(await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8')).split('\n---\n').filter(Boolean);
+	const jsonl = async <T>(name: string) =>
+		(await readFile(path.join(path.dirname(bin), name), 'utf8').catch(() => ''))
+			.trim()
+			.split('\n')
+			.filter(Boolean)
+			.map((z) => JSON.parse(z) as T);
 	const bis = async (id: string, status: EinheitStand['status']) => {
 		await warte(async () => (await stand(id)).status === status);
 		return stand(id);
@@ -212,7 +223,16 @@ describe('Lauf einer Einheit (139)', () => {
 		await writeFile(bin, KI_ATTRAPPE);
 		await chmod(bin, 0o755);
 		await fall('einheit');
-		server = await starteTestServer({ env: { CLAUDE_BIN: bin }, kiPruefer: () => Promise.resolve(pruefbericht) });
+		// `bauen` ohne Browser: eine Seite, derselbe Prüfbericht wie bei der Übernahme.
+		server = await starteTestServer({
+			env: { CLAUDE_BIN: bin },
+			kiPruefer: () => Promise.resolve(pruefbericht),
+			einheitAnsicht: async (_quelle, ziel) => {
+				await mkdir(ziel, { recursive: true });
+				await writeFile(path.join(ziel, 'seite-1.png'), '');
+				return { bericht: pruefbericht, bilder: ['seite-1.png'] };
+			},
+		});
 	});
 
 	after(async () => {
@@ -247,9 +267,10 @@ describe('Lauf einer Einheit (139)', () => {
 				.trim()
 				.split('\n')
 				.map((z) => (JSON.parse(z) as { args: string[] }).args)
-				.filter((a) => a.includes('--append-system-prompt-file') && a.join(' ').includes('einheit.md'));
+				.filter((a) => a.includes('--append-system-prompt-file') && a.join(' ').includes('einheit-material.md'));
 		const ohne = (await aufrufe()).at(-1) ?? [];
 		assert.ok(ohne.includes('--strict-mcp-config'));
+		assert.ok(!ohne.includes(CANVA_MCP));
 		const { id } = await starte({ ...ANGABEN, bilder: true });
 		await bis(id, 'fertig');
 		const mit = (await aufrufe()).at(-1) ?? [];
@@ -307,10 +328,11 @@ describe('Lauf einer Einheit (139)', () => {
 	it('Nur eine Einheit zur Zeit; Abbrechen lässt das Fertige stehen, Weiterbauen setzt fort', async () => {
 		await fall('einheit-haenger');
 		const { id } = await starte();
-		// In Arbeit ist das zuletzt geschriebene Material, nicht das erste offene im Plan.
+		// Je Material ein Lauf: fall-1 ist übernommen, während fall-2 in Arbeit ist.
 		await warte(async () => (await stand(id)).inArbeit === 'fall-2');
-		assert.deepEqual((await stand(id)).importiert, {});
-		await warte(async () => Object.keys((await stand(id)).importiert).length === 1);
+		assert.deepEqual(Object.keys((await stand(id)).importiert), ['fall-1']);
+		const angefangen = path.join(einheitenWurzel(server.materialDir), `einheit-${id}`, 'arbeit', 'dokumente', 'fall-2');
+		await warte(() => existsSync(path.join(angefangen, 'material.html')));
 		assert.equal(
 			(await api('/einheiten', { method: 'POST', body: JSON.stringify({ angaben: ANGABEN }) })).status,
 			409,
@@ -318,9 +340,16 @@ describe('Lauf einer Einheit (139)', () => {
 		await api(`/einheiten/${id}/abbrechen`, { method: 'POST' });
 		const s = await bis(id, 'unvollstaendig');
 		assert.deepEqual(Object.keys(s.importiert), ['fall-1']);
+		assert.equal(s.inArbeit, 'fall-2');
 		await fall('einheit');
+		const vorher = (await prompts()).length;
 		await api(`/einheiten/${id}/weiter`, { method: 'POST' });
 		assert.deepEqual(Object.keys((await bis(id, 'fertig')).importiert).sort(), ['fall-1', 'fall-2']);
+		// Weiterbauen setzt am angefangenen Material an, in einer neuen Sitzung.
+		const neu = (await prompts()).slice(vorher);
+		assert.equal(neu.length, 1);
+		assert.match(neu[0] ?? '', /der Bau von dokumente\/fall-2\//);
+		assert.match(neu[0] ?? '', /Ein früherer Durchgang hat dieses Material angefangen/);
 	});
 
 	it('Verwerfen legt den Ordner in den Papierkorb; „Rückgängig“ holt Ordner und Stand zurück (190-30)', async () => {
@@ -381,8 +410,6 @@ describe('Lauf einer Einheit (139)', () => {
 	});
 
 	describe('Aufgaben-Übersicht im Plan (221)', () => {
-		const prompts = async () =>
-			(await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8')).split('\n---\n').filter(Boolean);
 		const planen = async () => {
 			const vorher = (await prompts()).length;
 			const antwort = await api('/einheiten', { method: 'POST', body: JSON.stringify({ angaben: ANGABEN }) });
@@ -457,6 +484,103 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.equal(s.plan?.stunden, undefined);
 			assert.deepEqual(s.planBefunde, []);
 			await api(`/einheiten/${id}/verwerfen`, { method: 'POST' });
+		});
+	});
+
+	describe('Ein Lauf je Material (220)', () => {
+		const protokoll = async (mappe: string) =>
+			JSON.parse(await readFile(path.join(mappenDir(server.materialDir, mappe), LAUF_DATEI), 'utf8')) as LaufProtokoll;
+		const baulaeufe = async (mappe: string) => (await protokoll(mappe)).laeufe.filter((e) => e.art === 'bau');
+
+		it('Jedes Material in einer neuen Sitzung; der Auftrag nennt Aufgaben und fertige Materialien', async () => {
+			await fall('einheit-uebersicht');
+			const laeufeVorher = (await jsonl('laeufe.jsonl')).length;
+			const vorher = (await prompts()).length;
+			const { id } = await starte();
+			const s = await bis(id, 'fertig');
+			const laeufe = (await jsonl<{ erste: string; resume: boolean; auftrag: string }>('laeufe.jsonl')).slice(
+				laeufeVorher,
+			);
+			const bau = laeufe.filter((l) => l.erste.startsWith('Schritt 2: der Bau'));
+			assert.deepEqual(
+				bau.map((l) => [/dokumente\/([a-z0-9-]+)\//.exec(l.erste)?.[1], l.resume, l.auftrag]),
+				[
+					['fall-1', false, 'einheit-material.md'],
+					['fall-2', false, 'einheit-material.md'],
+				],
+			);
+			const neu = (await prompts()).slice(vorher).filter((p) => p.startsWith('Schritt 2: der Bau'));
+			assert.ok(s.plan);
+			assert.match(neu[0] ?? '', /Aufgaben-Übersicht aus dem freigegebenen Plan, für dokumente\/fall-1:/);
+			assert.ok(neu[0]?.includes(aufgabenFuerBau(s.plan, 'fall-1')));
+			assert.ok(neu[1]?.includes(aufgabenFuerBau(s.plan, 'fall-2')));
+			assert.match(neu[0] ?? '', /Schon fertig: noch nichts\./);
+			assert.match(neu[1] ?? '', /- dokumente\/fall-1 „Fall 1“: 1 Seite\. Formate: .*Rätselkette: liefert das U/);
+			assert.match(neu[0] ?? '', /Lege zuerst thema\.css an/);
+			assert.doesNotMatch(neu[1] ?? '', /Lege zuerst thema\.css an/);
+			assert.deepEqual(s.steckbriefe?.['fall-2']?.figuren, ['Willi mit Uhr']);
+		});
+
+		it('_lauf.json: je Lauf Skills und gelesene Dateien, alle Pflichtdateien gelesen, keine Prompts', async () => {
+			await fall('einheit');
+			const { id, mappe } = await starte();
+			await bis(id, 'fertig');
+			const roh = await readFile(path.join(mappenDir(server.materialDir, mappe), LAUF_DATEI), 'utf8');
+			const p = await protokoll(mappe);
+			assert.equal(p.einheit, id);
+			assert.deepEqual(
+				p.laeufe.map((e) => e.art).filter((a) => a !== 'recherche'),
+				['plan', 'bau', 'bau'],
+			);
+			for (const e of await baulaeufe(mappe)) {
+				assert.equal(e.ergebnis, 'fertig');
+				assert.ok(e.pflicht.length > 2);
+				const gelesen = new Set([...e.skills.map((x) => `skill:${x}`), ...e.gelesen]);
+				assert.deepEqual(
+					e.pflicht.filter((x) => !gelesen.has(x)),
+					[],
+				);
+				assert.deepEqual(e.bauen.at(-1)?.fehlend, []);
+				assert.equal(e.bauen.at(-1)?.seiten, 1);
+				assert.equal(typeof e.sekunden, 'number');
+			}
+			assert.doesNotMatch(roh, /Auftrag der Lehrkraft|Schritt 2|Uhrzeit|Zur Klasse/);
+		});
+
+		it('bauen vor der ganzen Pflichtlektüre: abgewiesen mit der fehlenden Datei, danach gebaut', async () => {
+			await fall('einheit-ungelesen');
+			const vorher = (await jsonl('bauen.jsonl')).length;
+			const { id, mappe } = await starte();
+			await bis(id, 'fertig');
+			const antworten = (await jsonl<{ slug: string; text?: string; fehler?: boolean }>('bauen.jsonl')).slice(vorher);
+			const [erster] = await baulaeufe(mappe);
+			const fehlend = erster?.pflicht.at(-1) ?? '';
+			assert.ok(fehlend);
+			assert.equal(antworten[0]?.slug, 'fall-1');
+			assert.equal(antworten[0]?.fehler, true);
+			assert.match(antworten[0]?.text ?? '', /Pflichtlektüre fehlt noch/);
+			assert.ok(antworten[0]?.text?.includes(`- ${lektuereZeile(fehlend)}`));
+			assert.notEqual(antworten[1]?.fehler, true);
+			assert.match(antworten[1]?.text ?? '', /Gebaut: 1 Seite/);
+			assert.deepEqual(
+				erster?.bauen.map((b) => b.fehlend),
+				[[fehlend], []],
+			);
+		});
+
+		it('Der Plan lässt sich im Bau nicht überschreiben', async () => {
+			await fall('einheit-ueberschreiben');
+			const vorher = (await prompts()).length;
+			const { id } = await starte();
+			const s = await bis(id, 'fertig');
+			assert.equal(s.plan?.titel, 'Uhrzeit');
+			assert.deepEqual(
+				s.plan?.dokumente.map((d) => d.slug),
+				['fall-1', 'fall-2'],
+			);
+			assert.deepEqual(Object.keys(s.importiert).sort(), ['fall-1', 'fall-2']);
+			const zweiter = (await prompts()).slice(vorher).find((p) => p.includes('der Bau von dokumente/fall-2/'));
+			assert.match(zweiter ?? '', /Titel: Uhrzeit/);
 		});
 	});
 

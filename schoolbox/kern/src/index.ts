@@ -12,6 +12,7 @@ export * from './eigene';
 export * from './einfuegen';
 export * from './einheit';
 export * from './einheit-aufgaben';
+export * from './einheit-bau';
 export * from './fehler';
 export type { BibliotheksFigur, Pose } from './figuren';
 export * from './figuren-namen';

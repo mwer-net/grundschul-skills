@@ -11,6 +11,7 @@ import path from 'node:path';
 
 import { blattFarbenListe } from './blatt-farben';
 import { formateFuerAuftrag, formateTabelle } from './einheit-aufgaben';
+import { pflichtTabelle } from './einheit-bau';
 import { figurenListe } from './figuren';
 import { formenTabelle } from './formen';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
@@ -26,6 +27,7 @@ const LAYOUT = 'skills/html-materialerstellung/references/layout.md';
 const GESTALTUNG = 'skills/html-materialerstellung/references/gestaltung.md';
 const ARBEITSBLATT = 'skills/arbeitsblatt/SKILL.md';
 const EINHEIT_AUFTRAG = 'schoolbox/vorlagen/ki/einheit.md';
+const HTML_SKILL = 'skills/html-materialerstellung/SKILL.md';
 
 const tabelle = (kopf: string[], zeilen: string[][]) =>
 	[
@@ -185,6 +187,8 @@ export const ABSCHNITTE: Abschnitt[] = [
 	// Aufgabenformate (221): eine Liste für Skill und Plan der Einheit
 	{ datei: ARBEITSBLATT, marke: 'aufgabenformate', inhalt: formateTabelle },
 	{ datei: EINHEIT_AUFTRAG, marke: 'aufgabenformate', inhalt: formateFuerAuftrag },
+	// Pflichtlektüre (220): dieselbe Liste für Harness und Schoolbox
+	{ datei: HTML_SKILL, marke: 'pflichtlektuere', inhalt: pflichtTabelle },
 ];
 
 /** Setzt den Inhalt zwischen `<!-- erzeugt: marke -->` und `<!-- /erzeugt: marke -->`. */

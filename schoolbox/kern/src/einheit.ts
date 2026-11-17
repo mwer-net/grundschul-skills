@@ -3,6 +3,7 @@
  * `einheit.json` schreibt. Eine Einheit ist ein Ordner mit einem Behälter, keine neue `Art` (140).
  */
 import type { PlanStunde } from './einheit-aufgaben';
+import type { Steckbrief } from './einheit-bau';
 import { leseStunden } from './einheit-aufgaben';
 import { SchoolboxFehler } from './fehler';
 import { FACH_NAME } from './namen';
@@ -15,9 +16,36 @@ export const EINHEIT_PLAN = 'einheit.json';
 export const EINHEIT_THEMA = 'thema.css';
 export const EINHEIT_ZEICHEN = { thema: 200, ziel: 200, frei: 1500, idee: 300, titel: 120, autor: 60 };
 export const EINHEIT_MAX_DOKUMENTE = 24;
-/** Kasten „Verbrauch“ vor dem Start (140); Werte aus dem Messlauf in 139. */
+/**
+ * Kasten „Verbrauch“ vor dem Start (140). Seit 220 baut je Material ein eigener Durchgang; geschätzt 5 bis 10 Minuten
+ * je Material (Lauf vom 2026-11-16: 15 Materialien in 54 Minuten in einem Lauf), am ersten echten Lauf zu messen.
+ */
 export const EINHEIT_VERBRAUCH =
-	'Zuerst zeigt Claude dir den Plan: die Geschichte und alle Materialien. Das dauert einige Minuten. Nach deiner Freigabe baut Claude jedes Material, prüft es und sieht es sich an; je nach Umfang dauert das eine bis drei Stunden und verbraucht sehr viel von deinem Limit. Du kannst weiterarbeiten; die Materialien erscheinen im Ordner, sobald sie fertig sind.';
+	'Zuerst sucht Claude im Web nach Bildungsplan und Fachdidaktik und zeigt dir den Plan: die Geschichte und alle Materialien. Das dauert einige Minuten. Nach deiner Freigabe baut Claude die Materialien nacheinander, jedes in einem eigenen Durchgang: Regeln lesen, bauen, prüfen, ansehen. Je nach Umfang dauert das eine bis drei Stunden und verbraucht sehr viel von deinem Limit. Du kannst weiterarbeiten; jedes Material erscheint im Ordner, sobald es fertig ist.';
+
+/** Minuten je Material in einem eigenen Durchgang (220), geschätzt; dazu einmal die Bilder. */
+export const EINHEIT_MINUTEN_JE_MATERIAL = { von: 5, bis: 10, bilder: 15 };
+
+const dauer = (minuten: number) => {
+	if (minuten < 60) {
+		return `${Math.max(5, Math.round(minuten / 5) * 5)} Minuten`;
+	}
+	const stunden = Math.round(minuten / 30) / 2;
+	return `${String(stunden).replace('.', ',')} ${stunden === 1 ? 'Stunde' : 'Stunden'}`;
+};
+
+/** „etwa 1,5 bis 2,5 Stunden“ für den Text vor der Freigabe. */
+export const einheitBauDauer = (materialien: number, bilder: boolean) => {
+	const extra = bilder ? EINHEIT_MINUTEN_JE_MATERIAL.bilder : 0;
+	const von = dauer(materialien * EINHEIT_MINUTEN_JE_MATERIAL.von + extra);
+	const bis = dauer(materialien * EINHEIT_MINUTEN_JE_MATERIAL.bis + extra);
+	if (von === bis) {
+		return `etwa ${von}`;
+	}
+	const [zahl, einheit] = von.split(' ');
+	return `etwa ${einheit === bis.split(' ')[1] || (einheit === 'Stunde' && bis.endsWith('Stunden')) ? zahl : von} bis ${bis}`;
+};
+
 const SLUG = new RegExp(ID_MUSTER);
 const MAX_SLUG = 60;
 
@@ -261,6 +289,10 @@ export interface EinheitPlan {
 	recherche?: string;
 	/** Aufgaben-Übersicht je Stunde (221, `einheit-aufgaben.ts`); fehlt bei Plänen davor. */
 	stunden?: PlanStunde[];
+	/** Je Figur Name, Rolle und Aussehen; jeder Baulauf bekommt sie (220). */
+	figuren?: string[];
+	/** Was jedes Kapitel liefert und was am Ende herauskommt (220). */
+	raetselkette?: string;
 }
 
 const kurz = (wert: unknown, max: number) => (typeof wert === 'string' ? wert.trim().slice(0, max) : '');
@@ -347,6 +379,8 @@ export const lesePlan = (roh: unknown, max = EINHEIT_MAX_DOKUMENTE): EinheitPlan
 	const geschichte = leseGeschichte(p);
 	const recherche = kurz(p.recherche, 1200);
 	const stunden = leseStunden(p.stunden, new Set(dokumente.map((d) => d.slug)));
+	const figuren = kurzListe(p.figuren, 300, 8);
+	const raetselkette = kurz(p.raetselkette, 1200);
 	return {
 		titel: kurz(p.titel, EINHEIT_ZEICHEN.titel),
 		annahmen: kurzListe(p.annahmen, 300, 12),
@@ -354,6 +388,8 @@ export const lesePlan = (roh: unknown, max = EINHEIT_MAX_DOKUMENTE): EinheitPlan
 		...(geschichte ? { geschichte } : {}),
 		...(recherche ? { recherche } : {}),
 		...(stunden.length ? { stunden } : {}),
+		...(figuren.length ? { figuren } : {}),
+		...(raetselkette ? { raetselkette } : {}),
 	};
 };
 
@@ -464,11 +500,18 @@ export interface EinheitStand {
 	planText?: string | null;
 	freigegeben?: boolean;
 	/**
-	 * Das Material, an dem Claude gerade arbeitet: das geplante mit der zuletzt geschriebenen `material.html` im
-	 * Lauf. `null`, solange Claude noch keins schreibt (Bilder, Thema). Die Reihenfolge im Plan sagt das nicht: Das
-	 * Deckblatt steht vorn, entsteht beim Verkauf aber zuletzt.
+	 * Der Schritt, den der Server gerade baut (220): Slug des Materials oder `BILDER_SCHRITT`; `null` außerhalb des Baus.
+	 * Nach einem Abbruch bleibt er stehen, bis der nächste Durchgang beginnt.
 	 */
 	inArbeit?: string | null;
+	/** Die Reihenfolge des Baus (`bauReihenfolge`), fest ab der Freigabe. Fehlt bei Einheiten vor 220. */
+	reihenfolge?: string[];
+	/** Je fertigem Material, was spätere wissen müssen (`einheit-bau.ts`). */
+	steckbriefe?: Record<string, Steckbrief>;
+	/** Der Schritt „Bilder“ ist durch; „Weiterbauen“ überspringt ihn. */
+	bilderFertig?: boolean;
+	/** Die Lehrkraft will ein eigenes Thema (`thema.css`); fehlt bei Einheiten vor 220. */
+	thema?: boolean;
 	/** Die Recherche vor dem Plan (219). Fehlt bei Einheiten davor; `laeuft`: Claude recherchiert gerade. */
 	recherche?: RechercheStand;
 	/** Was die Recherche bekommt: Fach, Klasse, Thema und Ziele, nichts zur Lerngruppe. */

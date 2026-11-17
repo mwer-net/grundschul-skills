@@ -1,4 +1,6 @@
 import type { EinheitPlan, EinheitStand, PlanDokument, PlanGeschichte } from '@schoolbox/kern/src/einheit';
+import { einheitBauDauer } from '@schoolbox/kern/src/einheit';
+import { BILDER_SCHRITT } from '@schoolbox/kern/src/einheit-bau';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -53,7 +55,7 @@ const StandMarke = ({ d, s }: { d: PlanDokument; s: EinheitStand }) => {
 			</span>
 		);
 	}
-	if (d.fertig) {
+	if (d.fertig || s.importiert[d.slug]) {
 		return (
 			<span className="flex items-center gap-1">
 				<Symbol name="haken" className="size-3" />
@@ -61,14 +63,19 @@ const StandMarke = ({ d, s }: { d: PlanDokument; s: EinheitStand }) => {
 			</span>
 		);
 	}
-	return s.status === 'laeuft' && s.inArbeit === d.slug ? (
-		<span className="flex items-center gap-1 text-brand-700">
-			<Symbol name="laden" className="size-3 animate-spin" />
-			in Arbeit
-		</span>
-	) : (
-		<span>geplant</span>
-	);
+	if (s.inArbeit === d.slug && s.status === 'laeuft') {
+		return (
+			<span className="flex items-center gap-1 text-brand-700">
+				<Symbol name="laden" className="size-3 animate-spin" />
+				wird gebaut
+			</span>
+		);
+	}
+	// Weiterbauen setzt an dem Material an, bei dem der letzte Durchgang stand (220).
+	if (s.inArbeit === d.slug && s.status === 'unvollstaendig' && s.freigegeben !== false) {
+		return <span className="font-medium text-tinte">hier geht es weiter</span>;
+	}
+	return <span>{s.status === 'laeuft' && s.freigegeben !== false ? 'wartet' : 'geplant'}</span>;
 };
 
 /**
@@ -76,7 +83,13 @@ const StandMarke = ({ d, s }: { d: PlanDokument; s: EinheitStand }) => {
  * auswählbar noch verschiebbar, teilbar oder im PDF.
  */
 const Platzhalter = ({ s }: { s: EinheitStand }) => {
-	const offen = (s.plan?.dokumente ?? []).filter((d) => !s.importiert[d.slug]);
+	// In der Reihenfolge des Baus, sobald der Server sie festgelegt hat.
+	const rang = (slug: string) => s.reihenfolge?.indexOf(slug) ?? -1;
+	const offen = (s.plan?.dokumente ?? [])
+		.filter((d) => !s.importiert[d.slug])
+		.map((d, i) => ({ d, i }))
+		.sort((a, b) => (rang(a.d.slug) === -1 || rang(b.d.slug) === -1 ? a.i - b.i : rang(a.d.slug) - rang(b.d.slug)))
+		.map(({ d }) => d);
 	if (offen.length === 0) {
 		return null;
 	}
@@ -155,7 +168,7 @@ const KOPF: Record<EinheitStand['status'], (titel: string) => string> = {
 	verworfen: (t) => `Die Einheit „${t}“ ist verworfen`,
 };
 
-/** Neben dem Kopf: der Fortschritt; vor dem ersten Material sagt er, dass Claude erst Aussehen und Bilder macht. */
+/** Neben dem Kopf: der Fortschritt und woran Claude gerade baut; ein Material je Lauf (220). */
 const zahlText = (s: EinheitStand, plant: boolean) => {
 	if (s.status === 'plan') {
 		return `${geplant(s)} Materialien geplant`;
@@ -164,10 +177,14 @@ const zahlText = (s: EinheitStand, plant: boolean) => {
 		return 'Claude plant die Einheit …';
 	}
 	const stand = `${fertig(s)} von ${geplant(s)} fertig`;
-	if (s.status !== 'laeuft' || s.inArbeit || fertig(s) > 0) {
+	if (s.status !== 'laeuft' || !s.inArbeit) {
 		return stand;
 	}
-	return `${stand} · Claude bereitet ${s.bilder ? 'Aussehen und Bilder' : 'das Aussehen'} vor`;
+	if (s.inArbeit === BILDER_SCHRITT) {
+		return `${stand} · Claude macht die Bilder`;
+	}
+	const titel = s.plan.dokumente.find((d) => d.slug === s.inArbeit)?.titel;
+	return titel ? `${stand} · Claude baut „${titel}“` : stand;
 };
 
 /** Das Band oben im Ordner einer Einheit (140, A2 S. 6): Stand, Abbrechen, Weiterbauen, Verwerfen, Annahmen, Befunde. */
@@ -283,8 +300,8 @@ export const EinheitBand = ({ s }: { s: EinheitStand }) => {
 			{s.status === 'plan' && (
 				<div className="flex flex-col gap-2" data-einheit-plan>
 					<p className="text-sm text-leise">
-						So würde Claude die Einheit bauen. Passt das? Gebaut wird erst nach deiner Freigabe; das dauert
-						dann je nach Umfang eine bis drei Stunden.
+						So würde Claude die Einheit bauen. Passt das? Gebaut wird erst nach deiner Freigabe, jedes Material
+						für sich; das dauert dann {einheitBauDauer(geplant(s), s.bilder)}.
 					</p>
 					{/* Dieselbe Freigabe wie beim neuen Blatt (190-35); die Sperre gegen den Doppelklick liegt dort (190-32). */}
 					<PlanFreigabe

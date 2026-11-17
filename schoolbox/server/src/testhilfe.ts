@@ -29,6 +29,7 @@ import {
 import { A4, FOLIE, testPdf } from '@schoolbox/kern/src/testpdf';
 
 import { erstelleApp } from './app';
+import type { EinheitAnsicht } from './einheit';
 import type { KiPruefer } from './ki';
 import type { ServerKonfig } from './konfig';
 import { pruefeServerKonfig } from './konfig';
@@ -95,7 +96,9 @@ process.stdin.on('end', () => {
 	const nutzung = fall === 'kontext-gross' ? { usage: { input_tokens: 10, cache_read_input_tokens: 120000, cache_creation_input_tokens: 500 } } : {};
 	sag({ type: 'assistant', message: { ...nutzung, content: [{ type: 'tool_use', name: 'Skill', input: { skill: 'fach-mathematik' } }, { type: 'tool_use', name: 'Edit', input: {} }] } });
 	const ende = (extra) => sag({ type: 'result', subtype: 'success', is_error: false, result: 'Annahme: Klasse 2', num_turns: 2, total_cost_usd: 0.01, usage: { output_tokens: 5 }, permission_denials: [], ...extra });
-	// 139: eine Einheit mit zwei Materialien; „einheit-skript“ baut erst ein Skript ein, „einheit-haenger“ schreibt erst das zweite, bleibt nach dem ersten fertigen stehen.
+	// 139, 220: eine Einheit mit zwei Materialien, nach der Freigabe ein Lauf je Material. „einheit-skript“, „-niveau“ und
+	// „-altsatz“ bauen fall-2 erst falsch, „einheit-haenger“ bleibt in fall-2 stehen, „einheit-ungelesen“ ruft bauen vor
+	// der letzten Pflichtdatei, „einheit-ueberschreiben“ schreibt im Bau einheit.json.
 	if (fall.startsWith('einheit')) {
 		const blatt = (titel, extra = '', satz = ' data-satz="2"') => '<!doctype html><html lang="de"><head><meta charset="utf-8"><title>' + titel + '</title><link rel="stylesheet" href="blatt.css"><link rel="stylesheet" href="../../thema.css"></head><body class="kl2 a4-hoch farbe"' + satz + '><section class="seite"><h1>' + titel + '</h1><img src="../../bilder/uhr.png" alt="Uhr">' + extra + '</section></body></html>';
 		// 221: „einheit-uebersicht“ plant mit Aufgaben-Übersicht; „einheit-dreifach“ hat ein Format dreimal und behebt es in der Korrekturrunde zum Plan, „einheit-dreifach-stur“ nicht.
@@ -103,29 +106,55 @@ process.stdin.on('end', () => {
 		const behoben = fall === 'einheit-dreifach' && !eingabe.includes('Schritt 1');
 		const stunden = [{ nr: 1, handlung: 'Uhr aus Pappe stellen', begriffe: ['Minutenzeiger'], aufgaben: [auf('fall-1', 'legen-bauen-falten', 'I', false), auf('fall-1', 'lueckentext', 'I', false)] }, { nr: 2, handlung: 'Zu zweit Uhrzeiten zeigen', begriffe: [], aufgaben: [auf('fall-2', 'lueckentext', 'II', true), auf('fall-2', fall === 'einheit-uebersicht' || behoben ? 'erklaeren' : 'lueckentext', 'III', false)] }];
 		const uebersicht = fall === 'einheit-uebersicht' || fall.startsWith('einheit-dreifach') ? { stunden, recherche: 'Der Bildungsplan nennt volle und halbe Stunden.' } : {};
-		const plan = (fertig) => fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Uhrzeit', annahmen: ['Klasse 2'], ...uebersicht, dokumente: [{ slug: 'fall-1', titel: 'Fall 1', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Einstieg', fertig: fertig >= 1 }, { slug: 'fall-2', titel: 'Fall 2', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Üben', fertig: fertig >= 2 }] }));
+		const plan = () => fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Uhrzeit', annahmen: ['Klasse 2'], ...uebersicht, dokumente: [{ slug: 'fall-1', titel: 'Fall 1', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Einstieg', fertig: false }, { slug: 'fall-2', titel: 'Fall 2', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Üben', fertig: false }] }));
 		const warte = (ms) => new Promise((r) => setTimeout(r, ms));
+		const neben = (name) => args[args.indexOf(name) + 1] ?? '';
+		fs.appendFileSync(path.join(__dirname, 'laeufe.jsonl'), JSON.stringify({ erste: eingabe.split('\n')[0], resume: args.includes('--resume'), auftrag: path.basename(neben('--append-system-prompt-file')) }) + '\n');
+		// Die Pflichtlektüre aus dem Auftrag, so gelesen wie Claude es tut: Skill aufrufen, Datei im Ordner der Skills lesen.
+		const lektuere = [...eingabe.matchAll(/^- (?:Skill (\S+) laden|Read (\S+))$/gm)].map((t) => t[1] ? { type: 'tool_use', name: 'Skill', input: { skill: t[1] } } : { type: 'tool_use', name: 'Read', input: { file_path: path.join(neben('--add-dir'), '.claude', 'skills', t[2]) } });
+		const lies = (teile) => { if (teile.length) { sag({ type: 'assistant', message: { content: teile } }); } };
+		// „bauen“ geht wie beim echten MCP-Server über den Socket aus der Konfiguration des Laufs.
+		const bauen = (slug) => new Promise((fertig) => {
+			const konfig = JSON.parse(fs.readFileSync(neben('--mcp-config'), 'utf8'));
+			const v = require('node:net').connect(konfig.mcpServers.schoolbox.args[1]);
+			let antwort = '';
+			v.on('connect', () => v.write(JSON.stringify({ dokument: slug }) + '\n'));
+			v.on('data', (t) => { antwort += t; });
+			v.on('close', () => { const a = JSON.parse(antwort || '{}'); fs.appendFileSync(path.join(__dirname, 'bauen.jsonl'), JSON.stringify({ slug, ...a }) + '\n'); fertig(a); });
+			v.on('error', () => fertig({ fehler: true }));
+		});
 		(async () => {
 			// Schritt 1 schreibt nur den Plan; gebaut wird nach der Freigabe.
-			if (eingabe.includes('Schritt 1')) { plan(0); ende({ result: (eingabe.includes('möchte ihn anders') ? 'Geänderter Plan. ' : '') + 'Die Uhr im Rathaus ist stehen geblieben. Zwei Fälle.' }); return; }
-			if (eingabe.includes('Korrekturrunde zum Plan')) { plan(0); ende({ result: 'Korrigierter Plan. Zwei Fälle.' }); return; }
-			if (eingabe.includes('Korrekturrunde')) { fs.writeFileSync('dokumente/fall-2/material.html', blatt('Fall 2')); plan(2); ende({ result: 'Behoben.' }); return; }
-			plan(0);
-			fs.writeFileSync('thema.css', ':root { --akzent: #c33; }');
+			if (eingabe.includes('Schritt 1')) { plan(); ende({ result: (eingabe.includes('möchte ihn anders') ? 'Geänderter Plan. ' : '') + 'Die Uhr im Rathaus ist stehen geblieben. Zwei Fälle.' }); return; }
+			if (eingabe.includes('Korrekturrunde zum Plan')) { plan(); ende({ result: 'Korrigierter Plan. Zwei Fälle.' }); return; }
+			if (eingabe.startsWith('Korrekturrunde.')) {
+				const slug = /dokumente\/([a-z0-9-]+)\/material\.html:/.exec(eingabe)?.[1] ?? 'fall-2';
+				fs.writeFileSync('dokumente/' + slug + '/material.html', blatt(slug === 'fall-1' ? 'Fall 1' : 'Fall 2'));
+				await bauen(slug);
+				ende({ result: 'Behoben.' });
+				return;
+			}
+			if (eingabe.includes('die Bilder der Einheit')) { lies(lektuere); ende({ result: 'Keine neuen Bilder.' }); return; }
+			const slug = /der Bau von dokumente\/([a-z0-9-]+)\//.exec(eingabe)?.[1];
+			if (!slug) { ende({ result: 'Kein Material genannt.' }); return; }
+			if (eingabe.includes('Lege zuerst thema.css an')) { fs.writeFileSync('thema.css', ':root { --akzent: #c33; }'); }
 			fs.mkdirSync('bilder', { recursive: true });
 			fs.writeFileSync('bilder/uhr.png', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
-			for (const slug of ['fall-1', 'fall-2']) { fs.mkdirSync('dokumente/' + slug, { recursive: true }); }
-			// Der Hänger beginnt mit dem zweiten Material: „in Arbeit“ folgt der Datei, nicht der Reihenfolge im Plan.
-			if (fall === 'einheit-haenger') { fs.writeFileSync('dokumente/fall-2/material.html', blatt('Fall 2')); await warte(2500); }
-			fs.writeFileSync('dokumente/fall-1/material.html', blatt('Fall 1'));
-			plan(1);
-			await warte(2500);
-			if (fall === 'einheit-haenger') { setInterval(() => {}, 1000); return; }
+			fs.mkdirSync('dokumente/' + slug, { recursive: true });
+			const zweites = slug === 'fall-2';
 			// „einheit-niveau“: Niveau-Punkte, obwohl der Auftrag ohne Niveaus ist (210). „einheit-altsatz“: Body ohne data-satz (212).
-			const extra = { 'einheit-skript': '<script>window.boese = 1</script>', 'einheit-niveau': '<span class="niveau"><i></i><i></i></span>' }[fall] ?? '';
-			fs.writeFileSync('dokumente/fall-2/material.html', blatt('Fall 2', extra, fall === 'einheit-altsatz' ? '' : undefined));
-			plan(2);
-			ende({ result: 'Zwei Fälle gebaut.' });
+			const extra = zweites ? { 'einheit-skript': '<script>window.boese = 1</script>', 'einheit-niveau': '<span class="niveau"><i></i><i></i></span>' }[fall] ?? '' : '';
+			fs.writeFileSync('dokumente/' + slug + '/material.html', blatt(zweites ? 'Fall 2' : 'Fall 1', extra, zweites && fall === 'einheit-altsatz' ? '' : undefined));
+			if (fall === 'einheit-ueberschreiben') { fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Anders', dokumente: [{ slug: 'fremd', titel: 'Fremd', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'x' }] })); }
+			if (zweites && fall === 'einheit-haenger') { setInterval(() => {}, 1000); return; }
+			const spaeter = fall === 'einheit-ungelesen' && !zweites ? lektuere.splice(-1) : [];
+			lies(lektuere);
+			await warte(200);
+			if (spaeter.length) { await bauen(slug); lies(spaeter); await warte(200); }
+			await bauen(slug);
+			fs.writeFileSync('dokumente/' + slug + '/steckbrief.json', JSON.stringify({ figuren: ['Willi mit Uhr'], loesung: zweites ? 'liefert das R' : 'liefert das U', merken: 'führt den Minutenzeiger ein' }));
+			await warte(zweites ? 1500 : 0);
+			ende({ result: (zweites ? 'Fall 2' : 'Fall 1') + ' gebaut.' });
 		})();
 		return;
 	}
@@ -271,6 +300,8 @@ export interface TestServerOptionen {
 	/** Zusätzliche Konfiguration, z. B. `CLAUDE_BIN` für die Attrappe. */
 	env?: Record<string, string>;
 	kiPruefer?: KiPruefer;
+	/** Ohne baut blatt.py das Werkzeug `bauen` der Einheit. */
+	einheitAnsicht?: EinheitAnsicht;
 }
 
 export const starteTestServer = async (optionen: TestServerOptionen = {}) => {
@@ -288,6 +319,7 @@ export const starteTestServer = async (optionen: TestServerOptionen = {}) => {
 		pdf: optionen.pdfBauer,
 		folien: optionen.folienBauer,
 		kiPruefer: optionen.kiPruefer,
+		einheitAnsicht: optionen.einheitAnsicht,
 	});
 	const ueberwachung: Ueberwachung | null = optionen.ueberwachung
 		? await starteUeberwachung(kontext, optionen.ruheMs)

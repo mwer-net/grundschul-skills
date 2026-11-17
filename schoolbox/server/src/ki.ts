@@ -96,19 +96,31 @@ export const KI_GRENZEN = {
 	limitMs: 60_000,
 	limitBudgetUsd: 0.1,
 	/**
-	 * Eine Unterrichtseinheit (139): ein großer Lauf. Gemessen: etwa 1,5 min, 15 Runden und bis 2 USD je Material;
-	 * vom Admin bestätigt (2026-11-11).
+	 * Eine Unterrichtseinheit (139), seit 220 ein frischer Lauf je Material. `zeitMs`, `runden` und die Budgets gelten
+	 * für einen Durchgang des Baus (Freigabe oder „Weiterbauen“) über alle Läufe zusammen. Der Lauf vom 2026-11-16 in einem
+	 * Stück: 15 Materialien, 54 min, 323 Runden, 27,61 USD (rund 22 Runden und 1,85 USD je Material bei im Schnitt
+	 * 175.000 Token Kontext). Je Material neu heißt: Pflichtlektüre jedes Mal (40.000 bis 70.000 Token), dafür kleiner
+	 * Kontext; geschätzt 30 bis 60 Runden, 2 bis 4 USD und 5 bis 10 min je Material. Am ersten echten Lauf zu messen.
 	 */
 	einheit: {
-		zeitMs: 3 * 60 * 60_000,
-		runden: 1500,
+		zeitMs: 5 * 60 * 60_000,
+		runden: 3000,
 		budgetUsd: 150,
 		budgetGuthabenUsd: 25,
 		dokumente: 24,
+		/** Ein Lauf je Material (220): Lektüre, Bau, Endkontrolle und eine Korrekturrunde haben darin Platz. */
+		material: { zeitMs: 30 * 60_000, runden: 200, budgetUsd: 20, budgetGuthabenUsd: 5 },
+		/** Der Schritt „Bilder“: Leitfigur, Posen und die Szenen aller Kapitel, je Bild bis zu drei Versuche. */
+		bilder: { zeitMs: 60 * 60_000, runden: 300, budgetUsd: 25, budgetGuthabenUsd: 5 },
+		/** So oft geht ein Material mit Sperre oder Prüf-FEHLER an seinen Lauf zurück. */
+		korrekturen: 1,
 		/** Die Planung vor der Freigabe: Geschichte und Plan, noch kein Material. */
 		planZeitMs: 15 * 60_000,
-		/** Über diesem Anteil am 5-Stunden-Fenster sagt der Start es vorher (Entscheidung 35: gesperrt wird nicht). */
-		warnAb: 0.5,
+		/**
+		 * Über diesem Anteil am 5-Stunden-Fenster sagt der Start es vorher (Entscheidung 35: gesperrt wird nicht). Seit 220
+		 * braucht eine Einheit eher mehr als ein ganzes Fenster; die Warnung kommt deshalb früher.
+		 */
+		warnAb: 0.3,
 		/** So lange bleibt ein unvollständiger Arbeitsordner für „Weiterbauen“ liegen. */
 		aufhebenMs: 7 * 24 * 60 * 60_000,
 	},
@@ -356,7 +368,7 @@ export const canvaEinstellungen = () =>
 		],
 	});
 
-/** Was eine Einheit schreiben darf (139): nur relativ zum Arbeitsordner, nie darüber hinaus. */
+/** Was eine Einheit vor 220 in einem Lauf schreiben durfte; `kiArgumente` nimmt es, wenn kein Lauf eigene Rechte nennt. */
 export const EINHEIT_RECHTE = [
 	'Write(./einheit.json)',
 	'Edit(./einheit.json)',
@@ -366,6 +378,19 @@ export const EINHEIT_RECHTE = [
 	'Edit(./dokumente/**)',
 	'Write(./bilder.json)',
 	'Edit(./bilder.json)',
+];
+
+/** Der Plan einer Einheit (220): nur `einheit.json`. */
+export const EINHEIT_PLAN_RECHTE = ['Write(./einheit.json)', 'Edit(./einheit.json)'];
+
+/**
+ * Ein Lauf des Baus (220) schreibt nur sein eigenes Material, beim ersten Schritt das Thema und mit Bildern die Bildliste.
+ * `einheit.json` nie: Den freigegebenen Plan hält der Server.
+ */
+export const einheitBauRechte = (o: { slug: string | null; thema: boolean; bilder: boolean }) => [
+	...(o.slug ? [`Write(./dokumente/${o.slug}/**)`, `Edit(./dokumente/${o.slug}/**)`] : []),
+	...(o.thema ? ['Write(./thema.css)', 'Edit(./thema.css)'] : []),
+	...(o.bilder ? ['Write(./bilder.json)', 'Edit(./bilder.json)'] : []),
 ];
 
 /** Ein neues Blatt mit Bildern aus Canva: neben dem Blatt nur die Bildliste, die der Server abholt (`blatt-bilder.ts`). */
@@ -399,6 +424,10 @@ export const kiArgumente = (o: {
 	/** Ein neues Blatt: mehr Zeit, Runden und Gründlichkeit. */
 	gross?: boolean;
 	runden?: number;
+	/** Schreibrechte eines Einheit-Laufs (220); ohne gilt `EINHEIT_RECHTE`. */
+	rechte?: string[];
+	/** Werkzeuge eines Einheit-Laufs, etwa für den Prüflauf (220, Teil 2); ohne `Read,Edit,Write,Skill`. */
+	werkzeuge?: string;
 }) => {
 	const canva = o.mitCanva === true;
 	if (o.canvaBild === true) {
@@ -459,9 +488,9 @@ export const kiArgumente = (o: {
 			? ['--mcp-config', ...(o.mcpDatei ? [o.mcpDatei] : []), ...(canva ? [CANVA_MCP] : [])]
 			: []),
 		'--tools',
-		o.einheit || canva ? 'Read,Edit,Write,Skill' : 'Read,Edit,Skill',
+		(o.einheit ? o.werkzeuge : undefined) ?? (o.einheit || canva ? 'Read,Edit,Write,Skill' : 'Read,Edit,Skill'),
 		'--allowedTools',
-		...(o.einheit ? EINHEIT_RECHTE : [`Edit(./${WORKFILE})`, ...(canva ? BLATT_BILD_RECHTE : [])]),
+		...(o.einheit ? (o.rechte ?? EINHEIT_RECHTE) : [`Edit(./${WORKFILE})`, ...(canva ? BLATT_BILD_RECHTE : [])]),
 		'Skill',
 		...(o.mcpDatei ? [WERKZEUG_BAUEN] : []),
 		...(canva ? CANVA_WERKZEUGE : []),
@@ -560,6 +589,8 @@ export const recherchiere = (o: {
 	budgetUsd: number;
 	schritt: (text: string) => void;
 	gestartet?: (kind: ChildProcessWithoutNullStreams) => void;
+	/** Jeder Werkzeugaufruf, für das Protokoll der Einheit (220). */
+	werkzeug?: (name: string, eingabe: Record<string, unknown>) => void;
 }) =>
 	new Promise<{ ergebnis: RechercheErgebnis; verbrauch: Record<string, unknown> }>((resolve) => {
 		const stand: LaufStand = { sitzung: null, fehlerCode: null, ergebnis: {} };
@@ -590,7 +621,7 @@ export const recherchiere = (o: {
 			}
 			try {
 				const e = JSON.parse(zeile) as Record<string, unknown>;
-				werteAus(e, stand, { schritt: () => undefined, limit: () => undefined });
+				werteAus(e, stand, { schritt: () => undefined, limit: () => undefined, werkzeug: o.werkzeug });
 				const inhalt = ((e.message ?? {}) as { content?: unknown[] }).content ?? [];
 				for (const teil of e.type === 'assistant' ? (inhalt as { type?: string; name?: string; input?: { url?: unknown } }[]) : []) {
 					const text = teil.type === 'tool_use' && teil.name ? rechercheSchritt(teil.name, teil.input ?? {}) : null;
@@ -835,7 +866,12 @@ const zahl = (wert: unknown) => (typeof wert === 'number' ? wert : 0);
 export const werteAus = (
 	e: Record<string, unknown>,
 	stand: LaufStand,
-	mitteile: { schritt: (text: string) => void; limit: (limit: KiLimit) => void },
+	mitteile: {
+		schritt: (text: string) => void;
+		limit: (limit: KiLimit) => void;
+		/** Jeder Werkzeugaufruf mit seiner Eingabe (220: Pflichtlektüre); der Empfänger nimmt daraus nur Namen und Pfade. */
+		werkzeug?: (name: string, eingabe: Record<string, unknown>) => void;
+	},
 ) => {
 	if (typeof e.session_id === 'string') {
 		stand.sitzung = e.session_id;
@@ -864,6 +900,9 @@ export const werteAus = (
 			input?: { skill?: unknown; file_path?: unknown };
 		}[];
 		for (const teil of inhalt) {
+			if (teil.type === 'tool_use' && teil.name) {
+				mitteile.werkzeug?.(teil.name, teil.input ?? {});
+			}
 			const text = teil.type === 'tool_use' && teil.name ? textSchritt(teil.name, teil.input ?? {}) : null;
 			if (text) {
 				mitteile.schritt(text);

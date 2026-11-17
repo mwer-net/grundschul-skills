@@ -1692,7 +1692,7 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 			...KONNEKTOREN,
 			...SCHLUSS,
 			'--max-turns',
-			'1500',
+			String(KI_GRENZEN.einheit.runden),
 			'--max-budget-usd',
 			'1',
 			...ende,

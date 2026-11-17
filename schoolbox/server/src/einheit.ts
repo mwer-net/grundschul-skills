@@ -14,31 +14,58 @@ import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 
-import type { Aktion, EinheitAngaben, EinheitBefund, EinheitStand, PlanDokument, Pruefbericht } from '@schoolbox/kern';
+import type {
+	Aktion,
+	Ansicht,
+	BauVersuch,
+	EinheitAngaben,
+	EinheitBefund,
+	EinheitPlan,
+	EinheitStand,
+	Fach,
+	LaufArt,
+	LaufEintrag,
+	LaufProtokoll,
+	PlanDokument,
+	Pruefbericht,
+} from '@schoolbox/kern';
 import {
 	ANSICHT_ORDNER,
+	aufgabenFuerBau,
 	baueAnsichtAus,
+	bauReihenfolge,
+	BILDER_SCHRITT,
 	bausteinVerstoesse,
 	dokKnotenSchluessel,
 	dokumentDir,
 	EINHEIT_PLAN,
 	EINHEIT_THEMA,
 	einheitAuftragAus,
+	fertigText,
 	formatBefund,
+	formateDesMaterials,
 	freierName,
+	gelesenAus,
+	LAUF_DATEI,
+	lektuereZeile,
 	lebenderOrdner,
 	lesePlan,
+	leseSteckbrief,
 	mappenDir,
 	namenIn,
 	neueFunde,
 	neueMappe,
 	neuesDokument,
+	pflichtFuer,
 	planBefunde,
 	pruefeEinheitAngaben,
 	RECHERCHE_DATEI,
 	rechercheAbschnitt,
+	rolleVon,
 	satzBefund,
 	schreibeAtomar,
+	SKILL_PRAEFIX,
+	STECKBRIEF_DATEI,
 	themaBefund,
 	uebernimmBilder,
 	wendeAktionAn,
@@ -54,6 +81,8 @@ import { HttpFehler } from './fehler';
 import type { Ergebnis, KiPruefer, LaufStand } from './ki';
 import {
 	beendeKind,
+	EINHEIT_PLAN_RECHTE,
+	einheitBauRechte,
 	KI_GRENZEN,
 	kiArgumente,
 	kiPfad,
@@ -102,6 +131,40 @@ const legeVorschauAb = async (arbeit: string, dokument: string, bilder: string[]
 };
 const AENDERUNG_ZEICHEN = 2000;
 type Stufe = 'plan' | 'bau';
+const FREIGABE = 'plan-freigegeben.json';
+const LEKTUERE_WARTEN_MS = 500;
+const MAX_STECKBRIEF_BYTES = 16 * 1024;
+
+/** Eigene Grenzen eines Laufs (`KI_GRENZEN.einheit.material` …); der Durchgang begrenzt zusätzlich. */
+export interface LaufGrenzen {
+	zeitMs: number;
+	runden: number;
+	budgetUsd: number;
+	budgetGuthabenUsd: number;
+}
+
+/** Ein Lauf der Einheit (220), für `starteLauf`. Teil 2 (Prüflauf, Schlusslauf) setzt Art, Auftrag und Werkzeuge selbst. */
+export interface LaufOptionen {
+	art: LaufArt;
+	/** Slug des Materials, `BILDER_SCHRITT` oder `null` (Plan). */
+	material: string | null;
+	text: string;
+	sitzung: string | null;
+	auftragDatei: string;
+	rechte: string[];
+	/** Ohne: `Read,Edit,Write,Skill`. */
+	werkzeuge?: string;
+	mitCanva: boolean;
+	/** Das Werkzeug `bauen`; `null`: kein MCP-Werkzeug der Schoolbox. */
+	bauen: Bauen | null;
+	grenzen: LaufGrenzen;
+	pflicht: string[];
+	/** Was die Sitzung schon gelesen hat: Die Korrekturrunde setzt die des Baulaufs fort. */
+	gelesen?: Set<string>;
+}
+
+/** Baut eine Fassung wie `blatt.py bauen`; Tests setzen eine ohne Browser ein. */
+export type EinheitAnsicht = (quelle: string, ziel: string) => Promise<Ansicht>;
 const BILD_IM_DOKUMENT = /\.\.\/\.\.\/bilder\/([a-z0-9][a-z0-9-]{0,59}\.(?:png|jpg))/g;
 
 const kennung = (inhalt: string) => createHash('sha256').update(inhalt).digest('hex').slice(0, 16);
@@ -118,10 +181,18 @@ export const pruefeEinheitId = (wert: unknown) => {
 
 const KORREKTUR = (befunde: EinheitBefund[]) =>
 	[
-		'Korrekturrunde. Die Prüfung der Schoolbox meldet bei diesen Materialien Fehler:',
-		...befunde.map((b) => `- dokumente/${b.slug}/material.html: ${b.texte.join(' · ')}`),
-		'Behebe nur diese Fehler in den genannten Dateien und setze danach in einheit.json „fertig“ für diese Materialien wieder auf true. Antworte am Ende in höchstens drei Zeilen.',
+		'Korrekturrunde. Die Prüfung der Schoolbox meldet Fehler:',
+		...befunde.map((b) =>
+			b.slug === EINHEIT_THEMA
+				? `- ${EINHEIT_THEMA}: ${b.texte.join(' · ')}`
+				: `- dokumente/${b.slug}/material.html: ${b.texte.join(' · ')}`,
+		),
+		'Behebe nur diese Fehler, baue mit bauen neu und sieh dir die Seiten an. Antworte am Ende in höchstens drei Zeilen.',
 	].join('\n');
+
+/** Kommt, wenn ein Material ohne erfolgreichen Aufruf von `bauen` endet: Dann fehlt Pflichtlektüre oder Endkontrolle. */
+const NICHT_GEBAUT =
+	'Nicht mit bauen gebaut und angesehen. Lies die Pflichtlektüre, rufe bauen auf und mache die visuelle Endkontrolle.';
 
 /** Der Auftrag der Lehrkraft und, falls schon da, die Recherche dazu (219): für jeden Lauf ohne Sitzung. */
 const KOPF = (s: EinheitStand) =>
@@ -142,21 +213,43 @@ const PLAN_KORREKTUR = (befunde: string[]) =>
 		'Ändere nur, was nötig ist: Formate, Aufgaben, Fachwörter und Markierungen in „stunden“, wenn nötig auch die Dokumente dazu. Schreibe einheit.json neu und antworte wieder mit dem ganzen Plan. Baue noch nichts.',
 	].join('\n');
 
-const BAU =
-	'Schritt 2: der Bau. Die Lehrkraft hat den Plan in einheit.json freigegeben. Baue jetzt die Einheit genau nach diesem Plan.';
+/** Der freigegebene Plan für jeden Baulauf (220): Geschichte, Figuren, Rätselkette, Kapitel und die Liste der Materialien. */
+const PLAN_ABSCHNITT = (plan: EinheitPlan) => {
+	const g = plan.geschichte;
+	return [
+		'Der freigegebene Plan (steht auch in einheit.json; nur lesen, der Server hält ihn fest):',
+		`Titel: ${plan.titel}`,
+		g?.kurz ? `Geschichte: ${g.kurz}` : '',
+		plan.figuren?.length ? `Figuren: ${plan.figuren.join(' · ')}` : '',
+		g?.verdaechtige.length ? `Verdächtige: ${g.verdaechtige.join(' · ')}` : '',
+		g?.falscheFaehrte ? `Falsche Fährte: ${g.falscheFaehrte}` : '',
+		g?.aufloesung ? `Auflösung: ${g.aufloesung}` : '',
+		plan.raetselkette ? `Rätselkette: ${plan.raetselkette}` : '',
+		...(g?.kapitel ?? []).map(
+			(k) =>
+				`Kapitel ${k.nr}: ${k.titel}${k.offenesEnde ? `. Offenes Ende: ${k.offenesEnde}` : ''}${k.bildfolien.length ? `. Bildfolien: ${k.bildfolien.join(' · ')}` : ''}`,
+		),
+		'Materialien der Einheit:',
+		...plan.dokumente.map((d) => `- ${d.slug} „${d.titel}“ (${d.art}, ${d.format}): ${d.zweck}`),
+	]
+		.filter(Boolean)
+		.join('\n');
+};
 
-const WEITER = (stand: EinheitStand) =>
+const PFLICHT_ABSCHNITT = (pflicht: string[], wann: string) =>
 	[
-		'Weiterbauen. Der vorige Lauf wurde unterbrochen.',
-		`Schon in der Schoolbox: ${Object.keys(stand.importiert).join(', ') || 'noch nichts'}.`,
-		'Lies einheit.json und baue nur die Materialien, die noch nicht fertig sind. Ändere fertige nicht.',
+		`Pflichtlektüre, ganz und ${wann} (Pfade ab dem Ordner der Skills):`,
+		...pflicht.map((p) => `- ${lektuereZeile(p)}`),
 	].join('\n');
 
-export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
+export const erstelleEinheiten = (
+	kontext: Kontext,
+	pruefer: KiPruefer,
+	baueAnsicht: EinheitAnsicht = (quelle, ziel) => baueAnsichtAus(kontext.konfig, quelle, ziel),
+) => {
 	const { materialDir } = kontext.konfig;
 	const wurzel = einheitenWurzel(materialDir);
 	const bin = kiPfad(kontext.konfig);
-	const auftragDatei = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit.md');
 	const projekte = () => path.join(homedir(), '.claude', 'projects');
 	const projektName = (arbeit: string) => arbeit.replace(/[^a-zA-Z0-9]/g, '-');
 
@@ -164,23 +257,14 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 	const arbeitDir = (id: string) => path.join(dir(id), 'arbeit');
 	const ablageDir = (id: string) => path.join(dir(id), 'ablage');
 
-	/** Das geplante Material mit der jüngsten `material.html` seit `seit`, sonst `null`. */
-	const zuletztGeschrieben = async (s: EinheitStand, seit: number) => {
-		let bestes: { slug: string; zeit: number } | null = null;
-		for (const d of s.plan?.dokumente ?? []) {
-			const zeit = await stat(path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html')).then(
-				(st) => st.mtimeMs,
-				() => 0,
-			);
-			if (zeit >= seit && (!bestes || zeit > bestes.zeit)) {
-				bestes = { slug: d.slug, zeit };
-			}
-		}
-		return bestes?.slug ?? null;
-	};
+	/** Der freigegebene Plan, wie er in `einheit.json` stand (220): Vor jedem Baulauf legt der Server ihn zurück. */
+	const freigabeDatei = (id: string) => path.join(dir(id), FREIGABE);
+	const planAuftrag = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit.md');
+	const materialAuftrag = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit-material.md');
 
 	let aktiv: {
 		stand: EinheitStand;
+		stufe: Stufe;
 		kind: ChildProcessWithoutNullStreams | null;
 		abbruch: boolean;
 		lader: BildLader | null;
@@ -191,10 +275,98 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		letztesThema: string;
 		/** Der zuletzt gemeldete Stand: Der Takt meldet nur Änderungen. */
 		gemeldet: string;
-		/** Start des Laufs in ms: Ältere Dateien stammen aus einem früheren Lauf und zählen für `inArbeit` nicht. */
+		/** Start des Durchgangs in ms: Die Zeitgrenze gilt für alle Läufe darin zusammen. */
 		seit: number;
+		/** `_lauf.json` der Mappe; jeder Lauf hängt seinen Eintrag an. */
+		protokoll: LaufProtokoll;
+		/** Der laufende Lauf: seine Pflichtlektüre und was er schon gelesen hat (auch in der Korrekturrunde). */
+		lauf: { eintrag: LaufEintrag; pflicht: string[]; gelesen: Set<string> } | null;
+		/** Materialien, die in ihrer Sitzung mit `bauen` gebaut wurden, mit der Zahl ihrer Seiten. */
+		gebaut: Map<string, number>;
+		/** Seiten nach der Prüfung des Servers beim Übernehmen. */
+		seiten: Map<string, number>;
+		verbraucht: { kostenUsd: number; runden: number };
 	} | null = null;
 	let aufraeumTakt: ReturnType<typeof setInterval> | null = null;
+
+	const protokollDatei = (s: EinheitStand) => path.join(mappenDir(materialDir, s.mappe), LAUF_DATEI);
+
+	const leseProtokoll = async (s: EinheitStand): Promise<LaufProtokoll> => {
+		try {
+			const p = JSON.parse(await readFile(protokollDatei(s), 'utf8')) as LaufProtokoll;
+			if (p.version === 1 && Array.isArray(p.laeufe)) {
+				return p;
+			}
+		} catch {
+			// Noch keins oder kaputt: neu.
+		}
+		return { version: 1, einheit: s.id, laeufe: [] };
+	};
+
+	const schreibeProtokoll = async () => {
+		const a = aktiv;
+		if (!a || !existsSync(path.join(mappenDir(materialDir, a.stand.mappe), 'mappe.json'))) {
+			return;
+		}
+		await schreibeAtomar(protokollDatei(a.stand), `${JSON.stringify(a.protokoll, null, '\t')}\n`).catch(
+			(fehler: unknown) => console.error('Protokoll der Einheit:', fehler),
+		);
+	};
+
+	/** Nach einem Neustart: Was als laufend im Protokoll steht, ist abgebrochen. */
+	const schliesseProtokoll = (p: LaufProtokoll) => {
+		for (const e of p.laeufe.filter((x) => x.ergebnis === 'laeuft')) {
+			e.ergebnis = 'abgebrochen';
+			e.fehler = 'Der Server wurde neu gestartet.';
+		}
+		return p;
+	};
+
+	const neuerEintrag = (art: LaufArt, material: string | null, pflicht: string[]): LaufEintrag => ({
+		art,
+		material,
+		beginn: new Date().toISOString(),
+		sekunden: null,
+		runden: null,
+		kostenUsd: null,
+		ergebnis: 'laeuft',
+		fehler: null,
+		pflicht,
+		skills: [],
+		gelesen: [],
+		bauen: [],
+		befunde: [],
+	});
+
+	const beendeEintrag = (e: LaufEintrag, beginn: number, fehler: string | null, verbrauch: Record<string, unknown>) => {
+		e.sekunden = Math.round((Date.now() - beginn) / 1000);
+		e.runden = typeof verbrauch.runden === 'number' ? verbrauch.runden : null;
+		e.kostenUsd = typeof verbrauch.kostenUsd === 'number' ? verbrauch.kostenUsd : null;
+		e.ergebnis = aktiv?.abbruch ? 'abgebrochen' : fehler ? 'fehler' : 'fertig';
+		e.fehler = fehler;
+		if (aktiv) {
+			aktiv.verbraucht.kostenUsd += e.kostenUsd ?? 0;
+			aktiv.verbraucht.runden += e.runden ?? 0;
+		}
+	};
+
+	/** Aus dem Strom: geladene Skills und gelesene Dateien der Skills, nur Namen und Pfade. */
+	const notiereGelesen = (
+		lauf: { eintrag: LaufEintrag; gelesen: Set<string> },
+		name: string,
+		eingabe: Record<string, unknown>,
+	) => {
+		const g = gelesenAus(name, eingabe);
+		if (!g || lauf.gelesen.has(g)) {
+			return;
+		}
+		lauf.gelesen.add(g);
+		if (g.startsWith(SKILL_PRAEFIX)) {
+			lauf.eintrag.skills.push(g.slice(SKILL_PRAEFIX.length));
+		} else {
+			lauf.eintrag.gelesen.push(g);
+		}
+	};
 
 	const melde = (s: EinheitStand) => {
 		kontext.ereignisse.sende({ typ: 'einheit-stand', daten: { id: s.id, ordner: s.ordner } });
@@ -241,14 +413,6 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			...verbrauch,
 		};
 		await appendFile(path.join(materialDir, VERBRAUCH_DATEI), `${JSON.stringify(zeile)}\n`).catch(() => undefined);
-	};
-
-	const budget = () => {
-		const limit = kontext.ki.limit();
-		const ueberGuthaben =
-			(limit?.status === 'rejected' || limit?.laeuftUeberGuthaben === true) &&
-			(!limit.zurueck || new Date(limit.zurueck).getTime() > Date.now());
-		return ueberGuthaben ? KI_GRENZEN.einheit.budgetGuthabenUsd : KI_GRENZEN.einheit.budgetUsd;
 	};
 
 	// ── Übernahme ──
@@ -348,6 +512,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			fehler: 0,
 			meldungen: [],
 		}));
+		aktiv?.seiten.set(d.slug, bericht.seiten.length);
 		// Abgewähltes im Material zählt wie ein Prüffehler: Die Korrekturrunde nimmt es heraus (210).
 		befund(s, d.slug, dok, [
 			...bericht.meldungen.filter((m) => m.stufe === 'FEHLER').map((m) => `Seite ${m.seite}: ${m.text}`),
@@ -365,7 +530,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		}
 	};
 
-	/** Ein Durchgang: Bilder laden, Plan lesen, Thema und fertige Dokumente übernehmen. */
+	/** Ein Abgleich im Takt: Bilder laden, im Plan-Schritt den Plan lesen, das Thema übernehmen. */
 	const gleicheAb = async () => {
 		const a = aktiv;
 		if (!a) {
@@ -379,7 +544,8 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		}
 		await a.lader?.pruefe();
 		const planDatei = path.join(arbeitDir(s.id), EINHEIT_PLAN);
-		if (existsSync(planDatei) && (await stat(planDatei)).size <= MAX_PLAN_BYTES) {
+		// Im Bau gilt der freigegebene Plan; was ein Lauf in einheit.json schreibt, liest der Server nicht (220).
+		if (a.stufe === 'plan' && existsSync(planDatei) && (await stat(planDatei)).size <= MAX_PLAN_BYTES) {
 			const text = await readFile(planDatei, 'utf8');
 			if (text !== a.letzterPlan) {
 				a.letzterPlan = text;
@@ -394,17 +560,6 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			}
 		}
 		await uebernimmThema(s);
-		s.inArbeit = await zuletztGeschrieben(s, a.seit);
-		for (const d of s.plan?.dokumente ?? []) {
-			if (d.fertig) {
-				try {
-					await importiere(s, d);
-				} catch (fehler) {
-					console.error('Einheit übernehmen:', (fehler as Error).message);
-					befund(s, d.slug, s.importiert[d.slug]?.dok ?? null, ['Die Übernahme ist gescheitert.']);
-				}
-			}
-		}
 		if (a.lader) {
 			const stand = a.lader.stand();
 			s.geladeneBilder = stand.filter((b) => b.ok).length;
@@ -430,16 +585,45 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 
 	// ── Lauf ──
 
-	/** Das Werkzeug `bauen` der Einheit: Sperre zuerst, dann derselbe Bau wie bei einem Blatt, je Material ein Ordner. */
+	/** Was noch nicht gelesen ist. Der Strom kann dem Aufruf von `bauen` knapp nachlaufen: dann einmal kurz warten. */
+	const fehlendeLektuere = async () => {
+		const offen = () => {
+			const lauf = aktiv?.lauf;
+			return lauf ? lauf.pflicht.filter((p) => !lauf.gelesen.has(p)) : [];
+		};
+		if (offen().length) {
+			await new Promise((r) => setTimeout(r, LEKTUERE_WARTEN_MS));
+		}
+		return offen();
+	};
+
+	/**
+	 * Das Werkzeug `bauen` eines Baulaufs: nur das eigene Material, erst nach der Pflichtlektüre (220), dann die Sperre
+	 * und derselbe Bau wie bei einem Blatt.
+	 */
 	const bauenFuer =
-		(s: EinheitStand): Bauen =>
+		(s: EinheitStand, slug: string): Bauen =>
 		async (dokument) => {
-			if (!dokument || !SLUG.test(dokument)) {
-				return { text: 'Nenne den Slug des Materials, wie er in einheit.json steht.', fehler: true };
+			if (dokument !== slug) {
+				return { text: `Dieser Lauf baut nur dokumente/${slug}. Rufe bauen mit „${slug}“ auf.`, fehler: true };
 			}
-			const datei = path.join(arbeitDir(s.id), 'dokumente', dokument, 'material.html');
+			const versuch: BauVersuch = { zeit: new Date().toISOString(), fehlend: [], seiten: null, fehler: null };
+			aktiv?.lauf?.eintrag.bauen.push(versuch);
+			versuch.fehlend = await fehlendeLektuere();
+			if (versuch.fehlend.length) {
+				await schreibeProtokoll();
+				return {
+					text: [
+						'Nicht gebaut: Die Pflichtlektüre fehlt noch. Lies zuerst ganz:',
+						...versuch.fehlend.map((f) => `- ${lektuereZeile(f)}`),
+						'Rufe bauen danach wieder auf.',
+					].join('\n'),
+					fehler: true,
+				};
+			}
+			const datei = path.join(arbeitDir(s.id), 'dokumente', slug, 'material.html');
 			if (!existsSync(datei) || (await stat(datei)).size > KI_GRENZEN.materialBytes) {
-				return { text: `dokumente/${dokument}/material.html fehlt oder ist zu groß.`, fehler: true };
+				return { text: `dokumente/${slug}/material.html fehlt oder ist zu groß.`, fehler: true };
 			}
 			const roh = await readFile(datei, 'utf8');
 			const sperre = [
@@ -450,46 +634,116 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			if (sperre.length) {
 				return { text: `Nicht gebaut, der Server lehnt das Material ab: ${sperre.join(' · ')}`, fehler: true };
 			}
-			const ansicht = await baueAnsichtAus(
-				kontext.konfig,
-				datei,
-				path.join(arbeitDir(s.id), ANSICHT_ORDNER, dokument),
-			);
-			const vorschau = s.verkauf ? await legeVorschauAb(arbeitDir(s.id), dokument, ansicht.bilder) : null;
+			const ansicht = await baueAnsicht(datei, path.join(arbeitDir(s.id), ANSICHT_ORDNER, slug));
+			versuch.seiten = ansicht.bilder.filter((b) => SEITENBILD.test(b)).length;
+			versuch.fehler = ansicht.bericht.meldungen.filter((m) => m.stufe === 'FEHLER').length;
+			aktiv?.gebaut.set(slug, versuch.seiten);
+			await schreibeProtokoll();
+			const vorschau = s.verkauf ? await legeVorschauAb(arbeitDir(s.id), slug, ansicht.bilder) : null;
 			const auftrag = bausteinVerstoesse(roh, s.bausteine ?? {}).map((t) => `FEHLER: ${t}`);
 			return {
-				text: [ansichtText(ansicht, `${ANSICHT_ORDNER}/${dokument}`), ...auftrag, vorschau]
-					.filter(Boolean)
-					.join('\n'),
+				text: [ansichtText(ansicht, `${ANSICHT_ORDNER}/${slug}`), ...auftrag, vorschau].filter(Boolean).join('\n'),
 			};
 		};
 
-	const lauf = async (s: EinheitStand, text: string, sitzung: string | null, zeitMs = KI_GRENZEN.einheit.zeitMs) => {
-		const werkzeug = await starteWerkzeug(dir(s.id), bauenFuer(s), 'einheit').catch((fehler: unknown) => {
-			console.error('Werkzeug der Einheit:', fehler);
-			return null;
-		});
-		try {
-			return await laufMit(s, text, sitzung, zeitMs, werkzeug?.mcpDatei ?? null);
-		} finally {
-			await werkzeug?.ende();
-		}
+	const ueberGuthaben = () => {
+		const limit = kontext.ki.limit();
+		return (
+			(limit?.status === 'rejected' || limit?.laeuftUeberGuthaben === true) &&
+			(!limit.zurueck || new Date(limit.zurueck).getTime() > Date.now())
+		);
 	};
 
-	const laufMit = (s: EinheitStand, text: string, sitzung: string | null, zeitMs: number, mcpDatei: string | null) =>
+	/** Die Grenzen eines Laufs: seine eigenen, höchstens was dem Durchgang noch bleibt. */
+	const grenzenFuer = (g: LaufGrenzen) => {
+		const e = KI_GRENZEN.einheit;
+		const ueber = ueberGuthaben();
+		const seit = aktiv?.seit ?? Date.now();
+		const verbraucht = aktiv?.verbraucht ?? { kostenUsd: 0, runden: 0 };
+		return {
+			zeitMs: Math.min(g.zeitMs, seit + e.zeitMs - Date.now()),
+			runden: Math.min(g.runden, e.runden - verbraucht.runden),
+			budgetUsd: Math.min(
+				ueber ? g.budgetGuthabenUsd : g.budgetUsd,
+				(ueber ? e.budgetGuthabenUsd : e.budgetUsd) - verbraucht.kostenUsd,
+			),
+		};
+	};
+
+	const ZEIT_EINHEIT = 'Die Zeit für die Einheit ist abgelaufen.';
+	const ZEIT_LAUF = 'Die Zeit für dieses Material ist abgelaufen.';
+
+	/** Ist der Durchgang erschöpft, startet kein Lauf mehr. */
+	const erschoepft = (g: { zeitMs: number; runden: number; budgetUsd: number }) =>
+		g.zeitMs < 60_000 ? ZEIT_EINHEIT : g.runden < 10 ? 'error_max_turns' : g.budgetUsd < 0.5 ? 'error_max_budget_usd' : null;
+
+	/**
+	 * Ein Lauf von `claude` für die Einheit (220): Recherche ausgenommen, jeder Schritt geht hier durch. Er schreibt
+	 * seinen Eintrag ins Protokoll, liest im Strom die Pflichtlektüre mit und startet `bauen`, wenn `o.bauen` gesetzt ist.
+	 * Teil 2 (Prüflauf, Schlusslauf) nutzt ihn mit eigener Art, eigenem Auftrag und eigenen Werkzeugen.
+	 */
+	const starteLauf = async (s: EinheitStand, o: LaufOptionen): Promise<Ergebnis> => {
+		const eintrag = neuerEintrag(o.art, o.material, o.pflicht);
+		const lauf = { eintrag, pflicht: o.pflicht, gelesen: o.gelesen ?? new Set<string>() };
+		const beginn = Date.now();
+		const grenzen = grenzenFuer(o.grenzen);
+		const leer: Ergebnis = { fehler: null, sitzung: o.sitzung, antwort: '', verbrauch: {}, kontext: 0, gearbeitet: false };
+		const halt = erschoepft(grenzen);
+		if (!aktiv || aktiv.abbruch || halt) {
+			return { ...leer, fehler: halt };
+		}
+		aktiv.protokoll.laeufe.push(eintrag);
+		aktiv.lauf = lauf;
+		await schreibeProtokoll();
+		const werkzeug = o.bauen
+			? await starteWerkzeug(dir(s.id), o.bauen, 'einheit').catch((fehler: unknown) => {
+					console.error('Werkzeug der Einheit:', fehler);
+					return null;
+				})
+			: null;
+		let ergebnis = leer;
+		try {
+			ergebnis = await laufMit(s, o, grenzen, werkzeug?.mcpDatei ?? null, (name, eingabe) =>
+				notiereGelesen(lauf, name, eingabe),
+			);
+		} finally {
+			await werkzeug?.ende();
+			beendeEintrag(eintrag, beginn, ergebnis.fehler, ergebnis.verbrauch);
+			if (aktiv?.lauf === lauf) {
+				aktiv.lauf = null;
+			}
+			await schreibeProtokoll();
+		}
+		await notiereVerbrauch(s, ergebnis.fehler ? 'unvollstaendig' : o.art === 'plan' ? 'plan' : 'fertig', beginn, {
+			...ergebnis.verbrauch,
+			lauf: o.art,
+		});
+		return ergebnis;
+	};
+
+	const laufMit = (
+		s: EinheitStand,
+		o: LaufOptionen,
+		grenzen: { zeitMs: number; runden: number; budgetUsd: number },
+		mcpDatei: string | null,
+		werkzeug: (name: string, eingabe: Record<string, unknown>) => void,
+	) =>
 		new Promise<Ergebnis>((resolve) => {
-			const stand: LaufStand = { sitzung, fehlerCode: null, ergebnis: {} };
+			const stand: LaufStand = { sitzung: o.sitzung, fehlerCode: null, ergebnis: {} };
 			const kind = spawn(
 				bin,
 				kiArgumente({
 					ablage: ablageDir(s.id),
-					auftragDatei,
-					budgetUsd: budget(),
+					auftragDatei: o.auftragDatei,
+					budgetUsd: Math.round(grenzen.budgetUsd * 100) / 100,
 					modell: kontext.konfig.kiModell,
-					sitzung,
+					sitzung: o.sitzung,
 					einheit: true,
-					mitCanva: s.bilder,
+					mitCanva: o.mitCanva,
 					mcpDatei,
+					runden: grenzen.runden,
+					rechte: o.rechte,
+					...(o.werkzeuge ? { werkzeuge: o.werkzeuge } : {}),
 				}),
 				{ cwd: arbeitDir(s.id), env: kiUmgebung(bin) },
 			);
@@ -501,12 +755,15 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			}
 			let grund: string | null = null;
 			let bytes = 0;
-			const frist = setTimeout(() => {
-				grund = 'Die Zeit für die Einheit ist abgelaufen.';
-				beendeKind(kind);
-			}, zeitMs);
+			const frist = setTimeout(
+				() => {
+					grund = o.material && grenzen.zeitMs === o.grenzen.zeitMs ? ZEIT_LAUF : ZEIT_EINHEIT;
+					beendeKind(kind);
+				},
+				Math.max(grenzen.zeitMs, 1000),
+			);
 			kind.stdin.on('error', () => undefined);
-			kind.stdin.end(text);
+			kind.stdin.end(o.text);
 			kind.stderr.resume();
 			createInterface({ input: kind.stdout }).on('line', (zeile) => {
 				bytes += zeile.length;
@@ -519,6 +776,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 					werteAus(JSON.parse(zeile) as Record<string, unknown>, stand, {
 						schritt: () => undefined,
 						limit: () => undefined,
+						werkzeug,
 					});
 				} catch {
 					// Keine JSON-Zeile.
@@ -548,6 +806,9 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		error_max_budget_usd: 'Das Budget der Einheit ist aufgebraucht.',
 	};
 
+	/** Nach diesen Fehlern eines Materials geht der Durchgang mit dem nächsten weiter; nach allen anderen endet er. */
+	const WEITER_NACH = new Set(['error_max_turns', 'error_max_budget_usd', ZEIT_LAUF]);
+
 	/**
 	 * Vor dem ersten Plan (219): ein eigener Lauf mit Websuche, ohne Schreibrecht am Material. Was er schreibt, prüft der
 	 * Server; der Plan bekommt es als Inhalt und `recherche.md` im Arbeitsordner. Scheitert er, plant Claude ohne.
@@ -559,15 +820,17 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		s.recherche = { status: 'laeuft', grund: null, quellen: [], text: null, schritt: null };
 		await merke(s);
 		const beginn = Date.now();
-		const limit = kontext.ki.limit();
-		const ueberGuthaben = limit?.status === 'rejected' || limit?.laeuftUeberGuthaben === true;
+		const eintrag = neuerEintrag('recherche', null, []);
+		const lauf = { eintrag, gelesen: new Set<string>() };
+		aktiv?.protokoll.laeufe.push(eintrag);
+		await schreibeProtokoll();
 		const { ergebnis, verbrauch } = await recherchiere({
 			bin,
 			modell: kontext.konfig.kiModell,
 			ordner: path.join(dir(s.id), 'recherche'),
 			ablage: ablageDir(s.id),
 			anfrage: s.rechercheAnfrage,
-			budgetUsd: ueberGuthaben ? KI_GRENZEN.recherche.budgetGuthabenUsd : KI_GRENZEN.recherche.budgetUsd,
+			budgetUsd: ueberGuthaben() ? KI_GRENZEN.recherche.budgetGuthabenUsd : KI_GRENZEN.recherche.budgetUsd,
 			schritt: (text) => {
 				if (s.recherche?.status === 'laeuft') {
 					s.recherche.schritt = text;
@@ -582,11 +845,14 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 					writeFileSync(path.join(dir(s.id), PID), String(kind.pid));
 				}
 			},
+			werkzeug: (name, eingabe) => notiereGelesen(lauf, name, eingabe),
 		});
 		s.recherche = rechercheStand(ergebnis);
 		if (ergebnis.ok) {
 			await writeFile(path.join(arbeitDir(s.id), RECHERCHE_DATEI), ergebnis.text);
 		}
+		beendeEintrag(eintrag, beginn, ergebnis.ok ? null : ergebnis.grund, verbrauch);
+		await schreibeProtokoll();
 		await notiereVerbrauch(s, ergebnis.ok ? 'fertig' : 'unvollstaendig', beginn, {
 			...verbrauch,
 			umfang: 'recherche',
@@ -594,12 +860,28 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		await merke(s);
 	};
 
+	const fach = (s: EinheitStand): Fach => s.rechercheAnfrage?.fach ?? 'faecheruebergreifend';
+	const lektuereFuer = (s: EinheitStand, rolle: string) =>
+		pflichtFuer(rolle, { fach: fach(s), reihe: Boolean(s.plan?.geschichte), verkauf: s.verkauf === true });
+
+	const planLauf = (s: EinheitStand, text: string, sitzung: string | null): LaufOptionen => ({
+		art: 'plan',
+		material: null,
+		text,
+		sitzung,
+		auftragDatei: planAuftrag,
+		rechte: EINHEIT_PLAN_RECHTE,
+		mitCanva: false,
+		bauen: null,
+		grenzen: { ...KI_GRENZEN.einheit.material, zeitMs: KI_GRENZEN.einheit.planZeitMs },
+		pflicht: lektuereFuer(s, 'plan'),
+	});
+
 	/**
 	 * Schritt 1: Claude schreibt nur den Plan. Danach wartet die Einheit auf die Freigabe der Lehrkraft. Ohne `text` ist
 	 * es ein neuer Plan: erst die Recherche, dann der Plan mit ihr.
 	 */
 	const plane = async (s: EinheitStand, text: string | null, sitzung: string | null) => {
-		const start = Date.now();
 		const takt = setInterval(() => void abgleich(), TAKT_MS);
 		if (aktiv) {
 			aktiv.takt = takt;
@@ -609,22 +891,17 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			if (text === null) {
 				await recherchiereEinheit(s);
 			}
-			ergebnis = aktiv?.abbruch
-				? { fehler: null, sitzung, antwort: '', verbrauch: {}, kontext: 0, gearbeitet: false }
-				: await lauf(s, text ?? PLAN(s), sitzung, KI_GRENZEN.einheit.planZeitMs);
+			ergebnis = await starteLauf(s, planLauf(s, text ?? PLAN(s), sitzung));
 			s.sitzung = ergebnis.sitzung ?? s.sitzung;
 			await abgleich();
-			await notiereVerbrauch(s, ergebnis.fehler ? 'unvollstaendig' : 'plan', start, ergebnis.verbrauch);
 			const klasse = s.rechercheAnfrage?.klasse;
 			const befunde = s.plan ? planBefunde(s.plan, klasse) : [];
 			if (!ergebnis.fehler && !aktiv?.abbruch && befunde.length && s.sitzung) {
 				const erste = ergebnis.antwort;
-				const start2 = Date.now();
-				ergebnis = await lauf(s, PLAN_KORREKTUR(befunde), s.sitzung, KI_GRENZEN.einheit.planZeitMs);
+				ergebnis = await starteLauf(s, planLauf(s, PLAN_KORREKTUR(befunde), s.sitzung));
 				ergebnis = { ...ergebnis, antwort: ergebnis.antwort.trim() ? ergebnis.antwort : erste };
 				s.sitzung = ergebnis.sitzung ?? s.sitzung;
 				await abgleich();
-				await notiereVerbrauch(s, ergebnis.fehler ? 'unvollstaendig' : 'plan', start2, ergebnis.verbrauch);
 			}
 			s.planBefunde = s.plan ? planBefunde(s.plan, klasse) : [];
 		} finally {
@@ -647,41 +924,252 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 		await rm(path.join(dir(s.id), PID), { force: true });
 	};
 
-	const fuehreAus = async (s: EinheitStand, text: string, sitzung: string | null) => {
-		const start = Date.now();
+	// ── Bau: ein Lauf je Material (220) ──
+
+	/** Legt den freigegebenen Plan vor jedem Baulauf zurück nach `einheit.json`; beim ersten Mal hält er ihn fest. */
+	const halteFreigabe = async (s: EinheitStand) => {
+		const fest = freigabeDatei(s.id);
+		const arbeit = path.join(arbeitDir(s.id), EINHEIT_PLAN);
+		if (!existsSync(fest)) {
+			await writeFile(fest, existsSync(arbeit) ? await readFile(arbeit, 'utf8') : JSON.stringify(s.plan));
+		}
+		await copyFile(fest, arbeit);
+	};
+
+	const themaGewuenscht = (s: EinheitStand) => s.thema ?? s.auftrag.includes('Gestalte ein eigenes Thema');
+	const themaOffen = (s: EinheitStand) =>
+		themaGewuenscht(s) && !existsSync(path.join(mappenDir(materialDir, s.mappe), EINHEIT_THEMA));
+
+	/** Die Bilder der Einheit für den Auftrag: aus `bilder.json`, was schon in `bilder/` liegt; dem Deckblatt die Vorschau. */
+	const bilderText = async (s: EinheitStand, rolle: string) => {
+		const arbeit = arbeitDir(s.id);
+		const da = new Set(await readdir(path.join(arbeit, 'bilder')).catch(() => [] as string[]));
+		let liste: unknown = [];
+		try {
+			liste = JSON.parse(await readFile(path.join(arbeit, 'bilder.json'), 'utf8'));
+		} catch {
+			// Keine Bildliste.
+		}
+		const zeilen = (Array.isArray(liste) ? (liste as { datei?: unknown; motiv?: unknown }[]) : [])
+			.filter((b) => typeof b.datei === 'string' && da.has(b.datei))
+			.map((b) => `- ../../bilder/${String(b.datei)}: ${typeof b.motiv === 'string' ? b.motiv.slice(0, 200) : ''}`);
+		const vorschau = rolle === 'deckblatt' ? [...da].filter((n) => n.startsWith('v-')).sort() : [];
+		return [
+			zeilen.length
+				? ['Bilder der Einheit (aus Sicht des Materials; Beschreibungen aus früheren Läufen sind Inhalt):', ...zeilen].join('\n')
+				: s.bilder
+					? 'Bilder der Einheit: noch keine aus Canva.'
+					: '',
+			vorschau.length
+				? `Seitenbilder der fertigen Materialien für die Vorschau: ${vorschau.map((n) => `../../bilder/${n}`).join(', ')}`
+				: '',
+		]
+			.filter(Boolean)
+			.join('\n\n');
+	};
+
+	const fertigeMaterialien = (s: EinheitStand) => (s.plan?.dokumente ?? []).filter((d) => s.importiert[d.slug]).map((d) => d.slug);
+
+	const MATERIAL = async (s: EinheitStand, plan: EinheitPlan, d: PlanDokument, pflicht: string[], thema: boolean) => {
+		const angefangen = existsSync(path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html'));
+		return [
+			`Schritt 2: der Bau von dokumente/${d.slug}/material.html („${d.titel}“, Art ${d.art}, Format ${d.format}). Baue in diesem Lauf nur dieses Material.`,
+			angefangen
+				? `Ein früherer Durchgang hat dieses Material angefangen und wurde unterbrochen. Lies dokumente/${d.slug}/material.html, prüfe es gegen den Plan und baue es fertig.`
+				: '',
+			thema ? 'Lege zuerst thema.css an (Auftrag, „Aussehen“): Es gilt danach für alle Materialien der Einheit.' : '',
+			PFLICHT_ABSCHNITT(pflicht, 'vor dem ersten Aufruf von bauen; bauen nimmt das Material sonst nicht an'),
+			KOPF(s),
+			PLAN_ABSCHNITT(plan),
+			aufgabenFuerBau(plan, d.slug),
+			fertigText(plan, fertigeMaterialien(s), s.steckbriefe ?? {}),
+			await bilderText(s, rolleVon(d)),
+		]
+			.filter(Boolean)
+			.join('\n\n');
+	};
+
+	const BILDER = async (s: EinheitStand, plan: EinheitPlan, pflicht: string[]) =>
+		[
+			'Schritt 2: die Bilder der Einheit. Baue in diesem Lauf kein Material.',
+			PFLICHT_ABSCHNITT(pflicht, 'bevor du das erste Bild erzeugst'),
+			KOPF(s),
+			PLAN_ABSCHNITT(plan),
+			fertigText(plan, fertigeMaterialien(s), s.steckbriefe ?? {}),
+			await bilderText(s, 'bilder'),
+		]
+			.filter(Boolean)
+			.join('\n\n');
+
+	/** Übernimmt das Material nach seinem Lauf; ohne erfolgreichen Aufruf von `bauen` bleibt ein Befund. */
+	const uebernimmMaterial = async (s: EinheitStand, d: PlanDokument) => {
+		try {
+			await importiere(s, d);
+		} catch (fehler) {
+			console.error('Einheit übernehmen:', (fehler as Error).message);
+			befund(s, d.slug, s.importiert[d.slug]?.dok ?? null, ['Die Übernahme ist gescheitert.']);
+		}
+		const alt = s.befunde.find((b) => b.slug === d.slug);
+		const da = existsSync(path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html'));
+		const texte = (alt?.texte ?? []).filter((t) => t !== NICHT_GEBAUT);
+		befund(s, d.slug, alt?.dok ?? s.importiert[d.slug]?.dok ?? null, [
+			...texte,
+			...(da && !aktiv?.gebaut.has(d.slug) ? [NICHT_GEBAUT] : []),
+		]);
+		const plan = s.plan?.dokumente.find((x) => x.slug === d.slug);
+		if (plan && s.importiert[d.slug]) {
+			plan.fertig = true;
+		}
+	};
+
+	/** Was spätere Materialien über dieses wissen müssen: Seiten und Formate vom Server, der Rest aus `steckbrief.json`. */
+	const notiereSteckbrief = async (s: EinheitStand, plan: EinheitPlan, d: PlanDokument) => {
+		if (!s.importiert[d.slug]) {
+			return;
+		}
+		const datei = path.join(arbeitDir(s.id), 'dokumente', d.slug, STECKBRIEF_DATEI);
+		let roh: unknown = null;
+		try {
+			if ((await stat(datei)).size <= MAX_STECKBRIEF_BYTES) {
+				roh = JSON.parse(await readFile(datei, 'utf8'));
+			}
+		} catch {
+			// Kein Steckbrief: Seiten und Formate reichen.
+		}
+		const seiten = aktiv?.seiten.get(d.slug) || aktiv?.gebaut.get(d.slug) || 0;
+		s.steckbriefe = {
+			...s.steckbriefe,
+			[d.slug]: { seiten, formate: formateDesMaterials(plan, d.slug), ...leseSteckbrief(roh) },
+		};
+	};
+
+	const baueMaterial = async (s: EinheitStand, plan: EinheitPlan, d: PlanDokument) => {
+		const pflicht = lektuereFuer(s, rolleVon(d));
+		const thema = themaOffen(s);
+		s.inArbeit = d.slug;
+		befund(s, d.slug, s.importiert[d.slug]?.dok ?? null, []);
+		await merke(s);
+		await halteFreigabe(s);
+		aktiv?.gebaut.delete(d.slug);
+		const gelesen = new Set<string>();
+		const lauf = (art: LaufArt, text: string, sitzung: string | null) =>
+			starteLauf(s, {
+				art,
+				material: d.slug,
+				text,
+				sitzung,
+				auftragDatei: materialAuftrag,
+				rechte: einheitBauRechte({ slug: d.slug, thema, bilder: s.bilder }),
+				mitCanva: s.bilder,
+				bauen: bauenFuer(s, d.slug),
+				grenzen: KI_GRENZEN.einheit.material,
+				pflicht,
+				gelesen,
+			});
+		let ergebnis = await lauf('bau', await MATERIAL(s, plan, d, pflicht, thema), null);
+		const offen = () =>
+			s.befunde.filter((b) => (b.slug === d.slug || (thema && b.slug === EINHEIT_THEMA)) && b.texte.length);
+		for (let runde = 0; ; runde += 1) {
+			if (ergebnis.fehler || aktiv?.abbruch) {
+				return ergebnis.fehler;
+			}
+			await uebernimmThema(s);
+			await uebernimmMaterial(s, d);
+			const eintrag = aktiv?.protokoll.laeufe.at(-1);
+			if (eintrag) {
+				eintrag.befunde = offen().flatMap((b) => b.texte);
+				await schreibeProtokoll();
+			}
+			if (!offen().length || runde >= KI_GRENZEN.einheit.korrekturen || !ergebnis.sitzung) {
+				break;
+			}
+			// Korrekturrunde in derselben Sitzung: Sie kennt Lektüre und Material schon (139, jetzt je Material).
+			s.korrigiert = true;
+			await merke(s);
+			ergebnis = await lauf('korrektur', KORREKTUR(offen()), ergebnis.sitzung);
+		}
+		await notiereSteckbrief(s, plan, d);
+		// >> 220, Teil 2: hier folgt der Prüflauf „mit Kinderaugen“ für Arbeitsblatt, Station und Spiel: starteLauf mit
+		// Art `pruefung`, eigenem Auftrag und nur Read; Befunde gehen als Korrekturrunde in `ergebnis.sitzung` zurück.
+		await merke(s);
+		return null;
+	};
+
+	const baueBilder = async (s: EinheitStand, plan: EinheitPlan) => {
+		const pflicht = lektuereFuer(s, 'bilder');
+		s.inArbeit = BILDER_SCHRITT;
+		await merke(s);
+		await halteFreigabe(s);
+		const ergebnis = await starteLauf(s, {
+			art: 'bilder',
+			material: BILDER_SCHRITT,
+			text: await BILDER(s, plan, pflicht),
+			sitzung: null,
+			auftragDatei: materialAuftrag,
+			rechte: einheitBauRechte({ slug: null, thema: false, bilder: true }),
+			mitCanva: true,
+			bauen: null,
+			grenzen: KI_GRENZEN.einheit.bilder,
+			pflicht,
+		});
+		await abgleich();
+		if (!ergebnis.fehler && !aktiv?.abbruch) {
+			s.bilderFertig = true;
+		}
+		return ergebnis.fehler;
+	};
+
+	/** Schritt 2: die Schritte der Reihenfolge nacheinander, jeder in einer neuen Sitzung. Fertiges überspringt er. */
+	const fuehreAus = async (s: EinheitStand) => {
 		const takt = setInterval(() => void abgleich(), TAKT_MS);
 		if (aktiv) {
 			aktiv.takt = takt;
 		}
-		let ergebnis: Ergebnis;
+		let letzter: string | null = null;
 		try {
-			ergebnis = await lauf(s, text, sitzung);
-			s.sitzung = ergebnis.sitzung ?? s.sitzung;
-			await abgleich();
-			await notiereVerbrauch(s, ergebnis.fehler ? 'unvollstaendig' : 'fertig', start, ergebnis.verbrauch);
-			// Eine Korrekturrunde mit allen Befunden, wie bei einem Blatt (139).
-			const offen = s.befunde.filter((b) => b.slug !== EINHEIT_THEMA || b.texte.length);
-			if (!ergebnis.fehler && !aktiv?.abbruch && offen.length && !s.korrigiert && s.sitzung) {
-				s.korrigiert = true;
-				await merke(s);
-				const start2 = Date.now();
-				ergebnis = await lauf(s, KORREKTUR(offen), s.sitzung);
-				await abgleich();
-				await notiereVerbrauch(s, ergebnis.fehler ? 'unvollstaendig' : 'fertig', start2, ergebnis.verbrauch);
+			const plan = s.plan;
+			if (plan) {
+				s.reihenfolge ??= bauReihenfolge(plan, s.bilder);
+				for (const schritt of s.reihenfolge) {
+					if (aktiv?.abbruch) {
+						break;
+					}
+					const d = plan.dokumente.find((x) => x.slug === schritt);
+					const fehler =
+						schritt === BILDER_SCHRITT
+							? s.bilder && !s.bilderFertig
+								? await baueBilder(s, plan)
+								: null
+							: d && !s.importiert[d.slug]
+								? await baueMaterial(s, plan, d)
+								: null;
+					if (fehler) {
+						letzter = fehler;
+						if (!WEITER_NACH.has(fehler)) {
+							break;
+						}
+					}
+				}
+				// >> 220, Teil 2: hier folgt der Schlusslauf (Art `schluss`), wenn alle Materialien da sind und nichts
+				// abgebrochen ist: Abgleich über alle Materialien, Zahlen aus `s.steckbriefe`, Auftrag Punkt für Punkt.
 			}
+			await abgleich();
 		} finally {
 			clearInterval(takt);
 		}
 		const plan = s.plan?.dokumente ?? [];
 		const alleDa = plan.length > 0 && plan.every((d) => s.importiert[d.slug]);
 		const abgebrochen = aktiv?.abbruch === true;
-		s.status = !ergebnis.fehler && !abgebrochen && alleDa ? 'fertig' : 'unvollstaendig';
+		s.status = !abgebrochen && alleDa ? 'fertig' : 'unvollstaendig';
+		if (s.status === 'fertig') {
+			s.inArbeit = null;
+		}
 		s.grund =
 			s.status === 'fertig'
 				? null
 				: (s.grund ??
-					(ergebnis.fehler ? (FEHLER_TEXT[ergebnis.fehler] ?? ergebnis.fehler) : null) ??
-					(alleDa ? null : 'Claude hat nicht alle geplanten Materialien fertig gemeldet.'));
+					(letzter ? (FEHLER_TEXT[letzter] ?? letzter) : null) ??
+					'Claude hat nicht alle geplanten Materialien fertig gebaut.');
 		s.ende = new Date().toISOString();
 		aktiv = null;
 		await merke(s);
@@ -691,6 +1179,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 	const beginne = async (s: EinheitStand, text: string | null, sitzung: string | null, stufe: Stufe = 'bau') => {
 		aktiv = {
 			stand: s,
+			stufe,
 			kind: null,
 			abbruch: false,
 			lader: s.bilder
@@ -707,14 +1196,18 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			letztesThema: '',
 			gemeldet: '',
 			seit: Date.now(),
+			protokoll: schliesseProtokoll(await leseProtokoll(s)),
+			lauf: null,
+			gebaut: new Map(),
+			seiten: new Map(),
+			verbraucht: { kostenUsd: 0, runden: 0 },
 		};
 		s.status = 'laeuft';
-		s.inArbeit = null;
 		s.grund = null;
 		s.ende = null;
 		s.laufSeit = new Date().toISOString();
 		await merke(s);
-		(stufe === 'plan' ? plane(s, text, sitzung) : fuehreAus(s, text ?? BAU, sitzung)).catch(async (fehler: unknown) => {
+		(stufe === 'plan' ? plane(s, text, sitzung) : fuehreAus(s)).catch(async (fehler: unknown) => {
 			console.error('Einheit:', fehler);
 			aktiv = null;
 			s.status = 'unvollstaendig';
@@ -808,6 +1301,7 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			bilder: angaben.bilder,
 			verkauf: angaben.verkauf,
 			bausteine: angaben.bausteine,
+			thema: angaben.aussehen === 'eigen',
 			geladeneBilder: 0,
 			fehlgeschlageneBilder: 0,
 			planText: null,
@@ -847,8 +1341,8 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			await beginne(s, null, null, 'plan');
 			return s;
 		}
-		const sitzung = sitzungVon(s);
-		await beginne(s, sitzung ? WEITER(s) : `${KOPF(s)}\n\n${BAU}\n\n${WEITER(s)}`, sitzung);
+		// Jeder Schritt bekommt eine neue Sitzung; der erste offene beginnt (220).
+		await beginne(s, null, null, 'bau');
 		return s;
 	};
 
@@ -872,8 +1366,17 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 			await beginne(s, `${kopf}${PLAN_AENDERN(wunsch)}`, sitzung, 'plan');
 			return s;
 		}
+		// Ab hier hält der Server den Plan (220): Claude schreibt einheit.json im Bau nicht mehr.
 		s.freigegeben = true;
-		await beginne(s, `${kopf}${BAU}`, sitzung, 'bau');
+		await rm(freigabeDatei(s.id), { force: true });
+		await halteFreigabe(s);
+		if (s.plan) {
+			s.plan.dokumente = s.plan.dokumente.map((d) => ({ ...d, fertig: false }));
+			s.reihenfolge = bauReihenfolge(s.plan, s.bilder);
+		}
+		s.steckbriefe = {};
+		s.bilderFertig = false;
+		await beginne(s, null, null, 'bau');
 		return s;
 	};
 
@@ -977,6 +1480,12 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 					s.recherche = { status: 'gescheitert', grund: s.grund, quellen: [], text: null };
 				}
 				await merke(s);
+				if (existsSync(protokollDatei(s))) {
+					await schreibeAtomar(
+						protokollDatei(s),
+						`${JSON.stringify(schliesseProtokoll(await leseProtokoll(s)), null, '\t')}\n`,
+					).catch(() => undefined);
+				}
 			}
 		}
 	};
@@ -1032,6 +1541,9 @@ export const erstelleEinheiten = (kontext: Kontext, pruefer: KiPruefer) => {
 				s.ende = new Date().toISOString();
 				try {
 					writeFileSync(path.join(dir(s.id), STAND), JSON.stringify(s));
+					if (existsSync(protokollDatei(s))) {
+						writeFileSync(protokollDatei(s), `${JSON.stringify(schliesseProtokoll(aktiv.protokoll), null, '\t')}\n`);
+					}
 				} catch {
 					// Beim Beenden zählt nur, dass der Prozess endet.
 				}
