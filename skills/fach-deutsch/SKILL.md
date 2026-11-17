@@ -69,11 +69,11 @@ Schreibzeilen und Silben kommen als Elemente aus `html-materialerstellung/assets
 
 | Element | Darstellung |
 |---|---|
-| `<x-lineatur art="2" zeilen="3" vorlage="Rosine" loesung="Der Hund bellt.">` | Schreiblinien in Originalmaß, graue Nachspurvorlage, Antwort nur im Lösungsblatt; `schrift="va"` für Schreibschrift |
-| `<x-silben>Ro\|si\|ne</x-silben>` | Silbenbögen, auf Wunsch blau-rot; `aufgabe="boegen"` oder `"trennen"` zum Selbermachen |
-| `<x-wortarten aufgabe="bestimmen">Der/Art Hund/N bellt/V.</x-wortarten>` | Montessori-Symbole oder Linienarten je Wortart, in s/w unterscheidbar |
-| `<x-satzglieder aufgabe="umstellen">[Der Hund]S [bellt]P [den Mann]AkO [an]P.</x-satzglieder>` | Satzglied-Kästchen mit Verbklammer; die Umstellung rechnet das Element selbst |
-| `<x-wortbausteine stamm="fahr">ver\|fahr\|en</x-wortbausteine>` | Bausteine als Kästchen, Stamm fett; auch Wortfamilie |
+| `x-lineatur` | Schreiblinien in Originalmaß, graue Nachspurvorlage, Antwort nur im Lösungsblatt; `schrift="va"` für Schreibschrift |
+| `x-silben` | Silbenbögen, auf Wunsch blau-rot; `aufgabe="boegen"` oder `"trennen"` zum Selbermachen |
+| `x-wortarten` | Montessori-Symbole oder Linienarten je Wortart, in s/w unterscheidbar |
+| `x-satzglieder` | Satzglied-Kästchen mit Verbklammer; die Umstellung rechnet das Element selbst |
+| `x-wortbausteine` | Bausteine als Kästchen, Stamm fett; auch Wortfamilie |
 
 **Silben setzt du selbst mit `|`**, nach Sprechsilben, nicht nach Worttrennung im Wörterbuch: `A|bend` (auch ein einzelner Vokal ist eine Silbe), `Was|ser` (Doppelkonsonant wird geteilt), `Zu|cker` (`ck` bleibt zusammen und beginnt die neue Silbe), `Pa|pa|gei`, `Blei|stift` (Zusammensetzungen an der Fuge). Einsilbige Wörter bleiben ohne Strich und bekommen einen Bogen.
 

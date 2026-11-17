@@ -62,7 +62,7 @@ Sicherheitshinweise (Feuer, Strom, Glas, Lebensmittel, Allergien) immer für die
 
 ## Abbildungen
 
-Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abbildungen.js` ins HTML. Attribute: `html-materialerstellung/references/abbildungen/sachunterricht.md`. Bilder beschriften (Pflanze, Körper, Fahrrad) macht `x-beschriften`, Abschnitt „Aufgabenformate“.
+Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abbildungen.js` ins HTML. Attribute: `html-materialerstellung/references/abbildungen/sachunterricht.md`, für `x-diagramm` `mathe-groessen-daten.md`. Bilder beschriften (Pflanze, Körper, Fahrrad) macht `x-beschriften`, Abschnitt „Aufgabenformate“.
 
 | Element | Darstellung | Klasse |
 |---|---|---|

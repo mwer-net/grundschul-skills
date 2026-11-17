@@ -133,48 +133,48 @@ Kl. 1/2 unbenotet (`lernzielkontrolle`), Kl. 3/4 höchstens 6 Arbeiten im Schulj
 
 ## Abbildungen
 
-Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abbildungen.js` ins HTML (Lösung über `loesung=` nur auf dem Lösungsblatt bzw. im Beispiel). Attribute, Mindestgrößen und typische Fehler: `html-materialerstellung/references/abbildungen.md`.
+Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abbildungen.js` ins HTML (Lösung über `loesung=` nur auf dem Lösungsblatt bzw. im Beispiel). Attribute, Mindestgrößen und typische Fehler: die Datei in der Spalte „Katalog“ unter `html-materialerstellung/references/abbildungen/`.
 
-| Element | Darstellung |
-|---|---|
-| `<x-uhr zeit="4:30" groesse="88">`, `<x-uhr loesung="4:30">` | Zifferblatt mit bzw. ohne Zeiger |
-| `<x-menge n="36" form="nuss" reihe="10" buendel-loesung="3">` | Gegenstände (kreis, plaettchen, nuss) in Zehnerreihen mit Fünferlücke; Bündelrahmen um volle Zehner |
-| `<x-dienes t="1" h="2" z="3" e="5">` | Mehrsystemblöcke: Tausender, Hunderter, Zehner, Einer |
-| `<x-strichpunkt z="3" e="5">` | Strich-Punkt-Darstellung, Einer in Fünferstruktur |
-| `<x-stellentafel stellen="H Z E" loesung="1 3 5">` | Stellenwerttafel, leer oder mit Werten |
-| `<x-zwanzigerfeld n="13">` | Zwanzigerfeld mit Plättchen |
-| `<x-zahlenstrahl von="0" bis="100" schritt="10" zahlen="0 50 100" pfeile="30 70">` | Zahlenstrahl mit Pfeilen und Antwortkästchen |
-| `<x-hunderterfeld n="30" n2="6">` | Hunderterfeld, Malwinkel |
-| `<x-hundertertafel ausschnitt="kreuz" mitte="45">` | Hundertertafel, Ausschnitte, Lücken |
-| `<x-rechenrahmen stellung="7 3">` | Rechenrahmen 20 oder 100 |
-| `<x-rechenstrich start="47" spruenge="+30 +4">` | Rechenstrich (leerer Zahlenstrahl) |
-| `<x-zahlenmauer basis="3 5 2">` | Zahlenmauer, Lösung und Eindeutigkeit berechnet |
-| `<x-rechendreieck innen="3 5 2">` | Rechendreieck |
-| `<x-zahlenhaus dach="7" zerlegungen="3 4; 5 2">` | Zahlenhaus |
-| `<x-zahlenkette start="8" operatoren="+5 −3 ·2">` | Rechenkette, Pfeilbild |
-| `<x-zauberdreieck summe="9" vorgegeben="e0 e1">` | Zauberdreieck, magisches Quadrat |
-| `<x-rechenrad mitte="·7" zahlen="1 2 3 4 5 6">` | Rechenrad |
-| `<x-geld stuecke="2€ 1€ 50ct" aufgabe="betrag">` | Münzen und Spielgeld, Betrag und Mindest-Stückelung berechnet |
-| `<x-skala art="lineal" bis="12" wert="7" aufgabe="ablesen">` | Lineal, Maßband, Messbecher, Thermometer, Waage |
-| `<x-strecke laenge="7">` | Strecke zum Messen in Originalgröße |
-| `<x-kalender monat="2" jahr="2028">` | Monats- und Jahreskalender |
-| `<x-zeitspanne von="8:20" bis="9:45">` | Zeitspanne am Zeitstrahl |
-| `<x-punktfeld zeilen="6" spalten="7" trenner="5">` | Punktfeld, Zerlegung und Teilaufgaben berechnet |
-| `<x-malkreuz a="23" b="45">` | Malkreuz nach Stellenwerten |
-| `<x-schriftlich art="minus" zahlen="903 478" verfahren="ergaenzen-erweitern">` | Schriftliche Rechnung im Karoraster, Lösung Ziffer für Ziffer berechnet |
-| `<x-gluecksrad felder="rot: 1; blau: 2" anteile="1 2">` | Glücksrad, auch zum Ausmalen und als Bastelvorlage |
-| `<x-wuerfel augen="5">` | Würfel, flach oder räumlich |
-| `<x-strichliste werte="Hund: 7; Katze: 4">` | Strichliste mit Fünferbündeln |
-| `<x-diagramm werte="Mo: 3; Di: 7" offen="2">` | Säulen-, Balken- und Bilddiagramm |
-| `<x-urne kugeln="rot: 3; blau: 5">` | Kugeln im Säckchen oder Glas |
-| `<x-wahrscheinlichkeit ereignisse="A: sicher">` | Skala unmöglich, möglich, sicher |
-| `<x-kombinatorik stufen="Waffel Becher / Erdbeer Schoko">` | Möglichkeiten als Baum, Tabelle, Liste |
-| `<x-gitter figur="1 1 / 1 0" aufgabe="spiegeln" achse="senkrecht">` | Spiegeln (erst Kästchen, dann Linien), Fortsetzen, Vergrößern, Weg, Fläche und Umfang im Gitter |
-| `<x-figur form="dreieck" loesung="rechter-winkel">` | Ebene Figur mit Normsymbolen |
-| `<x-tangram umriss="katze">` | Tangram mit Umriss, Bogen zum Ausschneiden |
-| `<x-wuerfelbau bauplan="2 1 / 3 1" fragen="anzahl">` | Würfelgebäude: Schrägbild, Bauplan, Ansichten |
-| `<x-wuerfelnetz netz="3" aufgabe="gegenueber">` | Würfelnetz, Nicht-Netz, Bastelwürfel |
-| `<x-koerper form="pyramide" markiere="ecken">` | Körper im Schrägbild, Kantenmodell |
+| Element | Darstellung | Katalog |
+|---|---|---|
+| `x-uhr` | Zifferblatt mit bzw. ohne Zeiger | `mathe-zahlen.md` |
+| `x-menge` | Gegenstände (kreis, plaettchen, nuss) in Zehnerreihen mit Fünferlücke; Bündelrahmen um volle Zehner | `mathe-zahlen.md` |
+| `x-dienes` | Mehrsystemblöcke: Tausender, Hunderter, Zehner, Einer | `mathe-zahlen.md` |
+| `x-strichpunkt` | Strich-Punkt-Darstellung, Einer in Fünferstruktur | `mathe-zahlen.md` |
+| `x-stellentafel` | Stellenwerttafel, leer oder mit Werten | `mathe-zahlen.md` |
+| `x-zwanzigerfeld` | Zwanzigerfeld mit Plättchen | `mathe-zahlen.md` |
+| `x-zahlenstrahl` | Zahlenstrahl mit Pfeilen und Antwortkästchen | `mathe-zahlen.md` |
+| `x-hunderterfeld` | Hunderterfeld, Malwinkel | `mathe-zahlen.md` |
+| `x-hundertertafel` | Hundertertafel, Ausschnitte, Lücken | `mathe-zahlen.md` |
+| `x-rechenrahmen` | Rechenrahmen 20 oder 100 | `mathe-zahlen.md` |
+| `x-rechenstrich` | Rechenstrich (leerer Zahlenstrahl) | `mathe-zahlen.md` |
+| `x-zahlenmauer` | Zahlenmauer, Lösung und Eindeutigkeit berechnet | `mathe-zahlen.md` |
+| `x-rechendreieck` | Rechendreieck | `mathe-zahlen.md` |
+| `x-zahlenhaus` | Zahlenhaus | `mathe-zahlen.md` |
+| `x-zahlenkette` | Rechenkette, Pfeilbild | `mathe-zahlen.md` |
+| `x-zauberdreieck` | Zauberdreieck, magisches Quadrat | `mathe-zahlen.md` |
+| `x-rechenrad` | Rechenrad | `mathe-zahlen.md` |
+| `x-geld` | Münzen und Spielgeld, Betrag und Mindest-Stückelung berechnet | `mathe-groessen-daten.md` |
+| `x-skala` | Lineal, Maßband, Messbecher, Thermometer, Waage | `mathe-groessen-daten.md` |
+| `x-strecke` | Strecke zum Messen in Originalgröße | `mathe-groessen-daten.md` |
+| `x-kalender` | Monats- und Jahreskalender | `mathe-groessen-daten.md` |
+| `x-zeitspanne` | Zeitspanne am Zeitstrahl | `mathe-groessen-daten.md` |
+| `x-punktfeld` | Punktfeld, Zerlegung und Teilaufgaben berechnet | `mathe-zahlen.md` |
+| `x-malkreuz` | Malkreuz nach Stellenwerten | `mathe-zahlen.md` |
+| `x-schriftlich` | Schriftliche Rechnung im Karoraster, Lösung Ziffer für Ziffer berechnet | `mathe-zahlen.md` |
+| `x-gluecksrad` | Glücksrad, auch zum Ausmalen und als Bastelvorlage | `mathe-groessen-daten.md` |
+| `x-wuerfel` | Würfel, flach oder räumlich | `mathe-groessen-daten.md` |
+| `x-strichliste` | Strichliste mit Fünferbündeln | `mathe-groessen-daten.md` |
+| `x-diagramm` | Säulen-, Balken- und Bilddiagramm | `mathe-groessen-daten.md` |
+| `x-urne` | Kugeln im Säckchen oder Glas | `mathe-groessen-daten.md` |
+| `x-wahrscheinlichkeit` | Skala unmöglich, möglich, sicher | `mathe-groessen-daten.md` |
+| `x-kombinatorik` | Möglichkeiten als Baum, Tabelle, Liste | `mathe-groessen-daten.md` |
+| `x-gitter` | Spiegeln (erst Kästchen, dann Linien), Fortsetzen, Vergrößern, Weg, Fläche und Umfang im Gitter | `mathe-geometrie.md` |
+| `x-figur` | Ebene Figur mit Normsymbolen | `mathe-geometrie.md` |
+| `x-tangram` | Tangram mit Umriss, Bogen zum Ausschneiden | `mathe-geometrie.md` |
+| `x-wuerfelbau` | Würfelgebäude: Schrägbild, Bauplan, Ansichten | `mathe-geometrie.md` |
+| `x-wuerfelnetz` | Würfelnetz, Nicht-Netz, Bastelwürfel | `mathe-geometrie.md` |
+| `x-koerper` | Körper im Schrägbild, Kantenmodell | `mathe-geometrie.md` |
 
 Zur Leitidee „Raum und Form“ (Aufbau im Abschnitt „Geometrie“): Kl. 1/2 Formen (`x-figur`), Wege und Auslegen (`x-gitter`), Tangram, Ansichten zum Würfelgebäude (`x-wuerfelbau`), Körper benennen (`x-koerper`); Kl. 3/4 Spiegeln, Fortsetzen, Vergrößern, Fläche und Umfang (`x-gitter`), Eigenschaften (`x-figur`), Baupläne (`x-wuerfelbau`), Netze (`x-wuerfelnetz`), Ecken, Kanten, Flächen (`x-koerper`).
 
