@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
@@ -7,6 +7,7 @@ import type { EinheitPlan } from './einheit';
 import { lesePlan } from './einheit';
 import { leseAbbildungsKatalog } from './abbildungen-katalog';
 import {
+	ABBILDUNGEN_DATEIEN,
 	bauReihenfolge,
 	BILDER_SCHRITT,
 	fehlendeAbbildungsTeile,
@@ -17,6 +18,7 @@ import {
 	leseSteckbrief,
 	pflichtFuer,
 	PFLICHTLEKTUERE,
+	READ_ZEILEN,
 	rolleVon,
 	SKILL_PRAEFIX,
 } from './einheit-bau';
@@ -32,21 +34,45 @@ const dok = (slug: string, art: EinheitPlan['dokumente'][number]['art'] = 'arbei
 	fertig: false,
 });
 
-describe('Pflichtlektüre (220)', () => {
-	it('jeder Skill und jede Datei der Liste existiert, auch die Fach-Skills', () => {
-		const eintraege = new Set<string>();
-		for (const l of PFLICHTLEKTUERE) {
-			for (const fach of FAECHER) {
-				for (const e of pflichtFuer(l.rolle, { fach, reihe: true, verkauf: true })) {
-					eintraege.add(e);
-				}
+/** Jede Datei, die `pflichtFuer` nennen kann, als Pfad ab dem Ordner der Skills; ein Skill als seine `SKILL.md`. */
+const allePflichtDateien = () => {
+	const eintraege = new Set<string>();
+	for (const l of PFLICHTLEKTUERE) {
+		for (const fach of FAECHER) {
+			for (const e of pflichtFuer(l.rolle, { fach, reihe: true, verkauf: true })) {
+				eintraege.add(e.startsWith(SKILL_PRAEFIX) ? `${e.slice(SKILL_PRAEFIX.length)}/SKILL.md` : e);
 			}
 		}
-		const fehlen = [...eintraege].filter((e) => {
-			const datei = e.startsWith(SKILL_PRAEFIX) ? path.join(e.slice(SKILL_PRAEFIX.length), 'SKILL.md') : e;
-			return !existsSync(path.join(WURZEL, 'skills', datei));
-		});
+	}
+	return [...eintraege];
+};
+
+/** Rund 21.000 Token: Eine Datei, die Read nicht in einem Stück liefert, nähme `bauen` nie als gelesen an (226). */
+const ZEICHEN_MAX = 40_000;
+/** Heute schon größer; der heutige Wert ist der Deckel, bis ein eigenes Ticket die Datei kürzt oder teilt. */
+const GROESSER_ERLAUBT: Record<string, number> = {
+	// Geprüfter Auftakt als Beispiel für Szenen aus SVG; Pflicht nur für einen Auftakt in einer Reihe.
+	'html-materialerstellung/assets/beispiel-auftakt.html': 48_465,
+};
+
+describe('Pflichtlektüre (220)', () => {
+	it('jeder Skill und jede Datei der Liste existiert, auch die Fach-Skills', () => {
+		const fehlen = allePflichtDateien().filter((d) => !existsSync(path.join(WURZEL, 'skills', d)));
 		assert.deepEqual(fehlen, []);
+	});
+
+	it(`Größenwächter: keine Pflichtdatei und keine Datei des Katalogs über ${ZEICHEN_MAX} Zeichen oder ${READ_ZEILEN} Zeilen (226)`, () => {
+		const dateien = [...new Set([...allePflichtDateien(), ...ABBILDUNGEN_DATEIEN])];
+		const zu = dateien.flatMap((d) => {
+			const text = readFileSync(path.join(WURZEL, 'skills', d), 'utf8');
+			const zeilen = text.split('\n').length;
+			const max = GROESSER_ERLAUBT[d] ?? ZEICHEN_MAX;
+			return text.length > max || zeilen > READ_ZEILEN ? [`${d}: ${text.length} Zeichen, ${zeilen} Zeilen`] : [];
+		});
+		assert.deepEqual(zu, []);
+		assert.ok(dateien.includes('html-materialerstellung/references/abbildungen/mathe-geometrie.md'));
+		assert.ok(dateien.includes('html-materialerstellung/references/gestaltung.md'));
+		assert.ok(dateien.includes('fach-mathematik/SKILL.md'));
 	});
 
 	it('Fach-Skill an zweiter Stelle, Reihe und Verkauf nur, wenn sie gelten; Unbekanntes wie „sonstiges“', () => {
