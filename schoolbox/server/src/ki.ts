@@ -80,6 +80,8 @@ import type { KiEffort, KiLauf } from './ki-einstellung';
 import { kiLaufJetzt } from './ki-einstellung';
 import type { Bauen } from './ki-werkzeug';
 import { ansichtText, starteWerkzeug, WERKZEUG_BAUEN, WERKZEUG_SERVER } from './ki-werkzeug';
+import type { MitschriftZiel } from './mitschrift';
+import { schreibeMitschrift } from './mitschrift';
 
 /**
  * Grenzen eines Auftrags. Aus den Messungen in Issue 056: Ein ganzes Blatt differenzieren brauchte 16 Runden und 2 min.
@@ -659,23 +661,23 @@ export const recherchiere = (o: {
 	gestartet?: (kind: ChildProcessWithoutNullStreams) => void;
 	/** Jeder Werkzeugaufruf, für das Protokoll der Einheit (220). */
 	werkzeug?: (name: string, eingabe: Record<string, unknown>) => void;
+	mitschrift?: MitschriftZiel;
 }) =>
 	new Promise<{ ergebnis: RechercheErgebnis; verbrauch: Record<string, unknown> }>((resolve) => {
 		const stand: LaufStand = { sitzung: null, fehlerCode: null, ergebnis: {} };
 		const auftragDatei = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'recherche.md');
 		rmSync(o.ordner, { recursive: true, force: true });
 		mkdirSync(o.ordner, { recursive: true });
-		const kind = spawn(
-			o.bin,
-			rechercheArgumente({
-				ablage: o.ablage,
-				auftragDatei,
-				budgetUsd: o.budgetUsd,
-				modell: o.modell,
-				effort: o.effort,
-			}),
-			{ cwd: o.ordner, env: kiUmgebung(o.bin) },
-		);
+		const argumente = rechercheArgumente({
+			ablage: o.ablage,
+			auftragDatei,
+			budgetUsd: o.budgetUsd,
+			modell: o.modell,
+			effort: o.effort,
+		});
+		const auftrag = rechercheText(o.anfrage);
+		const kind = spawn(o.bin, argumente, { cwd: o.ordner, env: kiUmgebung(o.bin) });
+		schreibeMitschrift(o.mitschrift, kind, { argumente, auftrag, cwd: o.ordner });
 		o.gestartet?.(kind);
 		let grund: string | null = null;
 		let bytes = 0;
@@ -684,7 +686,7 @@ export const recherchiere = (o: {
 			beendeKind(kind);
 		}, KI_GRENZEN.recherche.zeitMs);
 		kind.stdin.on('error', () => undefined);
-		kind.stdin.end(rechercheText(o.anfrage));
+		kind.stdin.end(auftrag);
 		kind.stderr.resume();
 		createInterface({ input: kind.stdout }).on('line', (zeile) => {
 			bytes += zeile.length;
@@ -896,21 +898,20 @@ export const pruefeLauf = (o: {
 	grenzen: { zeitMs: number; runden: number; budgetUsd: number };
 	gestartet?: (kind: ChildProcessWithoutNullStreams) => void;
 	werkzeug?: (name: string, eingabe: Record<string, unknown>) => void;
+	mitschrift?: MitschriftZiel;
 }) =>
 	new Promise<PruefErgebnis>((resolve) => {
 		const stand: LaufStand = { sitzung: null, fehlerCode: null, ergebnis: {} };
-		const kind = spawn(
-			o.bin,
-			pruefArgumente({
-				ablage: o.ablage,
-				auftragDatei: PRUEF_AUFTRAG,
-				budgetUsd: Math.round(o.grenzen.budgetUsd * 100) / 100,
-				runden: o.grenzen.runden,
-				modell: o.modell,
-				effort: o.effort,
-			}),
-			{ cwd: o.ordner, env: kiUmgebung(o.bin) },
-		);
+		const argumente = pruefArgumente({
+			ablage: o.ablage,
+			auftragDatei: PRUEF_AUFTRAG,
+			budgetUsd: Math.round(o.grenzen.budgetUsd * 100) / 100,
+			runden: o.grenzen.runden,
+			modell: o.modell,
+			effort: o.effort,
+		});
+		const kind = spawn(o.bin, argumente, { cwd: o.ordner, env: kiUmgebung(o.bin) });
+		schreibeMitschrift(o.mitschrift, kind, { argumente, auftrag: o.text, cwd: o.ordner });
 		o.gestartet?.(kind);
 		let grund: string | null = null;
 		let bytes = 0;
@@ -1731,6 +1732,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			ki,
 			mcpDatei = null,
 			mitCanva = false,
+			mitschrift,
 			werkzeug,
 		}: {
 			gross?: boolean;
@@ -1738,6 +1740,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			mcpDatei?: string | null;
 			mitCanva?: boolean;
 			werkzeug?: (name: string, eingabe: Record<string, unknown>) => void;
+			mitschrift?: MitschriftZiel;
 		},
 	) =>
 		new Promise<Ergebnis>((resolve) => {
@@ -1750,24 +1753,19 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			// Vor dem Start festgehalten: Meldet erst dieser Lauf das Limit, lief er noch nicht über Guthaben.
 			const mitGuthaben = ueberGuthaben();
 			const budgetUsd = budgetJetzt(gross);
-			const kind = spawn(
-				bin,
-				kiArgumente({
-					ablage,
-					auftragDatei,
-					budgetUsd,
-					modell: ki.modell,
-					effort: ki.effort,
-					sitzung,
-					gross,
-					mcpDatei,
-					mitCanva,
-				}),
-				{
-					cwd: arbeit,
-					env: kiUmgebung(bin),
-				},
-			);
+			const argumente = kiArgumente({
+				ablage,
+				auftragDatei,
+				budgetUsd,
+				modell: ki.modell,
+				effort: ki.effort,
+				sitzung,
+				gross,
+				mcpDatei,
+				mitCanva,
+			});
+			const kind = spawn(bin, argumente, { cwd: arbeit, env: kiUmgebung(bin) });
+			schreibeMitschrift(mitschrift, kind, { argumente, auftrag: text, cwd: arbeit });
 			if (aktiv) {
 				aktiv.kind = kind;
 			}
@@ -2133,6 +2131,13 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			return null;
 		});
 		const mit = { gross, ki, mcpDatei: werkzeug?.mcpDatei ?? null, mitCanva: blattBilder !== null };
+		/** Jeder Lauf dieses Auftrags wird mitgeschrieben (233). */
+		const mitschrift = (art: string): MitschriftZiel => ({
+			materialDir: konfig.materialDir,
+			mappe: w.mappe,
+			dok: w.dok,
+			art: `${w.neuesBlatt ? 'blatt' : 'auftrag'}-${art}`,
+		});
 		/** Ein Lauf mit Eintrag im Protokoll; eine neue Sitzung beginnt ihre Lektüre von vorn. */
 		const laufe = async (art: LaufArt, text: string, sitzung: string | null) => {
 			if (sitzung === null) {
@@ -2145,6 +2150,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			const e = await lauf(arbeit, ablage, text, sitzung, a, {
 				...mit,
 				werkzeug: (name, eingabe) => notiereLektuere(l, name, eingabe),
+				mitschrift: mitschrift(art),
 			});
 			laufJetzt = null;
 			beendeLaufEintrag(eintrag, beginn, {
@@ -2199,6 +2205,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 						writeFileSync(pidDatei, String(kind.pid));
 					}
 				},
+				mitschrift: mitschrift('recherche'),
 			});
 			// Am Auftrag gespeichert, den auch Plan ändern, Freigabe und „Nochmal“ nehmen: Gesucht wird einmal.
 			w.recherche = ergebnis;
@@ -2342,6 +2349,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 						}
 					},
 					werkzeug: (name, eingabe) => notiereLektuere(l, name, eingabe),
+					mitschrift: mitschrift('pruefung'),
 				});
 				eintrag.befunde = ergebnis.befunde.map(befundZeile);
 				if (!ergebnis.lesbar) {

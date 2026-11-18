@@ -37,6 +37,7 @@ import {
 	zuGrossText,
 } from './ki';
 import { KI_EINSTELLUNG_STANDARD, waehleLauf } from './ki-einstellung';
+import { leseMitschrift, MITSCHRIFT_ORDNER } from './mitschrift';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
 import { KI_ATTRAPPE, legeDokumentAn, starteTestServer } from './testhilfe';
@@ -181,6 +182,32 @@ describe('Aufträge an Claude', () => {
 		assert.deepEqual(
 			projekte.filter((n) => n.includes('schoolbox-ki')),
 			[],
+		);
+	});
+
+	it('Der Lauf bleibt als Mitschrift in der Ablage, auch wenn Temp-Ordner und Sitzung gehen (233)', async () => {
+		const ordner = path.join(server.materialDir, MITSCHRIFT_ORDNER, mappe);
+		const vorher = new Set(await readdir(ordner).catch(() => [] as string[]));
+		await auftrag();
+		let neu: string[] = [];
+		for (let i = 0; i < 250 && neu.length === 0; i += 1) {
+			neu = (await readdir(ordner).catch(() => [] as string[])).filter(
+				(n) => !vorher.has(n) && n.endsWith('.jsonl.gz'),
+			);
+			await new Promise((r) => setTimeout(r, 20));
+		}
+		assert.equal(neu.length, 1);
+		assert.match(neu[0] ?? '', new RegExp(`-auftrag-bau-${dok}\\.jsonl\\.gz$`));
+		const zeilen = await leseMitschrift(path.join(ordner, neu[0] ?? ''));
+		const kopf = zeilen[0] ?? {};
+		assert.equal(kopf.typ, 'kopf');
+		assert.equal(kopf.mappe, mappe);
+		assert.match(String(kopf.auftrag), /\S/);
+		assert.match(String((kopf.systemAuftrag as { text?: string } | null)?.text), /\S/);
+		assert.equal(zeilen.at(-1)?.typ, 'ende');
+		assert.equal(
+			zeilen.some((z) => z.type === 'assistant'),
+			true,
 		);
 	});
 

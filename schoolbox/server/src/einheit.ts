@@ -126,6 +126,8 @@ import type { Bauen } from './ki-werkzeug';
 import { ansichtText, starteWerkzeug } from './ki-werkzeug';
 import type { Kontext } from './kontext';
 import { dokSchluessel } from './kontext';
+import type { MitschriftZiel } from './mitschrift';
+import { schreibeMitschrift } from './mitschrift';
 import { umgebung, wendeEffekteAn } from './ordner';
 
 const ID = /^[a-f0-9]{12}$/;
@@ -279,6 +281,13 @@ export const erstelleEinheiten = (
 	const dir = (id: string) => path.join(wurzel, `einheit-${id}`);
 	const arbeitDir = (id: string) => path.join(dir(id), 'arbeit');
 	const ablageDir = (id: string) => path.join(dir(id), 'ablage');
+	/** Jeder Lauf der Einheit wird mitgeschrieben (233). */
+	const mitschrift = (s: EinheitStand, art: string, dok: string | null): MitschriftZiel => ({
+		materialDir,
+		mappe: s.mappe,
+		dok,
+		art: `einheit-${art}`,
+	});
 
 	/** Der freigegebene Plan, wie er in `einheit.json` stand (220): Vor jedem Baulauf legt der Server ihn zurück. */
 	const freigabeDatei = (id: string) => path.join(dir(id), FREIGABE);
@@ -792,23 +801,25 @@ export const erstelleEinheiten = (
 	) =>
 		new Promise<Ergebnis>((resolve) => {
 			const stand: LaufStand = { sitzung: o.sitzung, fehlerCode: null, ergebnis: {} };
-			const kind = spawn(
-				bin,
-				kiArgumente({
-					ablage: ablageDir(s.id),
-					auftragDatei: o.auftragDatei,
-					budgetUsd: Math.round(grenzen.budgetUsd * 100) / 100,
-					...kiJetzt(),
-					sitzung: o.sitzung,
-					einheit: true,
-					mitCanva: o.mitCanva,
-					mcpDatei,
-					runden: grenzen.runden,
-					rechte: o.rechte,
-					...(o.werkzeuge ? { werkzeuge: o.werkzeuge } : {}),
-				}),
-				{ cwd: arbeitDir(s.id), env: kiUmgebung(bin) },
-			);
+			const argumente = kiArgumente({
+				ablage: ablageDir(s.id),
+				auftragDatei: o.auftragDatei,
+				budgetUsd: Math.round(grenzen.budgetUsd * 100) / 100,
+				...kiJetzt(),
+				sitzung: o.sitzung,
+				einheit: true,
+				mitCanva: o.mitCanva,
+				mcpDatei,
+				runden: grenzen.runden,
+				rechte: o.rechte,
+				...(o.werkzeuge ? { werkzeuge: o.werkzeuge } : {}),
+			});
+			const kind = spawn(bin, argumente, { cwd: arbeitDir(s.id), env: kiUmgebung(bin) });
+			schreibeMitschrift(mitschrift(s, o.art, o.material), kind, {
+				argumente,
+				auftrag: o.text,
+				cwd: arbeitDir(s.id),
+			});
 			if (aktiv) {
 				aktiv.kind = kind;
 			}
@@ -909,6 +920,7 @@ export const erstelleEinheiten = (
 				}
 			},
 			werkzeug: (name, eingabe) => notiereGelesen(lauf, name, eingabe),
+			mitschrift: mitschrift(s, 'recherche', null),
 		});
 		s.recherche = rechercheStand(ergebnis);
 		if (ergebnis.ok) {
@@ -1242,6 +1254,7 @@ export const erstelleEinheiten = (
 					}
 				},
 				werkzeug: (name, eingabe) => notiereGelesen(lauf, name, eingabe),
+				mitschrift: mitschrift(s, 'pruefung', d.slug),
 			});
 		} catch (fehler) {
 			console.error('Prüflauf der Einheit:', (fehler as Error).message);

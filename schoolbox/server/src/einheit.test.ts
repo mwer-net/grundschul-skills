@@ -21,6 +21,7 @@ import {
 
 import { einheitenWurzel } from './einheit';
 import { CANVA_MCP, VERBRAUCH_DATEI } from './ki';
+import { leseMitschrift, MITSCHRIFT_ORDNER } from './mitschrift';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
 import { KI_ATTRAPPE, starteTestServer } from './testhilfe';
@@ -608,6 +609,32 @@ describe('Lauf einer Einheit (139)', () => {
 				assert.equal(typeof e.sekunden, 'number');
 			}
 			assert.doesNotMatch(roh, /Auftrag der Lehrkraft|Schritt 2|Uhrzeit|Zur Klasse/);
+		});
+
+		it('Mitschrift: je Lauf eine gepackte Datei mit dem Auftrag, in der Ablage statt im Temp-Ordner (233)', async () => {
+			await fall('einheit');
+			const { id, mappe } = await starte();
+			await bis(id, 'fertig');
+			const p = await protokoll(mappe);
+			const ordner = path.join(server.materialDir, MITSCHRIFT_ORDNER, mappe);
+			let dateien: string[] = [];
+			for (let i = 0; i < 250; i += 1) {
+				dateien = await readdir(ordner).catch(() => []);
+				if (dateien.length === p.laeufe.length && dateien.every((n) => n.endsWith('.jsonl.gz'))) {
+					break;
+				}
+				await new Promise((r) => setTimeout(r, 20));
+			}
+			assert.equal(dateien.length, p.laeufe.length);
+			const arten = dateien.map((n) => n.replace(/^[\dT-]+Z-/, '').replace(/\.jsonl\.gz$/, ''));
+			const slugs = (await baulaeufe(mappe)).map((e) => e.material);
+			for (const art of ['einheit-plan', 'einheit-schluss', ...slugs.map((s) => `einheit-bau-${s ?? ''}`)]) {
+				assert.ok(arten.includes(art), `${art} fehlt in ${arten.join(', ')}`);
+			}
+			const plan = dateien.find((n) => n.endsWith('-einheit-plan.jsonl.gz')) ?? '';
+			const zeilen = await leseMitschrift(path.join(ordner, plan));
+			assert.match(String(zeilen[0]?.auftrag), /Auftrag der Lehrkraft/);
+			assert.equal(zeilen.at(-1)?.typ, 'ende');
 		});
 
 		it('bauen vor der ganzen Pflichtlektüre: abgewiesen mit der fehlenden Datei, danach gebaut', async () => {

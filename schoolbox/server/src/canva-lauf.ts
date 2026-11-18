@@ -57,6 +57,7 @@ import {
 import type { KiLauf } from './ki-einstellung';
 import { KI_EINSTELLUNG_STANDARD, kiLaufJetzt, waehleLauf } from './ki-einstellung';
 import type { Kontext } from './kontext';
+import { schreibeMitschrift } from './mitschrift';
 
 /** Was `uebernimm` bekommt: das geprüfte Bild im Arbeitsordner und die Angaben aus `bilder.json` und `ergebnis.json`. */
 export interface CanvaErgebnis {
@@ -243,17 +244,19 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 			}
 			const stand: LaufStand = { sitzung: null, fehlerCode: null, ergebnis: {} };
 			let limit: KiLimit | null = null;
-			const kind = spawn(
-				bin,
-				kiArgumente({
-					ablage: arbeit,
-					auftragDatei,
-					budgetUsd: budget(),
-					modell: a.ki.modell,
-					effort: a.ki.effort,
-					canvaBild: true,
-				}),
-				{ cwd: arbeit, env: kiUmgebung(bin) },
+			const argumente = kiArgumente({
+				ablage: arbeit,
+				auftragDatei,
+				budgetUsd: budget(),
+				modell: a.ki.modell,
+				effort: a.ki.effort,
+				canvaBild: true,
+			});
+			const kind = spawn(bin, argumente, { cwd: arbeit, env: kiUmgebung(bin) });
+			schreibeMitschrift(
+				{ materialDir, mappe: a.wunsch.ziel.mappe, dok: a.wunsch.ziel.dok, art: `canva-${a.wunsch.art}` },
+				kind,
+				{ argumente, auftrag: a.wunsch.auftrag, cwd: arbeit },
 			);
 			a.kind = kind;
 			let grund: string | null = null;

@@ -19,6 +19,7 @@ import { Router } from 'express';
 import { HttpFehler } from './fehler';
 import type { Kontext } from './kontext';
 import { FREIGABEN_SPERRE } from './kontext';
+import { MITSCHRIFT_TAGE, raeumeMitschriftenAuf } from './mitschrift';
 
 const TAG_MS = 24 * 60 * 60 * 1000;
 
@@ -165,6 +166,13 @@ export const starteAufraeumen = (kontext: Kontext) => {
 		leereGeloeschte(kontext.konfig.materialDir).catch((fehler: unknown) =>
 			console.error('Meine Bausteine:', fehler),
 		);
+		raeumeMitschriftenAuf(kontext.konfig.materialDir)
+			.then((weg) => {
+				if (weg > 0) {
+					console.log(`Mitschriften: ${weg} Datei(en) nach ${MITSCHRIFT_TAGE} Tagen gelöscht.`);
+				}
+			})
+			.catch((fehler: unknown) => console.error('Mitschriften:', fehler));
 	};
 	lauf();
 	const takt = setInterval(lauf, TAG_MS);
