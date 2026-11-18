@@ -11,6 +11,7 @@ import { meldung } from '../../api';
 import { Symbol } from '../../bausteine/Symbol';
 import { Tooltip } from '../../bausteine/Tooltip';
 import { starteBild } from '../canva';
+import { ClaudeWahl } from '../ClaudeWahl';
 import { useFiguren, vorschauVon } from '../gestaltung/figuren-quelle';
 import { LimitZeile } from '../LimitZeile';
 import type { SchubladenTeile } from '.';
@@ -103,7 +104,8 @@ export const BildBeschreiben = ({
 						className="min-w-0 flex-1 resize-none bg-transparent text-sm leading-5 outline-none placeholder:text-leise"
 					/>
 				</div>
-				<div className="flex items-center gap-1.5">
+				<div className="flex items-center gap-1.5 pl-1">
+					<ClaudeWahl />
 					<span className="ml-auto flex items-center gap-1.5">
 						{figuren.length > 0 && (
 							<span className="flex items-center">

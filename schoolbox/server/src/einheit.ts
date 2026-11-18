@@ -120,6 +120,8 @@ import {
 	VERBRAUCH_DATEI,
 	werteAus,
 } from './ki';
+import type { KiLauf } from './ki-einstellung';
+import { KI_EINSTELLUNG_STANDARD, kiLaufJetzt, waehleLauf } from './ki-einstellung';
 import type { Bauen } from './ki-werkzeug';
 import { ansichtText, starteWerkzeug } from './ki-werkzeug';
 import type { Kontext } from './kontext';
@@ -312,6 +314,8 @@ export const erstelleEinheiten = (
 		/** Im Schlusslauf: die Materialien, die er mit `bauen` neu gebaut hat; sonst `null`. */
 		schlussGebaut: Set<string> | null;
 		verbraucht: { kostenUsd: number; runden: number };
+		/** Modell und Gründlichkeit, beim Start der Handlung gelesen (232): Alle Läufe des Durchgangs nehmen sie. */
+		ki: KiLauf;
 	} | null = null;
 	let aufraeumTakt: ReturnType<typeof setInterval> | null = null;
 
@@ -365,6 +369,8 @@ export const erstelleEinheiten = (
 
 	const notiereGelesen = notiereLektuere;
 
+	const kiJetzt = () => aktiv?.ki ?? waehleLauf(KI_EINSTELLUNG_STANDARD, kontext.konfig, 'gross');
+
 	const melde = (s: EinheitStand) => {
 		kontext.ereignisse.sende({ typ: 'einheit-stand', daten: { id: s.id, ordner: s.ordner } });
 	};
@@ -408,6 +414,7 @@ export const erstelleEinheiten = (
 			sekunden: Math.round((Date.now() - start) / 1000),
 			dokumente: Object.keys(s.importiert).length,
 			...verbrauch,
+			...aktiv?.ki,
 		};
 		await appendFile(path.join(materialDir, VERBRAUCH_DATEI), `${JSON.stringify(zeile)}\n`).catch(() => undefined);
 	};
@@ -791,7 +798,7 @@ export const erstelleEinheiten = (
 					ablage: ablageDir(s.id),
 					auftragDatei: o.auftragDatei,
 					budgetUsd: Math.round(grenzen.budgetUsd * 100) / 100,
-					modell: kontext.konfig.kiModell,
+					...kiJetzt(),
 					sitzung: o.sitzung,
 					einheit: true,
 					mitCanva: o.mitCanva,
@@ -882,7 +889,7 @@ export const erstelleEinheiten = (
 		await schreibeProtokoll();
 		const { ergebnis, verbrauch } = await recherchiere({
 			bin,
-			modell: kontext.konfig.kiModell,
+			...kiJetzt(),
 			ordner: path.join(dir(s.id), 'recherche'),
 			ablage: ablageDir(s.id),
 			anfrage: s.rechercheAnfrage,
@@ -1212,7 +1219,7 @@ export const erstelleEinheiten = (
 			const ablage = ablageDir(s.id);
 			ergebnis = await pruefeLauf({
 				bin,
-				modell: kontext.konfig.kiModell,
+				...kiJetzt(),
 				ordner,
 				ablage,
 				text: pruefText({
@@ -1677,6 +1684,7 @@ export const erstelleEinheiten = (
 	};
 
 	const beginne = async (s: EinheitStand, text: string | null, sitzung: string | null, stufe: Stufe = 'bau') => {
+		const ki = await kiLaufJetzt(kontext.konfig, 'gross');
 		aktiv = {
 			stand: s,
 			stufe,
@@ -1703,6 +1711,7 @@ export const erstelleEinheiten = (
 			loesungen: new Map(),
 			schlussGebaut: null,
 			verbraucht: { kostenUsd: 0, runden: 0 },
+			ki,
 		};
 		brichPruefungAb(s);
 		s.status = 'laeuft';

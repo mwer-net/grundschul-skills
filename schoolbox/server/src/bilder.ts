@@ -22,6 +22,7 @@ import { raw, Router } from 'express';
 import { bildAuftragText, legeBildAb } from './bild-beschreiben';
 import { leseQuelle, verlangeDokument } from './dokumente';
 import { HttpFehler } from './fehler';
+import { kiLaufJetzt } from './ki-einstellung';
 import type { Kontext } from './kontext';
 import { dokSchluessel } from './kontext';
 
@@ -130,6 +131,7 @@ export const bilderApi = (kontext: Kontext) => {
 		}
 		const { palette } = leseBlatt(await leseQuelle(dir));
 		const vorlage = await readFile(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'bild.md'), 'utf8');
+		const ki = await kiLaufJetzt(konfig, 'klein');
 		const stand = kontext.canva.starte(
 			{
 				art: 'bild',
@@ -137,7 +139,7 @@ export const bilderApi = (kontext: Kontext) => {
 				auftrag: `${vorlage.trimEnd()}\n\n${bildAuftragText({ text, figuren, palette })}`,
 				ziel: { mappe, dok },
 			},
-			{ uebernimm: (e) => legeBildAb(konfig.materialDir, mappe, e) },
+			{ uebernimm: (e) => legeBildAb(konfig.materialDir, mappe, e), ki },
 		);
 		res.status(201).json({ id: stand.id });
 	});

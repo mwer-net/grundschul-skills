@@ -10,6 +10,7 @@ import { Dialog } from '../bausteine/Dialog';
 import { useHinweis } from '../bausteine/hinweis';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
+import { ClaudeWahl } from '../editor/ClaudeWahl';
 import { limitHinweis, neueGespraechId, useKiZustand } from '../editor/ki';
 import { useEinheiten } from '../ordner/einheiten';
 import { useAblage } from '../ordner/kontext';
@@ -91,6 +92,7 @@ const Fuss = ({
 	index,
 	laeuft,
 	letzter,
+	mitWahl,
 	schliessen,
 	vonVorn,
 	weiter,
@@ -105,6 +107,8 @@ const Fuss = ({
 	laeuft: boolean;
 	/** Die Hauptaktion geht gerade nicht: am Limit, oder es ist noch offen, ob es Claude gibt. */
 	gesperrt: boolean;
+	/** Modell und Gründlichkeit neben der Hauptaktion: Sie fragt Claude (232). */
+	mitWahl: boolean;
 	zumLeerenBlatt: () => void;
 	/** Nur nach dem Fortsetzen eines gemerkten Stands (190-02). */
 	vonVorn?: () => void;
@@ -129,6 +133,7 @@ const Fuss = ({
 			</Knopf>
 		)}
 		<span className="flex-1" />
+		{mitWahl && <ClaudeWahl />}
 		{index > 0 && (
 			<Knopf art="zweit" disabled={laeuft} onClick={zurueck}>
 				Zurück
@@ -723,6 +728,7 @@ export const MaterialDialog = ({
 					index={index}
 					doch={mitClaude && index > 0 && !wirksam.einheit}
 					letzter={letzter}
+					mitWahl={letzter && ki.zustand.verfuegbar}
 					hauptaktion={hauptText(letzter, wirksam.einheit, aktuell.id)}
 					laeuft={laeuft}
 					gesperrt={

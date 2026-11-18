@@ -27,6 +27,7 @@ import { HttpFehler } from './fehler';
 import { figurenApi } from './figuren';
 import { freigabenApi } from './freigaben';
 import { kiApi } from './ki-api';
+import { kiEinstellungApi } from './ki-einstellung';
 import type { Kontext } from './kontext';
 import { dokSchluessel, kennung, leseBekannt } from './kontext';
 import { mappenApi } from './mappen';
@@ -246,6 +247,8 @@ export const apiRouter = (kontext: Kontext) => {
 		await sendePdf(req, res, await kontext.pdf.dokument(mappe, dok, waehlePdfVariante(variante), profil));
 	});
 
+	// Vor `kiApi`: Dort fängt `/ki/:id` sonst „einstellung“ als Auftrag ab.
+	kiEinstellungApi(router, kontext);
 	kiApi(router, kontext);
 	einheitApi(router, kontext);
 	canvaApi(router, kontext);

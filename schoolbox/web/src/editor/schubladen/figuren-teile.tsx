@@ -22,6 +22,7 @@ import { nichtsPasst, raster } from '../../bausteine/schubladenhilfe';
 import { Symbol } from '../../bausteine/Symbol';
 import { falte } from '../bild-sammlung';
 import { canvaAktion, starteFigur, useCanvaLaeufe } from '../canva';
+import { ClaudeWahl } from '../ClaudeWahl';
 import { mitGeholtemBild } from '../gestaltung/ablegen/bild-gut';
 import { useHolenAmZeiger } from '../gestaltung/ablegen/holen-am-zeiger';
 import { AblageKachel } from '../gestaltung/ablegen/Kachel';
@@ -209,6 +210,9 @@ const FigurBeschreiben = ({
 					<SendenKreis />
 				</button>
 			</form>
+			<div className="flex justify-end">
+				<ClaudeWahl />
+			</div>
 			{fehler && (
 				<p role="alert" className="text-xs text-fehler" data-figur-fehler>
 					{fehler}

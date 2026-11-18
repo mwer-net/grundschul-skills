@@ -12,6 +12,7 @@ import type { ChatNachricht } from './chat-verlauf';
 import { istRueckfrage } from './chat-verlauf';
 import type { Faden, FadenStand } from './claude-faeden';
 import { pruefungText, standText } from './claude-faeden';
+import { ClaudeWahl } from './ClaudeWahl';
 import { elementZu, pfadZu } from './darstellung';
 import type { KiAktion, KiAuftrag, VorschlagAmBlatt } from './ki';
 import type { Einblendung } from './Leinwand';
@@ -343,7 +344,12 @@ const Feld = ({ breite, entwurf, feld, kannSenden, platzhalter, sende, setEntwur
 					</Knopf>
 				</Tooltip>
 			</div>
-			<p className="px-3 pb-1 text-[11px] leading-[14px] text-leise">Keine Namen von Kindern eintragen.</p>
+			<div className="flex items-center gap-2 pr-1 pb-0.5 pl-3">
+				<p className="min-w-0 flex-1 text-[11px] leading-[14px] text-leise">
+					Keine Namen von Kindern eintragen.
+				</p>
+				<ClaudeWahl />
+			</div>
 		</>
 	);
 };

@@ -74,7 +74,13 @@ describe('Prüfung von recherche.md (219)', () => {
 	});
 
 	it('Werkzeuge: nur Lesen, Web und recherche.md; kein Edit, kein Bash, kein MCP, keine Sitzung', () => {
-		const args = rechercheArgumente({ ablage: '/tmp/a', auftragDatei: '/tmp/r.md', budgetUsd: 5, modell: 'opus' });
+		const args = rechercheArgumente({
+			ablage: '/tmp/a',
+			auftragDatei: '/tmp/r.md',
+			budgetUsd: 5,
+			modell: 'opus',
+			effort: 'high',
+		});
 		const nach = (schalter: string) => {
 			const i = args.indexOf(schalter);
 			const rest = args.slice(i + 1);

@@ -246,7 +246,14 @@ describe('Bildvertrag und Zuschnitt (215)', () => {
 });
 
 describe('Konnektoren im Lauf (138)', () => {
-	const basis = { ablage: '/tmp/a', auftragDatei: '/tmp/a.md', budgetUsd: 1, modell: 'opus', sitzung: null };
+	const basis = {
+		ablage: '/tmp/a',
+		auftragDatei: '/tmp/a.md',
+		budgetUsd: 1,
+		modell: 'opus',
+		effort: 'medium' as const,
+		sitzung: null,
+	};
 
 	it('Ohne Canva bleibt der Aufruf wie bisher: keine Konnektoren', () => {
 		const args = kiArgumente(basis);

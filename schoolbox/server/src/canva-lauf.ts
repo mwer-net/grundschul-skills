@@ -54,6 +54,8 @@ import {
 	VERBRAUCH_DATEI,
 	werteAus,
 } from './ki';
+import type { KiLauf } from './ki-einstellung';
+import { KI_EINSTELLUNG_STANDARD, kiLaufJetzt, waehleLauf } from './ki-einstellung';
 import type { Kontext } from './kontext';
 
 /** Was `uebernimm` bekommt: das geprüfte Bild im Arbeitsordner und die Angaben aus `bilder.json` und `ergebnis.json`. */
@@ -72,6 +74,8 @@ export interface CanvaOptionen {
 	uebernimm: (e: CanvaErgebnis) => Promise<string>;
 	/** Dateien, die vor dem Start in den Arbeitsordner kommen: Name dort → Quelle. */
 	beilagen?: Record<string, string>;
+	/** Modell und Gründlichkeit, von der Route beim Start gelesen (232); ohne gilt der Standard. */
+	ki?: KiLauf;
 }
 
 const ID = /^[a-f0-9]{12}$/;
@@ -151,6 +155,7 @@ interface Auftrag {
 	stand: CanvaStand;
 	wunsch: CanvaWunsch;
 	o: CanvaOptionen;
+	ki: KiLauf;
 	kind: ChildProcessWithoutNullStreams | null;
 	abbruch: boolean;
 }
@@ -203,6 +208,7 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 			umfang: `canva-${a.stand.art}`,
 			sekunden: Math.round((Date.now() - start) / 1000),
 			...verbrauch,
+			...a.ki,
 		};
 		await appendFile(path.join(materialDir, VERBRAUCH_DATEI), `${JSON.stringify(zeile)}\n`).catch(() => undefined);
 	};
@@ -243,7 +249,8 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 					ablage: arbeit,
 					auftragDatei,
 					budgetUsd: budget(),
-					modell: kontext.konfig.kiModell,
+					modell: a.ki.modell,
+					effort: a.ki.effort,
 					canvaBild: true,
 				}),
 				{ cwd: arbeit, env: kiUmgebung(bin) },
@@ -416,6 +423,7 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 			},
 			wunsch,
 			o,
+			ki: o.ki ?? waehleLauf(KI_EINSTELLUNG_STANDARD, kontext.konfig, 'klein'),
 			kind: null,
 			abbruch: false,
 		};
@@ -556,6 +564,7 @@ export const canvaApi = (router: RouterTyp, kontext: Kontext) => {
 		const figur = genannt[0] ?? null;
 		const angaben = figur ? canvaFigurAus(materialDir, figur) : null;
 		const vorlage = await readFile(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'canva-figur.md'), 'utf8');
+		const ki = await kiLaufJetzt(konfig, 'klein');
 		const stand = canva.starte(
 			{
 				art: 'figur',
@@ -565,6 +574,7 @@ export const canvaApi = (router: RouterTyp, kontext: Kontext) => {
 			},
 			{
 				uebernimm: uebernimmFigur(figur),
+				ki,
 				...(angaben && !angaben.steckbrief ? { beilagen: { [referenzDatei(angaben)]: angaben.farbbild } } : {}),
 			},
 		);

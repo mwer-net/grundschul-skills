@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { klassen } from '../bausteine/klassen';
 import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
+import { ClaudeWahl } from './ClaudeWahl';
 
 const FELD_ZEICHEN = 1000;
 
@@ -142,10 +143,11 @@ export const PlanFreigabe = ({
 						<Knopf art="leise" groesse={groesse} onClick={() => setFeldOffen(false)}>
 							Abbrechen
 						</Knopf>
+						<ClaudeWahl className="ml-auto self-center" />
 					</div>
 				</form>
 			) : (
-				<div className="mt-3 flex flex-wrap items-center gap-2">
+				<div className="mt-3 flex max-w-[46rem] flex-wrap items-center gap-2">
 					<Knopf
 						ref={bauen}
 						groesse={groesse}
@@ -175,6 +177,7 @@ export const PlanFreigabe = ({
 						{arbeit === 'verwerfen' && <Symbol name="laden" className="animate-spin" />}
 						Verwerfen
 					</Knopf>
+					<ClaudeWahl className="ml-auto" />
 				</div>
 			)}
 		</>

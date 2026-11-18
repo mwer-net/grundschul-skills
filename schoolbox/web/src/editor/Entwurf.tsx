@@ -8,6 +8,7 @@ import { Knopf } from '../bausteine/Knopf';
 import { Symbol } from '../bausteine/Symbol';
 import { ortDesDokuments } from '../ordner/kontext';
 import type { AblageStand } from '../ordner/typen';
+import { ClaudeWahl } from './ClaudeWahl';
 import type { EntwurfPhase } from './entwurf';
 import { annahmenAus, laufWort, laufzeit, useJetzt } from './entwurf';
 import type { KiAuftrag, useKiZustand, Vorschlag } from './ki';
@@ -173,6 +174,7 @@ const NachbessernFeld = ({
 					Abbrechen
 				</Knopf>
 			)}
+			<ClaudeWahl className="self-center" />
 		</form>
 	);
 };
@@ -234,7 +236,7 @@ const OhneBlattKarte = ({
 			) : (
 				<p className="mt-2 text-xs text-leise">Das leere Blatt bleibt im Ordner.</p>
 			)}
-			<div className="mt-3 flex gap-2">
+			<div className="mt-3 flex items-center gap-2">
 				{!frage && !gesperrt && (
 					<Knopf ref={nochmal} onClick={() => void entwurf.nochmal()} data-entwurf-nochmal>
 						Nochmal
@@ -243,6 +245,7 @@ const OhneBlattKarte = ({
 				<Knopf ref={selbst} art="zweit" onClick={schliesse}>
 					Selbst füllen
 				</Knopf>
+				{!frage && !gesperrt && <ClaudeWahl className="ml-auto" />}
 			</div>
 		</>
 	);

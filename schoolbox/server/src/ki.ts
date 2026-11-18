@@ -76,6 +76,8 @@ import { ANSICHT_BILDER, erstelleZuschnitt } from './canva-bild';
 import { leseQuelle } from './dokumente';
 import type { Ereignisse } from './ereignisse';
 import { HttpFehler } from './fehler';
+import type { KiEffort, KiLauf } from './ki-einstellung';
+import { kiLaufJetzt } from './ki-einstellung';
 import type { Bauen } from './ki-werkzeug';
 import { ansichtText, starteWerkzeug, WERKZEUG_BAUEN, WERKZEUG_SERVER } from './ki-werkzeug';
 
@@ -196,9 +198,6 @@ export const KI_GRENZEN = {
 /** Klein genügt: Es soll nur „ok“ sagen. */
 export const KI_LIMIT_MODELL = 'haiku';
 /** Der Status `allowed_warning` kam in 056 schon bei 43 %: Für den Hinweis zählt darum die Auslastung. */
-export const KI_EFFORT = 'medium';
-/** Neue Blätter und Einheiten: Hier zählt das Ergebnis, nicht die Minute. */
-export const KI_EFFORT_GROSS = 'high';
 export const KI_WARN_AB = 0.8;
 const ANMELDUNG_GILT_MS = 60_000;
 const BEENDEN_MS = 4000;
@@ -448,7 +447,13 @@ export const CANVA_BILD_RECHTE = [
 ];
 
 /** Ein Canva-Bild (176): nur die Bildwerkzeuge von Canva und zwei Dateien, kein Skill, kein Material. */
-const canvaBildArgumente = (o: { ablage: string; auftragDatei: string; budgetUsd?: number; modell: string }) => [
+const canvaBildArgumente = (o: {
+	ablage: string;
+	auftragDatei: string;
+	budgetUsd?: number;
+	modell: string;
+	effort: KiEffort;
+}) => [
 	'-p',
 	'--output-format',
 	'stream-json',
@@ -456,7 +461,7 @@ const canvaBildArgumente = (o: { ablage: string; auftragDatei: string; budgetUsd
 	'--model',
 	o.modell,
 	'--effort',
-	KI_EFFORT,
+	o.effort,
 	'--setting-sources',
 	'project',
 	'--add-dir',
@@ -502,6 +507,8 @@ export const kiArgumente = (o: {
 	auftragDatei: string;
 	budgetUsd?: number;
 	modell: string;
+	/** Aus `waehleLauf` (232): Bei `auto` ist das `KI_EFFORT_GROSS` für Einheit und neues Blatt, sonst `KI_EFFORT`. */
+	effort: KiEffort;
 	sitzung?: string | null;
 	einheit?: boolean;
 	mitCanva?: boolean;
@@ -509,7 +516,7 @@ export const kiArgumente = (o: {
 	canvaBild?: boolean;
 	/** Die MCP-Konfiguration mit dem Werkzeug „bauen“ (`ki-werkzeug.ts`). */
 	mcpDatei?: string | null;
-	/** Ein neues Blatt: mehr Zeit, Runden und Gründlichkeit. */
+	/** Ein neues Blatt: mehr Zeit und Runden. */
 	gross?: boolean;
 	runden?: number;
 	/** Schreibrechte eines Einheit-Laufs (220); ohne gilt `EINHEIT_RECHTE`. */
@@ -531,7 +538,7 @@ export const kiArgumente = (o: {
 		'--model',
 		o.modell,
 		'--effort',
-		o.einheit || o.gross ? KI_EFFORT_GROSS : KI_EFFORT,
+		o.effort,
 		'--setting-sources',
 		'project',
 		'--add-dir',
@@ -574,7 +581,13 @@ export const RECHERCHE_WERKZEUGE = 'Read,Write,WebSearch,WebFetch';
  * Der Recherche-Lauf (219), getrennt von Plan und Bau: Web, Lesen in den Skills und `recherche.md`, sonst nichts. Kein
  * MCP, kein Skill-Werkzeug, keine Sitzung. Text aus dem Web landet so nie in einem Lauf mit Schreibrechten am Material.
  */
-export const rechercheArgumente = (o: { ablage: string; auftragDatei: string; budgetUsd: number; modell: string }) => [
+export const rechercheArgumente = (o: {
+	ablage: string;
+	auftragDatei: string;
+	budgetUsd: number;
+	modell: string;
+	effort: KiEffort;
+}) => [
 	'-p',
 	'--output-format',
 	'stream-json',
@@ -582,7 +595,7 @@ export const rechercheArgumente = (o: { ablage: string; auftragDatei: string; bu
 	'--model',
 	o.modell,
 	'--effort',
-	KI_EFFORT_GROSS,
+	o.effort,
 	'--setting-sources',
 	'project',
 	'--add-dir',
@@ -637,6 +650,7 @@ const rechercheSchritt = (name: string, eingabe: { url?: unknown }) => {
 export const recherchiere = (o: {
 	bin: string;
 	modell: string;
+	effort: KiEffort;
 	ordner: string;
 	ablage: string;
 	anfrage: RechercheAnfrage;
@@ -653,7 +667,13 @@ export const recherchiere = (o: {
 		mkdirSync(o.ordner, { recursive: true });
 		const kind = spawn(
 			o.bin,
-			rechercheArgumente({ ablage: o.ablage, auftragDatei, budgetUsd: o.budgetUsd, modell: o.modell }),
+			rechercheArgumente({
+				ablage: o.ablage,
+				auftragDatei,
+				budgetUsd: o.budgetUsd,
+				modell: o.modell,
+				effort: o.effort,
+			}),
 			{ cwd: o.ordner, env: kiUmgebung(o.bin) },
 		);
 		o.gestartet?.(kind);
@@ -745,6 +765,7 @@ export const pruefArgumente = (o: {
 	budgetUsd: number;
 	runden: number;
 	modell: string;
+	effort: KiEffort;
 }) => [
 	'-p',
 	'--output-format',
@@ -753,7 +774,7 @@ export const pruefArgumente = (o: {
 	'--model',
 	o.modell,
 	'--effort',
-	KI_EFFORT_GROSS,
+	o.effort,
 	'--setting-sources',
 	'project',
 	'--add-dir',
@@ -868,6 +889,7 @@ export interface PruefErgebnis {
 export const pruefeLauf = (o: {
 	bin: string;
 	modell: string;
+	effort: KiEffort;
 	ordner: string;
 	ablage: string;
 	text: string;
@@ -885,6 +907,7 @@ export const pruefeLauf = (o: {
 				budgetUsd: Math.round(o.grenzen.budgetUsd * 100) / 100,
 				runden: o.grenzen.runden,
 				modell: o.modell,
+				effort: o.effort,
 			}),
 			{ cwd: o.ordner, env: kiUmgebung(o.bin) },
 		);
@@ -1536,7 +1559,8 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 	const vorlage = async (name: string) =>
 		(await readFile(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', `${name}.md`), 'utf8')).trim();
 	const dokSchluessel = (mappe: string, dok: string) => `${mappe}/${dok}`;
-	const warteschlange: { auftrag: KiAuftrag; wunsch: KiWunsch }[] = [];
+	/** `ki`: Modell und Gründlichkeit, beim Start der Handlung gelesen (232). */
+	const warteschlange: { auftrag: KiAuftrag; wunsch: KiWunsch; ki: KiLauf }[] = [];
 	let aktiv: {
 		auftrag: KiAuftrag;
 		gespraech: string | null;
@@ -1704,15 +1728,17 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 		a: KiAuftrag,
 		{
 			gross = false,
+			ki,
 			mcpDatei = null,
 			mitCanva = false,
 			werkzeug,
 		}: {
 			gross?: boolean;
+			ki: KiLauf;
 			mcpDatei?: string | null;
 			mitCanva?: boolean;
 			werkzeug?: (name: string, eingabe: Record<string, unknown>) => void;
-		} = {},
+		},
 	) =>
 		new Promise<Ergebnis>((resolve) => {
 			const stand: LaufStand = { sitzung, fehlerCode: null, ergebnis: {} };
@@ -1730,7 +1756,8 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 					ablage,
 					auftragDatei,
 					budgetUsd,
-					modell: konfig.kiModell,
+					modell: ki.modell,
+					effort: ki.effort,
 					sitzung,
 					gross,
 					mcpDatei,
@@ -2066,7 +2093,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 		};
 	};
 
-	const arbeite = async (a: KiAuftrag, w: KiWunsch) => {
+	const arbeite = async (a: KiAuftrag, w: KiWunsch, ki: KiLauf) => {
 		const start = Date.now();
 		const dir = dokumentDir(konfig.materialDir, w.mappe, w.dok);
 		const auf = w.aufVorschlag ? await vorschlagZumNachbessern(konfig.materialDir, w) : null;
@@ -2105,7 +2132,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			console.error('Werkzeug für Claude:', fehler);
 			return null;
 		});
-		const mit = { gross, mcpDatei: werkzeug?.mcpDatei ?? null, mitCanva: blattBilder !== null };
+		const mit = { gross, ki, mcpDatei: werkzeug?.mcpDatei ?? null, mitCanva: blattBilder !== null };
 		/** Ein Lauf mit Eintrag im Protokoll; eine neue Sitzung beginnt ihre Lektüre von vorn. */
 		const laufe = async (art: LaufArt, text: string, sitzung: string | null) => {
 			if (sitzung === null) {
@@ -2152,7 +2179,8 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			const beginn = Date.now();
 			const { ergebnis, verbrauch: v } = await recherchiere({
 				bin,
-				modell: konfig.kiModell,
+				modell: ki.modell,
+				effort: ki.effort,
 				ordner: path.join(path.dirname(arbeit), 'recherche'),
 				ablage,
 				anfrage: w.rechercheAnfrage,
@@ -2186,7 +2214,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 				a.schritte.push('Plant ohne Recherche');
 			}
 			melde(a);
-			await notiereVerbrauch(a, ergebnis.ok ? 'fertig' : 'fehler', 'recherche', beginn, v);
+			await notiereVerbrauch(a, ergebnis.ok ? 'fertig' : 'fehler', 'recherche', beginn, { ...v, ...ki });
 		};
 		const ersterLauf = async () => {
 			await rechercheZuerst();
@@ -2286,7 +2314,8 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 				melde(a);
 				ergebnis = await pruefeLauf({
 					bin,
-					modell: konfig.kiModell,
+					modell: ki.modell,
+					effort: ki.effort,
 					ordner,
 					ablage,
 					text: pruefText({
@@ -2337,13 +2366,10 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 						verbrauch: ergebnis.verbrauch,
 					});
 					protokoll.push(eintrag);
-					await notiereVerbrauch(
-						a,
-						ergebnis.fehler ? 'fehler' : 'fertig',
-						'pruefung',
-						beginn,
-						ergebnis.verbrauch,
-					);
+					await notiereVerbrauch(a, ergebnis.fehler ? 'fehler' : 'fertig', 'pruefung', beginn, {
+						...ergebnis.verbrauch,
+						...ki,
+					});
 				}
 			}
 		};
@@ -2477,6 +2503,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			await rm(pidDatei, { force: true });
 			await notiereVerbrauch(a, ende, ausschnitt.umfang, start, {
 				...verbrauch,
+				...ki,
 				...(w.gespraechId ? { fortgesetzt: Boolean(platz.sitzung) && !rueckfall, rueckfall } : {}),
 			});
 		}
@@ -2551,12 +2578,12 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 		if (!eintrag) {
 			return;
 		}
-		const { auftrag: a, wunsch } = eintrag;
+		const { auftrag: a, ki, wunsch } = eintrag;
 		aktiv = { auftrag: a, gespraech: wunsch.gespraechId ?? null, kind: null, abbruch: false };
 		a.status = 'laeuft';
 		a.seit = new Date().toISOString();
 		melde(a);
-		arbeite(a, wunsch)
+		arbeite(a, wunsch, ki)
 			.then(() => {
 				a.status = aktiv?.abbruch ? 'abgebrochen' : 'fertig';
 			})
@@ -2631,11 +2658,13 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			wunsch.aufVorschlag ? { ...wunsch, referenz: undefined } : wunsch,
 		);
 		const auftrag = neuerAuftrag(wunsch, teil.umfang, grundlage);
+		// Jede Handlung (auch Nochmal, Freigabe, Plan ändern) liest neu; Korrekturen und Rückfall nehmen diesen Stand.
+		const ki = await kiLaufJetzt(konfig, wunsch.neuesBlatt ? 'gross' : 'klein');
 		auftraege.set(auftrag.id, auftrag);
 		if (wunsch.neuesBlatt) {
 			entwurfAuftraege.set(schluessel, auftrag.id);
 		}
-		warteschlange.push({ auftrag, wunsch });
+		warteschlange.push({ auftrag, wunsch, ki });
 		melde(auftrag);
 		naechster();
 		return auftrag;

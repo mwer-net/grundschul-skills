@@ -31,9 +31,12 @@ import {
 	kiUmgebung,
 	liesLimit,
 	limitErreichtText,
+	pruefArgumente,
+	rechercheArgumente,
 	richtePruefOrdnerEin,
 	zuGrossText,
 } from './ki';
+import { KI_EINSTELLUNG_STANDARD, waehleLauf } from './ki-einstellung';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
 import { KI_ATTRAPPE, legeDokumentAn, starteTestServer } from './testhilfe';
@@ -215,7 +218,7 @@ describe('Aufträge an Claude', () => {
 		} finally {
 			delete process.env.ANTHROPIC_API_KEY;
 		}
-		const args = kiArgumente({ ablage: '/a', auftragDatei: '/b', modell: 'sonnet' });
+		const args = kiArgumente({ ablage: '/a', auftragDatei: '/b', modell: 'sonnet', effort: 'medium' });
 		assert.equal(args.includes('--resume'), false);
 	});
 
@@ -489,7 +492,7 @@ describe('Aufträge an Claude', () => {
 	});
 
 	it('Das Werkzeug bleibt: Der Quellcode ist für freie Elemente nicht freigegeben', () => {
-		const args = kiArgumente({ ablage: '/a', auftragDatei: '/b', modell: 'm' });
+		const args = kiArgumente({ ablage: '/a', auftragDatei: '/b', modell: 'm', effort: 'medium' });
 		assert.equal(args[args.indexOf('--tools') + 1], 'Read,Edit,Skill');
 		assert.equal(args[args.indexOf('--allowedTools') + 1], 'Edit(./material.html)');
 	});
@@ -581,6 +584,56 @@ describe('Aufträge an Claude', () => {
 			assert.equal((await vorschlag())?.fehler, 1);
 		} finally {
 			pruefbericht = { seiten: [], meldungen: [], fehler: 0 };
+		}
+	});
+
+	it('Modell und Gründlichkeit vom Start gelten auch für die Korrektur, eine Änderung erst ab der nächsten Handlung', async () => {
+		const setze = (teil: object) => api('/ki/einstellung', { method: 'PUT', body: JSON.stringify(teil) });
+		const datei = () => readFile(path.join(path.dirname(bin), 'aufrufe.jsonl'), 'utf8');
+		pruefbericht = {
+			seiten: [],
+			meldungen: [{ stufe: 'FEHLER', seite: 1, text: 'Überlauf auf Seite 1' }],
+			fehler: 1,
+		};
+		let weiter = () => undefined as void;
+		pruefungHaelt = new Promise<void>((r) => {
+			weiter = r;
+		});
+		try {
+			assert.equal((await setze({ modell: 'sonnet', effort: 'low' })).status, 200);
+			const vorher = (await datei()).trim().split('\n').length;
+			const res = await starte({ auftrag: 'Mach es schöner' });
+			const { auftrag: a } = (await res.json()) as { auftrag: { id: string } };
+			await warte(async () => (await (await api(`/ki/${a.id}`)).text()).includes('Prüft das Ergebnis'));
+			assert.equal((await setze({ modell: 'haiku', effort: 'max' })).status, 200);
+			weiter();
+			assert.equal((await fertig(a.id)).status, 'fertig');
+			const laeufe = (await datei())
+				.trim()
+				.split('\n')
+				.slice(vorher)
+				.map((z) => (JSON.parse(z) as { args: string[] }).args);
+			assert.equal(laeufe.length, 2);
+			for (const args of laeufe) {
+				assert.equal(args[args.indexOf('--model') + 1], 'sonnet');
+				assert.equal(args[args.indexOf('--effort') + 1], 'low');
+			}
+			const verbrauch = JSON.parse(
+				(await readFile(path.join(server.materialDir, '_ki-verbrauch.jsonl'), 'utf8'))
+					.trim()
+					.split('\n')
+					.at(-1) ?? '{}',
+			) as { modell?: string; effort?: string };
+			assert.deepEqual([verbrauch.modell, verbrauch.effort], ['sonnet', 'low']);
+			await auftrag();
+			const { args } = JSON.parse((await datei()).trim().split('\n').at(-1) ?? '{}') as { args: string[] };
+			assert.equal(args[args.indexOf('--model') + 1], 'haiku');
+			assert.equal(args[args.indexOf('--effort') + 1], 'max');
+		} finally {
+			pruefungHaelt = null;
+			weiter();
+			pruefbericht = { seiten: [], meldungen: [], fehler: 0 };
+			await setze({ modell: null, effort: 'auto' });
 		}
 	});
 
@@ -1749,7 +1802,14 @@ describe('Aufträge an Claude: Zugang', () => {
 });
 
 describe('Aufruf für ein Canva-Bild (176)', () => {
-	const basis = { ablage: '/tmp/a', auftragDatei: '/tmp/b.md', modell: 'opus', budgetUsd: 1, sitzung: null };
+	const basis = {
+		ablage: '/tmp/a',
+		auftragDatei: '/tmp/b.md',
+		modell: 'opus',
+		effort: 'medium' as const,
+		budgetUsd: 1,
+		sitzung: null,
+	};
 	const SPERREN = ['Read(~/.claude/**)', 'Read(~/.ssh/**)', 'Read(**/.env)', 'Read(**/materialien/**)'];
 	const KOPF = ['-p', '--output-format', 'stream-json', '--verbose', '--model', 'opus', '--effort', 'medium'];
 	const CANVA = [
@@ -1806,6 +1866,7 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 			ablage: '/tmp/a',
 			auftragDatei: '/tmp/b.md',
 			modell: 'opus',
+			effort: 'medium',
 			canvaBild: true,
 		});
 		assert.equal(ohneBudget[ohneBudget.indexOf('--max-budget-usd') + 1], String(KI_GRENZEN.canva.budgetUsd));
@@ -1866,7 +1927,7 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 			'Write(./bilder.json)',
 			'Edit(./bilder.json)',
 		];
-		assert.deepEqual(kiArgumente({ ...basis, einheit: true, mitCanva: true }), [
+		assert.deepEqual(kiArgumente({ ...basis, effort: 'high', einheit: true, mitCanva: true }), [
 			...KOPF.slice(0, -1),
 			'high',
 			'--setting-sources',
@@ -1964,5 +2025,38 @@ describe('Ordner des Prüflaufs (229)', () => {
 		]);
 		assert.deepEqual(teile.loesungen, ['loesung/loesung-seite-1.png', 'loesung/loesung-seite-2.png']);
 		assert.ok([...teile.seiten, ...teile.ausschnitte].every((n) => !n.includes('loesung')));
+	});
+});
+
+describe('Modell und Gründlichkeit im Aufruf (232)', () => {
+	const basis = { ablage: '/tmp/a', auftragDatei: '/tmp/b.md', budgetUsd: 1, sitzung: null };
+	const nach = (args: string[], name: string) => args[args.indexOf(name) + 1];
+
+	it('Jeder Aufruf nimmt das übergebene --model und --effort', () => {
+		for (const args of [
+			kiArgumente({ ...basis, modell: 'haiku', effort: 'xhigh' }),
+			kiArgumente({ ...basis, modell: 'haiku', effort: 'xhigh', gross: true }),
+			kiArgumente({ ...basis, modell: 'haiku', effort: 'xhigh', einheit: true }),
+			kiArgumente({ ...basis, modell: 'haiku', effort: 'xhigh', canvaBild: true }),
+			rechercheArgumente({ ...basis, modell: 'haiku', effort: 'xhigh' }),
+			pruefArgumente({ ...basis, runden: 5, modell: 'haiku', effort: 'xhigh' }),
+		]) {
+			assert.equal(nach(args, '--model'), 'haiku');
+			assert.equal(nach(args, '--effort'), 'xhigh');
+		}
+	});
+
+	it('Mit „auto“: Änderungen und Canva mittel, neues Blatt, Einheit, Recherche und Prüfung hoch, wie vor 232', () => {
+		const konfig = { kiModell: 'opus' };
+		const klein = waehleLauf(KI_EINSTELLUNG_STANDARD, konfig, 'klein');
+		const gross = waehleLauf(KI_EINSTELLUNG_STANDARD, konfig, 'gross');
+		assert.deepEqual(klein, { modell: 'opus', effort: 'medium' });
+		assert.deepEqual(gross, { modell: 'opus', effort: 'high' });
+		assert.equal(nach(kiArgumente({ ...basis, ...klein }), '--effort'), 'medium');
+		assert.equal(nach(kiArgumente({ ...basis, ...klein, canvaBild: true }), '--effort'), 'medium');
+		assert.equal(nach(kiArgumente({ ...basis, ...gross, gross: true }), '--effort'), 'high');
+		assert.equal(nach(kiArgumente({ ...basis, ...gross, einheit: true }), '--effort'), 'high');
+		assert.equal(nach(rechercheArgumente({ ...basis, ...gross }), '--effort'), 'high');
+		assert.equal(nach(pruefArgumente({ ...basis, ...gross, runden: 5 }), '--effort'), 'high');
 	});
 });
