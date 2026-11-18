@@ -345,6 +345,9 @@ export const pruefKorrektur = (befunde: readonly PruefBefund[], server: readonly
 		befunde.some((b) => b.art === 'loesung')
 			? `Zu „${PRUEF_ART_NAME.loesung}“: Prüfe, ob die Aufgabe oder die Lösung falsch ist, und ändere das Falsche.`
 			: '',
+		befunde.some((b) => b.art === 'bild')
+			? `Zu „${PRUEF_ART_NAME.bild}“: Eine schwebende oder eingeklebte Figur verschiebst du nicht und legst keine Pose darüber. Bearbeite das Bild mit der Figur darin (html-materialerstellung, references/bilder.md, Abschnitt 2a) oder erzeuge es neu; erlaubt der Auftrag keine neuen Bilder, nenne den Befund in deiner Antwort.`
+			: '',
 		server.length ? ['Die Schoolbox meldet:', ...server.map((t) => `- ${t}`)].join('\n') : '',
 		'Prüfe jeden Befund am Material. Behebe, was zutrifft; was nicht zutrifft, lass stehen und nenne es mit Grund in deiner Antwort. Halte dich an den Plan und die Regeln der Aufgaben-Übersicht. Baue mit bauen neu, sieh dir die Seiten an und aktualisiere steckbrief.json, wenn sich Figuren geändert haben. Antworte am Ende in höchstens drei Zeilen.',
 	]

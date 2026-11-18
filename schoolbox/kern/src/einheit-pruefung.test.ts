@@ -105,6 +105,13 @@ describe('Antwort des Prüflaufs (220, Teil 2)', () => {
 		assert.match(text, /- Seite 1, Aufgabe 2, Lösung falsch: 7 \+ 8 ist 15, nicht 16\./);
 		assert.match(text, /Prüfe, ob die Aufgabe oder die Lösung falsch ist, und ändere das Falsche\./);
 	});
+
+	it('zu „bild“ verschiebt die Korrekturrunde keine Figur, sie bearbeitet das Bild oder erzeugt es neu (234)', () => {
+		const text = pruefKorrektur([{ seite: 1, aufgabe: '', art: 'bild', text: 'Die Figur schwebt vor der Wand.' }], []);
+		assert.match(text, /Eine schwebende oder eingeklebte Figur verschiebst du nicht/);
+		assert.match(text, /Bearbeite das Bild mit der Figur darin/);
+		assert.doesNotMatch(pruefKorrektur([{ seite: 1, aufgabe: '2', art: 'unklar', text: 'x' }], []), /schwebende/);
+	});
 });
 
 describe('Nachricht an den Prüflauf (229)', () => {

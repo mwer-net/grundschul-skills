@@ -62,7 +62,9 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 - [ ] Jede Figur genau einmal, so wie ihr Referenzbild (Kleidung, Fellfarbe, Augenfarbe, Erkennungszeichen); wiederkehrende Nebenfiguren sehen in allen Szenen der Reihe gleich aus.
 - [ ] Jede Figur, die in der Geschichte spricht oder handelt, ist im Bild zu sehen; im Bild tut niemand etwas anderes, als der Text sagt.
 - [ ] Keine Buchstaben, Ziffern oder Schriftreste, auch nicht klein an Häusern, Schildern, Kisten oder Kleidung. Zettel, Schilder und Baupläne, von denen der Text spricht, tragen ihren Inhalt als Ebene.
-- [ ] Ebenen im Seitenbild: Die Leitfigur ist eine abgenommene Pose, auf allen Fall-Karten gleich groß; Zettel und Zahlen liegen dort, wo sie hingehören, und verdecken kein Pflichtobjekt.
+- [ ] Figuren in der Szene: Jede Figur steht, sitzt oder kniet auf etwas; nichts wirkt eingeklebt (anderer Stil, anderer Maßstab, kein Schatten, schwebt); keine Figur liegt als Ebene auf einer Szene.
+- [ ] Die Szene füllt den Platz: Handlung in der Bildmitte, Boden oder Standfläche im unteren Drittel, im Ausschnitt keine leere Fläche größer als etwa ein Viertel.
+- [ ] Ebenen im Seitenbild: Zettel und Zahlen liegen dort, wo sie hingehören, und verdecken kein Pflichtobjekt. Eine exakte Spur, an der das Rätsel hängt, steht groß neben oder unter dem Bild, nie winzig darauf.
 - [ ] Bild und Text passen: dieselbe Figur tut, was die Geschichte sagt; jede Anzahl, die der Text nennt, stimmt im Bild (Würfelaugen, Fächer, Häuser, Reihen); Gegenstände und Ort stimmen.
 
 **H. Inhalt nachrechnen (einmal je Dokument, nicht je Ausschnitt)**
@@ -90,6 +92,7 @@ Der Prüfbericht sieht keine inhaltlichen Fehler. Deshalb jede Aussage, die man 
 | Fehler im KI-Bild (Auge, Pfote, doppelte Figur, Schleier, Buchstabe) | Bearbeiten mit dem Bild als einziger Referenz und „behalte alles andere genau gleich, korrigiere nur …“, danach neu prüfen (`bilder.md`, Abschnitt 2a) |
 | Anzahl im KI-Bild passt nicht zum Text | Text an das Bild anpassen oder die Menge als SVG berechnen; nicht neu würfeln, bis es zufällig passt (`bilder.md`, Abschnitt 3) |
 | Im Bild handelt eine andere Figur als im Text | Text an das Bild anpassen, wenn das Bild sonst gut ist; sonst Bild bearbeiten |
+| Figur schwebt oder wirkt eingeklebt, Szene füllt den Platz nicht | Figur nicht verschieben: das Bild mit der Figur darin bearbeiten oder neu erzeugen (`bilder.md`, Abschnitt 2a) |
 | Seite wirkt überladen | Zweite Figur, Symbole, Rahmen und Deko streichen (höchstens eine Figur je Arbeitsseite), dann Items kürzen |
 | Zahl oder Zählwort stimmt nicht (Abschnitt H) | Text an den Inhalt anpassen, nicht umgekehrt; Lösung und alle Stellen, die dieselbe Zahl nennen, mitziehen |
 
@@ -97,4 +100,5 @@ Der Prüfbericht sieht keine inhaltlichen Fehler. Deshalb jede Aussage, die man 
 
 - **Blatt ohne Prüffehler (Kl. 2, Zehner und Einer):** Die Kreise um die Zehner schnitten sich, die Murmeln lagen gestreut, das Beispiel klebte an der Abbildung, und fünf Aufgaben mit je drei Darstellungsformen überforderten ein Zweitklasskind. Das war nur im vergrößerten Ausschnitt zu sehen, der Prüfbericht meldete nichts.
 - **Szenenbilder einer Reihe:** In Bildern, die in der Seitenvorschau fehlerfrei aussahen, fanden sich eine dritte Hand, ein Lupenring, der mit dem Auge verschmolzen war, eine Pfote ohne Körper und dieselbe Figur zweimal. Das zeigt erst die volle Auflösung, Viertel für Viertel.
-- **Bild gegen Text:** Die Bilder zeigten falsche Würfelaugen, neun statt zehn Häuser und leere Zettel, obwohl der Text von Schrift sprach, und die Leitfigur sah in jeder Szene anders aus. Das zeigt nur der Abgleich mit dem Text; daher Bildvertrag, Format nach Platz und Figur als Ebene (`bilder.md`).
+- **Bild gegen Text:** Die Bilder zeigten falsche Würfelaugen, neun statt zehn Häuser und leere Zettel, obwohl der Text von Schrift sprach, und die Leitfigur sah in jeder Szene anders aus. Das zeigt nur der Abgleich mit dem Text; daher Bildvertrag, Format nach Platz und die abgenommene Grundpose als Referenz jeder Szene (`bilder.md`).
+- **Figur über der Szene:** Eine freigestellte Pose lag als Ebene auf einem Szenenbild. Sie schwebte vor der Wand, das untere Drittel blieb leer, und die Spur des Rätsels war eine winzige Zeichnung. Daher Figuren in der Szene, eine Bühne im Bildvertrag und Spuren groß neben dem Bild (`bilder.md`, Abschnitte 2 bis 4).

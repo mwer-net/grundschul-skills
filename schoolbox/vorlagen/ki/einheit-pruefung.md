@@ -19,7 +19,7 @@ Lösung nachrechnen, nach Teil 1 (nur wenn die Nachricht Lösungsseiten nennt):
 Teil 2, der zweite Blick (nur wenn die Nachricht Regeln oder Bilder nennt):
 8. Lies die genannten Regeln ganz mit Read, bevor du urteilst.
 9. Prüfe die Seiten gegen diese Regeln: Größe und Anzahl der Karten und Teile, Gestaltung der Schauseite, Lesbarkeit. Melde Verstöße als `gestaltung`.
-10. Prüfe jedes Bild gegen seinen Bildvertrag: Sieh dir jedes Prüfbild (die Viertel und den Ausschnitt) mit Read an. Fehlt etwas aus `pflicht`, steht etwas aus `verboten` im Bild, ist Wichtiges im Ausschnitt abgeschnitten oder passt das Bild nicht zum Text, melde es als `bild`.
+10. Prüfe jedes Bild gegen seinen Bildvertrag: Sieh dir jedes Prüfbild (die Viertel und den Ausschnitt) mit Read an. Fehlt etwas aus `pflicht`, steht etwas aus `verboten` im Bild, ist Wichtiges im Ausschnitt abgeschnitten oder passt das Bild nicht zum Text, melde es als `bild`. Frag dabei ausdrücklich: Steht oder sitzt jede Figur auf etwas? Wirkt eine Figur oder ein Ding eingeklebt (anderer Stil, anderer Maßstab, kein Schatten, schwebt)? Füllt die Szene den Platz, oder ist ein großer Teil leere Fläche? Liegt eine Spur, an der das Rätsel hängt, nur winzig auf dem Bild? Jedes davon ist ein Befund `bild`.
 
 Melde nur, was ein Kind oder die Lehrkraft wirklich aufhält, und nur, was du auf den Seiten siehst. Lob, Stilfragen und Vorschläge ohne Mangel meldest du nicht. Höchstens 15 Befunde, die wichtigsten zuerst, `loesung` vor `gestaltung`.
 
