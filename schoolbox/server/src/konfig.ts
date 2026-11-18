@@ -14,7 +14,8 @@ export interface ServerKonfig extends Omit<Konfig, 'bildQualitaet'> {
 	hinweise: string[];
 }
 
-const istBildQualitaet = (wert: string): wert is BildQualitaet => (BILD_QUALITAETEN as readonly string[]).includes(wert);
+const istBildQualitaet = (wert: string): wert is BildQualitaet =>
+	(BILD_QUALITAETEN as readonly string[]).includes(wert);
 
 const MIN_GEHEIMNIS = 32;
 
@@ -77,8 +78,6 @@ export const pruefeServerKonfig = (konfig: Konfig): ServerKonfig => {
 		passwortHash: konfig.passwortHash ?? '',
 		sitzungGeheimnis: konfig.sitzungGeheimnis ?? '',
 		bildQualitaet: istBildQualitaet(konfig.bildQualitaet) ? konfig.bildQualitaet : 'low',
-		hinweise: konfig.openaiSchluessel
-			? []
-			: ['OPENAI_API_KEY fehlt: Neue KI-Bilder sind aus, alles andere läuft.'],
+		hinweise: konfig.openaiSchluessel ? [] : ['OPENAI_API_KEY fehlt: Neue KI-Bilder sind aus, alles andere läuft.'],
 	};
 };

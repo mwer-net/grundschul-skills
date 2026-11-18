@@ -1,6 +1,6 @@
+import type { BildlaufStand } from '@schoolbox/kern/src/bild-auftrag';
 import type { Sammlung, SammlungsBild } from '@schoolbox/kern/src/bildbefehle';
 import { vorschaubildAdresse } from '@schoolbox/kern/src/bildbefehle';
-import type { BildlaufStand } from '@schoolbox/kern/src/bild-auftrag';
 import type { DragEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -11,16 +11,17 @@ import { Segment } from '../../bausteine/Segment';
 import { useEreignisse } from '../../ereignisse';
 import { useLaden } from '../../lib/laden';
 import type { FreiAblegen } from '../bild';
+import { bildLaeufe, bildlaufAktion, starteBild, useBildlaufLaeufe } from '../bild-lauf';
 import { passt } from '../bild-sammlung';
 import type { BildZiehen, SammlungsGruppe } from '../Bildpanel';
 import { BILDGRUPPEN, Hochladen, Laeuft, SammlungsKacheln } from '../Bildpanel';
 import { bildBeschreibung, bilderZahl } from '../bildpanel-hilfe';
-import { bildLaeufe, bildlaufAktion, starteBild, useBildlaufLaeufe } from '../bild-lauf';
 import { legeInMitte } from '../gestaltung/ablegen/ablegen';
 import { bildGut, mitGeholtemBild } from '../gestaltung/ablegen/bild-gut';
 import { useHolenAmZeiger } from '../gestaltung/ablegen/holen-am-zeiger';
+import { bildFeld } from '../ki';
 import type { SchubladenTeile } from '.';
-import { BildBeschreiben, bildFeld, OhneBildApi } from './bild-beschreiben';
+import { BildBeschreiben, OhneBildApi } from './bild-beschreiben';
 import { BildlaufBildKacheln } from './BildlaufKachel';
 import { kopf } from './reihe';
 
@@ -198,7 +199,9 @@ export const Inhalt = (t: SchubladenTeile) => {
 						ziehen={ziehen}
 						entferne={entferne}
 						vorne={
-							auftraege.length > 0 ? <BildlaufBildKacheln laeufe={auftraege} nochmal={nochmal} /> : undefined
+							auftraege.length > 0 ? (
+								<BildlaufBildKacheln laeufe={auftraege} nochmal={nochmal} />
+							) : undefined
 						}
 					/>
 				</Schubladenabschnitt>

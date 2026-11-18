@@ -150,6 +150,21 @@ const bisWann = (iso: string) => {
 
 const LIMIT_NAMEN = { woche: 'Wochenlimit', fuenfStunden: 'Fünf-Stunden-Limit' };
 
+/**
+ * Was eine Schublade an Stelle von „Figur beschreiben“ und „Bild beschreiben“ zeigt (237): ohne Claude-Anmeldung
+ * nichts, ohne Bild-API den Satz des Servers (`OhneBildApi`), sonst das Feld.
+ */
+export const bildFeld = (ki: {
+	geladen: boolean;
+	verfuegbar: boolean;
+	bilder: KiZustand['bilder'];
+}): 'feld' | 'grund' | 'nichts' => {
+	if (ki.geladen && !ki.verfuegbar) {
+		return 'nichts';
+	}
+	return ki.geladen && !ki.bilder.verfuegbar ? 'grund' : 'feld';
+};
+
 /** Die Meldung zum Limit in einfachen Worten; `null`, solange genug Luft ist. */
 export const limitHinweis = (limit: KiLimit | null, warnAb: number) => {
 	if (!limit) {

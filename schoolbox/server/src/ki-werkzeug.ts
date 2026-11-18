@@ -82,7 +82,8 @@ export const werkzeugNamen = (art: WerkzeugArt, mitBildern: boolean): string[] =
 	return art === 'bilder' ? bilder : ['bauen', ...bilder];
 };
 
-const istObjekt = (w: unknown): w is Record<string, unknown> => typeof w === 'object' && w !== null && !Array.isArray(w);
+const istObjekt = (w: unknown): w is Record<string, unknown> =>
+	typeof w === 'object' && w !== null && !Array.isArray(w);
 
 /**
  * Öffnet den Socket in `dir` und schreibt die MCP-Konfiguration daneben. `dir` gehört der Schoolbox und hat Modus
@@ -138,7 +139,9 @@ export const starteWerkzeug = async (
 			}
 			return await baue(dokument);
 		}
-		return bilder ? await bilder.aufruf(werkzeug, argumente) : { text: 'Keine Bilder in diesem Lauf.', fehler: true };
+		return bilder
+			? await bilder.aufruf(werkzeug, argumente)
+			: { text: 'Keine Bilder in diesem Lauf.', fehler: true };
 	};
 	const server: Server = createServer((verbindung) => {
 		verbindung.on('error', () => undefined);

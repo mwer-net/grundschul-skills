@@ -84,7 +84,74 @@ const paeth = (a: number, b: number, c: number) => {
 	const pa = Math.abs(p - a);
 	const pb = Math.abs(p - b);
 	const pc = Math.abs(p - c);
-	return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+	if (pa <= pb && pa <= pc) {
+		return a;
+	}
+	return pb <= pc ? b : c;
+};
+
+/** Die Vorhersage der Zeilenfilter 1 bis 4 (Sub, Up, Average, Paeth); Filter 0 sagt nichts vorher. */
+const vorhersage = (filter: number, a: number, b: number, c: number) => {
+	switch (filter) {
+		case 1:
+			return a;
+		case 2:
+			return b;
+		case 3:
+			return (a + b) >> 1;
+		case 4:
+			return paeth(a, b, c);
+		default:
+			return 0;
+	}
+};
+
+/** Die IDAT-Blöcke eines PNG der Reihe nach; `null`, wenn es einen `tRNS`-Block hat. */
+const pngDaten = (inhalt: Buffer): Buffer[] | null => {
+	const daten: Buffer[] = [];
+	for (let i = 8; i + 8 <= inhalt.length;) {
+		const laenge = inhalt.readUInt32BE(i);
+		const art = inhalt.toString('latin1', i + 4, i + 8);
+		if (art === 'tRNS') {
+			return null;
+		}
+		if (art === 'IDAT') {
+			daten.push(inhalt.subarray(i + 8, i + 8 + laenge));
+		}
+		if (art === 'IEND') {
+			break;
+		}
+		i += 12 + laenge;
+	}
+	return daten;
+};
+
+/** Die Zeile ab `start` (Filterbyte, dann `zeile` Bytes) entfiltert; `null` bei unbekanntem Filter. */
+const entfilterteZeile = (roh: Buffer, start: number, zeile: number, bytesJePixel: number, vorige: Buffer) => {
+	const filter = roh[start] ?? 0;
+	if (filter > 4) {
+		return null;
+	}
+	const jetzt = Buffer.from(roh.subarray(start + 1, start + 1 + zeile));
+	for (let x = 0; x < zeile; x += 1) {
+		const a = x >= bytesJePixel ? (jetzt[x - bytesJePixel] ?? 0) : 0;
+		const b = vorige[x] ?? 0;
+		const c = x >= bytesJePixel ? (vorige[x - bytesJePixel] ?? 0) : 0;
+		jetzt[x] = ((jetzt[x] ?? 0) + vorhersage(filter, a, b, c)) & 0xff;
+	}
+	return jetzt;
+};
+
+/** Hat eine entfilterte Zeile ein Pixel mit Alpha unter dem Maximum? Alpha ist der letzte Kanal jedes Pixels. */
+const zeileMitAlpha = (jetzt: Buffer, bits: number, bytesJePixel: number) => {
+	const max = bits === 8 ? 0xff : 0xffff;
+	for (let x = bytesJePixel - bits / 8; x < jetzt.length; x += bytesJePixel) {
+		const alpha = bits === 8 ? (jetzt[x] ?? 0) : jetzt.readUInt16BE(x);
+		if (alpha < max) {
+			return true;
+		}
+	}
+	return false;
 };
 
 /**
@@ -102,26 +169,14 @@ export const hatTransparenz = (inhalt: Buffer) => {
 	const bits = inhalt[24] ?? 0;
 	const farbtyp = inhalt[25] ?? 0;
 	const interlace = inhalt[28] ?? 0;
-	const daten: Buffer[] = [];
-	for (let i = 8; i + 8 <= inhalt.length; ) {
-		const laenge = inhalt.readUInt32BE(i);
-		const art = inhalt.toString('latin1', i + 4, i + 8);
-		if (art === 'tRNS') {
-			return true;
-		}
-		if (art === 'IDAT') {
-			daten.push(inhalt.subarray(i + 8, i + 8 + laenge));
-		}
-		if (art === 'IEND') {
-			break;
-		}
-		i += 12 + laenge;
+	const daten = pngDaten(inhalt);
+	if (daten === null) {
+		return true;
 	}
 	if ((farbtyp !== 4 && farbtyp !== 6) || (bits !== 8 && bits !== 16) || interlace !== 0 || !daten.length) {
 		return false;
 	}
-	const kanaele = farbtyp === 6 ? 4 : 2;
-	const bytesJePixel = (kanaele * bits) / 8;
+	const bytesJePixel = ((farbtyp === 6 ? 4 : 2) * bits) / 8;
 	const zeile = breite * bytesJePixel;
 	let roh: Buffer;
 	try {
@@ -132,36 +187,22 @@ export const hatTransparenz = (inhalt: Buffer) => {
 	if (roh.length < (zeile + 1) * hoehe) {
 		return false;
 	}
-	const max = bits === 8 ? 0xff : 0xffff;
-	const alphaAb = bytesJePixel - bits / 8;
 	let vorige = Buffer.alloc(zeile);
 	for (let y = 0; y < hoehe; y += 1) {
-		const start = y * (zeile + 1);
-		const filter = roh[start] ?? 0;
-		const jetzt = Buffer.from(roh.subarray(start + 1, start + 1 + zeile));
-		for (let x = 0; x < zeile; x += 1) {
-			const a = x >= bytesJePixel ? (jetzt[x - bytesJePixel] ?? 0) : 0;
-			const b = vorige[x] ?? 0;
-			const c = x >= bytesJePixel ? (vorige[x - bytesJePixel] ?? 0) : 0;
-			const vorhersage =
-				filter === 1 ? a : filter === 2 ? b : filter === 3 ? (a + b) >> 1 : filter === 4 ? paeth(a, b, c) : 0;
-			if (filter > 4) {
-				return false;
-			}
-			jetzt[x] = ((jetzt[x] ?? 0) + vorhersage) & 0xff;
+		const jetzt = entfilterteZeile(roh, y * (zeile + 1), zeile, bytesJePixel, vorige);
+		if (!jetzt) {
+			return false;
 		}
-		for (let x = alphaAb; x < zeile; x += bytesJePixel) {
-			const alpha = bits === 8 ? (jetzt[x] ?? 0) : jetzt.readUInt16BE(x);
-			if (alpha < max) {
-				return true;
-			}
+		if (zeileMitAlpha(jetzt, bits, bytesJePixel)) {
+			return true;
 		}
 		vorige = jetzt;
 	}
 	return false;
 };
 
-export const istText = (w: unknown, max: number): w is string => typeof w === 'string' && w.length > 0 && w.length <= max;
+export const istText = (w: unknown, max: number): w is string =>
+	typeof w === 'string' && w.length > 0 && w.length <= max;
 const istZahl = (w: unknown, min: number, max: number): w is number =>
 	typeof w === 'number' && Number.isFinite(w) && w >= min && w <= max;
 

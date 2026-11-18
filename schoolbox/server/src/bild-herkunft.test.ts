@@ -31,7 +31,10 @@ describe('uebertrageHerkunft (237)', () => {
 
 	it('nimmt je Bild die letzte Zeile unter dem neuen Namen, mit Kopfzeile, und nur die übernommenen Bilder', async () => {
 		await uebertrageHerkunft(von, zu, { 'igel.png': 'igel-2.png' });
-		assert.equal(await readFile(path.join(zu, BILD_HERKUNFT), 'utf8'), `${KOPF}igel-2.png\topenai\tm\t2026-11-18\tIgel\n`);
+		assert.equal(
+			await readFile(path.join(zu, BILD_HERKUNFT), 'utf8'),
+			`${KOPF}igel-2.png\topenai\tm\t2026-11-18\tIgel\n`,
+		);
 		assert.equal(existsSync(path.join(zu, CANVA_IDS)), false, 'ohne alte Bilder keine canva-ids.tsv');
 		// Ein zweiter Bau mit demselben Bild schreibt nichts doppelt.
 		await uebertrageHerkunft(von, zu, { 'igel.png': 'igel-2.png' });
@@ -44,7 +47,10 @@ describe('uebertrageHerkunft (237)', () => {
 			await readFile(path.join(zu, BILD_HERKUNFT), 'utf8'),
 			`${KOPF}igel-2.png\topenai\tm\t2026-11-18\tIgel\nbaum.png\topenai\tm\t2026-11-18\tBaum\n`,
 		);
-		assert.equal(await readFile(path.join(zu, CANVA_IDS), 'utf8'), 'datei\tmedia-id\tmotiv\nalt.png\tMA1\tAltes Bild\n');
+		assert.equal(
+			await readFile(path.join(zu, CANVA_IDS), 'utf8'),
+			'datei\tmedia-id\tmotiv\nalt.png\tMA1\tAltes Bild\n',
+		);
 	});
 
 	it('Gegenprobe: ohne Herkunftsdatei im Arbeitsordner und ohne Bilder geschieht nichts', async () => {

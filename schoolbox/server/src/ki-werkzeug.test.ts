@@ -8,7 +8,7 @@ import { createInterface } from 'node:readline';
 import { after, before, describe, it } from 'node:test';
 
 import type { Ansicht, Meldung } from '@schoolbox/kern';
-import { BILD_FORMAT_NAMEN, baueAnsichtAus, laufMeldungen } from '@schoolbox/kern';
+import { baueAnsichtAus, BILD_FORMAT_NAMEN, laufMeldungen } from '@schoolbox/kern';
 import { browserSkip } from '@schoolbox/kern/src/browsertest';
 
 import type { BildWerkzeug } from './bild-werkzeug';
@@ -89,7 +89,10 @@ describe('bauen für Claude: Probeblatt (225, Abnahme)', { skip: browserSkip() }
 interface McpAntwort {
 	id: number;
 	result?: {
-		tools?: { name: string; inputSchema: { properties: Record<string, { enum?: string[] }>; required: string[] } }[];
+		tools?: {
+			name: string;
+			inputSchema: { properties: Record<string, { enum?: string[] }>; required: string[] };
+		}[];
 		content?: { text: string }[];
 		isError?: boolean;
 	};

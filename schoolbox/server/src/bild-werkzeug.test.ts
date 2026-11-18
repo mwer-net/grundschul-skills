@@ -3,16 +3,16 @@ import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { crc32, deflateSync } from 'node:zlib';
 import { afterEach, beforeEach, describe, it } from 'node:test';
+import { crc32, deflateSync } from 'node:zlib';
 
 import type { BildAnfrage, BildErgebnis } from './bild-api';
 import { BILD_API_GESPERRT, BildApiFehler } from './bild-api';
 import type { BildPlatz } from './bild-datei';
 import { hatTransparenz } from './bild-datei';
+import { BILD_GRENZEN } from './bild-grenzen';
 import type { BildWerkzeugOptionen } from './bild-werkzeug';
 import { BILD_HERKUNFT, erstelleBildWerkzeug, VERSUCHE } from './bild-werkzeug';
-import { BILD_GRENZEN } from './bild-grenzen';
 import { KI_GRENZEN } from './ki';
 
 type Alpha = 'ohne' | 'deckend' | 'ecke';
@@ -20,7 +20,10 @@ type Alpha = 'ohne' | 'deckend' | 'ecke';
 const paeth = (a: number, b: number, c: number) => {
 	const p = a + b - c;
 	const [pa, pb, pc] = [Math.abs(p - a), Math.abs(p - b), Math.abs(p - c)];
-	return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+	if (pa <= pb && pa <= pc) {
+		return a;
+	}
+	return pb <= pc ? b : c;
 };
 
 const block = (art: string, daten: Buffer) => {
@@ -133,7 +136,13 @@ describe('Bildwerkzeuge (237)', () => {
 			konfig: KONFIG,
 			api: (anfrage) => {
 				anfragen.push(anfrage);
-				return Promise.resolve(ergebnis(anfrage.typ === 'png' ? png(64, 64, anfrage.transparent ? 'ecke' : 'ohne') : jpg(1440, 1152, anfragen.length)));
+				return Promise.resolve(
+					ergebnis(
+						anfrage.typ === 'png'
+							? png(64, 64, anfrage.transparent ? 'ecke' : 'ohne')
+							: jpg(1440, 1152, anfragen.length),
+					),
+				);
 			},
 			zuschnitt: (inhalt, wunsch) => {
 				zuschnitte.push({ ...wunsch, bytes: inhalt.length });
@@ -155,7 +164,11 @@ describe('Bildwerkzeuge (237)', () => {
 
 	it('lehnt ohne Vertrag in bilder.json ab und ruft die API nicht', async () => {
 		const w = await werkzeug();
-		const antwort = await w.aufruf('bild_erzeugen', { datei: 'fall-1.jpg', prompt: 'Szene', format: 'LANDSCAPE_5_4' });
+		const antwort = await w.aufruf('bild_erzeugen', {
+			datei: 'fall-1.jpg',
+			prompt: 'Szene',
+			format: 'LANDSCAPE_5_4',
+		});
 		assert.equal(antwort.fehler, true);
 		assert.match(antwort.text, /Vertrag, dann erzeugen/);
 		assert.match(antwort.text, /fall-1\.jpg/);
@@ -170,8 +183,16 @@ describe('Bildwerkzeuge (237)', () => {
 			['bild_erzeugen', { datei: '../luna.png', prompt: 'x', format: 'SQUARE_1_1' }, /datei/],
 			['bild_erzeugen', { datei: 'luna.png', prompt: '', format: 'SQUARE_1_1' }, /prompt/],
 			['bild_erzeugen', { datei: 'luna.png', prompt: 'x', format: 'A4' }, /format/],
-			['bild_erzeugen', { datei: 'fall-1.jpg', prompt: 'x', format: 'SQUARE_1_1', transparent: true }, /nur bei \.png/],
-			['bild_erzeugen', { datei: 'luna.png', prompt: 'x', format: 'SQUARE_1_1', referenzen: ['a', 'b', 'c', 'd', 'e'] }, /höchstens 4/],
+			[
+				'bild_erzeugen',
+				{ datei: 'fall-1.jpg', prompt: 'x', format: 'SQUARE_1_1', transparent: true },
+				/nur bei \.png/,
+			],
+			[
+				'bild_erzeugen',
+				{ datei: 'luna.png', prompt: 'x', format: 'SQUARE_1_1', referenzen: ['a', 'b', 'c', 'd', 'e'] },
+				/höchstens 4/,
+			],
 			['bild_bearbeiten', { datei: 'luna.png', prompt: 'x', referenzen: ['a', 'b', 'c', 'd'] }, /höchstens 3/],
 			['bild_malen', { datei: 'luna.png', prompt: 'x' }, /Unbekanntes Werkzeug/],
 		] as const) {
@@ -247,7 +268,11 @@ describe('Bildwerkzeuge (237)', () => {
 			url: 'alt',
 		});
 		const w = await werkzeug();
-		const erste = await w.aufruf('bild_erzeugen', { datei: 'fall-1.jpg', prompt: 'Szene', format: 'LANDSCAPE_5_4' });
+		const erste = await w.aufruf('bild_erzeugen', {
+			datei: 'fall-1.jpg',
+			prompt: 'Szene',
+			format: 'LANDSCAPE_5_4',
+		});
 		assert.equal(erste.fehler, undefined, erste.text);
 		const ersteDatei = await readFile(path.join(arbeit, 'bilder', 'fall-1.jpg'));
 		assert.match(erste.text, /^Gespeichert: bilder\/fall-1\.jpg \(1440 × 1152 px\), Versuch 1\./);
@@ -264,7 +289,11 @@ describe('Bildwerkzeuge (237)', () => {
 			bytes: ersteDatei.length,
 		});
 
-		const zweite = await w.aufruf('bild_erzeugen', { datei: 'fall-1.jpg', prompt: 'Szene', format: 'LANDSCAPE_5_4' });
+		const zweite = await w.aufruf('bild_erzeugen', {
+			datei: 'fall-1.jpg',
+			prompt: 'Szene',
+			format: 'LANDSCAPE_5_4',
+		});
 		assert.match(zweite.text, /Versuch 2\./);
 		assert.match(zweite.text, /Die Vorversion liegt unter ansicht\/bilder\/versuche\/fall-1-1\.jpg\./);
 		assert.deepEqual(await readFile(path.join(arbeit, VERSUCHE, 'fall-1-1.jpg')), ersteDatei);
@@ -320,7 +349,9 @@ describe('Bildwerkzeuge (237)', () => {
 				return ergebnis(png(64, 64));
 			},
 		});
-		const antworten = namen.map((datei) => w.aufruf('bild_erzeugen', { datei, prompt: 'Ding', format: 'SQUARE_1_1' }));
+		const antworten = namen.map((datei) =>
+			w.aufruf('bild_erzeugen', { datei, prompt: 'Ding', format: 'SQUARE_1_1' }),
+		);
 		const alle = await Promise.all(antworten);
 		assert.equal(hoechstens, BILD_GRENZEN.gleichzeitig);
 		assert.equal(hoechstens, 3);
@@ -336,7 +367,10 @@ describe('Bildwerkzeuge (237)', () => {
 		assert.equal(KI_GRENZEN.bild, BILD_GRENZEN);
 		const w = await werkzeug({ art: 'schublade' });
 		for (let i = 0; i < 3; i += 1) {
-			assert.equal((await w.aufruf('bild_erzeugen', { datei: 'a.png', prompt: 'A', format: 'SQUARE_1_1' })).fehler, undefined);
+			assert.equal(
+				(await w.aufruf('bild_erzeugen', { datei: 'a.png', prompt: 'A', format: 'SQUARE_1_1' })).fehler,
+				undefined,
+			);
 		}
 		const vierte = await w.aufruf('bild_erzeugen', { datei: 'a.png', prompt: 'A', format: 'SQUARE_1_1' });
 		assert.equal(vierte.fehler, true);
@@ -368,7 +402,8 @@ describe('Bildwerkzeuge (237)', () => {
 	it('andere Fehler der API kommen als kurzer Text, das Werkzeug bleibt offen', async () => {
 		await vertrag({ datei: 'a.png', motiv: 'A' });
 		const w = await werkzeug({
-			api: () => Promise.reject(new BildApiFehler('sicherheit', 'Sicherheitsfilter: Motiv harmloser formulieren.')),
+			api: () =>
+				Promise.reject(new BildApiFehler('sicherheit', 'Sicherheitsfilter: Motiv harmloser formulieren.')),
 		});
 		const antwort = await w.aufruf('bild_erzeugen', { datei: 'a.png', prompt: 'A', format: 'SQUARE_1_1' });
 		assert.deepEqual(antwort, { text: 'Sicherheitsfilter: Motiv harmloser formulieren.', fehler: true });

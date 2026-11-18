@@ -201,7 +201,9 @@ test.describe('Bild beschreiben (179)', () => {
 		await beschreibe(page, WUNSCH);
 		const kachel = bildlaufKacheln(page);
 		await expect(kachel).toHaveAttribute('data-status', 'fehler', LAUF);
-		await expect(kachel).toContainText('OpenAI hat keine Bilder mehr erzeugt (Guthaben, Ausgabenlimit oder Schlüssel).');
+		await expect(kachel).toContainText(
+			'OpenAI hat keine Bilder mehr erzeugt (Guthaben, Ausgabenlimit oder Schlüssel).',
+		);
 		const breite = async (ziel: Locator) => (await ziel.boundingBox())?.width ?? 0;
 		expect(Math.abs((await breite(kachel)) - (await breite(liste(page))))).toBeLessThanOrEqual(1);
 
@@ -259,9 +261,9 @@ test.describe('Bild beschreiben (179)', () => {
 		await expect(schublade(page).getByRole('textbox', { name: 'Bild beschreiben' })).toHaveCount(0);
 		await expect(schublade(page).locator('[data-ohne-bild-api]')).toHaveText(grund);
 		await oeffneSchublade(page, 'figuren');
-		const figuren = page.locator('[data-schublade-figuren]');
-		await expect(figuren.getByRole('textbox', { name: 'Figur beschreiben' })).toHaveCount(0);
-		await expect(figuren.locator('[data-ohne-bild-api]')).toHaveText(grund);
+		const figurenSchublade = page.locator('[data-schublade-figuren]');
+		await expect(figurenSchublade.getByRole('textbox', { name: 'Figur beschreiben' })).toHaveCount(0);
+		await expect(figurenSchublade.locator('[data-ohne-bild-api]')).toHaveText(grund);
 	});
 
 	test('Ruhig: kein Bedienhinweis und kein Kürzel in der Schublade', async ({ page }) => {
@@ -283,7 +285,10 @@ test.describe('Bild beschreiben (179)', () => {
 		await page.reload();
 		await oeffneSchublade(page, 'bilder');
 		await gruppenKnopf(page, 'Dieser Ordner').click();
-		await expect(liste(page).locator('> li').first().locator(BILDLAUF_KACHEL)).toHaveAttribute('aria-label', WUNSCH);
+		await expect(liste(page).locator('> li').first().locator(BILDLAUF_KACHEL)).toHaveAttribute(
+			'aria-label',
+			WUNSCH,
+		);
 	});
 
 	test('Meldung: „Figuren“ offen, fertig, dann die Meldung; „Ansehen“ öffnet „Bilder“', async ({ druecke, page }) => {

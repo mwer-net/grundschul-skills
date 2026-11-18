@@ -561,9 +561,7 @@ export const kiArgumente = (o: {
 		'--tools',
 		o.einheit ? (o.werkzeuge ?? 'Read,Edit,Write,Skill') : 'Read,Edit,Skill',
 		'--allowedTools',
-		...(o.einheit
-			? (o.rechte ?? EINHEIT_RECHTE)
-			: [`Edit(./${WORKFILE})`, ...(bilder ? BLATT_BILD_RECHTE : [])]),
+		...(o.einheit ? (o.rechte ?? EINHEIT_RECHTE) : [`Edit(./${WORKFILE})`, ...(bilder ? BLATT_BILD_RECHTE : [])]),
 		'Skill',
 		...mcp,
 		'--disallowedTools',
@@ -1861,11 +1859,11 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 		sitzung: string | null,
 		a: KiAuftrag,
 		{
+			bilder = null,
 			gross = false,
 			ki,
 			mcpDatei = null,
 			mcpWerkzeuge,
-			bilder = null,
 			mitschrift,
 			werkzeug,
 		}: {

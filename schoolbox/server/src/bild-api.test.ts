@@ -6,6 +6,8 @@ import { BILD_FORMAT_NAMEN, BILD_FORMATE, bildGroesse, formatFuerMasse } from '@
 import type { BildAnfrage, BildApiEinstellung, BildApiUmgebung } from './bild-api';
 import { BILD_API_GESPERRT, BildApiFehler, erzeugeBild, TRANSPARENT_SATZ } from './bild-api';
 
+type Init = NonNullable<Parameters<typeof fetch>[1]>;
+
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
 const JPG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 5, 6]);
 const EINSTELLUNG: BildApiEinstellung = { schluessel: 'test-schluessel', modell: 'gpt-image-test', qualitaet: 'low' };
@@ -26,10 +28,10 @@ const fehler = (status: number, error: Record<string, string>, headers: Record<s
 const falsch = (...antworten: (Response | Error)[]) => {
 	const aufrufe: Aufruf[] = [];
 	const wartezeiten: number[] = [];
-	const laden = ((url: string, init: RequestInit) => {
+	const laden = ((url: string, init: Init) => {
 		aufrufe.push({
 			url,
-			koerper: JSON.parse(String(init.body)) as Record<string, unknown>,
+			koerper: JSON.parse(init.body as string) as Record<string, unknown>,
 			kopf: init.headers as Record<string, string>,
 		});
 		const naechste = antworten.shift();
@@ -160,7 +162,11 @@ describe('Bild-API (237): Aufruf', () => {
 describe('Bild-API (237): Fehler und Wiederholungen', () => {
 	it('429 rate_limit_exceeded mit Retry-After → wartet mindestens so lange, dann geht es weiter', async () => {
 		const { aufrufe, umgebung, wartezeiten } = falsch(
-			fehler(429, { code: 'rate_limit_exceeded', type: 'requests', message: 'Rate limit' }, { 'retry-after': '7' }),
+			fehler(
+				429,
+				{ code: 'rate_limit_exceeded', type: 'requests', message: 'Rate limit' },
+				{ 'retry-after': '7' },
+			),
 			ok(),
 		);
 		const ergebnis = await erzeugeBild(anfrage(), EINSTELLUNG, umgebung);
@@ -216,9 +222,12 @@ describe('Bild-API (237): Fehler und Wiederholungen', () => {
 	});
 
 	it('Zeitüberschreitung und Netzfehler: kurzer Fehlertext', async () => {
-		const haengt = ((_url: string, init: RequestInit) =>
+		const haengt = ((_url: string, init: Init) =>
 			new Promise<Response>((_, reject) => {
-				init.signal?.addEventListener('abort', () => reject(init.signal?.reason));
+				init.signal?.addEventListener('abort', () => {
+					const grund: unknown = init.signal?.reason;
+					reject(grund instanceof Error ? grund : new Error(String(grund)));
+				});
 			})) as typeof fetch;
 		await wirft(erzeugeBild(anfrage(), EINSTELLUNG, { laden: haengt, zeitMs: 20 }), 'zeit', /nicht rechtzeitig/);
 		const { umgebung } = falsch(new TypeError('fetch failed'));
@@ -227,7 +236,11 @@ describe('Bild-API (237): Fehler und Wiederholungen', () => {
 
 	it('keine Wiederholung über die Frist des Aufrufs hinaus', async () => {
 		const { aufrufe, umgebung } = falsch(
-			fehler(429, { code: 'rate_limit_exceeded', type: 'requests', message: 'Rate limit' }, { 'retry-after': '60' }),
+			fehler(
+				429,
+				{ code: 'rate_limit_exceeded', type: 'requests', message: 'Rate limit' },
+				{ 'retry-after': '60' },
+			),
 		);
 		const jetzt = 1_000_000;
 		await wirft(

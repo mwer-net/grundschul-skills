@@ -26,14 +26,6 @@ export const OhneBildApi = ({ grund }: { grund: string | null }) =>
 		</p>
 	);
 
-/** Ohne Claude-Anmeldung erscheint nichts; ohne Bild-API `OhneBildApi`; sonst das Feld. */
-export const bildFeld = (ki: SchubladenTeile['ki']): 'feld' | 'grund' | 'nichts' => {
-	if (ki.geladen && !ki.verfuegbar) {
-		return 'nichts';
-	}
-	return ki.geladen && !ki.bilder.verfuegbar ? 'grund' : 'feld';
-};
-
 /** Bis vier Zeilen wächst das Feld, danach rollt es (wie `FELD_MAX` in `Blase.tsx`). */
 const ZEILEN = 4;
 

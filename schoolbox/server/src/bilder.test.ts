@@ -150,7 +150,8 @@ describe('Bild beschreiben (179, 237)', () => {
 		return daten.id;
 	};
 	const fehler = async (antwort: Response) => ((await antwort.json()) as { fehler: string }).fehler;
-	const liste = async () => ((await (await s.holen(`${s.url}/api/bildlauf`)).json()) as { laeufe: BildlaufStand[] }).laeufe;
+	const liste = async () =>
+		((await (await s.holen(`${s.url}/api/bildlauf`)).json()) as { laeufe: BildlaufStand[] }).laeufe;
 	const letztes = (id: string) => ereignisse.filter((e) => e.id === id).at(-1);
 	const ende = async (id: string) => {
 		await warte(() => ['fertig', 'fehler', 'abgebrochen'].includes(letztes(id)?.status ?? ''));
@@ -251,7 +252,10 @@ describe('Bild beschreiben (179, 237)', () => {
 		assert.ok(existsSync(path.join(mappenBilder(), BILD)));
 		const herkunft = await readFile(path.join(mappenBilder(), 'bilder-herkunft.tsv'), 'utf8');
 		assert.match(herkunft, /^datei\tquelle\tmodell\tdatum\tmotiv\n/);
-		assert.match(herkunft, new RegExp(`^${BILD}\topenai\t[^\t]+\t\\d{4}-\\d{2}-\\d{2}\tWilli und Wilma im Garten$`, 'm'));
+		assert.match(
+			herkunft,
+			new RegExp(`^${BILD}\topenai\t[^\t]+\t\\d{4}-\\d{2}-\\d{2}\tWilli und Wilma im Garten$`, 'm'),
+		);
 		assert.ok(!existsSync(path.join(mappenBilder(), 'canva-ids.tsv')));
 		const sammlung = (await (await s.holen(`${s.url}/api/dokumente/${mappe}/${dok}/bilder`)).json()) as Sammlung;
 		assert.equal(sammlung.mappe[0]?.schluessel, `${mappe}/bilder/${BILD}`);

@@ -341,7 +341,9 @@ export const SchrittERahmen = ({
 				<span className="min-w-0 flex-1">
 					<span className="block font-medium">Neue KI-Bilder</span>
 					<span className="block text-sm text-leise">
-						{bilder.verfuegbar ? 'Szenen und Motive passend zur Geschichte, über OpenAI rund 2 $ je Einheit.' : bilder.grund}
+						{bilder.verfuegbar
+							? 'Szenen und Motive passend zur Geschichte, über OpenAI rund 2 $ je Einheit.'
+							: bilder.grund}
 					</span>
 				</span>
 				{bilder.verfuegbar && (

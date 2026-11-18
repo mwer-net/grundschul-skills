@@ -91,9 +91,18 @@ describe('Bildvertrag und Zuschnitt (215, seit 237 hier)', () => {
 		const roh = JSON.stringify(liste);
 		await writeFile(path.join(arbeit, 'bilder.json'), roh);
 		assert.deepEqual(await leseBildVertraege(arbeit), [
-			{ datei: 'fall-5.png', motiv: 'Werkstatt', platz: { breite: 794, hoehe: 660 }, blickpunkt: { x: 40, y: 50 } },
+			{
+				datei: 'fall-5.png',
+				motiv: 'Werkstatt',
+				platz: { breite: 794, hoehe: 660 },
+				blickpunkt: { x: 40, y: 50 },
+			},
 			{ datei: 'karte.png', motiv: 'Karte' },
 		]);
-		assert.equal(await readFile(path.join(arbeit, 'bilder.json'), 'utf8'), roh, 'der Server schreibt die Liste nie');
+		assert.equal(
+			await readFile(path.join(arbeit, 'bilder.json'), 'utf8'),
+			roh,
+			'der Server schreibt die Liste nie',
+		);
 	});
 });

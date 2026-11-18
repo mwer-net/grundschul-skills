@@ -141,7 +141,10 @@ describe('Mitschrift jedes Laufs (233)', () => {
 			datei('../weg', '_bilder', 'einheit-bilder'),
 			'ohne-mappe/2026-11-18T08-30-00-000Z-einheit-bilder.jsonl',
 		);
-		assert.equal(datei(null, null, 'Bildlauf Bild/../x'), 'ohne-mappe/2026-11-18T08-30-00-000Z-bildlauf-bild-x.jsonl');
+		assert.equal(
+			datei(null, null, 'Bildlauf Bild/../x'),
+			'ohne-mappe/2026-11-18T08-30-00-000Z-bildlauf-bild-x.jsonl',
+		);
 	});
 
 	it('Kürzen lässt Kurzes und Text mit Leerzeichen stehen', () => {

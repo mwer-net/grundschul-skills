@@ -108,7 +108,10 @@ const dataUrl = (inhalt: Buffer) => {
 };
 
 /** Der Körper des Aufrufs; ohne Referenz an `generations`, sonst an `edits`. */
-export const bildAnfrageKoerper = (anfrage: BildAnfrage, einstellung: Pick<BildApiEinstellung, 'modell' | 'qualitaet'>) => {
+export const bildAnfrageKoerper = (
+	anfrage: BildAnfrage,
+	einstellung: Pick<BildApiEinstellung, 'modell' | 'qualitaet'>,
+) => {
 	if (anfrage.referenzen.length > MAX_REFERENZEN) {
 		throw new BildApiFehler('abgelehnt', `Höchstens ${MAX_REFERENZEN} Referenzen.`);
 	}
@@ -134,7 +137,10 @@ export const bildAnfrageKoerper = (anfrage: BildAnfrage, einstellung: Pick<BildA
 const zahl = (w: unknown) => (typeof w === 'number' && Number.isFinite(w) && w >= 0 ? w : 0);
 
 const verbrauchAus = (usage: unknown): BildVerbrauch => {
-	const u = (usage ?? {}) as { input_tokens_details?: { image_tokens?: unknown; text_tokens?: unknown }; output_tokens?: unknown };
+	const u = (usage ?? {}) as {
+		input_tokens_details?: { image_tokens?: unknown; text_tokens?: unknown };
+		output_tokens?: unknown;
+	};
 	return {
 		bildToken: zahl(u.input_tokens_details?.image_tokens),
 		textToken: zahl(u.input_tokens_details?.text_tokens),
@@ -142,9 +148,11 @@ const verbrauchAus = (usage: unknown): BildVerbrauch => {
 	};
 };
 
-export const kostenAus = (v: BildVerbrauch) =>
-	Math.round((v.bildToken * USD_JE_TOKEN.bild + v.textToken * USD_JE_TOKEN.text + v.ausgabeToken * USD_JE_TOKEN.ausgabe) * 1e4) /
-	1e4;
+export const kostenAus = (v: BildVerbrauch) => {
+	const { ausgabe, bild, text } = USD_JE_TOKEN;
+	const usd = v.bildToken * bild + v.textToken * text + v.ausgabeToken * ausgabe;
+	return Math.round(usd * 1e4) / 1e4;
+};
 
 const kurz = (text: string) => text.replace(/\s+/g, ' ').trim().slice(0, 300);
 

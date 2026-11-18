@@ -31,7 +31,7 @@ describe('Zugang zu neuen KI-Bildern (237)', () => {
 	it('ohne Schlüssel: nicht verfügbar mit dem Satz für die Lehrkraft, und kein Lauf bekommt Bildwerkzeuge', async () => {
 		assert.deepEqual(bilderStand({ openaiSchluessel: null }), { verfuegbar: false, grund: BILDER_AUS });
 		assert.deepEqual(bilderStand({ openaiSchluessel: 'x' }), { verfuegbar: true, grund: null });
-		const { api, anfragen } = erstelleBildApiAttrappe();
+		const { anfragen, api } = erstelleBildApiAttrappe();
 		const arbeit = path.join(dir, 'ohne');
 		await mkdir(arbeit);
 		assert.equal(
@@ -52,7 +52,10 @@ describe('Zugang zu neuen KI-Bildern (237)', () => {
 			konfig: KONFIG,
 			api: () =>
 				Promise.reject(
-					new BildApiFehler(art, art === 'sicherheit' ? 'Sicherheitsfilter: Motiv harmloser formulieren.' : 'x'),
+					new BildApiFehler(
+						art,
+						art === 'sicherheit' ? 'Sicherheitsfilter: Motiv harmloser formulieren.' : 'x',
+					),
 				),
 		});
 		assert.ok(bilder);

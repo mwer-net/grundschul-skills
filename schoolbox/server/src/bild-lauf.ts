@@ -17,11 +17,17 @@ import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 
-import type { BibliotheksFigur, BildlaufEreignisStatus, BildlaufFigur, BildlaufStand, BildlaufWunsch } from '@schoolbox/kern';
+import type {
+	BibliotheksFigur,
+	BildlaufEreignisStatus,
+	BildlaufFigur,
+	BildlaufStand,
+	BildlaufWunsch,
+} from '@schoolbox/kern';
 import {
-	brauchtStil,
 	BILDLAUF_TEXT_ZEICHEN,
 	bildlaufAuftragText,
+	brauchtStil,
 	figurenDir,
 	figurenIn,
 	leseBibliothek,
@@ -37,7 +43,14 @@ import type { Router as RouterTyp } from 'express';
 
 import { leseBildVertraege, pruefeDateiname, typAus } from './bild-datei';
 import type { LaufBilder } from './bild-zugang';
-import { BILDER_AUS, BILDER_GESPERRT, bilderStand, erstelleLaufBilder, grundposeReferenz, posenPfad } from './bild-zugang';
+import {
+	BILDER_AUS,
+	BILDER_GESPERRT,
+	bilderStand,
+	erstelleLaufBilder,
+	grundposeReferenz,
+	posenPfad,
+} from './bild-zugang';
 import { HttpFehler } from './fehler';
 import type { KiLimit, LaufStand } from './ki';
 import {

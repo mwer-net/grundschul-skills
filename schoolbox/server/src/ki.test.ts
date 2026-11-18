@@ -27,9 +27,9 @@ import {
 	BLATT_BILD_RECHTE,
 	KI_GRENZEN,
 	kiArgumente,
-	konnektorSperre,
 	kiTempWurzel,
 	kiUmgebung,
+	konnektorSperre,
 	liesLimit,
 	limitErreichtText,
 	pruefArgumente,
@@ -1802,9 +1802,9 @@ describe('Aufträge an Claude: Zugang', () => {
 	it('Status nennt, ob neue KI-Bilder gehen; ohne Schlüssel mit dem Grund (237)', async () => {
 		const bilder = async (t: TestServer, init: { method?: string; headers?: Record<string, string> } = {}) =>
 			(
-				(await (
-					await t.holen(`${t.url}/api/ki/${init.method ? 'limit/pruefen' : 'status'}`, init)
-				).json()) as { bilder: unknown }
+				(await (await t.holen(`${t.url}/api/ki/${init.method ? 'limit/pruefen' : 'status'}`, init)).json()) as {
+					bilder: unknown;
+				}
 			).bilder;
 		const post = { method: 'POST', headers: { 'Content-Type': 'application/json', [CSRF_HEADER]: '1' } };
 		assert.deepEqual(await bilder(server), { verfuegbar: true, grund: null });
@@ -1918,7 +1918,10 @@ describe('Aufruf für ein Bild der Schubladen (176, 237)', () => {
 			mcpDatei: MCP,
 		});
 		assert.equal(ohneBudget[ohneBudget.indexOf('--max-budget-usd') + 1], String(KI_GRENZEN.bildlauf.budgetUsd));
-		assert.ok(BILD.every((w) => ohneBudget.includes(w)), 'ohne Angabe beide Bildwerkzeuge');
+		assert.ok(
+			BILD.every((w) => ohneBudget.includes(w)),
+			'ohne Angabe beide Bildwerkzeuge',
+		);
 	});
 
 	it('Gegenprobe: kein Skill, kein Material, kein Canva; alle Konnektoren gesperrt, nur der eigene Server', () => {
@@ -2012,7 +2015,12 @@ describe('Aufruf für ein Bild der Schubladen (176, 237)', () => {
 	});
 
 	it('Einheit mit Bildwerkzeugen: eigene Rechte, beide Werkzeuge, Konnektoren gesperrt', () => {
-		const rechte = ['Write(./dokumente/fall-1/**)', 'Edit(./dokumente/fall-1/**)', 'Write(./bilder.json)', 'Edit(./bilder.json)'];
+		const rechte = [
+			'Write(./dokumente/fall-1/**)',
+			'Edit(./dokumente/fall-1/**)',
+			'Write(./bilder.json)',
+			'Edit(./bilder.json)',
+		];
 		assert.deepEqual(
 			kiArgumente({
 				...basis,

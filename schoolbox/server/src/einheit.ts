@@ -772,6 +772,19 @@ export const erstelleEinheiten = (
 	 * seinen Eintrag ins Protokoll, liest im Strom die Pflichtlektüre mit und startet `bauen`, wenn `o.bauen` gesetzt ist.
 	 * Teil 2 (Prüflauf, Schlusslauf) nutzt ihn mit eigener Art, eigenem Auftrag und eigenen Werkzeugen.
 	 */
+	/**
+	 * Mit Bildwerkzeugen nennt der Text die Grundposen. Ohne verspricht der Auftrag keine neuen Bilder: im Lauf, der sie
+	 * bräuchte, und in jedem Lauf, wenn der Schlüssel fehlt (die Einheit begann mit ihm, der Server läuft nach einem
+	 * Neustart ohne).
+	 */
+	const laufText = (o: LaufOptionen, bilder: LaufBilder | null) => {
+		if (bilder) {
+			return bilder.referenzen.length ? `${o.text}\n\n${referenzZeile(bilder)}` : o.text;
+		}
+		const keineBilder = o.mitBildern || !bilderStand(kontext.konfig).verfuegbar;
+		return keineBilder ? o.text.replace(EINHEIT_BILDER_SATZ.mit, EINHEIT_BILDER_SATZ.ohne) : o.text;
+	};
+
 	const einLauf = async (s: EinheitStand, o: LaufOptionen): Promise<Ergebnis> => {
 		const eintrag = neuerEintrag(o.art, o.material, o.pflicht);
 		const lauf = { eintrag, pflicht: o.pflicht, gelesen: o.gelesen ?? new Set<string>() };
@@ -807,11 +820,7 @@ export const erstelleEinheiten = (
 		if (bildWerkzeugBereit && aktiv) {
 			aktiv.bilder = { werkzeug: bilder, vorher: bilderVorher };
 		}
-		// Ohne Bildwerkzeuge verspricht der Auftrag keine neuen Bilder: im Lauf, der sie bräuchte, und in jedem Lauf, wenn
-		// der Schlüssel fehlt (die Einheit begann mit ihm, der Server läuft nach einem Neustart ohne).
-		const keineBilder = !bildWerkzeugBereit && (o.mitBildern || !bilderStand(kontext.konfig).verfuegbar);
-		const ohneWerkzeug = keineBilder ? o.text.replace(EINHEIT_BILDER_SATZ.mit, EINHEIT_BILDER_SATZ.ohne) : o.text;
-		const text = bildWerkzeugBereit && bilder.referenzen.length ? `${o.text}\n\n${referenzZeile(bilder)}` : ohneWerkzeug;
+		const text = laufText(o, bildWerkzeugBereit ? bilder : null);
 		let ergebnis = leer;
 		try {
 			ergebnis = await laufMit(
@@ -829,7 +838,10 @@ export const erstelleEinheiten = (
 				// Gesetzt, nicht addiert: Der Takt (`gleicheAb`) hat den Stand womöglich schon geschrieben.
 				s.geladeneBilder = bilderVorher + verschiedeneBilder(bilder);
 				s.fehlgeschlageneBilder += Math.max(0, st.aufrufe - st.bilder.length);
-				ergebnis = { ...ergebnis, bilder: { gesperrt: st.gesperrt, aufrufe: st.aufrufe, kostenUsd: st.kostenUsd } };
+				ergebnis = {
+					...ergebnis,
+					bilder: { gesperrt: st.gesperrt, aufrufe: st.aufrufe, kostenUsd: st.kostenUsd },
+				};
 				if (aktiv) {
 					aktiv.bilder = null;
 					aktiv.bilderGesperrt ||= st.gesperrt;
@@ -844,7 +856,9 @@ export const erstelleEinheiten = (
 		await notiereVerbrauch(s, verbrauchStatus(ergebnis.fehler, o.art), beginn, {
 			...ergebnis.verbrauch,
 			lauf: o.art,
-			...(ergebnis.bilder ? { bildAufrufe: ergebnis.bilder.aufrufe, bildKostenUsd: ergebnis.bilder.kostenUsd } : {}),
+			...(ergebnis.bilder
+				? { bildAufrufe: ergebnis.bilder.aufrufe, bildKostenUsd: ergebnis.bilder.kostenUsd }
+				: {}),
 		});
 		return ergebnis;
 	};
@@ -855,7 +869,10 @@ export const erstelleEinheiten = (
 	 */
 	const bildFiguren = async (s: EinheitStand) => {
 		const bibliothek = await leseBibliothek(kontext.konfig, materialDir).catch(() => [...EINGEBAUTE]);
-		const genannt = figurenIn([...(s.plan?.figuren ?? []), s.auftrag].join('\n'), bibliothek).slice(0, MAX_REFERENZ_FIGUREN);
+		const genannt = figurenIn([...(s.plan?.figuren ?? []), s.auftrag].join('\n'), bibliothek).slice(
+			0,
+			MAX_REFERENZ_FIGUREN,
+		);
 		const referenzen = await Promise.all(genannt.map((f) => grundposeReferenz(materialDir, f)));
 		return referenzen.flatMap((r, i) => (r ? [{ ...r, figur: genannt[i]?.name ?? r.name }] : []));
 	};

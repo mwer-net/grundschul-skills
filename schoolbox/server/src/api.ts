@@ -17,8 +17,8 @@ import {
 import type { RequestHandler } from 'express';
 import { json, Router } from 'express';
 
-import { bilderApi } from './bilder';
 import { bildlaufApi } from './bild-lauf';
+import { bilderApi } from './bilder';
 import { istAusgabeVeraltet, leseQuelle, nimmFremdeAenderungAuf, schreibeQuelle, verlangeDokument } from './dokumente';
 import { eigeneApi } from './eigene';
 import { einheitApi } from './einheit';

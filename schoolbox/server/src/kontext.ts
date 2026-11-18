@@ -5,12 +5,12 @@ import path from 'node:path';
 import { baueAnsicht, baueAusgabe, baueFolienZusatz, dokumentDir, pruefeFassung } from '@schoolbox/kern';
 
 import type { Begrenzung } from './begrenzung';
-import type { BildApi } from './bild-zugang';
 import { erstelleBegrenzung } from './begrenzung';
-import type { Bremse } from './bremse';
-import { erstelleBremse } from './bremse';
 import type { BildlaufLaeufe } from './bild-lauf';
 import { erstelleBildlaufLaeufe } from './bild-lauf';
+import type { BildApi } from './bild-zugang';
+import type { Bremse } from './bremse';
+import { erstelleBremse } from './bremse';
 import type { EinheitAnsicht, Einheiten } from './einheit';
 import { erstelleEinheiten } from './einheit';
 import type { Ereignisse } from './ereignisse';

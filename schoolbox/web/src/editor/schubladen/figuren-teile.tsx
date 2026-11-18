@@ -20,16 +20,17 @@ import {
 } from '../../bausteine/Schublade';
 import { nichtsPasst, raster } from '../../bausteine/schubladenhilfe';
 import { Symbol } from '../../bausteine/Symbol';
-import { falte } from '../bild-sammlung';
 import { bildlaufAktion, starteFigur, useBildlaufLaeufe } from '../bild-lauf';
+import { falte } from '../bild-sammlung';
 import { ClaudeWahl } from '../ClaudeWahl';
 import { mitGeholtemBild } from '../gestaltung/ablegen/bild-gut';
 import { useHolenAmZeiger } from '../gestaltung/ablegen/holen-am-zeiger';
 import { AblageKachel } from '../gestaltung/ablegen/Kachel';
 import { ladeFigurenNeu, ladeVor, useFiguren, vorschauVon } from '../gestaltung/figuren-quelle';
+import { bildFeld } from '../ki';
 import { LimitZeile } from '../LimitZeile';
 import type { SchubladenTeile } from '.';
-import { bildFeld, OhneBildApi } from './bild-beschreiben';
+import { OhneBildApi } from './bild-beschreiben';
 import { BildlaufKacheln } from './BildlaufKachel';
 import { gutFuer, srcFuer } from './figuren-daten';
 import { KACHEL_MEHR, SendenKreis } from './kreise';
@@ -366,9 +367,13 @@ export const Inhalt = (t: SchubladenTeile) => {
 							setBearbeitet={(an) => setUmbenennen(an ? figur.id : null)}
 						/>
 						<div className={raster(3)}>
-							{bildlauf && <BildlaufKacheln laeufe={laeufe} figur={figur.id} nochmal={nochmal} nur="fehler" />}
+							{bildlauf && (
+								<BildlaufKacheln laeufe={laeufe} figur={figur.id} nochmal={nochmal} nur="fehler" />
+							)}
 							{posen.map((pose) => kachel(figur, pose))}
-							{bildlauf && <BildlaufKacheln laeufe={laeufe} figur={figur.id} nochmal={nochmal} nur="offen" />}
+							{bildlauf && (
+								<BildlaufKacheln laeufe={laeufe} figur={figur.id} nochmal={nochmal} nur="offen" />
+							)}
 						</div>
 					</Schubladenabschnitt>
 				))}

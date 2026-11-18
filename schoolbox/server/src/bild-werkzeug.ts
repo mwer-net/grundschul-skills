@@ -109,7 +109,8 @@ const erstelleSchranke = (n: number) => {
 
 const tsvFeld = (text: string) => text.replace(/[\t\r\n]+/g, ' ').trim();
 
-const istText = (w: unknown, max: number): w is string => typeof w === 'string' && w.trim().length > 0 && w.length <= max;
+const istText = (w: unknown, max: number): w is string =>
+	typeof w === 'string' && w.trim().length > 0 && w.length <= max;
 
 interface Argumente {
 	datei: string;
@@ -136,7 +137,7 @@ export const pruefeBildArgumente = (werkzeug: string, roh: Record<string, unknow
 		throw new Abgelehnt(`„referenzen“ ist eine Liste von höchstens ${max} Pfaden.`);
 	}
 	if (!erzeugen) {
-		return { datei, prompt, referenzen: referenzen as string[], transparent: false };
+		return { datei, prompt, referenzen, transparent: false };
 	}
 	if (!istBildFormat(format)) {
 		throw new Abgelehnt(`„format“ ist einer von: ${BILD_FORMAT_NAMEN.join(', ')}.`);
@@ -147,7 +148,7 @@ export const pruefeBildArgumente = (werkzeug: string, roh: Record<string, unknow
 	if (transparent && !datei.endsWith('.png')) {
 		throw new Abgelehnt('„transparent“ geht nur bei .png.');
 	}
-	return { datei, prompt, format, referenzen: referenzen as string[], transparent };
+	return { datei, prompt, format, referenzen, transparent };
 };
 
 const fehlerText = (fehler: unknown) => (fehler instanceof Error ? fehler.message : 'Unbekannter Fehler.');
@@ -199,7 +200,9 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 	/** Nur reguläre Dateien unter `REFERENZ_QUELLEN`, auch nach Auflösen von Links. */
 	const ladeReferenz = async (rel: string): Promise<Buffer> => {
 		const norm = path.posix.normalize(rel.replaceAll('\\', '/'));
-		const quelle = REFERENZ_QUELLEN.find((q) => norm.startsWith(`${q}/`) && !norm.slice(q.length + 1).includes('/'));
+		const quelle = REFERENZ_QUELLEN.find(
+			(q) => norm.startsWith(`${q}/`) && !norm.slice(q.length + 1).includes('/'),
+		);
 		const ablehnen = new Abgelehnt(
 			`Referenz „${rel}“: nur Bilder aus ${REFERENZ_QUELLEN.map((q) => `${q}/`).join(', ')} im Arbeitsordner.`,
 		);

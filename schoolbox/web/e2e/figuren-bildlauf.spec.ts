@@ -235,7 +235,9 @@ test.describe('Neue Figuren mit KI-Bildern (176)', () => {
 		await beschreibe(page, 'Wilma mit einem Buch');
 		const fehler = gruppe(page, 'wilma').locator(BILDLAUF_KACHEL);
 		await expect(fehler).toHaveAttribute('data-status', 'fehler', LAUF);
-		await expect(fehler).toContainText('OpenAI hat keine Bilder mehr erzeugt (Guthaben, Ausgabenlimit oder Schlüssel).');
+		await expect(fehler).toContainText(
+			'OpenAI hat keine Bilder mehr erzeugt (Guthaben, Ausgabenlimit oder Schlüssel).',
+		);
 		await expect(fehler.getByRole('button', { name: 'Entfernen' })).toBeVisible();
 
 		await kiFall('bildlauf-figur');

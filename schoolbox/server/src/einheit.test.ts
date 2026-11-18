@@ -911,7 +911,15 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.equal(aufrufe.length, 2);
 			assert.ok(aufrufe.every((a) => a.fehler !== true && a.argumente.datei === 'uhr-gross.png'));
 			assert.ok(
-				existsSync(path.join(einheitenWurzel(server.materialDir), `einheit-${id}`, 'arbeit', 'bilder', 'uhr-gross.png')),
+				existsSync(
+					path.join(
+						einheitenWurzel(server.materialDir),
+						`einheit-${id}`,
+						'arbeit',
+						'bilder',
+						'uhr-gross.png',
+					),
+				),
 			);
 			assert.deepEqual(
 				(await bilderLaeufe(mappe)).map((e) => e.ergebnis),

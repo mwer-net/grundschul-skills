@@ -8,9 +8,9 @@ import { after, afterEach, before, describe, it } from 'node:test';
 import type { BildlaufStand, BildlaufWunsch, EinheitStand } from '@schoolbox/kern';
 import { figurenDir, leseBibliothek } from '@schoolbox/kern';
 
-import { BILDER_AUS, BILDER_GESPERRT } from './bild-zugang';
 import type { BildlaufErgebnis } from './bild-lauf';
 import { bildlaufWurzel, leseErgebnis } from './bild-lauf';
+import { BILDER_AUS, BILDER_GESPERRT } from './bild-zugang';
 import { KI_GRENZEN, VERBRAUCH_DATEI } from './ki';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
@@ -125,7 +125,9 @@ describe('Bild-Lauf der Schubladen (176, 237)', () => {
 	/** Die Herkunft einer Pose, wie `figuren.json` sie speichert. */
 	const herkunft = async (figurId: string, datei: string) => {
 		const roh = await readFile(path.join(figurenDir(server.materialDir), 'figuren.json'), 'utf8');
-		const { figuren } = JSON.parse(roh) as { figuren: { id: string; posen: { datei: string; herkunft?: string; canva?: string }[] }[] };
+		const { figuren } = JSON.parse(roh) as {
+			figuren: { id: string; posen: { datei: string; herkunft?: string; canva?: string }[] }[];
+		};
 		return figuren.find((f) => f.id === figurId)?.posen.find((p) => p.datei === datei);
 	};
 	const posen = async (figurId: string) =>

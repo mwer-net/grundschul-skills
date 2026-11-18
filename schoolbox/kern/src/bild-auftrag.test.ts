@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { BildlaufFigur } from './bild-auftrag';
-import { brauchtStil, bildlaufAuftragText, neueFigurId, STIL_REFERENZ } from './bild-auftrag';
+import { bildlaufAuftragText, brauchtStil, neueFigurId, STIL_REFERENZ } from './bild-auftrag';
 
 /** Erfundene Figuren für die Tests. */
 const MIT_REFERENZ: BildlaufFigur = {

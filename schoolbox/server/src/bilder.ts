@@ -2,8 +2,8 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
-	blendeBildAus,
 	BILDLAUF_TEXT_ZEICHEN,
+	blendeBildAus,
 	druckfassung,
 	figurenFuerBild,
 	leseBibliothek,
@@ -135,7 +135,11 @@ export const bilderApi = (kontext: Kontext) => {
 			genannt.map(async (f) => ({ f, r: await grundposeReferenz(konfig.materialDir, f) })),
 		);
 		const tauglich = mitReferenz.filter(({ f, r }) => f.steckbrief || r);
-		const figuren = tauglich.map(({ f, r }) => ({ name: f.name, steckbrief: f.steckbrief, referenz: r?.pfad ?? null }));
+		const figuren = tauglich.map(({ f, r }) => ({
+			name: f.name,
+			steckbrief: f.steckbrief,
+			referenz: r?.pfad ?? null,
+		}));
 		const referenzen = tauglich.flatMap(({ r }) => (r ? [{ name: r.name, datei: r.datei }] : []));
 		const { palette } = leseBlatt(await leseQuelle(dir));
 		const vorlage = await readFile(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'bild.md'), 'utf8');
