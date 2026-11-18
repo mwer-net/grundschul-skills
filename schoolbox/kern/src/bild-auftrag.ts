@@ -1,48 +1,48 @@
 /**
- * Besitzer: 176. Der eigene Lauf der Schubladen (`server/src/canva-lauf.ts`, seit 237 über die Bild-API): Wunsch,
+ * Besitzer: 176. Der eigene Lauf der Schubladen (`server/src/bild-lauf.ts`, seit 237 über die Bild-API): Wunsch,
  * Stand und der Auftrag für eine Figur. 179 nutzt Wunsch und Stand für `art: 'bild'`. Ohne Abhängigkeiten außer
  * `figuren.ts`, damit der Browser die Typen liest.
  */
 
 import { FIGUREN } from './figuren';
 
-export type CanvaArt = 'figur' | 'bild';
+export type BildlaufArt = 'figur' | 'bild';
 
 /** Wohin das Bild gehört: `figur` (null: neue Figur) und `name` bei 176, `mappe` und `dok` bei 179. */
-export interface CanvaZiel {
+export interface BildlaufZiel {
 	figur?: string | null;
 	name?: string | null;
 	mappe?: string;
 	dok?: string;
 }
 
-export interface CanvaWunsch {
-	art: CanvaArt;
+export interface BildlaufWunsch {
+	art: BildlaufArt;
 	/** Der Text der Lehrkraft, für Kachel und Tooltip. */
 	text: string;
 	/** Der fertige Auftrag an Claude (stdin). */
 	auftrag: string;
-	ziel: CanvaZiel;
+	ziel: BildlaufZiel;
 }
 
 /** Fertige und abgebrochene Aufträge stehen nicht mehr in der Liste, Fehler bis zum Verwerfen. */
 export type CanvaStatus = 'wartet' | 'laeuft' | 'fehler';
 
-/** Status im Ereignis `canva-stand`. */
-export type CanvaEreignisStatus = CanvaStatus | 'fertig' | 'abgebrochen';
+/** Status im Ereignis `bildlauf-stand`. */
+export type BildlaufEreignisStatus = CanvaStatus | 'fertig' | 'abgebrochen';
 
-export interface CanvaStand {
+export interface BildlaufStand {
 	id: string;
-	art: CanvaArt;
+	art: BildlaufArt;
 	text: string;
 	status: CanvaStatus;
-	ziel: CanvaZiel;
+	ziel: BildlaufZiel;
 	fehler: string | null;
 	start: string;
 }
 
 /** Eine bekannte Figur, wie der Auftrag sie braucht (237: Dateien im Arbeitsordner statt Media-IDs von Canva). */
-export interface CanvaFigur {
+export interface BildlaufFigur {
 	id: string;
 	name: string;
 	steckbrief: string | null;
@@ -53,7 +53,7 @@ export interface CanvaFigur {
 }
 
 /** Höchstlänge der Beschreibung im Feld „Figur beschreiben“. */
-export const CANVA_TEXT_ZEICHEN = 300;
+export const BILDLAUF_TEXT_ZEICHEN = 300;
 
 /** So heißt das Bild einer Figur in `bilder/` des Arbeitsordners. */
 export const FIGUR_BILD = 'bild.png';
@@ -67,10 +67,10 @@ export const einzeilig = (text: string) =>
 	text.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, ' ').trim();
 
 /** Braucht der Auftrag Willi als Stil-Referenz? Bei einer neuen Figur und einer Figur ohne eigene Referenz. */
-export const brauchtStil = (figur: CanvaFigur | null) => !figur?.referenz;
+export const brauchtStil = (figur: BildlaufFigur | null) => !figur?.referenz;
 
-/** Die Zeilen nach `vorlagen/ki/canva-figur.md`: Wunsch, Datei und die Figur (`null`: neue Figur). */
-export const canvaAuftragText = (wunsch: string, figur: CanvaFigur | null) => {
+/** Die Zeilen nach `vorlagen/ki/figur.md`: Wunsch, Datei und die Figur (`null`: neue Figur). */
+export const bildlaufAuftragText = (wunsch: string, figur: BildlaufFigur | null) => {
 	const stil = `Stil-Referenz ${STIL_REFERENZ} (nur der Zeichenstil)`;
 	const zeilen = [`Wunsch: „${einzeilig(wunsch)}“`, `Datei: ${FIGUR_BILD}`];
 	if (!figur) {

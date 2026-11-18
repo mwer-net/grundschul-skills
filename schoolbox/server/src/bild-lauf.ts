@@ -1,7 +1,7 @@
 /**
  * Besitzer: 176. Ein eigener Lauf von `claude` für genau ein Bild (seit 237 über die Bild-API, Werkzeuge
  * `bild_erzeugen`/`bild_bearbeiten`): ein Lauf zur Zeit, bis zu fünf warten, alles nur im Speicher. Figuren (176,
- * `POST /api/canva/figur`) und Bilder (179) gehen denselben Weg; was nur Figuren betrifft, steht in der Route und in
+ * `POST /api/bildlauf/figur`) und Bilder (179) gehen denselben Weg; was nur Figuren betrifft, steht in der Route und in
  * `uebernimm`, nicht im Lauf.
  *
  * Der Arbeitsordner liegt unter `tmpdir()` und hält nur Kopien: die Regeln aus `skills/`, die Grundposen als Referenz
@@ -17,11 +17,11 @@ import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 
-import type { BibliotheksFigur, CanvaEreignisStatus, CanvaFigur, CanvaStand, CanvaWunsch } from '@schoolbox/kern';
+import type { BibliotheksFigur, BildlaufEreignisStatus, BildlaufFigur, BildlaufStand, BildlaufWunsch } from '@schoolbox/kern';
 import {
 	brauchtStil,
-	CANVA_TEXT_ZEICHEN,
-	canvaAuftragText,
+	BILDLAUF_TEXT_ZEICHEN,
+	bildlaufAuftragText,
 	figurenDir,
 	figurenIn,
 	leseBibliothek,
@@ -60,7 +60,7 @@ import type { Kontext } from './kontext';
 import { schreibeMitschrift } from './mitschrift';
 
 /** Was `uebernimm` bekommt: das geprüfte Bild im Arbeitsordner und die Angaben aus `bilder.json` und `ergebnis.json`. */
-export interface CanvaErgebnis {
+export interface BildlaufErgebnis {
 	pfad: string;
 	datei: string;
 	motiv: string;
@@ -69,9 +69,9 @@ export interface CanvaErgebnis {
 	steckbrief: string | null;
 }
 
-export interface CanvaOptionen {
+export interface BildlaufOptionen {
 	/** Legt das Bild ab und gibt den Namen der abgelegten Datei zurück. */
-	uebernimm: (e: CanvaErgebnis) => Promise<string>;
+	uebernimm: (e: BildlaufErgebnis) => Promise<string>;
 	/** Dateien, die vor dem Start in den Arbeitsordner kommen: Name dort → Quelle. */
 	beilagen?: Record<string, string>;
 	/** Grundposen als Referenz: Das Bildwerkzeug legt `datei` als `referenzen/<name>.<png|jpg>` ab (237). */
@@ -95,9 +95,9 @@ const KEIN_BILD = 'Es ist kein Bild entstanden.';
 
 const kennung = (inhalt: string) => createHash('sha256').update(inhalt).digest('hex').slice(0, 16);
 
-export const canvaWurzel = (materialDir: string) => path.join(tmpdir(), `schoolbox-canva-${kennung(materialDir)}`);
+export const bildlaufWurzel = (materialDir: string) => path.join(tmpdir(), `schoolbox-canva-${kennung(materialDir)}`);
 
-export const pruefeCanvaId = (wert: unknown) => {
+export const pruefeBildlaufId = (wert: unknown) => {
 	if (typeof wert !== 'string' || !ID.test(wert)) {
 		throw new HttpFehler(404, 'Diesen Auftrag gibt es nicht.');
 	}
@@ -109,15 +109,15 @@ const feld = (wert: unknown, max: number) =>
 		? wert.trim()
 		: null;
 
-export interface CanvaAntwort {
-	fehler: 'canva-fehler' | null;
+export interface BildlaufAntwort {
+	fehler: 'bild-fehler' | null;
 	wort: string;
 	name: string | null;
 	steckbrief: string | null;
 }
 
 /** `ergebnis.json`, höchstens 4 KB. Was fehlt oder nicht passt, gilt nicht: `wort` wird `neu`, Name und Steckbrief fehlen. */
-export const leseErgebnis = async (arbeit: string): Promise<CanvaAntwort> => {
+export const leseErgebnis = async (arbeit: string): Promise<BildlaufAntwort> => {
 	const datei = path.join(arbeit, ERGEBNIS);
 	let roh: unknown = null;
 	try {
@@ -131,7 +131,7 @@ export const leseErgebnis = async (arbeit: string): Promise<CanvaAntwort> => {
 	const e = (typeof roh === 'object' && roh !== null && !Array.isArray(roh) ? roh : {}) as Record<string, unknown>;
 	const ohneFehler = e.fehler === undefined || e.fehler === null || e.fehler === false;
 	return {
-		fehler: ohneFehler ? null : 'canva-fehler',
+		fehler: ohneFehler ? null : 'bild-fehler',
 		wort: typeof e.wort === 'string' && WORT.test(e.wort) ? e.wort : 'neu',
 		name: feld(e.name, 40),
 		steckbrief: feld(e.steckbrief, 300),
@@ -152,9 +152,9 @@ const fehlerText = (code: string, zurueck: string | null) => {
 };
 
 interface Auftrag {
-	stand: CanvaStand;
-	wunsch: CanvaWunsch;
-	o: CanvaOptionen;
+	stand: BildlaufStand;
+	wunsch: BildlaufWunsch;
+	o: BildlaufOptionen;
 	ki: KiLauf;
 	kind: ChildProcessWithoutNullStreams | null;
 	abbruch: boolean;
@@ -169,11 +169,11 @@ interface LaufEnde {
 	zurueck: string | null;
 }
 
-export const erstelleCanvaLaeufe = (kontext: Kontext) => {
+export const erstelleBildlaufLaeufe = (kontext: Kontext) => {
 	const { materialDir } = kontext.konfig;
-	const wurzel = canvaWurzel(materialDir);
+	const wurzel = bildlaufWurzel(materialDir);
 	const bin = kiPfad(kontext.konfig);
-	const auftragDatei = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'canva.md');
+	const auftragDatei = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'bild-einzeln.md');
 	const projekte = () => path.join(homedir(), '.claude', 'projects');
 	const projektName = (arbeit: string) => arbeit.replace(/[^a-zA-Z0-9]/g, '-');
 	const arbeitDir = (id: string) => path.join(wurzel, id);
@@ -183,9 +183,9 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 	const fehler: Auftrag[] = [];
 	let gestoppt = false;
 
-	const melde = (a: Auftrag, status: CanvaEreignisStatus, datei?: string) => {
+	const melde = (a: Auftrag, status: BildlaufEreignisStatus, datei?: string) => {
 		kontext.ereignisse.sende({
-			typ: 'canva-stand',
+			typ: 'bildlauf-stand',
 			daten: { id: a.stand.id, art: a.stand.art, status, ...(datei ? { datei } : {}) },
 		});
 	};
@@ -196,7 +196,7 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 		const ueberGuthaben =
 			(limit?.status === 'rejected' || limit?.laeuftUeberGuthaben === true) &&
 			(!limit.zurueck || new Date(limit.zurueck).getTime() > Date.now());
-		return ueberGuthaben ? KI_GRENZEN.canva.budgetGuthabenUsd : KI_GRENZEN.canva.budgetUsd;
+		return ueberGuthaben ? KI_GRENZEN.bildlauf.budgetGuthabenUsd : KI_GRENZEN.bildlauf.budgetUsd;
 	};
 
 	const notiereVerbrauch = async (a: Auftrag, status: string, start: number, verbrauch: Record<string, unknown>) => {
@@ -250,13 +250,13 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 				budgetUsd: budget(),
 				modell: a.ki.modell,
 				effort: a.ki.effort,
-				canvaBild: true,
+				bildlauf: true,
 				mcpDatei: werkzeug.mcpDatei,
 				mcpWerkzeuge: werkzeug.werkzeuge,
 			});
 			const kind = spawn(bin, argumente, { cwd: arbeit, env: kiUmgebung(bin) });
 			schreibeMitschrift(
-				{ materialDir, mappe: a.wunsch.ziel.mappe, dok: a.wunsch.ziel.dok, art: `canva-${a.wunsch.art}` },
+				{ materialDir, mappe: a.wunsch.ziel.mappe, dok: a.wunsch.ziel.dok, art: `bildlauf-${a.wunsch.art}` },
 				kind,
 				{ argumente, auftrag: a.wunsch.auftrag, cwd: arbeit, bilder: bilder.stand },
 			);
@@ -266,7 +266,7 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 			const frist = setTimeout(() => {
 				grund = 'Das hat zu lange gedauert.';
 				beendeKind(kind);
-			}, KI_GRENZEN.canva.zeitMs);
+			}, KI_GRENZEN.bildlauf.zeitMs);
 			kind.stdin.on('error', () => undefined);
 			kind.stdin.end(a.wunsch.auftrag);
 			kind.stderr.resume();
@@ -361,7 +361,7 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 				grund = ende.grund;
 			} else if (bildStand.gesperrt) {
 				grund = BILDER_GESPERRT;
-			} else if (antwort.fehler === 'canva-fehler') {
+			} else if (antwort.fehler === 'bild-fehler') {
 				grund = bilder.letzterFehler() ?? KEIN_BILD;
 			} else if (ende.code) {
 				grund = fehlerText(ende.code, ende.zurueck);
@@ -381,7 +381,7 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 			await werkzeug?.ende().catch(() => undefined);
 		}
 		const ergebnis = datei && !grund ? 'fertig' : 'fehler';
-		const status: CanvaEreignisStatus = a.abbruch ? 'abgebrochen' : ergebnis;
+		const status: BildlaufEreignisStatus = a.abbruch ? 'abgebrochen' : ergebnis;
 		await notiereVerbrauch(a, status, start, verbrauch);
 		await loesche(arbeit).catch(() => undefined);
 		if (aktiv === a) {
@@ -408,7 +408,7 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 		a.stand.status = 'laeuft';
 		melde(a, 'laeuft');
 		fuehreAus(a).catch((f: unknown) => {
-			console.error('Canva-Lauf:', f);
+			console.error('Bildlauf:', f);
 			if (aktiv === a) {
 				aktiv = null;
 			}
@@ -420,7 +420,7 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 	 * Wirft `HttpFehler` 409 ohne Schlüssel für die Bild-API (237), wenn die Reihe voll ist oder eine Einheit gerade
 	 * Bilder erzeugt.
 	 */
-	const starte = (wunsch: CanvaWunsch, o: CanvaOptionen): CanvaStand => {
+	const starte = (wunsch: BildlaufWunsch, o: BildlaufOptionen): BildlaufStand => {
 		const zugang = bilderStand(kontext.konfig);
 		if (!zugang.verfuegbar) {
 			throw new HttpFehler(409, zugang.grund ?? BILDER_AUS);
@@ -428,7 +428,7 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 		if (kontext.einheiten.laeuft()?.bilder) {
 			throw new HttpFehler(409, 'Die Unterrichtseinheit erzeugt gerade Bilder.');
 		}
-		if (reihe.length >= KI_GRENZEN.canva.warten) {
+		if (reihe.length >= KI_GRENZEN.bildlauf.warten) {
 			throw new HttpFehler(409, 'Es warten schon fünf Bilder.');
 		}
 		const a: Auftrag = {
@@ -505,7 +505,7 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 	return {
 		starte,
 		/** Laufender, wartende und fehlgeschlagene Aufträge, nach Start. */
-		liste: (): CanvaStand[] =>
+		liste: (): BildlaufStand[] =>
 			[...(aktiv ? [aktiv] : []), ...reihe, ...fehler]
 				.map((a) => ({ ...a.stand }))
 				.sort((x, y) => x.start.localeCompare(y.start)),
@@ -524,7 +524,7 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 	};
 };
 
-export type CanvaLaeufe = ReturnType<typeof erstelleCanvaLaeufe>;
+export type BildlaufLaeufe = ReturnType<typeof erstelleBildlaufLaeufe>;
 
 /** Wo eine Figur ohne Grundpose als PNG/JPEG ihr Bild zum Ansehen bekommt; die Bild-API nimmt es nicht als Referenz. */
 const figurBild = (f: BibliotheksFigur) =>
@@ -536,7 +536,7 @@ const figurBild = (f: BibliotheksFigur) =>
  */
 export const figurFuerLauf = async (materialDir: string, f: BibliotheksFigur | null) => {
 	const referenz = f ? await grundposeReferenz(materialDir, f) : null;
-	const angaben: CanvaFigur | null = f
+	const angaben: BildlaufFigur | null = f
 		? {
 				id: f.id,
 				name: f.name,
@@ -559,12 +559,12 @@ export const figurFuerLauf = async (materialDir: string, f: BibliotheksFigur | n
 };
 
 /** Die Routen (176). Hängen am `apiRouter`: nur mit Sitzung, nie über Teilen-Links. */
-export const canvaApi = (router: RouterTyp, kontext: Kontext) => {
-	const { canva, konfig } = kontext;
+export const bildlaufApi = (router: RouterTyp, kontext: Kontext) => {
+	const { bildlauf, konfig } = kontext;
 	const { materialDir } = konfig;
 
 	/** Eine Pose der genannten Figur oder, ohne Figur, eine neue Figur mit ihrem ersten Bild als Grundpose. */
-	const uebernimmFigur = (figur: BibliotheksFigur | null) => async (e: CanvaErgebnis) => {
+	const uebernimmFigur = (figur: BibliotheksFigur | null) => async (e: BildlaufErgebnis) => {
 		const name = figur?.name ?? e.name ?? 'Neue Figur';
 		let id = figur?.id;
 		if (!id) {
@@ -586,13 +586,13 @@ export const canvaApi = (router: RouterTyp, kontext: Kontext) => {
 		return path.basename(pose.schluessel);
 	};
 
-	router.post('/canva/figur', async (req, res) => {
+	router.post('/bildlauf/figur', async (req, res) => {
 		const { text } = (req.body ?? {}) as { text?: unknown };
 		if (typeof text !== 'string' || !text.trim()) {
 			throw new HttpFehler(400, 'Beschreibe die Figur.');
 		}
-		if (text.length > CANVA_TEXT_ZEICHEN) {
-			throw new HttpFehler(400, `Höchstens ${CANVA_TEXT_ZEICHEN} Zeichen.`);
+		if (text.length > BILDLAUF_TEXT_ZEICHEN) {
+			throw new HttpFehler(400, `Höchstens ${BILDLAUF_TEXT_ZEICHEN} Zeichen.`);
 		}
 		const genannt = figurenIn(text, await leseBibliothek(konfig, materialDir));
 		if (genannt.length > 1) {
@@ -600,13 +600,13 @@ export const canvaApi = (router: RouterTyp, kontext: Kontext) => {
 		}
 		const figur = genannt[0] ?? null;
 		const { angaben, beilagen, figuren } = await figurFuerLauf(materialDir, figur);
-		const vorlage = await readFile(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'canva-figur.md'), 'utf8');
+		const vorlage = await readFile(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'figur.md'), 'utf8');
 		const ki = await kiLaufJetzt(konfig, 'klein');
-		const stand = canva.starte(
+		const stand = bildlauf.starte(
 			{
 				art: 'figur',
 				text: text.trim(),
-				auftrag: `${vorlage.trimEnd()}\n\n${canvaAuftragText(text, angaben)}`,
+				auftrag: `${vorlage.trimEnd()}\n\n${bildlaufAuftragText(text, angaben)}`,
 				ziel: { figur: figur?.id ?? null, name: figur?.name ?? null },
 			},
 			{
@@ -619,17 +619,17 @@ export const canvaApi = (router: RouterTyp, kontext: Kontext) => {
 		res.status(201).json({ id: stand.id });
 	});
 
-	router.get('/canva', (_req, res) => {
-		res.json({ laeufe: canva.liste() });
+	router.get('/bildlauf', (_req, res) => {
+		res.json({ laeufe: bildlauf.liste() });
 	});
 
-	router.post('/canva/:id/abbrechen', (req, res) => {
-		canva.abbrechen(pruefeCanvaId(req.params.id));
+	router.post('/bildlauf/:id/abbrechen', (req, res) => {
+		bildlauf.abbrechen(pruefeBildlaufId(req.params.id));
 		res.json({ ok: true });
 	});
 
-	router.post('/canva/:id/verwerfen', (req, res) => {
-		canva.verwirf(pruefeCanvaId(req.params.id));
+	router.post('/bildlauf/:id/verwerfen', (req, res) => {
+		bildlauf.verwirf(pruefeBildlaufId(req.params.id));
 		res.json({ ok: true });
 	});
 };

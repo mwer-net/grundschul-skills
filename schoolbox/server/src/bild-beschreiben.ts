@@ -10,7 +10,7 @@ import type { BibliotheksFigur, Palette } from '@schoolbox/kern';
 import { einzeilig, freierStamm, mappenDir, SchoolboxFehler, slug } from '@schoolbox/kern';
 
 import { uebertrageHerkunft } from './bild-herkunft';
-import type { CanvaErgebnis } from './canva-lauf';
+import type { BildlaufErgebnis } from './bild-lauf';
 
 /** Eine Figur im Auftrag: `referenz` ist ihre Grundpose unter `referenzen/` im Arbeitsordner (237). */
 export type BildFigur = Pick<BibliotheksFigur, 'name' | 'steckbrief'> & { referenz: string | null };
@@ -49,7 +49,7 @@ export const bildAuftragText = ({ figuren, palette, text }: BildAuftrag) => {
  * vorhandenes, mit seiner Herkunft aus `bilder-herkunft.tsv` des Laufs. Ist die Mappe weg (gelöscht oder im Papierkorb), entsteht kein
  * Ordner ohne `mappe.json`: Er stünde dem Wiederherstellen im Weg.
  */
-export const legeBildAb = async (materialDir: string, mappe: string, e: CanvaErgebnis): Promise<string> => {
+export const legeBildAb = async (materialDir: string, mappe: string, e: BildlaufErgebnis): Promise<string> => {
 	const dir = mappenDir(materialDir, mappe);
 	if (!existsSync(path.join(dir, 'mappe.json'))) {
 		throw new SchoolboxFehler('Diesen Ordner gibt es nicht mehr.');

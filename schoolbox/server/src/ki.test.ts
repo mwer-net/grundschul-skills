@@ -1879,7 +1879,7 @@ describe('Aufruf für ein Bild der Schubladen (176, 237)', () => {
 	const MCP = '/tmp/w/mcp.json';
 
 	it('Schnappschuss: genau diese Liste', () => {
-		assert.deepEqual(kiArgumente({ ...basis, canvaBild: true, mcpDatei: MCP, mcpWerkzeuge: BILD }), [
+		assert.deepEqual(kiArgumente({ ...basis, bildlauf: true, mcpDatei: MCP, mcpWerkzeuge: BILD }), [
 			...KOPF,
 			'--setting-sources',
 			'project',
@@ -1903,7 +1903,7 @@ describe('Aufruf für ein Bild der Schubladen (176, 237)', () => {
 			...KONNEKTOREN,
 			...SCHLUSS,
 			'--max-turns',
-			String(KI_GRENZEN.canva.runden),
+			String(KI_GRENZEN.bildlauf.runden),
 			'--max-budget-usd',
 			'1',
 			'--append-system-prompt-file',
@@ -1914,15 +1914,15 @@ describe('Aufruf für ein Bild der Schubladen (176, 237)', () => {
 			auftragDatei: '/tmp/b.md',
 			modell: 'opus',
 			effort: 'medium',
-			canvaBild: true,
+			bildlauf: true,
 			mcpDatei: MCP,
 		});
-		assert.equal(ohneBudget[ohneBudget.indexOf('--max-budget-usd') + 1], String(KI_GRENZEN.canva.budgetUsd));
+		assert.equal(ohneBudget[ohneBudget.indexOf('--max-budget-usd') + 1], String(KI_GRENZEN.bildlauf.budgetUsd));
 		assert.ok(BILD.every((w) => ohneBudget.includes(w)), 'ohne Angabe beide Bildwerkzeuge');
 	});
 
 	it('Gegenprobe: kein Skill, kein Material, kein Canva; alle Konnektoren gesperrt, nur der eigene Server', () => {
-		const args = kiArgumente({ ...basis, canvaBild: true, mcpDatei: MCP, mcpWerkzeuge: BILD });
+		const args = kiArgumente({ ...basis, bildlauf: true, mcpDatei: MCP, mcpWerkzeuge: BILD });
 		const text = args.join(' ');
 		assert.ok(!/\bSkill\b/.test(text));
 		assert.ok(!text.includes('material.html'));
@@ -2135,7 +2135,7 @@ describe('Modell und Gründlichkeit im Aufruf (232)', () => {
 			kiArgumente({ ...basis, modell: 'haiku', effort: 'xhigh' }),
 			kiArgumente({ ...basis, modell: 'haiku', effort: 'xhigh', gross: true }),
 			kiArgumente({ ...basis, modell: 'haiku', effort: 'xhigh', einheit: true }),
-			kiArgumente({ ...basis, modell: 'haiku', effort: 'xhigh', canvaBild: true }),
+			kiArgumente({ ...basis, modell: 'haiku', effort: 'xhigh', bildlauf: true }),
 			rechercheArgumente({ ...basis, modell: 'haiku', effort: 'xhigh' }),
 			pruefArgumente({ ...basis, runden: 5, modell: 'haiku', effort: 'xhigh' }),
 		]) {
@@ -2144,14 +2144,14 @@ describe('Modell und Gründlichkeit im Aufruf (232)', () => {
 		}
 	});
 
-	it('Mit „auto“: Änderungen und Canva mittel, neues Blatt, Einheit, Recherche und Prüfung hoch, wie vor 232', () => {
+	it('Mit „auto“: Änderungen und Bildlauf mittel, neues Blatt, Einheit, Recherche und Prüfung hoch, wie vor 232', () => {
 		const konfig = { kiModell: 'opus' };
 		const klein = waehleLauf(KI_EINSTELLUNG_STANDARD, konfig, 'klein');
 		const gross = waehleLauf(KI_EINSTELLUNG_STANDARD, konfig, 'gross');
 		assert.deepEqual(klein, { modell: 'opus', effort: 'medium' });
 		assert.deepEqual(gross, { modell: 'opus', effort: 'high' });
 		assert.equal(nach(kiArgumente({ ...basis, ...klein }), '--effort'), 'medium');
-		assert.equal(nach(kiArgumente({ ...basis, ...klein, canvaBild: true }), '--effort'), 'medium');
+		assert.equal(nach(kiArgumente({ ...basis, ...klein, bildlauf: true }), '--effort'), 'medium');
 		assert.equal(nach(kiArgumente({ ...basis, ...gross, gross: true }), '--effort'), 'high');
 		assert.equal(nach(kiArgumente({ ...basis, ...gross, einheit: true }), '--effort'), 'high');
 		assert.equal(nach(rechercheArgumente({ ...basis, ...gross }), '--effort'), 'high');

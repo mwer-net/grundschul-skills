@@ -301,9 +301,9 @@ process.stdin.on('end', () => {
 		return;
 	}
 	// Ein Bild der Schubladen (237): erst der Vertrag in bilder.json, dann bild_erzeugen über den Socket wie Claude. Die
-	// Bild-API ist im Server eine Attrappe (erstelleBildApiAttrappe); „bild-gesperrt“ lässt sie sperren, „canva-kein-png“
+	// Bild-API ist im Server eine Attrappe (erstelleBildApiAttrappe); „bild-gesperrt“ lässt sie sperren, „bildlauf-kein-png“
 	// legt ohne Werkzeug eine kaputte Datei ab. Jede Antwort des Werkzeugs landet in „bild.jsonl“.
-	if (fall.startsWith('canva') || fall === 'bild-gesperrt') {
+	if (fall.startsWith('bildlauf') || fall === 'bild-gesperrt') {
 		(async () => {
 			const neben = (name) => args[args.indexOf(name) + 1] ?? '';
 			const bild = (argumente) => new Promise((fertig) => {
@@ -321,11 +321,11 @@ process.stdin.on('end', () => {
 				});
 				v.on('error', () => fertig({ fehler: true }));
 			});
-			const jpg = fall === 'canva-bild';
+			const jpg = fall === 'bildlauf-bild';
 			const datei = jpg ? 'bild.jpg' : 'bild.png';
 			const motiv = jpg ? 'Willi und Wilma im Garten' : 'Willi mit Lupe';
 			fs.writeFileSync('bilder.json', JSON.stringify([{ datei, motiv }]));
-			if (fall === 'canva-kein-png') {
+			if (fall === 'bildlauf-kein-png') {
 				fs.mkdirSync('bilder', { recursive: true });
 				fs.writeFileSync('bilder/bild.png', 'kein Bild');
 			} else {
@@ -333,7 +333,7 @@ process.stdin.on('end', () => {
 				const prompt = (fall === 'bild-gesperrt' ? '[gesperrt] ' : '') + motiv;
 				const a = await bild({ datei, prompt, format: jpg ? 'LANDSCAPE_4_3' : 'SQUARE_1_1', transparent: !jpg, referenzen });
 				if (a.fehler) {
-					fs.writeFileSync('ergebnis.json', JSON.stringify({ fehler: 'canva-fehler' }));
+					fs.writeFileSync('ergebnis.json', JSON.stringify({ fehler: 'bild-fehler' }));
 					await new Promise((r) => setTimeout(r, 2500));
 					ende({ result: 'Kein Bild.' });
 					return;
@@ -568,7 +568,7 @@ export const starteTestServer = async (optionen: TestServerOptionen = {}) => {
 		ueberwachung?.stop();
 		kontext.ki.stop();
 		kontext.einheiten.stop();
-		kontext.canva.stop();
+		kontext.bildlauf.stop();
 		server.closeAllConnections();
 		await new Promise<void>((resolve) => server.close(() => resolve()));
 	};

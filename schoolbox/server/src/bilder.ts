@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import {
 	blendeBildAus,
-	CANVA_TEXT_ZEICHEN,
+	BILDLAUF_TEXT_ZEICHEN,
 	druckfassung,
 	figurenFuerBild,
 	leseBibliothek,
@@ -123,8 +123,8 @@ export const bilderApi = (kontext: Kontext) => {
 		if (!text) {
 			throw new HttpFehler(400, 'Beschreibe das Bild.');
 		}
-		if (text.length > CANVA_TEXT_ZEICHEN) {
-			throw new HttpFehler(400, `Höchstens ${CANVA_TEXT_ZEICHEN} Zeichen.`);
+		if (text.length > BILDLAUF_TEXT_ZEICHEN) {
+			throw new HttpFehler(400, `Höchstens ${BILDLAUF_TEXT_ZEICHEN} Zeichen.`);
 		}
 		const genannt = figurenFuerBild(text, await leseBibliothek(konfig, konfig.materialDir));
 		if (genannt.length > MAX_FIGUREN_JE_BILD) {
@@ -140,7 +140,7 @@ export const bilderApi = (kontext: Kontext) => {
 		const { palette } = leseBlatt(await leseQuelle(dir));
 		const vorlage = await readFile(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'bild.md'), 'utf8');
 		const ki = await kiLaufJetzt(konfig, 'klein');
-		const stand = kontext.canva.starte(
+		const stand = kontext.bildlauf.starte(
 			{
 				art: 'bild',
 				text,

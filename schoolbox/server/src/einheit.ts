@@ -197,7 +197,7 @@ export interface LaufOptionen {
 	/** Ohne: `Read,Edit,Write,Skill`. */
 	werkzeuge?: string;
 	/** Mit Bildwerkzeugen (237: `bild_erzeugen`/`bild_bearbeiten`), sofern ein Schlüssel da ist. */
-	mitCanva: boolean;
+	mitBildern: boolean;
 	/** Das Werkzeug `bauen`; `null`: kein MCP-Werkzeug der Schoolbox. */
 	bauen: Bauen | null;
 	grenzen: LaufGrenzen;
@@ -792,7 +792,7 @@ export const erstelleEinheiten = (
 		aktiv.protokoll.laeufe.push(eintrag);
 		aktiv.lauf = lauf;
 		await schreibeProtokoll();
-		const bilder = o.mitCanva && !aktiv.bilderGesperrt ? await bilderFuerLauf(s) : null;
+		const bilder = o.mitBildern && !aktiv.bilderGesperrt ? await bilderFuerLauf(s) : null;
 		const werkzeug =
 			o.bauen || bilder
 				? await starteWerkzeug(dir(s.id), o.bauen, o.bauen ? 'einheit' : 'bilder', { bilder }).catch(
@@ -802,16 +802,16 @@ export const erstelleEinheiten = (
 						},
 					)
 				: null;
-		const mitBildern = bilder !== null && werkzeug !== null;
+		const bildWerkzeugBereit = bilder !== null && werkzeug !== null;
 		const bilderVorher = s.geladeneBilder;
-		if (mitBildern && aktiv) {
+		if (bildWerkzeugBereit && aktiv) {
 			aktiv.bilder = { werkzeug: bilder, vorher: bilderVorher };
 		}
 		// Ohne Bildwerkzeuge verspricht der Auftrag keine neuen Bilder: im Lauf, der sie bräuchte, und in jedem Lauf, wenn
 		// der Schlüssel fehlt (die Einheit begann mit ihm, der Server läuft nach einem Neustart ohne).
-		const keineBilder = !mitBildern && (o.mitCanva || !bilderStand(kontext.konfig).verfuegbar);
+		const keineBilder = !bildWerkzeugBereit && (o.mitBildern || !bilderStand(kontext.konfig).verfuegbar);
 		const ohneWerkzeug = keineBilder ? o.text.replace(EINHEIT_BILDER_SATZ.mit, EINHEIT_BILDER_SATZ.ohne) : o.text;
-		const text = mitBildern && bilder.referenzen.length ? `${o.text}\n\n${referenzZeile(bilder)}` : ohneWerkzeug;
+		const text = bildWerkzeugBereit && bilder.referenzen.length ? `${o.text}\n\n${referenzZeile(bilder)}` : ohneWerkzeug;
 		let ergebnis = leer;
 		try {
 			ergebnis = await laufMit(
@@ -819,12 +819,12 @@ export const erstelleEinheiten = (
 				{ ...o, text },
 				grenzen,
 				werkzeug,
-				mitBildern ? bilder : null,
+				bildWerkzeugBereit ? bilder : null,
 				(name, eingabe) => notiereGelesen(lauf, name, eingabe),
 			);
 		} finally {
 			await werkzeug?.ende();
-			if (mitBildern) {
+			if (bildWerkzeugBereit) {
 				const st = bilder.stand();
 				// Gesetzt, nicht addiert: Der Takt (`gleicheAb`) hat den Stand womöglich schon geschrieben.
 				s.geladeneBilder = bilderVorher + verschiedeneBilder(bilder);
@@ -1046,7 +1046,7 @@ export const erstelleEinheiten = (
 		sitzung,
 		auftragDatei: planAuftrag,
 		rechte: EINHEIT_PLAN_RECHTE,
-		mitCanva: false,
+		mitBildern: false,
 		bauen: null,
 		grenzen: { ...KI_GRENZEN.einheit.material, zeitMs: KI_GRENZEN.einheit.planZeitMs },
 		pflicht: lektuereFuer(s, 'plan'),
@@ -1503,7 +1503,7 @@ export const erstelleEinheiten = (
 				sitzung,
 				auftragDatei: materialAuftrag,
 				rechte: einheitBauRechte({ slug: d.slug, thema, bilder: s.bilder }),
-				mitCanva: s.bilder,
+				mitBildern: s.bilder,
 				bauen: bauenFuer(s, d.slug),
 				grenzen: KI_GRENZEN.einheit.material,
 				pflicht,
@@ -1553,7 +1553,7 @@ export const erstelleEinheiten = (
 			sitzung: null,
 			auftragDatei: materialAuftrag,
 			rechte: einheitBauRechte({ slug: null, thema: false, bilder: true }),
-			mitCanva: true,
+			mitBildern: true,
 			bauen: null,
 			grenzen: KI_GRENZEN.einheit.bilder,
 			pflicht,
@@ -1673,7 +1673,7 @@ export const erstelleEinheiten = (
 				sitzung,
 				auftragDatei: schlussAuftrag,
 				rechte: ['Write(./dokumente/**)', 'Edit(./dokumente/**)'],
-				mitCanva: false,
+				mitBildern: false,
 				bauen: bauenFuer(s, null),
 				grenzen: KI_GRENZEN.einheit.schluss,
 				pflicht: [],

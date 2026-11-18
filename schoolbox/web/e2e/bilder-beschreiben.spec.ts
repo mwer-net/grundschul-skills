@@ -1,7 +1,7 @@
 /**
  * Bild beschreiben (179): das Feld in der Steuerzeile von „Bilder“, die Bildchen der erkannten Figuren, die Kacheln der
  * Aufträge in „Dieser Ordner“, Fehler, Abbrechen, Limit, Meldung und Wiederkommen. Die Claude-Attrappe malt (Fälle
- * `canva-bild`, `bild-gesperrt`, `haenger`) und wartet 2,5 s. Die Figurenbibliothek wird vor jedem Test gesichert und
+ * `bildlauf-bild`, `bild-gesperrt`, `haenger`) und wartet 2,5 s. Die Figurenbibliothek wird vor jedem Test gesichert und
  * danach zurückgelegt.
  */
 import { copyFile, cp, mkdir, mkdtemp, readdir, readFile, rm, utimes, writeFile } from 'node:fs/promises';
@@ -36,8 +36,8 @@ const gruppenKnopf = (page: Page, name: string) => schublade(page).getByRole('bu
 const suche = (page: Page) => schublade(page).getByRole('searchbox', { name: 'Bilder suchen' });
 const figuren = (page: Page) => schublade(page).locator('[data-bild-figur]');
 const liste = (page: Page) => schublade(page).locator('[data-sammlung="mappe"]');
-const CANVA_KACHEL = '[data-canva-kachel]';
-const canvaKacheln = (page: Page) => schublade(page).locator(CANVA_KACHEL);
+const BILDLAUF_KACHEL = '[data-bildlauf-kachel]';
+const bildlaufKacheln = (page: Page) => schublade(page).locator(BILDLAUF_KACHEL);
 const bildKacheln = (page: Page) => liste(page).locator('[data-sammlung-bild]');
 const notiz = (page: Page) => schublade(page).locator('[data-bilder-gruppe] > h3 > span').nth(1);
 const fehler = (page: Page) => schublade(page).locator('[data-bild-fehler]');
@@ -91,15 +91,15 @@ let sicherung = '';
 test.beforeEach(async () => {
 	sicherung = await mkdtemp(path.join(tmpdir(), 'schoolbox-figuren-sicherung-'));
 	await cp(BIBLIOTHEK, sicherung, { recursive: true });
-	await kiFall('canva-bild');
+	await kiFall('bildlauf-bild');
 });
 
 test.afterEach(async ({ page }) => {
 	// Kein Lauf darf nach dem Test noch schreiben.
 	const laeufe = async () =>
-		((await (await page.request.get('/api/canva')).json()) as { laeufe: { id: string }[] }).laeufe;
+		((await (await page.request.get('/api/bildlauf')).json()) as { laeufe: { id: string }[] }).laeufe;
 	for (const { id } of await laeufe()) {
-		await page.request.post(`/api/canva/${id}/abbrechen`, { headers: { 'x-schoolbox': '1' }, data: {} });
+		await page.request.post(`/api/bildlauf/${id}/abbrechen`, { headers: { 'x-schoolbox': '1' }, data: {} });
 	}
 	await expect.poll(async () => (await laeufe()).length).toBe(0);
 	await rm(BIBLIOTHEK, { recursive: true, force: true });
@@ -162,13 +162,13 @@ test.describe('Bild beschreiben (179)', () => {
 		await beschreibe(page, WUNSCH);
 		await expect(gruppenKnopf(page, 'Dieser Ordner')).toHaveAttribute('aria-pressed', 'true');
 		await expect(suche(page)).toHaveValue('');
-		await expect(liste(page).locator('> li').first().locator(CANVA_KACHEL)).toBeVisible();
+		await expect(liste(page).locator('> li').first().locator(BILDLAUF_KACHEL)).toBeVisible();
 		await expect
 			.poll(() => feld(page).evaluate((e: HTMLTextAreaElement) => [e.value, e.selectionStart, e.selectionEnd]))
 			.toEqual([WUNSCH, 0, WUNSCH.length]);
 		await expect(feld(page)).toBeFocused();
 
-		await expect(canvaKacheln(page)).toHaveCount(0, LAUF);
+		await expect(bildlaufKacheln(page)).toHaveCount(0, LAUF);
 		await expect(bildKacheln(page).first()).toHaveAttribute('data-sammlung-bild', `${id}/bilder/${NEU}`);
 		await expect(notiz(page)).toHaveText('2 Bilder');
 		// Nichts wird von selbst eingesetzt.
@@ -184,11 +184,11 @@ test.describe('Bild beschreiben (179)', () => {
 		const { bilder } = await oeffneBilder(page);
 		const vorher = await readdir(bilder);
 		await beschreibe(page, WUNSCH);
-		const laufend = canvaKacheln(page);
+		const laufend = bildlaufKacheln(page);
 		await expect(laufend).toHaveAttribute('data-status', 'laeuft');
 		await expect(laufend.locator('.animate-spin')).toBeVisible();
 		await druecke(laufend.getByRole('button', { name: 'Abbrechen' }));
-		await expect(canvaKacheln(page)).toHaveCount(0);
+		await expect(bildlaufKacheln(page)).toHaveCount(0);
 		expect(await readdir(bilder)).toEqual(vorher);
 	});
 
@@ -199,17 +199,17 @@ test.describe('Bild beschreiben (179)', () => {
 		await kiFall('bild-gesperrt');
 		const { id } = await oeffneBilder(page);
 		await beschreibe(page, WUNSCH);
-		const kachel = canvaKacheln(page);
+		const kachel = bildlaufKacheln(page);
 		await expect(kachel).toHaveAttribute('data-status', 'fehler', LAUF);
 		await expect(kachel).toContainText('OpenAI hat keine Bilder mehr erzeugt (Guthaben, Ausgabenlimit oder Schlüssel).');
 		const breite = async (ziel: Locator) => (await ziel.boundingBox())?.width ?? 0;
 		expect(Math.abs((await breite(kachel)) - (await breite(liste(page))))).toBeLessThanOrEqual(1);
 
-		await kiFall('canva-bild');
+		await kiFall('bildlauf-bild');
 		await druecke(kachel.getByRole('button', { name: 'Noch einmal' }));
-		await expect(schublade(page).locator('[data-canva-kachel][data-status="fehler"]')).toHaveCount(0);
+		await expect(schublade(page).locator('[data-bildlauf-kachel][data-status="fehler"]')).toHaveCount(0);
 		await expect(bildKacheln(page).first()).toHaveAttribute('data-sammlung-bild', `${id}/bilder/${NEU}`, LAUF);
-		await expect(canvaKacheln(page)).toHaveCount(0);
+		await expect(bildlaufKacheln(page)).toHaveCount(0);
 	});
 
 	test('Fünf Namen: „Höchstens vier Figuren je Bild.“ unter dem Rahmen, keine Kachel', async ({ page }) => {
@@ -219,7 +219,7 @@ test.describe('Bild beschreiben (179)', () => {
 		await expect(figuren(page)).toHaveCount(5);
 		await expect(fehler(page)).toHaveText('Höchstens vier Figuren je Bild.');
 		await expect(schublade(page).getByRole('alert')).toHaveText('Höchstens vier Figuren je Bild.');
-		await expect(canvaKacheln(page)).toHaveCount(0);
+		await expect(bildlaufKacheln(page)).toHaveCount(0);
 		await feld(page).press('End');
 		await feld(page).pressSequentially(' zusammen');
 		await expect(fehler(page)).toHaveCount(0);
@@ -269,7 +269,7 @@ test.describe('Bild beschreiben (179)', () => {
 		await oeffneBilder(page);
 		await feld(page).fill('Willi und Wilma im Garten');
 		await feld(page).press('Enter');
-		await expect(canvaKacheln(page)).toHaveCount(1);
+		await expect(bildlaufKacheln(page)).toHaveCount(1);
 		const text = await schublade(page).innerText();
 		expect(text).not.toMatch(BEDIENUNG);
 		expect(text).not.toMatch(/[⌥⌘⏎]/);
@@ -279,17 +279,17 @@ test.describe('Bild beschreiben (179)', () => {
 		await kiFall('haenger');
 		await oeffneBilder(page);
 		await beschreibe(page, WUNSCH);
-		await expect(canvaKacheln(page)).toHaveAttribute('data-status', 'laeuft');
+		await expect(bildlaufKacheln(page)).toHaveAttribute('data-status', 'laeuft');
 		await page.reload();
 		await oeffneSchublade(page, 'bilder');
 		await gruppenKnopf(page, 'Dieser Ordner').click();
-		await expect(liste(page).locator('> li').first().locator(CANVA_KACHEL)).toHaveAttribute('aria-label', WUNSCH);
+		await expect(liste(page).locator('> li').first().locator(BILDLAUF_KACHEL)).toHaveAttribute('aria-label', WUNSCH);
 	});
 
 	test('Meldung: „Figuren“ offen, fertig, dann die Meldung; „Ansehen“ öffnet „Bilder“', async ({ druecke, page }) => {
 		const { id } = await oeffneBilder(page);
 		await beschreibe(page, WUNSCH);
-		await expect(canvaKacheln(page)).toHaveCount(1);
+		await expect(bildlaufKacheln(page)).toHaveCount(1);
 		await druecke(schubladenKnopf(page, 'figuren'));
 		await expect(schubladenKnopf(page, 'bilder')).toHaveAttribute('aria-pressed', 'false');
 
@@ -328,6 +328,6 @@ test.describe('Bild beschreiben am Limit (179)', () => {
 		await expect(senden(page)).toBeDisabled();
 		await expect(schublade(page).locator('[data-ki-limit="gesperrt"]')).toBeVisible();
 		await feld(page).press('Enter');
-		await expect(canvaKacheln(page)).toHaveCount(0);
+		await expect(bildlaufKacheln(page)).toHaveCount(0);
 	});
 });

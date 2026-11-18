@@ -1,4 +1,4 @@
-import type { CanvaArt, CanvaEreignisStatus, Urheber } from '@schoolbox/kern';
+import type { BildlaufArt, BildlaufEreignisStatus, Urheber } from '@schoolbox/kern';
 
 export interface DokumentGeaendert {
 	mappe: string;
@@ -21,14 +21,14 @@ type OrdnerEreignis = { typ: 'ordner-geaendert'; daten: { rev: number } };
 /** Eine Unterrichtseinheit (139): Die Oberfläche holt den Stand selbst. */
 type EinheitEreignis = { typ: 'einheit-stand'; daten: { id: string; ordner: string } };
 
-/** Ein Canva-Lauf (176): Die Oberfläche holt den Stand selbst; `datei` nur bei `fertig`. */
-type CanvaEreignis = {
-	typ: 'canva-stand';
-	daten: { id: string; art: CanvaArt; status: CanvaEreignisStatus; datei?: string };
+/** Ein Bildlauf der Schubladen (176): Die Oberfläche holt den Stand selbst; `datei` nur bei `fertig`. */
+type BildlaufEreignis = {
+	typ: 'bildlauf-stand';
+	daten: { id: string; art: BildlaufArt; status: BildlaufEreignisStatus; datei?: string };
 };
 
 /** Was im Hintergrund läuft und fertig wird. */
-type ArbeitsEreignis = CanvaEreignis | KiEreignis | PdfEreignis | VorschauEreignis;
+type ArbeitsEreignis = BildlaufEreignis | KiEreignis | PdfEreignis | VorschauEreignis;
 
 export type Ereignis = ArbeitsEreignis | DokumentEreignis | EinheitEreignis | MappeEreignis | OrdnerEreignis;
 

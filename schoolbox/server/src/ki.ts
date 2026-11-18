@@ -191,7 +191,7 @@ export const KI_GRENZEN = {
 	 * Runden verlangen: Ein Aufruf der Bild-API dauert mit Wiederholungen bis zu `KI_GRENZEN.bild.zeitMs` je Versuch.
 	 * Die Kosten des Bilds zahlt OpenAI, nicht das Budget von Claude.
 	 */
-	canva: {
+	bildlauf: {
 		zeitMs: 12 * 60_000,
 		runden: 30,
 		budgetUsd: 1.5,
@@ -447,7 +447,7 @@ export const einheitBauRechte = (o: { slug: string | null; thema: boolean; bilde
 export const BLATT_BILD_RECHTE = ['Edit(./bilder.json)'];
 
 /** Was ein Lauf der Schubladen schreiben darf (176): die Bildliste und sein Ergebnis, sonst nichts. */
-export const CANVA_BILD_RECHTE = [
+export const BILDLAUF_RECHTE = [
 	'Write(./bilder.json)',
 	'Edit(./bilder.json)',
 	'Write(./ergebnis.json)',
@@ -469,7 +469,7 @@ const konnektorArgumente = (mcpDatei: string | null | undefined, sperre: boolean
 ];
 
 /** Ein Bild der Schubladen (176, seit 237 über die Bild-API): nur die Bildwerkzeuge und zwei Dateien, kein Skill. */
-const canvaBildArgumente = (o: {
+const bildlaufArgumente = (o: {
 	ablage: string;
 	auftragDatei: string;
 	budgetUsd?: number;
@@ -494,7 +494,7 @@ const canvaBildArgumente = (o: {
 	'--tools',
 	'Read,Edit,Write',
 	'--allowedTools',
-	...CANVA_BILD_RECHTE,
+	...BILDLAUF_RECHTE,
 	...(o.mcpDatei ? (o.mcpWerkzeuge ?? [WERKZEUG_BILD_ERZEUGEN, WERKZEUG_BILD_BEARBEITEN]) : []),
 	'--disallowedTools',
 	...NIE_LESEN,
@@ -502,9 +502,9 @@ const canvaBildArgumente = (o: {
 	'--permission-mode',
 	'dontAsk',
 	'--max-turns',
-	String(KI_GRENZEN.canva.runden),
+	String(KI_GRENZEN.bildlauf.runden),
 	'--max-budget-usd',
-	String(o.budgetUsd ?? KI_GRENZEN.canva.budgetUsd),
+	String(o.budgetUsd ?? KI_GRENZEN.bildlauf.budgetUsd),
 	'--append-system-prompt-file',
 	o.auftragDatei,
 ];
@@ -524,7 +524,7 @@ export const kiArgumente = (o: {
 	sitzung?: string | null;
 	einheit?: boolean;
 	/** Ein Bild der Schubladen (176): nur die Bildwerkzeuge und zwei Dateien, kein Skill, kein Material. */
-	canvaBild?: boolean;
+	bildlauf?: boolean;
 	/** Die MCP-Konfiguration des Laufs (`ki-werkzeug.ts`). */
 	mcpDatei?: string | null;
 	/** Die Werkzeuge des MCP-Servers für `--allowedTools` (`werkzeug.werkzeuge`); ohne Angabe nur `bauen`. */
@@ -537,8 +537,8 @@ export const kiArgumente = (o: {
 	/** Werkzeuge eines Einheit-Laufs, etwa für den Prüflauf (220, Teil 2); ohne `Read,Edit,Write,Skill`. */
 	werkzeuge?: string;
 }) => {
-	if (o.canvaBild === true) {
-		return canvaBildArgumente(o);
+	if (o.bildlauf === true) {
+		return bildlaufArgumente(o);
 	}
 	const mcp = o.mcpDatei ? (o.mcpWerkzeuge ?? [WERKZEUG_BAUEN]) : [];
 	const bilder = mitBildwerkzeug(mcp);

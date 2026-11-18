@@ -45,7 +45,7 @@ const PRUEFEN_SATZ = 'Prüfe sie gegen den Vertrag und trage die Prüfung in `bi
 const GESPERRT_ANWEISUNG = `${BILD_API_GESPERRT}: OpenAI erzeugt keine Bilder mehr (Guthaben, Ausgabenlimit oder Schlüssel). Frage kein Bild mehr an, auch nicht ein zweites Mal. Lass fehlende Verträge in ${BILDER_LISTE} ohne Bild und mach weiter, wie dein Auftrag es für ${BILD_API_GESPERRT} sagt.`;
 
 /** Wo der Lauf hingehört; danach richtet sich die Obergrenze (`BILD_GRENZEN.aufrufe`). */
-export type BildLaufArt = keyof typeof BILD_GRENZEN.aufrufe;
+export type BildWerkzeugArt = keyof typeof BILD_GRENZEN.aufrufe;
 
 export interface WerkzeugAntwort {
 	text: string;
@@ -67,7 +67,7 @@ export interface BildWerkzeugStand {
 export interface BildWerkzeugOptionen {
 	/** Der Arbeitsordner des Laufs: `bilder/`, `referenzen/`, `bilder.json` und `ansicht/bilder/` liegen darin. */
 	arbeit: string;
-	art: BildLaufArt;
+	art: BildWerkzeugArt;
 	konfig: Pick<ServerKonfig, 'openaiSchluessel' | 'bildModell' | 'bildQualitaet' | 'pythonBin'>;
 	/** Ohne Angabe die Obergrenze der Art. */
 	obergrenze?: number;

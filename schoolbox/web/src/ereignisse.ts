@@ -1,4 +1,4 @@
-import type { CanvaArt, CanvaEreignisStatus } from '@schoolbox/kern/src/canva-auftrag';
+import type { BildlaufArt, BildlaufEreignisStatus } from '@schoolbox/kern/src/bild-auftrag';
 import { useEffect, useRef } from 'react';
 
 const SERVER_TYPEN = [
@@ -10,7 +10,7 @@ const SERVER_TYPEN = [
 	'ki-stand',
 	'ordner-geaendert',
 	'einheit-stand',
-	'canva-stand',
+	'bildlauf-stand',
 ] as const;
 
 /** `verbunden`: Die Verbindung steht (wieder), z. B. nach dem Aufwachen des iPads. Es kann etwas verpasst worden sein. */
@@ -29,9 +29,9 @@ export interface Ereignis {
 	rev?: number;
 	/** Bei `verbunden`: Die Verbindung war schon einmal da und ist wieder da (nicht der erste Aufbau). */
 	wieder?: boolean;
-	/** Bei `canva-stand`: Status, Art und bei `fertig` die abgelegte Datei. */
-	status?: CanvaEreignisStatus;
-	art?: CanvaArt;
+	/** Bei `bildlauf-stand`: Status, Art und bei `fertig` die abgelegte Datei. */
+	status?: BildlaufEreignisStatus;
+	art?: BildlaufArt;
 	datei?: string;
 }
 

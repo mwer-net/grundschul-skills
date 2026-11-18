@@ -1,6 +1,6 @@
 import type { Sammlung, SammlungsBild } from '@schoolbox/kern/src/bildbefehle';
 import { vorschaubildAdresse } from '@schoolbox/kern/src/bildbefehle';
-import type { CanvaStand } from '@schoolbox/kern/src/canva-auftrag';
+import type { BildlaufStand } from '@schoolbox/kern/src/bild-auftrag';
 import type { DragEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -15,13 +15,13 @@ import { passt } from '../bild-sammlung';
 import type { BildZiehen, SammlungsGruppe } from '../Bildpanel';
 import { BILDGRUPPEN, Hochladen, Laeuft, SammlungsKacheln } from '../Bildpanel';
 import { bildBeschreibung, bilderZahl } from '../bildpanel-hilfe';
-import { bildLaeufe, canvaAktion, starteBild, useCanvaLaeufe } from '../canva';
+import { bildLaeufe, bildlaufAktion, starteBild, useBildlaufLaeufe } from '../bild-lauf';
 import { legeInMitte } from '../gestaltung/ablegen/ablegen';
 import { bildGut, mitGeholtemBild } from '../gestaltung/ablegen/bild-gut';
 import { useHolenAmZeiger } from '../gestaltung/ablegen/holen-am-zeiger';
 import type { SchubladenTeile } from '.';
 import { BildBeschreiben, bildFeld, OhneBildApi } from './bild-beschreiben';
-import { CanvaBildKacheln } from './CanvaKachel';
+import { BildlaufBildKacheln } from './BildlaufKachel';
 import { kopf } from './reihe';
 
 /** Zieht jemand Dateien herein? Nur dann nimmt die Schublade das Ablegen an (199, entschieden vom Admin). */
@@ -34,7 +34,7 @@ export const Inhalt = (t: SchubladenTeile) => {
 	const [suche, setSuche] = useState('');
 	// Neue KI-Bilder: Aufträge dieses Blatts stehen vorn in „Dieser Ordner“, fertige laden die Liste neu. Ohne Bild-API
 	// bleiben laufende und gescheiterte Aufträge sichtbar, nur das Feld fehlt (237).
-	const { laeufe } = useCanvaLaeufe();
+	const { laeufe } = useBildlaufLaeufe();
 	const feldArt = bildFeld(t.ki);
 	const mitClaude = feldArt !== 'nichts';
 	const meineLaeufe = mitClaude ? bildLaeufe(laeufe, t.dokument) : [];
@@ -129,17 +129,17 @@ export const Inhalt = (t: SchubladenTeile) => {
 			void bild.hochladen(dateien, frei);
 		},
 	};
-	const [canvaFehler, setCanvaFehler] = useState<string | null>(null);
+	const [bildlaufFehler, setBildlaufFehler] = useState<string | null>(null);
 	useEreignisse((e) => {
-		if (e.typ === 'canva-stand' && e.art === 'bild' && e.status === 'fertig') {
+		if (e.typ === 'bildlauf-stand' && e.art === 'bild' && e.status === 'fertig') {
 			neuLaden();
 		}
 	});
 	const auftraege = gruppe === 'mappe' && !suche.trim() ? meineLaeufe : [];
-	const nochmal = (stand: CanvaStand) =>
+	const nochmal = (stand: BildlaufStand) =>
 		void starteBild({ mappe: stand.ziel.mappe ?? '', dok: stand.ziel.dok ?? '' }, stand.text).then(
-			() => canvaAktion(stand.id, 'verwerfen'),
-			(grund: unknown) => setCanvaFehler(meldung(grund)),
+			() => bildlaufAktion(stand.id, 'verwerfen'),
+			(grund: unknown) => setBildlaufFehler(meldung(grund)),
 		);
 	const hochladen =
 		bild.arbeit === 'hochladen' ? (
@@ -165,8 +165,8 @@ export const Inhalt = (t: SchubladenTeile) => {
 				<BildBeschreiben
 					ki={t.ki}
 					ort={t.dokument}
-					fehler={canvaFehler}
-					setFehler={setCanvaFehler}
+					fehler={bildlaufFehler}
+					setFehler={setBildlaufFehler}
 					gesendet={() => {
 						setGruppe('mappe');
 						setSuche('');
@@ -198,7 +198,7 @@ export const Inhalt = (t: SchubladenTeile) => {
 						ziehen={ziehen}
 						entferne={entferne}
 						vorne={
-							auftraege.length > 0 ? <CanvaBildKacheln laeufe={auftraege} nochmal={nochmal} /> : undefined
+							auftraege.length > 0 ? <BildlaufBildKacheln laeufe={auftraege} nochmal={nochmal} /> : undefined
 						}
 					/>
 				</Schubladenabschnitt>

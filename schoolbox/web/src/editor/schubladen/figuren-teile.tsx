@@ -1,5 +1,5 @@
-import type { CanvaStand } from '@schoolbox/kern/src/canva-auftrag';
-import { CANVA_TEXT_ZEICHEN } from '@schoolbox/kern/src/canva-auftrag';
+import type { BildlaufStand } from '@schoolbox/kern/src/bild-auftrag';
+import { BILDLAUF_TEXT_ZEICHEN } from '@schoolbox/kern/src/bild-auftrag';
 import type { BibliotheksFigur, Pose } from '@schoolbox/kern/src/figuren';
 import { figurNameVergeben, NAME_VERGEBEN, poseName } from '@schoolbox/kern/src/figuren';
 import type { FigurRueckweg } from '@schoolbox/kern/src/figurenbibliothek';
@@ -21,7 +21,7 @@ import {
 import { nichtsPasst, raster } from '../../bausteine/schubladenhilfe';
 import { Symbol } from '../../bausteine/Symbol';
 import { falte } from '../bild-sammlung';
-import { canvaAktion, starteFigur, useCanvaLaeufe } from '../canva';
+import { bildlaufAktion, starteFigur, useBildlaufLaeufe } from '../bild-lauf';
 import { ClaudeWahl } from '../ClaudeWahl';
 import { mitGeholtemBild } from '../gestaltung/ablegen/bild-gut';
 import { useHolenAmZeiger } from '../gestaltung/ablegen/holen-am-zeiger';
@@ -30,7 +30,7 @@ import { ladeFigurenNeu, ladeVor, useFiguren, vorschauVon } from '../gestaltung/
 import { LimitZeile } from '../LimitZeile';
 import type { SchubladenTeile } from '.';
 import { bildFeld, OhneBildApi } from './bild-beschreiben';
-import { CanvaKacheln } from './CanvaKachel';
+import { BildlaufKacheln } from './BildlaufKachel';
 import { gutFuer, srcFuer } from './figuren-daten';
 import { KACHEL_MEHR, SendenKreis } from './kreise';
 import { kopf } from './reihe';
@@ -140,7 +140,7 @@ const FigurTitel = ({
 };
 
 /** Läuft für diesen Text schon ein Auftrag? Dann sendet Enter nicht noch einmal (199, entschieden vom Admin). */
-const laeuftSchon = (laeufe: readonly CanvaStand[], text: string) =>
+const laeuftSchon = (laeufe: readonly BildlaufStand[], text: string) =>
 	laeufe.some((l) => l.art === 'figur' && l.status !== 'fehler' && l.text.trim() === text.trim());
 
 /**
@@ -154,7 +154,7 @@ const FigurBeschreiben = ({
 	setFehler,
 }: {
 	ki: SchubladenTeile['ki'];
-	laeufe: readonly CanvaStand[];
+	laeufe: readonly BildlaufStand[];
 	fehler: string | null;
 	setFehler: (fehler: string | null) => void;
 }) => {
@@ -192,7 +192,7 @@ const FigurBeschreiben = ({
 					id="figur-beschreiben"
 					aria-label="Figur beschreiben"
 					placeholder="Figur beschreiben …"
-					maxLength={CANVA_TEXT_ZEICHEN}
+					maxLength={BILDLAUF_TEXT_ZEICHEN}
 					autoComplete="off"
 					enterKeyHint="send"
 					value={text}
@@ -243,15 +243,15 @@ export const Inhalt = (t: SchubladenTeile) => {
 	const vorschauen = figuren.flatMap((f) => f.posen.map(vorschauVon)).join('|');
 	useEffect(() => ladeVor(t.doc, vorschauen.split('|')), [t.doc, vorschauen]);
 
-	const { laeufe } = useCanvaLaeufe();
+	const { laeufe } = useBildlaufLaeufe();
 	const [fehler, setFehler] = useState<string | null>(null);
 	const zeigeHinweis = useHinweis();
 	// Steht etwas im Suchfeld, zeigt die Schublade keine Kacheln laufender Aufträge.
-	const canva = woerter.length === 0;
-	const neueFigur = canva && laeufe.some((l) => l.art === 'figur' && !l.ziel.figur);
-	const nochmal = (stand: CanvaStand) =>
+	const bildlauf = woerter.length === 0;
+	const neueFigur = bildlauf && laeufe.some((l) => l.art === 'figur' && !l.ziel.figur);
+	const nochmal = (stand: BildlaufStand) =>
 		void starteFigur(stand.text).then(
-			() => canvaAktion(stand.id, 'verwerfen'),
+			() => bildlaufAktion(stand.id, 'verwerfen'),
 			(grund: unknown) => setFehler(meldung(grund)),
 		);
 	// 199-03: Entfernen geht sofort, der Hinweis bietet „Rückgängig“ (wie ⌫ im Blatt).
@@ -350,10 +350,10 @@ export const Inhalt = (t: SchubladenTeile) => {
 		<>
 			<Schublade titel={kopf('figuren').titel} daten={{ 'data-schublade-figuren': '' }} steuerung={steuerung}>
 				{neueFigur && (
-					<Schubladenabschnitt titel="Neue Figur" daten={{ 'data-canva-neu': '' }}>
+					<Schubladenabschnitt titel="Neue Figur" daten={{ 'data-bildlauf-neu': '' }}>
 						<div className={raster(3)}>
-							<CanvaKacheln laeufe={laeufe} figur={null} nochmal={nochmal} nur="fehler" />
-							<CanvaKacheln laeufe={laeufe} figur={null} nochmal={nochmal} nur="offen" />
+							<BildlaufKacheln laeufe={laeufe} figur={null} nochmal={nochmal} nur="fehler" />
+							<BildlaufKacheln laeufe={laeufe} figur={null} nochmal={nochmal} nur="offen" />
 						</div>
 					</Schubladenabschnitt>
 				)}
@@ -366,9 +366,9 @@ export const Inhalt = (t: SchubladenTeile) => {
 							setBearbeitet={(an) => setUmbenennen(an ? figur.id : null)}
 						/>
 						<div className={raster(3)}>
-							{canva && <CanvaKacheln laeufe={laeufe} figur={figur.id} nochmal={nochmal} nur="fehler" />}
+							{bildlauf && <BildlaufKacheln laeufe={laeufe} figur={figur.id} nochmal={nochmal} nur="fehler" />}
 							{posen.map((pose) => kachel(figur, pose))}
-							{canva && <CanvaKacheln laeufe={laeufe} figur={figur.id} nochmal={nochmal} nur="offen" />}
+							{bildlauf && <BildlaufKacheln laeufe={laeufe} figur={figur.id} nochmal={nochmal} nur="offen" />}
 						</div>
 					</Schubladenabschnitt>
 				))}

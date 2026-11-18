@@ -35,7 +35,7 @@ export const KI_MODELLE = [
 
 export const KI_EFFORTS: readonly KiEffortWahl[] = ['auto', 'low', 'medium', 'high', 'xhigh', 'max'];
 
-/** Änderungen und Canva-Bilder bei `auto`. */
+/** Änderungen und Bildläufe bei `auto`. */
 export const KI_EFFORT: KiEffort = 'medium';
 /** Neue Blätter, Einheiten und die Recherche bei `auto`: Hier zählt das Ergebnis, nicht die Minute. */
 export const KI_EFFORT_GROSS: KiEffort = 'high';
@@ -66,7 +66,7 @@ export const leseKiEinstellung = async (materialDir: string): Promise<KiEinstell
 export const schreibeKiEinstellung = (materialDir: string, einstellung: KiEinstellung) =>
 	schreibeJson(datei(materialDir), einstellung);
 
-/** `klein`: Änderungen und Canva-Bilder; `gross`: neue Blätter, Einheiten, Recherche und Prüfläufe. */
+/** `klein`: Änderungen und Bildläufe; `gross`: neue Blätter, Einheiten, Recherche und Prüfläufe. */
 export const waehleLauf = (
 	einstellung: KiEinstellung,
 	konfig: Pick<Konfig, 'kiModell'>,

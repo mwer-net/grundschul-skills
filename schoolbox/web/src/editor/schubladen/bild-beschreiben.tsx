@@ -4,14 +4,14 @@
  * malt Claude mit dem Bildmodell (176, 237); es landet in „Dieser Ordner“. Optik und Senden wie „Figur beschreiben …“ in
  * „Figuren“. Ohne Bild-API steht `OhneBildApi` an der Stelle des Felds.
  */
-import { CANVA_TEXT_ZEICHEN } from '@schoolbox/kern/src/canva-auftrag';
+import { BILDLAUF_TEXT_ZEICHEN } from '@schoolbox/kern/src/bild-auftrag';
 import { figurenFuerBild } from '@schoolbox/kern/src/figuren-namen';
 import { useLayoutEffect, useRef, useState } from 'react';
 
 import { meldung } from '../../api';
 import { Symbol } from '../../bausteine/Symbol';
 import { Tooltip } from '../../bausteine/Tooltip';
-import { starteBild } from '../canva';
+import { starteBild } from '../bild-lauf';
 import { ClaudeWahl } from '../ClaudeWahl';
 import { useFiguren, vorschauVon } from '../gestaltung/figuren-quelle';
 import { LimitZeile } from '../LimitZeile';
@@ -103,7 +103,7 @@ export const BildBeschreiben = ({
 						id="bild-beschreiben"
 						aria-label="Bild beschreiben"
 						placeholder="Bild beschreiben …"
-						maxLength={CANVA_TEXT_ZEICHEN}
+						maxLength={BILDLAUF_TEXT_ZEICHEN}
 						rows={1}
 						autoComplete="off"
 						enterKeyHint="send"

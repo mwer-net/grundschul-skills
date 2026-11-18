@@ -3,7 +3,7 @@
  * Meldung am Ende.
  * 179 nutzt Liste, Aktionen und Meldung für `art: 'bild'` mit.
  */
-import type { CanvaStand } from '@schoolbox/kern/src/canva-auftrag';
+import type { BildlaufStand } from '@schoolbox/kern/src/bild-auftrag';
 import { figurenIn } from '@schoolbox/kern/src/figuren-namen';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -19,27 +19,27 @@ import type { SchubladenId } from './schubladen/reihe';
  */
 const EIGENE = new Map<string, string | null>();
 
-/** Alle Läufe des Servers: laufend, wartend, mit Fehler. Neu bei `canva-stand` und nach einer Verbindungslücke. */
-export const useCanvaLaeufe = () => {
-	const [laeufe, setLaeufe] = useState<CanvaStand[]>([]);
+/** Alle Läufe des Servers: laufend, wartend, mit Fehler. Neu bei `bildlauf-stand` und nach einer Verbindungslücke. */
+export const useBildlaufLaeufe = () => {
+	const [laeufe, setLaeufe] = useState<BildlaufStand[]>([]);
 	const neu = useCallback(() => {
-		lade<{ laeufe: CanvaStand[] }>('/api/canva').then(
+		lade<{ laeufe: BildlaufStand[] }>('/api/bildlauf').then(
 			({ laeufe: liste }) => setLaeufe(liste),
 			() => undefined,
 		);
 	}, []);
 	useEffect(neu, [neu]);
 	useEreignisse((e) => {
-		if (e.typ === 'canva-stand' || e.typ === 'verbunden') {
+		if (e.typ === 'bildlauf-stand' || e.typ === 'verbunden') {
 			neu();
 		}
 	});
 	return { laeufe, neu };
 };
 
-/** `POST /api/canva/figur`. Wirft mit dem Text des Servers (400, 409). Den Namen bestimmt der Server genauso. */
+/** `POST /api/bildlauf/figur`. Wirft mit dem Text des Servers (400, 409). Den Namen bestimmt der Server genauso. */
 export const starteFigur = async (text: string) => {
-	const { id } = await sende<{ id: string }>('/api/canva/figur', { text });
+	const { id } = await sende<{ id: string }>('/api/bildlauf/figur', { text });
 	EIGENE.set(id, figurenIn(text, figurenJetzt())[0]?.name ?? null);
 	return id;
 };
@@ -58,20 +58,20 @@ export const starteBild = async (ort: { mappe: string; dok: string }, text: stri
 };
 
 /** Die Bilder aus „Bilder“ für dieses Blatt, Fehler zuerst. Leer, wenn es keine gibt. */
-export const bildLaeufe = (laeufe: readonly CanvaStand[], ort: { mappe: string; dok: string }) =>
+export const bildLaeufe = (laeufe: readonly BildlaufStand[], ort: { mappe: string; dok: string }) =>
 	laeufe
 		.filter((l) => l.art === 'bild' && l.ziel.mappe === ort.mappe && l.ziel.dok === ort.dok)
 		.sort((a, b) => Number(b.status === 'fehler') - Number(a.status === 'fehler'));
 
-export const canvaAktion = (id: string, aktion: 'abbrechen' | 'verwerfen') =>
-	sende(`/api/canva/${id}/${aktion}`).catch(() => undefined);
+export const bildlaufAktion = (id: string, aktion: 'abbrechen' | 'verwerfen') =>
+	sende(`/api/bildlauf/${id}/${aktion}`).catch(() => undefined);
 
 /**
  * Meldung unten, wenn ein Auftrag dieses Tabs fertig wird oder scheitert, solange seine Schublade („Figuren“ oder
  * „Bilder“) nicht zu sehen ist. „Ansehen“ öffnet sie. Jede fertige Figur lädt die Bibliothek neu, auch bei zugeklappter
  * Schublade: Sonst zeigte „Ansehen“ den alten Stand.
  */
-export const useCanvaMeldung = (offen: readonly SchubladenId[], oeffne: (id: SchubladenId) => void) => {
+export const useBildlaufMeldung = (offen: readonly SchubladenId[], oeffne: (id: SchubladenId) => void) => {
 	const zeige = useHinweis();
 	const offenJetzt = useRef(offen);
 	useEffect(() => {
@@ -79,11 +79,11 @@ export const useCanvaMeldung = (offen: readonly SchubladenId[], oeffne: (id: Sch
 	}, [offen]);
 	useEreignisse((e) => {
 		const id = e.id ?? '';
-		if (e.typ === 'canva-stand' && e.status === 'fertig' && e.art === 'figur') {
+		if (e.typ === 'bildlauf-stand' && e.status === 'fertig' && e.art === 'figur') {
 			void ladeFigurenNeu();
 		}
 		const bild = EIGENE_BILDER.has(id);
-		if (e.typ !== 'canva-stand' || (!EIGENE.has(id) && !bild)) {
+		if (e.typ !== 'bildlauf-stand' || (!EIGENE.has(id) && !bild)) {
 			return;
 		}
 		const schublade: SchubladenId = bild ? 'bilder' : 'figuren';
@@ -102,7 +102,7 @@ export const useCanvaMeldung = (offen: readonly SchubladenId[], oeffne: (id: Sch
 			EIGENE.delete(id);
 			EIGENE_BILDER.delete(id);
 		} else if (e.status === 'fehler' && zu()) {
-			void lade<{ laeufe: CanvaStand[] }>('/api/canva').then(
+			void lade<{ laeufe: BildlaufStand[] }>('/api/bildlauf').then(
 				({ laeufe }) => {
 					const grund = laeufe.find((l) => l.id === id)?.fehler;
 					if (grund && zu()) {

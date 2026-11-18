@@ -1,7 +1,7 @@
 /**
  * Neue Figuren mit KI-Bildern (176, 237): „Figur beschreiben“ in der Schublade „Figuren“, die Kacheln während des
  * Laufs, Fehler und „Noch einmal“, Abbrechen, Entfernen über ⋯ und die Meldung. Die Claude-Attrappe malt (Fälle
- * `canva-figur`, `bild-gesperrt`, `haenger`) und wartet 2,5 s, damit die Kachel mit dem Spinner zu sehen ist. Die
+ * `bildlauf-figur`, `bild-gesperrt`, `haenger`) und wartet 2,5 s, damit die Kachel mit dem Spinner zu sehen ist. Die
  * Bibliothek mit Kiki wird vor jedem Test gesichert und danach zurückgelegt.
  */
 import { existsSync } from 'node:fs';
@@ -26,9 +26,9 @@ const schublade = (page: Page) => page.locator('[data-schublade-figuren]');
 const feld = (page: Page) => page.locator('#figur-beschreiben');
 const senden = (page: Page) => schublade(page).getByRole('button', { name: 'Senden' });
 const gruppe = (page: Page, id: string) => schublade(page).locator(`[data-figuren-gruppe="${id}"]`);
-const CANVA_KACHEL = '[data-canva-kachel]';
-const canvaKacheln = (page: Page) => schublade(page).locator(CANVA_KACHEL);
-const neueFigur = (page: Page) => schublade(page).locator('[data-canva-neu]');
+const BILDLAUF_KACHEL = '[data-bildlauf-kachel]';
+const bildlaufKacheln = (page: Page) => schublade(page).locator(BILDLAUF_KACHEL);
+const neueFigur = (page: Page) => schublade(page).locator('[data-bildlauf-neu]');
 const kachel = (page: Page, name: string) => schublade(page).locator(`[data-ablage-gut="${name}"]`);
 /** Das ⋯ liegt neben der Kachel im selben Rahmen, nicht darin. */
 const mehr = (page: Page, name: string) =>
@@ -53,15 +53,15 @@ let sicherung = '';
 test.beforeEach(async () => {
 	sicherung = await mkdtemp(path.join(tmpdir(), 'schoolbox-figuren-sicherung-'));
 	await cp(BIBLIOTHEK, sicherung, { recursive: true });
-	await kiFall('canva-figur');
+	await kiFall('bildlauf-figur');
 });
 
 test.afterEach(async ({ page }) => {
 	// Kein Lauf darf nach dem Test noch in die Bibliothek schreiben.
 	const laeufe = async () =>
-		((await (await page.request.get('/api/canva')).json()) as { laeufe: { id: string }[] }).laeufe;
+		((await (await page.request.get('/api/bildlauf')).json()) as { laeufe: { id: string }[] }).laeufe;
 	for (const { id } of await laeufe()) {
-		await page.request.post(`/api/canva/${id}/abbrechen`, { headers: { 'x-schoolbox': '1' }, data: {} });
+		await page.request.post(`/api/bildlauf/${id}/abbrechen`, { headers: { 'x-schoolbox': '1' }, data: {} });
 	}
 	await expect.poll(async () => (await laeufe()).length).toBe(0);
 	await rm(BIBLIOTHEK, { recursive: true, force: true });
@@ -79,13 +79,13 @@ test.describe('Neue Figuren mit KI-Bildern (176)', () => {
 		await expect(senden(page)).toBeDisabled();
 		await beschreibe(page, WILLI_LUPE);
 
-		const laufend = gruppe(page, 'willi').locator(CANVA_KACHEL);
+		const laufend = gruppe(page, 'willi').locator(BILDLAUF_KACHEL);
 		await expect(laufend).toHaveAttribute('data-status', 'laeuft');
 		await expect(laufend).toHaveAttribute('aria-label', WILLI_LUPE);
 		await expect(laufend.locator('.animate-spin')).toBeVisible();
 		// 199-22: am Ende der Gruppe, wo die fertige Pose erscheint.
-		await expect(gruppe(page, 'willi').locator('[data-canva-kachel], [data-ablage-gut]').last()).toHaveAttribute(
-			'data-canva-kachel',
+		await expect(gruppe(page, 'willi').locator('[data-bildlauf-kachel], [data-ablage-gut]').last()).toHaveAttribute(
+			'data-bildlauf-kachel',
 		);
 		// Nach der Antwort steht der Text markiert im Feld.
 		await expect
@@ -93,7 +93,7 @@ test.describe('Neue Figuren mit KI-Bildern (176)', () => {
 			.toEqual([WILLI_LUPE, 0, WILLI_LUPE.length]);
 
 		await expect(kachel(page, 'Willi lupe')).toBeVisible(LAUF);
-		await expect(canvaKacheln(page)).toHaveCount(0);
+		await expect(bildlaufKacheln(page)).toHaveCount(0);
 		if (!hasTouch) {
 			await kachel(page, 'Willi lupe').hover();
 			await expect(page.locator('[data-tooltip]')).toHaveText('Willi lupe');
@@ -113,9 +113,9 @@ test.describe('Neue Figuren mit KI-Bildern (176)', () => {
 
 		await expect(neueFigur(page)).toBeVisible();
 		await expect(neueFigur(page).locator('h3')).toHaveText('Neue Figur');
-		await expect(neueFigur(page).locator(CANVA_KACHEL)).toHaveCount(1);
+		await expect(neueFigur(page).locator(BILDLAUF_KACHEL)).toHaveCount(1);
 		await expect(schublade(page).locator('[data-schublade-abschnitt]').first()).toHaveAttribute(
-			'data-canva-neu',
+			'data-bildlauf-neu',
 			'',
 		);
 
@@ -134,14 +134,14 @@ test.describe('Neue Figuren mit KI-Bildern (176)', () => {
 		await kiFall('haenger');
 		await oeffneFiguren(page);
 		await beschreibe(page, 'Kiki springt');
-		await expect(gruppe(page, 'kiki').locator(CANVA_KACHEL)).toHaveCount(1);
+		await expect(gruppe(page, 'kiki').locator(BILDLAUF_KACHEL)).toHaveCount(1);
 
 		const suche = schublade(page).getByRole('searchbox', { name: 'Figuren suchen' });
 		await suche.fill('Kiki');
 		await expect(kachel(page, 'Kiki')).toBeVisible();
-		await expect(canvaKacheln(page)).toHaveCount(0);
+		await expect(bildlaufKacheln(page)).toHaveCount(0);
 		await suche.fill('');
-		await expect(canvaKacheln(page)).toHaveCount(1);
+		await expect(bildlaufKacheln(page)).toHaveCount(1);
 	});
 
 	test('Entfernen über ⋯: eine Pose, dann die ganze Figur; Willi und Wilma ohne ⋯ an der Grundpose', async ({
@@ -189,10 +189,10 @@ test.describe('Neue Figuren mit KI-Bildern (176)', () => {
 	test('199: Enter zweimal mit demselben Text startet einen Auftrag und sagt, warum', async ({ page }) => {
 		await oeffneFiguren(page);
 		await beschreibe(page, 'Willi winkt');
-		await expect(canvaKacheln(page)).toHaveCount(1);
+		await expect(bildlaufKacheln(page)).toHaveCount(1);
 		await feld(page).press('Enter');
 		await expect(schublade(page).locator('[data-figur-laeuft-schon]')).toBeVisible();
-		await expect(canvaKacheln(page)).toHaveCount(1);
+		await expect(bildlaufKacheln(page)).toHaveCount(1);
 		await expect(schublade(page).getByRole('button', { name: 'Senden' })).toBeDisabled();
 	});
 
@@ -220,7 +220,7 @@ test.describe('Neue Figuren mit KI-Bildern (176)', () => {
 		await beschreibe(page, 'Willi und Wilma lesen');
 		await expect(schublade(page).locator('[data-figur-fehler]')).toHaveText('Eine Figur je Bild.');
 		await expect(schublade(page).getByRole('alert')).toHaveText('Eine Figur je Bild.');
-		await expect(canvaKacheln(page)).toHaveCount(0);
+		await expect(bildlaufKacheln(page)).toHaveCount(0);
 		await feld(page).press('End');
 		await feld(page).pressSequentially(' zusammen');
 		await expect(schublade(page).locator('[data-figur-fehler]')).toHaveCount(0);
@@ -233,36 +233,36 @@ test.describe('Neue Figuren mit KI-Bildern (176)', () => {
 		await kiFall('bild-gesperrt');
 		await oeffneFiguren(page);
 		await beschreibe(page, 'Wilma mit einem Buch');
-		const fehler = gruppe(page, 'wilma').locator(CANVA_KACHEL);
+		const fehler = gruppe(page, 'wilma').locator(BILDLAUF_KACHEL);
 		await expect(fehler).toHaveAttribute('data-status', 'fehler', LAUF);
 		await expect(fehler).toContainText('OpenAI hat keine Bilder mehr erzeugt (Guthaben, Ausgabenlimit oder Schlüssel).');
 		await expect(fehler.getByRole('button', { name: 'Entfernen' })).toBeVisible();
 
-		await kiFall('canva-figur');
+		await kiFall('bildlauf-figur');
 		await druecke(fehler.getByRole('button', { name: 'Noch einmal' }));
-		await expect(gruppe(page, 'wilma').locator('[data-canva-kachel][data-status="fehler"]')).toHaveCount(0);
+		await expect(gruppe(page, 'wilma').locator('[data-bildlauf-kachel][data-status="fehler"]')).toHaveCount(0);
 		await expect(kachel(page, 'Wilma lupe')).toBeVisible(LAUF);
-		await expect(canvaKacheln(page)).toHaveCount(0);
+		await expect(bildlaufKacheln(page)).toHaveCount(0);
 	});
 
 	test('× an einer Fehler-Kachel entfernt sie', async ({ druecke, page }) => {
 		await kiFall('bild-gesperrt');
 		await oeffneFiguren(page);
 		await beschreibe(page, 'Wilma mit einem Buch');
-		const fehler = gruppe(page, 'wilma').locator(CANVA_KACHEL);
+		const fehler = gruppe(page, 'wilma').locator(BILDLAUF_KACHEL);
 		await expect(fehler).toHaveAttribute('data-status', 'fehler', LAUF);
 		await druecke(fehler.getByRole('button', { name: 'Entfernen' }));
-		await expect(canvaKacheln(page)).toHaveCount(0);
+		await expect(bildlaufKacheln(page)).toHaveCount(0);
 	});
 
 	test('Abbrechen: × an der laufenden Kachel nimmt sie weg', async ({ druecke, page }) => {
 		await kiFall('haenger');
 		await oeffneFiguren(page);
 		await beschreibe(page, WILLI_LUPE);
-		const laufend = gruppe(page, 'willi').locator(CANVA_KACHEL);
+		const laufend = gruppe(page, 'willi').locator(BILDLAUF_KACHEL);
 		await expect(laufend).toHaveAttribute('data-status', 'laeuft');
 		await druecke(laufend.getByRole('button', { name: 'Abbrechen' }));
-		await expect(canvaKacheln(page)).toHaveCount(0);
+		await expect(bildlaufKacheln(page)).toHaveCount(0);
 		await expect(kachel(page, 'Willi lupe')).toHaveCount(0);
 	});
 
@@ -272,7 +272,7 @@ test.describe('Neue Figuren mit KI-Bildern (176)', () => {
 	}) => {
 		await oeffneFiguren(page);
 		await beschreibe(page, WILLI_LUPE);
-		await expect(canvaKacheln(page)).toHaveCount(1);
+		await expect(bildlaufKacheln(page)).toHaveCount(1);
 		await druecke(schubladenKnopf(page, 'bilder'));
 		await expect(schubladenKnopf(page, 'figuren')).toHaveAttribute('aria-pressed', 'false');
 
@@ -293,7 +293,7 @@ test.describe('Neue Figuren mit KI-Bildern (176)', () => {
 		expect(await hoehe(mehr(page, 'Kiki winkt'))).toBeGreaterThanOrEqual(44);
 
 		await beschreibe(page, WILLI_LUPE);
-		const laufend = gruppe(page, 'willi').locator(CANVA_KACHEL);
+		const laufend = gruppe(page, 'willi').locator(BILDLAUF_KACHEL);
 		await expect(laufend).toBeVisible();
 		expect(await hoehe(laufend.getByRole('button', { name: 'Abbrechen' }))).toBeGreaterThanOrEqual(44);
 	});
@@ -314,6 +314,6 @@ test.describe('Neue Figuren mit KI-Bildern am Limit (176)', () => {
 		await expect(senden(page)).toBeDisabled();
 		await expect(schublade(page).locator('[data-ki-limit="gesperrt"]')).toBeVisible();
 		await feld(page).press('Enter');
-		await expect(canvaKacheln(page)).toHaveCount(0);
+		await expect(bildlaufKacheln(page)).toHaveCount(0);
 	});
 });

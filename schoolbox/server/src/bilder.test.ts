@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, afterEach, before, describe, it } from 'node:test';
 
-import type { CanvaStand } from '@schoolbox/kern';
+import type { BildlaufStand } from '@schoolbox/kern';
 import { figurenDir, MAX_BILD_BYTES, WURZEL } from '@schoolbox/kern';
 
 import { BILDER_AUS } from './bild-zugang';
@@ -150,7 +150,7 @@ describe('Bild beschreiben (179, 237)', () => {
 		return daten.id;
 	};
 	const fehler = async (antwort: Response) => ((await antwort.json()) as { fehler: string }).fehler;
-	const liste = async () => ((await (await s.holen(`${s.url}/api/canva`)).json()) as { laeufe: CanvaStand[] }).laeufe;
+	const liste = async () => ((await (await s.holen(`${s.url}/api/bildlauf`)).json()) as { laeufe: BildlaufStand[] }).laeufe;
 	const letztes = (id: string) => ereignisse.filter((e) => e.id === id).at(-1);
 	const ende = async (id: string) => {
 		await warte(() => ['fertig', 'fehler', 'abgebrochen'].includes(letztes(id)?.status ?? ''));
@@ -185,7 +185,7 @@ describe('Bild beschreiben (179, 237)', () => {
 		bin = path.join(ordner, 'claude');
 		await writeFile(bin, KI_ATTRAPPE);
 		await chmod(bin, 0o755);
-		await fall('canva-bild');
+		await fall('bildlauf-bild');
 		const materialDir = await mkdtemp(path.join(tmpdir(), 'schoolbox-bild-'));
 		await legeBildfigurenAn(materialDir);
 		s = await starteTestServer({ materialDir, env: { CLAUDE_BIN: bin } });
@@ -196,7 +196,7 @@ describe('Bild beschreiben (179, 237)', () => {
 			(await readFile(html, 'utf8')).replace(/<body([^>]*?)class="/, '<body$1class="palette-wiese '),
 		);
 		s.kontext.ereignisse.abonniere((e) => {
-			if (e.typ === 'canva-stand') {
+			if (e.typ === 'bildlauf-stand') {
 				ereignisse.push(e.daten);
 			}
 		});
@@ -209,10 +209,10 @@ describe('Bild beschreiben (179, 237)', () => {
 
 	afterEach(async () => {
 		for (const l of await liste()) {
-			await s.holen(`${s.url}/api/canva/${l.id}/abbrechen`, { method: 'POST', headers: schreibKoepfe });
+			await s.holen(`${s.url}/api/bildlauf/${l.id}/abbrechen`, { method: 'POST', headers: schreibKoepfe });
 		}
 		await warte(async () => (await liste()).length === 0);
-		await fall('canva-bild');
+		await fall('bildlauf-bild');
 	});
 
 	it('lehnt leeren und zu langen Text ab; ein unbekanntes Dokument gibt 404', async () => {
@@ -286,7 +286,7 @@ describe('Bild beschreiben (179, 237)', () => {
 	});
 
 	it('kein taugliches Bild: Fehler an der Kachel, bilder/ der Mappe bleibt gleich', async () => {
-		await fall('canva-kein-png');
+		await fall('bildlauf-kein-png');
 		const vorher = await inhalt();
 		const id = await starte(WUNSCH);
 		assert.equal((await ende(id))?.status, 'fehler');
@@ -306,7 +306,7 @@ describe('Bild beschreiben (179, 237)', () => {
 			});
 			assert.equal(antwort.status, 409);
 			assert.equal(await fehler(antwort), BILDER_AUS);
-			assert.deepEqual(ohne.kontext.canva.liste(), []);
+			assert.deepEqual(ohne.kontext.bildlauf.liste(), []);
 		} finally {
 			await ohne.stop();
 		}

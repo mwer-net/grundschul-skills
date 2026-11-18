@@ -46,7 +46,7 @@ const starte = async () => {
 	kontext.ki.starteAufraeumen();
 	await kontext.einheiten.beendeReste();
 	kontext.einheiten.starteAufraeumen();
-	await kontext.canva.beendeReste();
+	await kontext.bildlauf.beendeReste();
 	await kontext.ordner.abgleichen();
 	const ueberwachung = await starteUeberwachung(kontext);
 	const aufraeumen = starteAufraeumen(kontext);
@@ -65,7 +65,7 @@ const starte = async () => {
 		aufraeumen.stop();
 		kontext.ki.stop();
 		kontext.einheiten.stop();
-		kontext.canva.stop();
+		kontext.bildlauf.stop();
 		server.close(() => process.exit(0));
 		server.closeAllConnections();
 		setTimeout(() => process.exit(0), SCHLIESSEN_MS).unref();

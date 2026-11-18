@@ -13,7 +13,7 @@ import type { BildAnfrage, BildErgebnis } from './bild-api';
 import { BildApiFehler, erzeugeBild } from './bild-api';
 import { typAus } from './bild-datei';
 import { BILD_GRENZEN } from './bild-grenzen';
-import type { BildLaufArt, BildWerkzeug } from './bild-werkzeug';
+import type { BildWerkzeug, BildWerkzeugArt } from './bild-werkzeug';
 import { erstelleBildWerkzeug, REFERENZ_ORDNER } from './bild-werkzeug';
 import type { ServerKonfig } from './konfig';
 
@@ -46,7 +46,7 @@ export type LaufBilder = BildWerkzeug & {
  */
 export const erstelleLaufBilder = async (o: {
 	arbeit: string;
-	art: BildLaufArt;
+	art: BildWerkzeugArt;
 	konfig: BildKonfig;
 	api?: BildApi | null;
 	obergrenze?: number;

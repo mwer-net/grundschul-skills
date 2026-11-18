@@ -9,8 +9,8 @@ import type { BildApi } from './bild-zugang';
 import { erstelleBegrenzung } from './begrenzung';
 import type { Bremse } from './bremse';
 import { erstelleBremse } from './bremse';
-import type { CanvaLaeufe } from './canva-lauf';
-import { erstelleCanvaLaeufe } from './canva-lauf';
+import type { BildlaufLaeufe } from './bild-lauf';
+import { erstelleBildlaufLaeufe } from './bild-lauf';
 import type { EinheitAnsicht, Einheiten } from './einheit';
 import { erstelleEinheiten } from './einheit';
 import type { Ereignisse } from './ereignisse';
@@ -43,7 +43,7 @@ export interface Kontext {
 	pdf: Pdf;
 	ki: Ki;
 	einheiten: Einheiten;
-	canva: CanvaLaeufe;
+	bildlauf: BildlaufLaeufe;
 	ordner: OrdnerSpeicher;
 	version: string;
 	/** Eingespritzte Bild-API (Tests, E2E); `null` heißt die echte, falls ein Schlüssel da ist (237). */
@@ -76,7 +76,7 @@ export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Ba
 	const begrenzung: Begrenzung = erstelleBegrenzung(GLEICHZEITIGE_BAUTEN);
 	const { materialDir } = konfig;
 	const pruefer: KiPruefer = bauer.kiPruefer ?? ((dokDir, html) => pruefeFassung(konfig, dokDir, html));
-	const kontext: Omit<Kontext, 'canva' | 'einheiten'> & Partial<Pick<Kontext, 'canva' | 'einheiten'>> = {
+	const kontext: Omit<Kontext, 'bildlauf' | 'einheiten'> & Partial<Pick<Kontext, 'bildlauf' | 'einheiten'>> = {
 		konfig,
 		ereignisse,
 		sperre,
@@ -106,7 +106,7 @@ export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Ba
 	};
 	// Die Einheiten brauchen den fertigen Kontext (Ordner, Sperre, Quelle schreiben).
 	kontext.einheiten = erstelleEinheiten(kontext as Kontext, pruefer, bauer.einheitAnsicht);
-	kontext.canva = erstelleCanvaLaeufe(kontext as Kontext);
+	kontext.bildlauf = erstelleBildlaufLaeufe(kontext as Kontext);
 	return kontext as Kontext;
 };
 

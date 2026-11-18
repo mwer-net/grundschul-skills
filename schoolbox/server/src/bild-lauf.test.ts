@@ -5,12 +5,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, afterEach, before, describe, it } from 'node:test';
 
-import type { CanvaStand, CanvaWunsch, EinheitStand } from '@schoolbox/kern';
+import type { BildlaufStand, BildlaufWunsch, EinheitStand } from '@schoolbox/kern';
 import { figurenDir, leseBibliothek } from '@schoolbox/kern';
 
 import { BILDER_AUS, BILDER_GESPERRT } from './bild-zugang';
-import type { CanvaErgebnis } from './canva-lauf';
-import { canvaWurzel, leseErgebnis } from './canva-lauf';
+import type { BildlaufErgebnis } from './bild-lauf';
+import { bildlaufWurzel, leseErgebnis } from './bild-lauf';
 import { KI_GRENZEN, VERBRAUCH_DATEI } from './ki';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
@@ -30,7 +30,7 @@ const warte = async (bedingung: () => Promise<boolean> | boolean, ms = 20_000) =
 const PNG_KOPF = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const WILLI_LUPE = 'Willi mit einer Lupe, der auf dem Boden genau etwas anschaut';
 
-interface CanvaEreignis {
+interface BildlaufEreignis {
 	id: string;
 	art: string;
 	status: string;
@@ -39,7 +39,7 @@ interface CanvaEreignis {
 
 describe('ergebnis.json (176)', () => {
 	const mit = async (inhalt: unknown) => {
-		const dir = await mkdtemp(path.join(tmpdir(), 'schoolbox-canva-ergebnis-'));
+		const dir = await mkdtemp(path.join(tmpdir(), 'schoolbox-bildlauf-ergebnis-'));
 		if (inhalt !== undefined) {
 			await writeFile(path.join(dir, 'ergebnis.json'), JSON.stringify(inhalt));
 		}
@@ -65,10 +65,10 @@ describe('ergebnis.json (176)', () => {
 		assert.equal((await mit(['wort'])).wort, 'neu');
 	});
 
-	it('jeder Fehler ist canva-fehler, auch das alte canva-pause (237)', async () => {
-		assert.equal((await mit({ fehler: 'canva-pause' })).fehler, 'canva-fehler');
-		assert.equal((await mit({ fehler: 'canva-fehler' })).fehler, 'canva-fehler');
-		assert.equal((await mit({ fehler: 'kaputt' })).fehler, 'canva-fehler');
+	it('jeder Fehler ist bild-fehler, auch das alte canva-pause (237)', async () => {
+		assert.equal((await mit({ fehler: 'canva-pause' })).fehler, 'bild-fehler');
+		assert.equal((await mit({ fehler: 'bild-fehler' })).fehler, 'bild-fehler');
+		assert.equal((await mit({ fehler: 'kaputt' })).fehler, 'bild-fehler');
 		assert.equal((await mit({ fehler: false, wort: 'lupe' })).fehler, null);
 	});
 });
@@ -83,8 +83,8 @@ describe('Bild-Lauf der Schubladen (176, 237)', () => {
 	let server: TestServer;
 	let bin: string;
 	const altHome = process.env.HOME;
-	const ereignisse: CanvaEreignis[] = [];
-	const zeitMs = KI_GRENZEN.canva.zeitMs;
+	const ereignisse: BildlaufEreignis[] = [];
+	const zeitMs = KI_GRENZEN.bildlauf.zeitMs;
 
 	const fall = (name: string) => writeFile(path.join(path.dirname(bin), 'fall.txt'), name);
 	const api = (pfad: string, init: { method?: string; body?: string } = {}) =>
@@ -92,13 +92,13 @@ describe('Bild-Lauf der Schubladen (176, 237)', () => {
 			...init,
 			headers: { 'Content-Type': 'application/json', [CSRF_HEADER]: '1' },
 		});
-	const figur = (text: string) => api('/canva/figur', { method: 'POST', body: JSON.stringify({ text }) });
+	const figur = (text: string) => api('/bildlauf/figur', { method: 'POST', body: JSON.stringify({ text }) });
 	const starte = async (text: string) => {
 		const antwort = await figur(text);
 		assert.equal(antwort.status, 201, await antwort.clone().text());
 		return ((await antwort.json()) as { id: string }).id;
 	};
-	const liste = async () => ((await (await api('/canva')).json()) as { laeufe: CanvaStand[] }).laeufe;
+	const liste = async () => ((await (await api('/bildlauf')).json()) as { laeufe: BildlaufStand[] }).laeufe;
 	const letztes = (id: string) => ereignisse.filter((e) => e.id === id).at(-1);
 	const ende = async (id: string) => {
 		await warte(() => ['fertig', 'fehler', 'abgebrochen'].includes(letztes(id)?.status ?? ''));
@@ -112,7 +112,7 @@ describe('Bild-Lauf der Schubladen (176, 237)', () => {
 			.map((z) => JSON.parse(z) as Record<string, unknown>);
 	const letzterPrompt = async () =>
 		(await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8')).split('\n---\n').at(-2) ?? '';
-	const arbeit = (id: string) => path.join(canvaWurzel(server.materialDir), id);
+	const arbeit = (id: string) => path.join(bildlaufWurzel(server.materialDir), id);
 	const sitzung = (id: string) =>
 		path.join(process.env.HOME ?? '', '.claude', 'projects', arbeit(id).replace(/[^a-zA-Z0-9]/g, '-'));
 	const pidDatei = () => path.join(path.dirname(bin), 'pid');
@@ -134,17 +134,17 @@ describe('Bild-Lauf der Schubladen (176, 237)', () => {
 			?.posen.map((p) => p.id);
 
 	before(async () => {
-		process.env.HOME = await mkdtemp(path.join(tmpdir(), 'canva-home-'));
-		const ordner = await mkdtemp(path.join(tmpdir(), 'canva-bin-'));
+		process.env.HOME = await mkdtemp(path.join(tmpdir(), 'bildlauf-home-'));
+		const ordner = await mkdtemp(path.join(tmpdir(), 'bildlauf-bin-'));
 		bin = path.join(ordner, 'claude');
 		await writeFile(bin, KI_ATTRAPPE);
 		await chmod(bin, 0o755);
-		await fall('canva-figur');
-		const materialDir = await mkdtemp(path.join(tmpdir(), 'schoolbox-canva-'));
+		await fall('bildlauf-figur');
+		const materialDir = await mkdtemp(path.join(tmpdir(), 'schoolbox-bildlauf-'));
 		await legeTestfigurenAn(materialDir);
 		server = await starteTestServer({ materialDir, env: { CLAUDE_BIN: bin } });
 		server.kontext.ereignisse.abonniere((e) => {
-			if (e.typ === 'canva-stand') {
+			if (e.typ === 'bildlauf-stand') {
 				ereignisse.push(e.daten);
 			}
 		});
@@ -156,12 +156,12 @@ describe('Bild-Lauf der Schubladen (176, 237)', () => {
 	});
 
 	afterEach(async () => {
-		KI_GRENZEN.canva.zeitMs = zeitMs;
+		KI_GRENZEN.bildlauf.zeitMs = zeitMs;
 		for (const l of await liste()) {
-			await api(`/canva/${l.id}/abbrechen`, { method: 'POST' });
+			await api(`/bildlauf/${l.id}/abbrechen`, { method: 'POST' });
 		}
 		await warte(async () => (await liste()).length === 0);
-		await fall('canva-figur');
+		await fall('bildlauf-figur');
 	});
 
 	it('Pose: neue Pose von Willi in der Bibliothek, Ordner und Sitzung weg, Verbrauch notiert', async () => {
@@ -206,14 +206,14 @@ describe('Bild-Lauf der Schubladen (176, 237)', () => {
 	});
 
 	it('uebernimm bekommt das geprüfte PNG, das Motiv und das Wort', async () => {
-		const gesehen: (CanvaErgebnis & { kopf: Buffer })[] = [];
-		const wunsch: CanvaWunsch = {
+		const gesehen: (BildlaufErgebnis & { kopf: Buffer })[] = [];
+		const wunsch: BildlaufWunsch = {
 			art: 'figur',
 			text: 'Willi mit Lupe',
 			auftrag: 'Wunsch: „Willi mit Lupe“\nDatei: bild.png\n',
 			ziel: { figur: 'willi', name: 'Willi' },
 		};
-		const { id } = server.kontext.canva.starte(wunsch, {
+		const { id } = server.kontext.bildlauf.starte(wunsch, {
 			uebernimm: async (e) => {
 				gesehen.push({ ...e, kopf: (await readFile(e.pfad)).subarray(0, 8) });
 				return 'willi-test.png';
@@ -253,13 +253,13 @@ describe('Bild-Lauf der Schubladen (176, 237)', () => {
 	});
 
 	it('art „bild“ geht denselben Weg: eigenes uebernimm, Datei im Ereignis, Verbrauch canva-bild', async () => {
-		const wunsch: CanvaWunsch = {
+		const wunsch: BildlaufWunsch = {
 			art: 'bild',
 			text: 'Eine Uhr mit Zeigern',
 			auftrag: 'Wunsch: „Eine Uhr mit Zeigern“\nDatei: bild.png\n',
 			ziel: { mappe: 'mappe-a', dok: 'blatt-b' },
 		};
-		const { id } = server.kontext.canva.starte(wunsch, { uebernimm: () => Promise.resolve('uhr.png') });
+		const { id } = server.kontext.bildlauf.starte(wunsch, { uebernimm: () => Promise.resolve('uhr.png') });
 		assert.deepEqual(await ende(id), { id, art: 'bild', status: 'fertig', datei: 'uhr.png' });
 		const zeile = (await verbrauch()).at(-1);
 		assert.equal(zeile?.umfang, 'canva-bild');
@@ -270,7 +270,7 @@ describe('Bild-Lauf der Schubladen (176, 237)', () => {
 	it('Bild-API gesperrt: Fehler mit dem Satz dazu, uebernimm wird nicht gerufen, Verwerfen nimmt ihn weg', async () => {
 		await fall('bild-gesperrt');
 		let gerufen = false;
-		const { id } = server.kontext.canva.starte(
+		const { id } = server.kontext.bildlauf.starte(
 			{ art: 'figur', text: 'Willi liest', auftrag: 'Wunsch: „Willi liest“\n', ziel: { figur: 'willi' } },
 			{
 				uebernimm: () => {
@@ -286,13 +286,13 @@ describe('Bild-Lauf der Schubladen (176, 237)', () => {
 		assert.equal(stand?.fehler, BILDER_GESPERRT);
 		assert.equal((await bildAufrufe()).at(-1)?.fehler, true);
 		assert.equal((await verbrauch()).at(-1)?.status, 'fehler');
-		assert.equal((await api(`/canva/${id}/verwerfen`, { method: 'POST' })).status, 200);
+		assert.equal((await api(`/bildlauf/${id}/verwerfen`, { method: 'POST' })).status, 200);
 		assert.equal(letztes(id)?.status, 'abgebrochen');
 		assert.deepEqual(await liste(), []);
 	});
 
-	it('canva-kein-png: „Es ist kein Bild entstanden.“ (Gegenprobe zur Dateiprüfung)', async () => {
-		await fall('canva-kein-png');
+	it('bildlauf-kein-png: „Es ist kein Bild entstanden.“ (Gegenprobe zur Dateiprüfung)', async () => {
+		await fall('bildlauf-kein-png');
 		const id = await starte(WILLI_LUPE);
 		assert.equal((await ende(id))?.status, 'fehler');
 		assert.equal((await liste()).find((l) => l.id === id)?.fehler, 'Es ist kein Bild entstanden.');
@@ -311,7 +311,7 @@ describe('Bild-Lauf der Schubladen (176, 237)', () => {
 
 	it('Frist: „Das hat zu lange gedauert.“', async () => {
 		await fall('haenger');
-		KI_GRENZEN.canva.zeitMs = 500;
+		KI_GRENZEN.bildlauf.zeitMs = 500;
 		const id = await starte(WILLI_LUPE);
 		assert.equal((await ende(id))?.status, 'fehler');
 		assert.equal((await liste()).find((l) => l.id === id)?.fehler, 'Das hat zu lange gedauert.');
@@ -333,7 +333,7 @@ describe('Bild-Lauf der Schubladen (176, 237)', () => {
 			}
 		};
 		assert.ok(lebt());
-		assert.equal((await api(`/canva/${id}/abbrechen`, { method: 'POST' })).status, 200);
+		assert.equal((await api(`/bildlauf/${id}/abbrechen`, { method: 'POST' })).status, 200);
 		assert.equal((await ende(id))?.status, 'abgebrochen');
 		await warte(() => !lebt());
 		assert.deepEqual(await liste(), []);
@@ -348,7 +348,7 @@ describe('Bild-Lauf der Schubladen (176, 237)', () => {
 		const erster = await starte('Willi schläft');
 		await laeuft(erster);
 		const wartende: string[] = [];
-		for (let i = 0; i < KI_GRENZEN.canva.warten; i += 1) {
+		for (let i = 0; i < KI_GRENZEN.bildlauf.warten; i += 1) {
 			wartende.push(await starte(`Willi schläft ${i}`));
 		}
 		const siebter = await figur('Willi schläft noch mehr');
@@ -359,11 +359,11 @@ describe('Bild-Lauf der Schubladen (176, 237)', () => {
 			['laeuft', 'wartet', 'wartet', 'wartet', 'wartet', 'wartet'],
 		);
 		const anzahl = (await verbrauch().catch(() => [])).length;
-		await api(`/canva/${wartende[4] ?? ''}/abbrechen`, { method: 'POST' });
+		await api(`/bildlauf/${wartende[4] ?? ''}/abbrechen`, { method: 'POST' });
 		assert.equal((await liste()).length, 5);
 		assert.equal((await verbrauch().catch(() => [])).length, anzahl, 'ein wartender Auftrag kostet nichts');
 
-		await api(`/canva/${erster}/abbrechen`, { method: 'POST' });
+		await api(`/bildlauf/${erster}/abbrechen`, { method: 'POST' });
 		await laeuft(wartende[0] ?? '');
 	});
 
@@ -421,14 +421,14 @@ describe('Bild-Lauf der Schubladen (176, 237)', () => {
 			/^Figur Kiki: kein Steckbrief, Bild referenzen\/kiki\.png; Referenz referenzen\/kiki\.png$/m,
 		);
 		assert.ok(!existsSync(path.join(arbeit(id), 'referenzen', 'willi.png')), 'keine Stil-Referenz');
-		await api(`/canva/${id}/abbrechen`, { method: 'POST' });
+		await api(`/bildlauf/${id}/abbrechen`, { method: 'POST' });
 		await ende(id);
 		assert.ok(!existsSync(arbeit(id)), 'die Kopie geht mit dem Ordner');
 	});
 
 	it('API: 400 bei leerem Text, über 300 Zeichen und zwei Namen; 404 bei fremder Id; 409 beim Verwerfen eines Laufs', async () => {
 		const fehler = async (text: unknown) => {
-			const antwort = await api('/canva/figur', { method: 'POST', body: JSON.stringify({ text }) });
+			const antwort = await api('/bildlauf/figur', { method: 'POST', body: JSON.stringify({ text }) });
 			return [antwort.status, ((await antwort.json()) as { fehler: string }).fehler];
 		};
 		assert.deepEqual(await fehler(''), [400, 'Beschreibe die Figur.']);
@@ -439,30 +439,30 @@ describe('Bild-Lauf der Schubladen (176, 237)', () => {
 		assert.deepEqual(await liste(), [], 'keiner dieser Wünsche hat einen Lauf');
 
 		for (const id of ['abcdefabcdef', '..%2F..%2Fetc', 'ABCDEFABCDEF']) {
-			assert.equal((await api(`/canva/${id}/abbrechen`, { method: 'POST' })).status, 404, id);
-			assert.equal((await api(`/canva/${id}/verwerfen`, { method: 'POST' })).status, 404, id);
+			assert.equal((await api(`/bildlauf/${id}/abbrechen`, { method: 'POST' })).status, 404, id);
+			assert.equal((await api(`/bildlauf/${id}/verwerfen`, { method: 'POST' })).status, 404, id);
 		}
 
 		await fall('haenger');
 		const id = await starte(WILLI_LUPE);
 		await laeuft(id);
-		assert.equal((await api(`/canva/${id}/verwerfen`, { method: 'POST' })).status, 409);
+		assert.equal((await api(`/bildlauf/${id}/verwerfen`, { method: 'POST' })).status, 409);
 	});
 
 	it('ohne Schlüssel für OpenAI: 409 mit dem Satz für die Lehrkraft, kein Lauf', async () => {
 		const ohne = await starteTestServer({
-			materialDir: await mkdtemp(path.join(tmpdir(), 'schoolbox-canva-ohne-')),
+			materialDir: await mkdtemp(path.join(tmpdir(), 'schoolbox-bildlauf-ohne-')),
 			env: { CLAUDE_BIN: bin, OPENAI_API_KEY: '' },
 		});
 		try {
-			const antwort = await ohne.holen(`${ohne.url}/api/canva/figur`, {
+			const antwort = await ohne.holen(`${ohne.url}/api/bildlauf/figur`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json', [CSRF_HEADER]: '1' },
 				body: JSON.stringify({ text: WILLI_LUPE }),
 			});
 			assert.equal(antwort.status, 409);
 			assert.deepEqual(await antwort.json(), { fehler: BILDER_AUS });
-			assert.deepEqual(ohne.kontext.canva.liste(), []);
+			assert.deepEqual(ohne.kontext.bildlauf.liste(), []);
 		} finally {
 			await ohne.stop();
 		}

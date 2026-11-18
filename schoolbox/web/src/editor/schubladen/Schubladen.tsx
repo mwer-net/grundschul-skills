@@ -1,6 +1,6 @@
 import { Schubladenleiste } from '../../bausteine/Schubladenleiste';
 import { kuerzelText } from '../befehle';
-import { useCanvaMeldung } from '../canva';
+import { useBildlaufMeldung } from '../bild-lauf';
 import { halteFokus } from '../halteFokus';
 import type { SchubladenId, SchubladenLage, SchubladenTeile } from '.';
 import { JEDE_LAGE, SCHUBLADEN, schubladeVon } from '.';
@@ -25,7 +25,7 @@ interface Eigenschaften {
  */
 export const Schubladen = ({ grund = null, lage, teile, waehle, zeigt }: Eigenschaften) => {
 	const spalten = sichtbar(zeigt);
-	useCanvaMeldung(spalten, waehle);
+	useBildlaufMeldung(spalten, waehle);
 	return (
 		<>
 			<Schubladenleiste

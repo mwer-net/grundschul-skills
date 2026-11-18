@@ -2,24 +2,24 @@
  * Besitzer: 176. Ein Auftrag für ein KI-Bild in „Figuren“, solange er wartet, läuft oder gescheitert ist. Fertige Aufträge stehen
  * als normale Kachel der Bibliothek da.
  */
-import type { CanvaStand } from '@schoolbox/kern/src/canva-auftrag';
+import type { BildlaufStand } from '@schoolbox/kern/src/bild-auftrag';
 
 import { klassen } from '../../bausteine/klassen';
 import { Knopf } from '../../bausteine/Knopf';
 import { KACHELNAME, SCHUBLADENKACHEL } from '../../bausteine/Schublade';
 import { Symbol } from '../../bausteine/Symbol';
 import { Tooltip } from '../../bausteine/Tooltip';
-import { canvaAktion } from '../canva';
+import { bildlaufAktion } from '../bild-lauf';
 
 /** Das × oben rechts: klein am Mac, am iPad mit der Trefferfläche eines Knopfs. */
-const Weg = ({ stand }: { stand: CanvaStand }) => {
+const Weg = ({ stand }: { stand: BildlaufStand }) => {
 	const fehler = stand.status === 'fehler';
 	return (
 		<button
 			type="button"
 			aria-label={fehler ? 'Entfernen' : 'Abbrechen'}
 			className="group/weg absolute top-0 right-0 flex size-7 items-start justify-end p-1 [@media(any-pointer:coarse)]:size-11"
-			onClick={() => void canvaAktion(stand.id, fehler ? 'verwerfen' : 'abbrechen')}
+			onClick={() => void bildlaufAktion(stand.id, fehler ? 'verwerfen' : 'abbrechen')}
 		>
 			<span className="flex size-4 items-center justify-center rounded-full bg-flaeche text-leise shadow-1 group-hover/weg:text-tinte [@media(any-pointer:coarse)]:size-6">
 				<Symbol name="schliessen" className="size-2.5 [@media(any-pointer:coarse)]:size-3.5" />
@@ -29,13 +29,13 @@ const Weg = ({ stand }: { stand: CanvaStand }) => {
 };
 
 /** Wie eine Posenkachel aus 177, nicht ziehbar. Der Auftragstext ist Tooltip und Name. */
-export const CanvaKachel = ({
+export const BildlaufKachel = ({
 	form = 'pose',
 	nochmal,
 	stand,
 }: {
-	stand: CanvaStand;
-	nochmal: (stand: CanvaStand) => void;
+	stand: BildlaufStand;
+	nochmal: (stand: BildlaufStand) => void;
 	/** `bild`: wie eine kleine Kachel in „Bilder“, Fläche und Name darunter. */
 	form?: 'pose' | 'bild';
 }) => {
@@ -58,7 +58,7 @@ export const CanvaKachel = ({
 		<Tooltip text={stand.text}>
 			<figure
 				aria-label={stand.text}
-				data-canva-kachel={stand.id}
+				data-bildlauf-kachel={stand.id}
 				data-status={stand.status}
 				className={klassen(
 					SCHUBLADENKACHEL,
@@ -97,32 +97,32 @@ export const CanvaKachel = ({
  * Die Aufträge mit diesem Ziel (`null`: „Neue Figur“). 199-22: `fehler` vor den Posen, weil ein Fehler die ganze
  * Zeile nimmt; wartende und laufende (`offen`) hinter den Posen, wo die fertige Pose erscheint.
  */
-export const CanvaKacheln = ({
+export const BildlaufKacheln = ({
 	figur,
 	laeufe,
 	nochmal,
 	nur,
 }: {
-	laeufe: readonly CanvaStand[];
+	laeufe: readonly BildlaufStand[];
 	figur: string | null;
-	nochmal: (stand: CanvaStand) => void;
+	nochmal: (stand: BildlaufStand) => void;
 	nur: 'fehler' | 'offen';
 }) =>
 	laeufe
 		.filter((l) => l.art === 'figur' && (l.ziel.figur ?? null) === figur)
 		.filter((l) => (l.status === 'fehler') === (nur === 'fehler'))
-		.map((stand) => <CanvaKachel key={stand.id} stand={stand} nochmal={nochmal} />);
+		.map((stand) => <BildlaufKachel key={stand.id} stand={stand} nochmal={nochmal} />);
 
 /** Je Auftrag ein `<li>` der Liste „Dieser Ordner“; ein Fehler nimmt die ganze Zeile. */
-export const CanvaBildKacheln = ({
+export const BildlaufBildKacheln = ({
 	laeufe,
 	nochmal,
 }: {
-	laeufe: readonly CanvaStand[];
-	nochmal: (stand: CanvaStand) => void;
+	laeufe: readonly BildlaufStand[];
+	nochmal: (stand: BildlaufStand) => void;
 }) =>
 	laeufe.map((stand) => (
 		<li key={stand.id} className={klassen('min-w-0', stand.status === 'fehler' && 'col-span-2')}>
-			<CanvaKachel form="bild" stand={stand} nochmal={nochmal} />
+			<BildlaufKachel form="bild" stand={stand} nochmal={nochmal} />
 		</li>
 	));
