@@ -1,11 +1,11 @@
 ---
 name: html-materialerstellung
-description: Technischer Ablauf, um Grundschulmaterial (Arbeitsblätter, Klassenarbeiten, Lernzielkontrollen, Lesetexte, Karten, Plakate, Stationskarten, Folien) als HTML/CSS zu bauen, automatisch zu prüfen und als druckfertiges A4-PDF mit Lösungsblatt auszugeben. Laden vor jedem Bau eines Materials: für die Entwürfe (Phase 2), die Umsetzung des freigegebenen Aufgabenplans und den Bau ohne Entwurf, etwa im Lauf der Schoolbox. Bilder und Grafiken nach Bedarf mit Canva-KI.
+description: Technischer Ablauf, um Grundschulmaterial (Arbeitsblätter, Klassenarbeiten, Lernzielkontrollen, Lesetexte, Karten, Plakate, Stationskarten, Folien) als HTML/CSS zu bauen, automatisch zu prüfen und als druckfertiges A4-PDF mit Lösungsblatt auszugeben. Laden vor jedem Bau eines Materials: für die Entwürfe (Phase 2), die Umsetzung des freigegebenen Aufgabenplans und den Bau ohne Entwurf, etwa im Lauf der Schoolbox. Bilder und Grafiken nach Bedarf per KI-Bildmodell (Canva oder Bild-API).
 ---
 
 # Material mit HTML erstellen
 
-Jedes Material entsteht als **eine HTML-Datei** mit dem Gestaltungssystem aus `assets/`. Dieselbe Datei ist Entwurf, Endfassung und Quelle für PDF und Lösungsblatt. **Canva-KI** liefert Bilder und Grafiken nach Bedarf, die ins HTML eingebaut werden (`references/bilder.md`); Layout und Text entstehen nie in Canva.
+Jedes Material entsteht als **eine HTML-Datei** mit dem Gestaltungssystem aus `assets/`. Dieselbe Datei ist Entwurf, Endfassung und Quelle für PDF und Lösungsblatt. Ein **KI-Bildmodell** liefert Bilder und Grafiken nach Bedarf, die ins HTML eingebaut werden (`references/bilder.md`): in der Claude-App Canva, in der Schoolbox die Bild-API. Layout und Text entstehen nie im Bildmodell.
 
 Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände und exakte Abbildungen selbst; das Ergebnis sieht aus wie die Vorschau, ohne Nacharbeit.
 
@@ -38,7 +38,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 | `scripts/blatt.py` | baut, prüft, erzeugt PDF, Lösungsblatt, Vorschau und Ausschnitte; bei Folien die Offline-Präsentation, auf Wunsch `--schritte` und `--notizen`; `uebersicht` für Entwürfe |
 | `references/layout.md` | Raster, Platzbudget, Klassen und Regeln für sauberes HTML |
 | `references/visuelle-endkontrolle.md` | Pflichtprüfung des fertigen Blatts |
-| `references/bilder.md` | Leitfigur, KI-Bilder und -Grafiken mit Canva erzeugen und ins Blatt holen |
+| `references/bilder.md` | Leitfigur, KI-Bilder und -Grafiken erzeugen (Canva oder Bild-API) und ins Blatt holen |
 | `references/verkauf.md` | nur wenn das Material verkauft werden soll (Eduki): Deckblatt, Handreichung, Quellenverzeichnis, Angebotstext |
 | `references/gestaltung.md` | frei liegende Gestaltung: Ebenen, Lage, Anker, Arten, s/w; Farben und Didaktik der Gestaltung stehen in `grundschul-didaktik/references/gestaltung.md` |
 
@@ -53,7 +53,7 @@ Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände u
 ### 2. Endfassung (nach Freigabe des Aufgabenplans)
 
 1. Im gewählten Entwurf alle Items, Beispiele und Lösungen aus dem Plan eintragen. Lösungen stehen **im selben HTML**: `data-l="46"` an Antwortlinien, `loesung="4:30"` an Uhren, `buendel-loesung="3"` an Mengen, `loesung="3 5"` an Stellentafeln, `class="nur-loesung"` für Lösungstexte, `class="nicht-loesung"` für Schreiblinien, die auf dem Lösungsblatt verschwinden. Das erste Item als `class="beispiel"` zeigt seine Lösung schon auf dem Arbeitsblatt.
-2. Bilder einsetzen: vorhandene aus `assets/bilder/`, alle anderen Motive der Bildliste mit Canva-KI erzeugen, jedes in vier Vierteln gegen seinen Bildvertrag prüfen und Fehler reparieren, dann als Datei einbauen; die Figuren sind Teil der Szene, Zettel und Zahlen kommen als Ebenen darüber (`references/bilder.md`, Abschnitte 2 bis 4).
+2. Bilder einsetzen: vorhandene aus `assets/bilder/`, alle anderen Motive der Bildliste per KI erzeugen, jedes in vier Vierteln gegen seinen Bildvertrag prüfen und Fehler reparieren, dann als Datei einbauen; die Figuren sind Teil der Szene, längerer Text kommt als Ebene darüber (`references/bilder.md`, Abschnitte 2 bis 4).
 3. Vor dem ersten Bau die Pflichtlektüre der Materialart lesen (im Lauf der Schoolbox nennt der Auftrag die Liste, sonst steht sie in `references/pflichtlektuere.md`), dann bauen und prüfen:
    `python3 scripts/blatt.py bauen Kl2_Mathe_Uhrzeit_AB1.html -o ausgabe/`
    Ergebnis: eigenständige `.html` (alles eingebettet), `.pdf`, `-loesung.pdf`, Vorschau je Seite (`-s1.png`) und Ausschnitt je Aufgabe (`-s1-a1.png` …). Der Prüfbericht meldet FEHLER (Seitenrand, abgeschnitten, Überlappung, Schrift oder Bild fehlt; Lösungsblatt wird mitgeprüft), WARNUNGEN (Schrift zu klein, zu viele Aufgaben, Aufgaben zu dicht, Zeit, Menge und freier Platz) und HINWEISE (unscharfe Bilder, Platzhalter, s/w). Die Schwellen stehen in `grundschul-didaktik/references/druck-und-platz.md`, „Was die Prüfung meldet“. Die s/w-Hinweise stehen im Lauf der Schoolbox von selbst im Bericht, sonst mit `--profil sw`.

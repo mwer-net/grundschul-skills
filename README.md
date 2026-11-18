@@ -1,6 +1,6 @@
 # Grundschul-Skills
 
-AI-Skills zur Unterrichtsvorbereitung für Grundschul-Lehrkräfte (Klasse 1–4) in Baden-Württemberg. Die Skills erstellen Unterrichtsmaterial nach aktuellen didaktischen Standards als **HTML/CSS** und geben es als druckfertiges A4-PDF mit Lösungsblatt aus. Bilder und Grafiken erzeugen die Skills bei Bedarf mit der **Canva-KI** (Canva MCP) und bauen sie ins Material ein.
+AI-Skills zur Unterrichtsvorbereitung für Grundschul-Lehrkräfte (Klasse 1–4) in Baden-Württemberg. Die Skills erstellen Unterrichtsmaterial nach aktuellen didaktischen Standards als **HTML/CSS** und geben es als druckfertiges A4-PDF mit Lösungsblatt aus. Bilder und Grafiken erzeugen die Skills bei Bedarf mit einem **KI-Bildmodell** und bauen sie ins Material ein: in der Claude-App mit der Canva-KI (Canva-Connector), in der Schoolbox mit GPT Image von OpenAI.
 
 ## Aufbau
 
@@ -17,7 +17,7 @@ skills/
 │   │                           praesentation.js (Folien präsentieren, offline, PDF mit Schritten, Notizen) ·
 │   │                           vorlage-arbeitsblatt.html · vorlage-praesentation.html · fonts/ (Fredoka, Andika, Playwrite DE VA) ·
 │   │                           bilder/ (Willi, Wilma, Wachstum)
-│   ├── references/             layout · visuelle-endkontrolle · bilder (KI-Bilder und -Grafiken mit Canva)
+│   ├── references/             layout · visuelle-endkontrolle · bilder (KI-Bilder und -Grafiken)
 │   └── scripts/                blatt.py (prüft Rand, Überlappung, Schrift; erzeugt PDF,
 │                               Lösungsblatt, Vorschau und Ausschnitte je Aufgabe; Entwurfsübersicht)
 │
@@ -59,7 +59,7 @@ Jedes Material läuft in Phasen (`grundschul-didaktik/references/entwurf-und-auf
 2. **Entwürfe:** 2–3 deutlich verschiedene Entwürfe als echte HTML-Seiten, nebeneinander als Bild (`blatt.py uebersicht`).
 3. **Feedback:** Die Lehrkraft wählt einen Entwurf und sagt, was anders sein soll.
 4. **Aufgabenplan:** alle Inhalte, Items, Lösungen und Bilder je Materialart exakt festgelegt, zur Freigabe.
-5. **Endfassung:** Der gewählte Entwurf wird ausgebaut, benötigte Bilder und Grafiken erzeugt die Canva-KI, `blatt.py bauen` prüft und erzeugt PDF, Lösungsblatt und eine eigenständige HTML-Datei; danach visuelle Endkontrolle.
+5. **Endfassung:** Der gewählte Entwurf wird ausgebaut, benötigte Bilder und Grafiken erzeugt ein KI-Bildmodell, `blatt.py bauen` prüft und erzeugt PDF, Lösungsblatt und eine eigenständige HTML-Datei; danach visuelle Endkontrolle.
 
 Warum HTML statt Canva-Layout: Schrift, Abstände und exakte Abbildungen sind frei bestimmbar, die Vorschau ist schon das fertige Blatt, und eine Änderung kostet Sekunden statt einer neuen Canva-Runde. Die Canva-Schnittstelle konnte keine Schrift setzen, KI-Layouts mussten komplett nachgebaut werden.
 
@@ -107,7 +107,7 @@ Empfehlung: Immer alle Skills installieren, da sie aufeinander verweisen.
 Die Schoolbox (`schoolbox/`) macht das Material für die Lehrkraft nutzbar: Ablage in Ordnern wie im Finder (`MATERIAL_DIR/_ordner.json`, einziger Schreiber ist der Server; „Mappe“ bleibt der unsichtbare Behälter auf der Platte und das Fachwort des CLI), im Browser eine Übersicht mit Suche, Papierkorb und Teilen-Links; später Ansicht, PDF, Präsentation und Bearbeiten. Claude legt Material über das CLI an und gibt am Ende einen Link aus. Braucht Node 22 und pnpm.
 
 ```bash
-cp .env.example .env                  # SCHOOLBOX_URL, MATERIAL_DIR, NODE_BIN, PYTHON_BIN anpassen
+cp .env.example .env                  # SCHOOLBOX_URL, MATERIAL_DIR, NODE_BIN, PYTHON_BIN anpassen, OPENAI_API_KEY für Bilder
 cd schoolbox && pnpm install && pnpm test   # schnell, ohne Browser; vor dem Merge: pnpm run test:alles
 schoolbox/bin/schoolbox --hilfe       # aus dem Repo-Hauptordner
 schoolbox/bin/schoolbox passwort      # Passwort der Anmeldung setzen (erzeugt auch SITZUNG_GEHEIMNIS)
@@ -232,12 +232,15 @@ Einen Berechtigungsmodus legt die Vorlage nicht fest. Für die Sitzungen der Leh
 
 Der Weg einer Änderung: Branch im Entwicklerklon, nach `main` zusammenführen und pushen, dann im Klon der Lehrkraft `scripts/ausrollen.sh`.
 
-## Canva
+## Bilder (OpenAI)
 
-- Die Canva-KI erzeugt Bilder und Grafiken nach Bedarf: Sachbilder, Wortschatz- und Anlautbilder, Bildergeschichten, unbeschriftete Sachgrafiken, neue Posen von Willi und Wilma. Die Skills holen sie als PNG in Originalauflösung und bauen sie ins HTML ein (`html-materialerstellung/references/bilder.md`). Canva for Education ist für Lehrkräfte kostenlos.
-- Layout und Text entstehen nie in Canva, und exakte Abbildungen (Uhren, Mengen, Zahlenstrahl) nie per KI.
-- Die Schoolbox erreicht Canva über den MCP-Server von Canva, nicht über den Connector von claude.ai. Einmal einrichten: `claude mcp add --transport http --scope user canva https://mcp.canva.com/mcp`, dann in `claude` mit `/mcp` anmelden. Der Name `canva` ist fest (`CANVA_MCP` in `schoolbox/server/src/ki.ts`); die Läufe der Schoolbox bringen den Server selbst mit und nutzen nur diese Anmeldung.
-- Das fertige PDF lässt sich in Canva hochladen, wenn jemand dort weiterarbeiten möchte.
+- Die Schoolbox erzeugt KI-Bilder über die Images API von OpenAI (GPT Image). Der Server ruft sie selbst auf; Claude bekommt dafür die Werkzeuge `bild_erzeugen` und `bild_bearbeiten` im MCP-Server `schoolbox` und sieht den Schlüssel nie. Wie die Skills damit arbeiten: `html-materialerstellung/references/bilder.md`, Abschnitt 2b.
+- **Schlüssel:** `OPENAI_API_KEY` in `.env`. Nur der Server liest ihn, an `claude` geht er nicht weiter. Am besten ein eingeschränkter Schlüssel, der nur Bilder erzeugen darf. Ohne Schlüssel sind neue KI-Bilder aus, und die Oberfläche nennt den Grund.
+- **Ausgabenlimit** im OpenAI-Konto setzen, etwa 30 $ im Monat. Sind Guthaben oder Limit erschöpft, fragt der Lauf keine Bilder mehr an, die Einheit bleibt unvollständig, und „Weiterbauen“ macht bei den Bildern weiter.
+- **Modell und Qualität:** `SCHOOLBOX_BILD_MODELL` (Vorgabe `gpt-image-2.6-sunburst`) und `SCHOOLBOX_BILD_QUALITAET` (Vorgabe `low`, erlaubt `low`, `medium`, `high`, `xhigh`, `max`). Für 2.6 gibt es keinen datierten Modellstand; das Modell steht deshalb je Bild in `bilder/bilder-herkunft.tsv`.
+- **Kosten** mit der Vorgabe: rund 0,02–0,05 $ je Bild, eine Einheit mit 50 Aufrufen rund 1,85 $. `medium` kostet etwa 45 % mehr.
+- Layout und Text entstehen nie im Bildmodell. Aufgabendarstellungen (Uhr zum Ablesen, Mengen zum Zählen, Zahlenstrahl) kommen aus `abbildungen.js`.
+- **Canva** braucht nur noch die Claude-App der Lehrkraft (Canva-Connector von claude.ai), die Schoolbox nicht. Das fertige PDF lässt sich in Canva hochladen, wenn jemand dort weiterarbeiten möchte.
 
 ## Schriften
 

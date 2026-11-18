@@ -66,7 +66,7 @@ Substanzielle Aufgabenformate (Wittmann) tragen Übung und Entdecken zugleich: `
 - Stellenwerte: Farben der Klasse (häufig E blau, Z rot, H grün) – Konvention erfragen, dann `data-stellenfarben` am `<body>` (`html-materialerstellung/references/abbildungen/mathe-zahlen.md`, Abschnitt „Zahldarstellungen“). Buchstaben E/Z/H über der Stelle bleiben dabei, damit es in s/w lesbar ist.
 - Uhren, Felder, Zahlenstrahl in Schwarz auf Weiß (Farbe nur für Hervorhebungen wie den Fünferwechsel), Reihen gleichmäßig verteilt; Mindestgrößen in `grundschul-didaktik/references/druck-und-platz.md`.
 - Zahlenstrahl: gleichmäßige Abstände, Zehner deutlich markiert.
-- Uhr: analoges Zifferblatt mit großen Ziffern, Stundenzeiger deutlich kürzer und dicker. **Nie von der KI zeichnen lassen** – `<x-uhr>` aus `html-materialerstellung/assets/abbildungen.js` berechnet exakte Zifferblätter.
+- Uhr: analoges Zifferblatt mit großen Ziffern, Stundenzeiger deutlich kürzer und dicker. Die Uhr zum Ablesen oder Einzeichnen ist immer `<x-uhr>` aus `html-materialerstellung/assets/abbildungen.js` (exakte Zifferblätter, mit Lösung); nur eine Uhr in einer Szene darf das Bildmodell malen (`html-materialerstellung/references/bilder.md`, Abschnitt 3).
 - Geld: `x-geld`, Münzen in echten Verhältnissen, Scheine schematisch und verkleinert (EZB), keine Fotos echter Scheine. Beträge ab Kl. 3 in Kommaschreibweise.
 - Rechenkästchen: 1 Ziffer pro Kästchen (schriftliche Verfahren!). Schriftliche Rechnungen immer als `x-schriftlich`, auch im Karoraster des Hefts.
 - Einmaleins: Kernaufgaben (1·, 2·, 5·, 10·) am Punktfeld (`x-punktfeld`), Nachbaraufgaben über die Zerlegungslinie ableiten.

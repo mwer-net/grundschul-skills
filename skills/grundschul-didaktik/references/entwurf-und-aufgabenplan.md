@@ -16,7 +16,7 @@ Warum: Alle Items, Lösungen, Bilder und die Endkontrolle kosten ein Vielfaches 
 | 4. Aufgabenplan | exakte Inhalte nach Materialart, mit Lösungen | Chat + `blatt.py` (Platzprüfung) | **Freigabe** |
 | 5. Umsetzung | Entwurf zur Endfassung ausbauen, KI-Bilder, prüfen, PDF | `html-materialerstellung` | Material fertig |
 
-Vor der Freigabe in Phase 4 wird kein KI-Bild erzeugt (Canva `generate-image`).
+Vor der Freigabe in Phase 4 wird kein KI-Bild erzeugt (Canva `generate-image`, Schoolbox `bild_erzeugen`).
 
 ## Phase 1: Klären – kurz halten
 
@@ -148,7 +148,7 @@ Der Plan ist die ganze Antwort, als einfacher Text ohne Markdown, im Format von 
 - Ich-kann-Ziel wörtlich
 - Bildungsplan: die Teilkompetenzen wörtlich mit Fundstelle (`SKILL.md`, „Bildungsplan zuerst nachschlagen“), danach eine Zeile „Quellen:“ mit den Adressen aus `recherche.md`, auf die sich der Plan stützt
 - je Niveau eine Überschrift mit der Summe der Minuten, darunter je Aufgabe eine Zeile: Nummer, Anweisung wörtlich, Format und Anzahl der Items (zwei, drei Items als Beispiel, nicht alle), Minuten
-- Tipp der Leitfigur, Fuß, Bilder: welche vorhandenen, und welche neuen aus Canva (je Bild Motiv und Aufgabe; höchstens drei, nur wenn das Bild den Weglass-Test in `kindgerecht-gestalten.md` besteht, sonst „keine neuen Bilder“)
+- Tipp der Leitfigur, Fuß, Bilder: welche vorhandenen, und welche neuen KI-Bilder (je Bild Motiv und Aufgabe; höchstens drei, nur wenn das Bild den Weglass-Test in `kindgerecht-gestalten.md` besteht, sonst „keine neuen Bilder“)
 - zuletzt die Annahmen, je eine Zeile, die mit „Annahme:“ beginnt
 
 Alle Items, die Lösungen und die Rechenprüfung entstehen erst beim Bauen. Dort gilt der freigegebene Plan: gleiche Aufgaben, gleiche Reihenfolge, gleiche Menge. Zeigt der Prüfbericht, dass eine Seite nicht passt oder nicht gefüllt ist, änderst du Items oder verteilst auf die Rückseite, nicht den Plan.

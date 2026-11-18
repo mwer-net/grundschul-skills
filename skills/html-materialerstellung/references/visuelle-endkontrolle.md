@@ -61,11 +61,11 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 - [ ] Schwanz, Ohren, Kleidung vollständig und deckend; keine durchscheinenden Figuren, Schleier, Wischer oder Geisterbilder.
 - [ ] Jede Figur genau einmal, so wie ihr Referenzbild (Kleidung, Fellfarbe, Augenfarbe, Erkennungszeichen); wiederkehrende Nebenfiguren sehen in allen Szenen der Reihe gleich aus.
 - [ ] Jede Figur, die in der Geschichte spricht oder handelt, ist im Bild zu sehen; im Bild tut niemand etwas anderes, als der Text sagt.
-- [ ] Keine Buchstaben, Ziffern oder Schriftreste, auch nicht klein an Häusern, Schildern, Kisten oder Kleidung. Zettel, Schilder und Baupläne, von denen der Text spricht, tragen ihren Inhalt als Ebene.
+- [ ] Schrift und Zahlen nur, wie der Vertrag sie nennt, Zeichen für Zeichen gelesen; sonst keine Buchstaben, Ziffern oder Schriftreste, auch nicht klein an Häusern, Schildern, Kisten oder Kleidung. Längerer Text trägt seinen Inhalt als Ebene (`bilder.md`, Abschnitt 3).
 - [ ] Figuren in der Szene: Jede Figur steht, sitzt oder kniet auf etwas; nichts wirkt eingeklebt (anderer Stil, anderer Maßstab, kein Schatten, schwebt); keine Figur liegt als Ebene auf einer Szene.
 - [ ] Die Szene füllt den Platz: Handlung in der Bildmitte, Boden oder Standfläche im unteren Drittel, im Ausschnitt keine leere Fläche größer als etwa ein Viertel.
-- [ ] Ebenen im Seitenbild: Zettel und Zahlen liegen dort, wo sie hingehören, und verdecken kein Pflichtobjekt. Eine exakte Spur, an der das Rätsel hängt, steht groß neben oder unter dem Bild, nie winzig darauf.
-- [ ] Bild und Text passen: dieselbe Figur tut, was die Geschichte sagt; jede Anzahl, die der Text nennt, stimmt im Bild (Würfelaugen, Fächer, Häuser, Reihen); Gegenstände und Ort stimmen.
+- [ ] Ebenen im Seitenbild: Zettel liegen dort, wo sie hingehören, und verdecken kein Pflichtobjekt. Eine exakte Spur, an der das Rätsel hängt, steht groß neben oder unter dem Bild, nie winzig darauf.
+- [ ] Bild und Text passen: dieselbe Figur tut, was die Geschichte sagt; jede Anzahl, die der Text nennt, ist im Bild gezählt und stimmt (Würfelaugen, Fächer, Häuser, Reihen); Gegenstände und Ort stimmen.
 
 **H. Inhalt nachrechnen (einmal je Dokument, nicht je Ausschnitt)**
 
@@ -89,8 +89,8 @@ Der Prüfbericht sieht keine inhaltlichen Fehler. Deshalb jede Aussage, die man 
 | Tipp unterbricht die Reihe oder steht im Kopf | Tipp in den `.koerper` seiner Aufgabe über die Item-Reihe (`references/layout.md`, Abschnitt 3, Punkt 8) |
 | Bild zu groß oder unscharf | Breite setzen, Original in voller Auflösung (`bilder.md`) |
 | Lösung fehlt oder steht falsch | `data-l`, `loesung=`, `buendel-loesung`, `nur-loesung` im HTML ergänzen und neu bauen |
-| Fehler im KI-Bild (Auge, Pfote, doppelte Figur, Schleier, Buchstabe) | Bearbeiten mit dem Bild als einziger Referenz und „behalte alles andere genau gleich, korrigiere nur …“, danach neu prüfen (`bilder.md`, Abschnitt 2a) |
-| Anzahl im KI-Bild passt nicht zum Text | Text an das Bild anpassen oder die Menge als SVG berechnen; nicht neu würfeln, bis es zufällig passt (`bilder.md`, Abschnitt 3) |
+| Fehler im KI-Bild (Auge, Pfote, doppelte Figur, Schleier, Buchstabe) | Bearbeiten mit „Ändere nur …“ und „behalte alles andere genau gleich“, danach neu prüfen (`bilder.md`, Abschnitt 2a) |
+| Anzahl oder Schrift im KI-Bild passt nicht zum Vertrag | Bearbeiten mit „Ändere nur …“ und dem Sollzustand, nach drei Versuchen den Text an das Bild anpassen; nicht neu würfeln, bis es zufällig passt (`bilder.md`, Abschnitt 3; mit Canva die Menge als SVG daneben) |
 | Im Bild handelt eine andere Figur als im Text | Text an das Bild anpassen, wenn das Bild sonst gut ist; sonst Bild bearbeiten |
 | Figur schwebt oder wirkt eingeklebt, Szene füllt den Platz nicht | Figur nicht verschieben: das Bild mit der Figur darin bearbeiten oder neu erzeugen (`bilder.md`, Abschnitt 2a) |
 | Seite wirkt überladen | Zweite Figur, Symbole, Rahmen und Deko streichen (höchstens eine Figur je Arbeitsseite), dann Items kürzen |

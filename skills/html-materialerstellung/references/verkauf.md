@@ -90,7 +90,8 @@ Nur nennen, was die Reihe wirklich verwendet. Die Quellen der Teile, die mit den
 |---|---|
 | Texte, Aufgaben, Rätsel, Lösungen | Selbst erstellt mit Claude (Anthropic), von der Autorin geprüft und überarbeitet |
 | Gestaltung der Seiten | Selbst erstellt mit Claude (Anthropic), von der Autorin geprüft |
-| Szenenbilder, Titelbild und neue Bilder aus Canva | Selbst erstellt mit dem KI-Bildgenerator von Canva |
+| Szenenbilder, Titelbild und neue Bilder aus Canva (`canva-ids.tsv`) | Selbst erstellt mit dem KI-Bildgenerator von Canva |
+| Szenenbilder, Titelbild und neue Bilder von OpenAI (`bilder-herkunft.tsv`, Quelle `openai`) | Selbst erstellt mit dem KI-Bildgenerator GPT Image von OpenAI (Nutzung über die OpenAI API; kommerzielle Nutzung erlaubt laut den Nutzungsbedingungen von OpenAI) |
 | Willi und Wilma Waschbär, Wachstumsgrafik | Selbst erstellt mit dem KI-Bildgenerator von Canva, teils nachbearbeitet |
 | Rechen- und Sachabbildungen aus `x-…`-Elementen und eigenes SVG (Münzen, Uhren, Zahlenstrahl, Formen, Tabellen) | Per Programmcode gezeichnet (Code selbst erstellt mit Claude), kein KI-Bildgenerator |
 | Schrift im Text | Andika von SIL International, https://software.sil.org/andika/, SIL Open Font License 1.1, https://openfontlicense.org |
@@ -99,9 +100,9 @@ Nur nennen, was die Reihe wirklich verwendet. Die Quellen der Teile, die mit den
 | Notenzeichen (`x-noten`, `x-rhythmus`) | Bravura von Steinberg Media Technologies GmbH, https://github.com/steinbergmedia/bravura, SIL Open Font License 1.1 |
 | Verkehrszeichen | Amtliche Werke, gemeinfrei (§ 5 UrhG), über Wikimedia Commons; je Zeichen der Link aus `assets/bilder/verkehrszeichen/QUELLEN.md` |
 
-„Autorin“ oder „Autor“ nach dem Namen im Auftrag; ohne Namen „von mir“. Zu den Zeilen von Claude und Canva gehört bei Eduki der Hinweis, nach welchen Bedingungen der Verkauf erlaubt ist. Er hängt vom Konto ab, deshalb schreibst du ihn nur, wenn der Auftrag ihn nennt; sonst steht er als offener Punkt im Angebot (Abschnitt 4).
+„Autorin“ oder „Autor“ nach dem Namen im Auftrag; ohne Namen „von mir“. Zu den Zeilen von Claude und Canva gehört bei Eduki der Hinweis, nach welchen Bedingungen der Verkauf erlaubt ist (die Zeile von OpenAI nennt ihn schon). Er hängt vom Konto ab, deshalb schreibst du ihn nur, wenn der Auftrag ihn nennt; sonst steht er als offener Punkt im Angebot (Abschnitt 4).
 
-Ein Bild, dessen Herkunft du nicht kennst (aus der Bildersammlung der Mappe, ohne Eintrag in `canva-ids.tsv`), bekommt die Zeile „Quelle bitte ergänzen: <Datei>“ und steht in deiner Antwort am Ende. Nichts erfinden.
+Die Quelle je Bild steht in `bilder/bilder-herkunft.tsv` (für dieselbe Datei gilt die letzte Zeile), bei älteren Bildern in `canva-ids.tsv`. Ein Bild, dessen Herkunft du nicht kennst (aus der Bildersammlung der Mappe, in keiner der beiden Dateien), bekommt die Zeile „Quelle bitte ergänzen: <Datei>“ und steht in deiner Antwort am Ende. Nichts erfinden.
 
 Unter der Tabelle der Nutzungshinweis, wörtlich:
 
@@ -128,10 +129,10 @@ Ein Dokument nur für die Autorin, als `kit-tabelle` mit den Feldern, die Eduki 
 | Vorschau | welche Seiten offen bleiben (Deckblatt, Inhalt des Pakets, ein Kapitel ganz) und ab welcher Seite unscharf, meist ab Seite 10 oder 11 |
 | Lösungsschlüssel | „an“, wenn Lösungen dabei sind |
 | Quellen: Texte | die Zeile „Texte“ aus dem Quellenverzeichnis |
-| Quellen: Bilder | die Zeilen zu Canva und zu den gezeichneten Abbildungen in einem Satz. Ohne Link: Eduki ordnet eine Quelle mit bekanntem Link einem älteren Eintrag zu und zeigt dann dessen Text |
+| Quellen: Bilder | die Zeilen zu den KI-Bildgeneratoren (Canva, OpenAI) und zu den gezeichneten Abbildungen in einem Satz. Ohne Link: Eduki ordnet eine Quelle mit bekanntem Link einem älteren Eintrag zu und zeigt dann dessen Text |
 | Quellen: Schrift | „Google Fonts: Fredoka und Andika (SIL Open Font License)“, dazu weitere verwendete Schriften |
 | Quellen: Sonstiges | die Zeile „Gestaltung der Seiten“ |
-| Erklärung zu KI | „Ja“; ankreuzen: KI-generierter Text; KI-Bilder – nicht realistisch (wenn Bilder aus Canva oder die Leitfiguren vorkommen); Sonstige KI-Inhalte. **Nie** „vollständig mit KI erstellt“: Die Autorin plant, prüft und überarbeitet |
+| Erklärung zu KI | „Ja“; ankreuzen: KI-generierter Text; KI-Bilder – nicht realistisch (wenn KI-Bilder oder die Leitfiguren vorkommen); Sonstige KI-Inhalte. **Nie** „vollständig mit KI erstellt“: Die Autorin plant, prüft und überarbeitet |
 
 Darunter „Vor dem Hochladen“ als Liste zum Abhaken:
 

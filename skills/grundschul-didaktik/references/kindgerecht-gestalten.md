@@ -1,6 +1,6 @@
 # Kindgerecht und ansprechend gestalten, ohne zu überladen
 
-Inhalt: Kernaussage der Forschung · Arbeitsseiten und Schauseiten: wie viel Gestaltung wohin · Die fünf Hebel · KI-Bilder und -Grafiken (Canva `generate-image`) · Geschichten-Rahmen für eine Reihe · Prüffragen „ansprechend, aber nicht überladen"
+Inhalt: Kernaussage der Forschung · Arbeitsseiten und Schauseiten: wie viel Gestaltung wohin · Die fünf Hebel · KI-Bilder und -Grafiken · Geschichten-Rahmen für eine Reihe · Prüffragen „ansprechend, aber nicht überladen"
 
 ## Kernaussage der Forschung
 
@@ -71,7 +71,7 @@ Canva-Media-IDs und Technik: `html-materialerstellung/references/bilder.md`.
 
 **Im Material steht die farbige Version; die s/w-Ausgabe nimmt von selbst die Strich-Version**, denn die farbigen werden in s/w zu grauen Flächen (Toner, unruhig). Fehlt eine Strich-Version noch: anlegen nach `html-materialerstellung/references/bilder.md`, Abschnitt 2.
 
-- **Wiederverwenden statt neu erzeugen:** Die vorhandenen Dateien einsetzen. Für eine andere Pose (zeigt nach links, freut sich, denkt nach) `generate-image` mit dem Original als `imageReferences` und der Aussehen-Beschreibung oben aufrufen, danach `remove-background`; neue Posen als Datei ergänzen.
+- **Wiederverwenden statt neu erzeugen:** Die vorhandenen Dateien einsetzen. Für eine andere Pose (zeigt nach links, freut sich, denkt nach) ein KI-Bild mit dem Original als einziger Referenz und der Aussehen-Beschreibung oben erzeugen und freistellen (`bilder.md`, Abschnitt 4); neue Posen als Datei ergänzen.
 - **Wer wann:** Pro Material eine Figur, abwechselnd über die Materialien einer Reihe; bei Partner- oder Dialogaufgaben auch beide.
 - **Immer mit Funktion:** Die Figur gibt einen Strategietipp in einer Sprechblase, zeigt auf das Beispiel und denkt dort laut vor („So geht's: Zuerst … dann … zum Schluss prüfe ich …"), stellt die Herausforderung ●●●, hat sich bei „Finde den Fehler" vertan oder stellt die Reflexionsfrage. Sie spricht in „noch"-Sprache und lobt Strategie und Ausdauer, nie Begabung. Ohne Funktion keine Figur.
 - Höchstens ein Auftritt pro Seite (Figur mit Tipp oder Figur in der Ecke, nie beides), zwei nur bei Partner- oder Dialogaufgaben; klein (Maß setzt `blatt.css`, Faustwert in `html-materialerstellung/references/layout.md`). Die Figur in der Ecke steht am Rand; der Tipp steht im Körper seiner Aufgabe über der Item-Reihe, nie mitten in einer Reihe und nicht im Kopf (`druck-und-platz.md`, „Kopf und Fuß schlank“). Zwei Figuren auf einer Seite wirken sofort überladen.
@@ -101,12 +101,12 @@ Dosierung: Leitfigur plus nur die Bilder, die die Aufgaben brauchen.
 - Ziffern in Schulform (1 ohne Fuß, offene 4, 7 mit Querstrich): `blatt.css` setzt sie von selbst.
 - Schreibvorlagen in verbundener Schrift: Vereinfachte Ausgangsschrift, eingebettet (`x-lineatur schrift="va"`). Eine andere Schulschrift der Klasse (Druckschrift des Lehrwerks, Lateinische Ausgangsschrift), wenn verfügbar und lizenziert: als Schriftdatei in `html-materialerstellung/assets/fonts/` einbinden.
 
-## KI-Bilder und -Grafiken (Canva `generate-image`)
+## KI-Bilder und -Grafiken
 
-Bilder und Grafiken, die das Material braucht, erzeugt der Skill nach Bedarf mit der Canva-KI und baut sie ins HTML ein. Es gilt der Weglass-Test aus Abschnitt 4. Format, Bildvertrag, Stilblock, Prompt-Regeln, Prüfung und Reparatur stehen in `html-materialerstellung/references/bilder.md`, Abschnitte 2 bis 4.
+Bilder und Grafiken, die das Material braucht, erzeugt der Skill nach Bedarf mit einem KI-Bildmodell (Claude-App: Canva, Schoolbox: Bild-API) und baut sie ins HTML ein. Es gilt der Weglass-Test aus Abschnitt 4. Format, Bildvertrag, Stilblock, Prompt-Regeln, Prüfung und Reparatur stehen in `html-materialerstellung/references/bilder.md`, Abschnitte 2 bis 4.
 
 Was hier entschieden wird:
-- **Nichts Lesbares und nichts Exaktes aus der KI:** Schrift, Zahlen, Uhren, Mengen und Geometrie werden berechnet oder als HTML gesetzt (`bilder.md`, Abschnitt 3).
+- **Exaktes und Lesbares:** Aufgabendarstellungen (Uhr zum Ablesen, Mengen zum Zählen, Zahlenstrahl, Geometrie) werden berechnet, längerer Text als HTML gesetzt. Anzahlen, Muster und kurze Schrift in einer Szene malt die Bild-API selbst, mit Canva kommen auch sie als HTML oder SVG (`bilder.md`, Abschnitt 3).
 - Leitfigur: immer Willi oder Wilma Waschbär (Dateien in `html-materialerstellung/assets/bilder/`, neue Posen nach `bilder.md`, Abschnitt 4).
 - Sachabbildungen (Tiere, Pflanzen, Körper) auf fachliche Richtigkeit prüfen.
 - Diversität: Kinder unterschiedlicher Herkunft, Geschlechter und mit/ohne Brille, Rollstuhl usw. selbstverständlich abbilden, ohne es zum Thema zu machen.
@@ -133,4 +133,4 @@ Eine durchgehende Geschichte trägt eine ganze Unterrichtsreihe besser als einze
 - [ ] Aufgaben ohne Kasten, Platz für Übung statt für Rahmen (`druck-und-platz.md`)
 - [ ] Höchstens ein Figurenauftritt pro Seite, keine Symbole hinter der Aufgabennummer (außer die Klasse nutzt ein Symbolset), keine selbst gezeichneten Hände oder Körperteile
 - [ ] Arbeitsseiten ohne Seitenrahmen und ohne Linien am Text; Schauseiten wirklich gestaltet
-- [ ] Jedes KI-Bild in voller Auflösung geprüft (Augen, Pfoten, Gegenstände, jede Figur einmal, keine Schrift) und passend zum Text
+- [ ] Jedes KI-Bild in voller Auflösung geprüft (Augen, Pfoten, Gegenstände, jede Figur einmal, Schrift nur wie im Vertrag) und passend zum Text

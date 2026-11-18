@@ -1,6 +1,6 @@
 # Grundlagen und Quellen
 
-Inhalt: Recherche vor dem Plan: Quellen nach Rang · Bildungsstandards und Rahmen · Baden-Württemberg · Datenschutz · Leistungsbeurteilung und Klassenarbeiten · Mathematikdidaktik · Deutschdidaktik · Englisch in der Grundschule · Gestaltung und Kognition · Präsentation und Folien (Skill `praesentation`) · Differenzierung, Sprachsensibilität, offene Formen · Canva (nur KI-Bilder)
+Inhalt: Recherche vor dem Plan: Quellen nach Rang · Bildungsstandards und Rahmen · Baden-Württemberg · Datenschutz · Leistungsbeurteilung und Klassenarbeiten · Mathematikdidaktik · Deutschdidaktik · Englisch in der Grundschule · Gestaltung und Kognition · Präsentation und Folien (Skill `praesentation`) · Differenzierung, Sprachsensibilität, offene Formen · KI-Bilder (Canva, OpenAI)
 
 Zusammenfassung der Recherche (Stand Oktober 2026), auf der die Skills beruhen. Links dienen der Vertiefung.
 
@@ -169,7 +169,11 @@ Erfahrungsregeln ohne eigenen Beleg (im Skill so gekennzeichnet): Höchstzahl de
 - Stationenlernen mit Laufzettel und Selbstkontrolle.
   - https://www.meinunterricht.de/blog/stationenlernen-unterricht/
 
-## Canva (nur KI-Bilder)
+## KI-Bilder (Canva, OpenAI)
 
-- Canva for Education ist für Lehrkräfte kostenlos, inkl. Premium-Elementen; DSGVO-Konformität laut Anbieter. Die Skills nutzen Canva nur noch zum Erzeugen von KI-Bildern.
+- Canva for Education ist für Lehrkräfte kostenlos, inkl. Premium-Elementen; DSGVO-Konformität laut Anbieter. In der Claude-App nutzen die Skills Canva nur noch zum Erzeugen von KI-Bildern.
   - https://www.canva.com/de_de/bildung/lehrkrafte/
+- Die Schoolbox erzeugt KI-Bilder über die Images API von OpenAI (GPT Image). Bilder aus `/v1/images/*` werden laut OpenAI nicht zum Training genutzt, Missbrauchsprotokolle bleiben bis zu 30 Tage. Laut Terms of Use gehört der Output dem Nutzer („you … own the Output“). Übertragen werden keine Namen.
+  - https://developers.openai.com/api/docs/guides/image-generation
+  - https://developers.openai.com/api/docs/guides/your-data
+  - https://openai.com/policies/terms-of-use/
