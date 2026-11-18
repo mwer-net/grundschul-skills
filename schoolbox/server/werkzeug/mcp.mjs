@@ -1,15 +1,18 @@
 /**
  * Das Werkzeug „bauen“ für Claude-Läufe der Schoolbox, als kleiner MCP-Server über stdin und stdout. Er baut nichts
  * selbst: Jeder Aufruf geht über den Unix-Socket des Laufs an den Schoolbox-Server (`src/ki-werkzeug.ts`), der allein
- * weiß, welches Material gemeint ist. Ohne Abhängigkeiten, damit `claude` ihn mit bloßem `node` starten kann.
+ * weiß, welches Material gemeint ist. Ohne Abhängigkeiten, damit `claude` ihn mit bloßem `node` starten kann. Im
+ * Recherche-Lauf (Art `recherche`) heißt das Werkzeug „pruefen“: Es zählt und prüft `recherche.md`, auch das im Server.
  */
 import { connect } from 'node:net';
 import { createInterface } from 'node:readline';
 
 const socket = process.argv[2];
-const mitDokument = process.argv[3] === 'einheit';
+const art = process.argv[3];
+const mitDokument = art === 'einheit';
+const recherche = art === 'recherche';
 
-const WERKZEUG = {
+const BAUEN = {
 	name: 'bauen',
 	description: mitDokument
 		? 'Baut ein Material der Einheit wie `blatt.py bauen` und liefert den Prüfbericht und die Seitenbilder für die visuelle Endkontrolle.'
@@ -23,6 +26,17 @@ const WERKZEUG = {
 	},
 };
 
+const PRUEFEN = {
+	name: 'pruefen',
+	description:
+		'Zählt die Zeichen von recherche.md genau wie der Server und prüft die Datei wie er: Länge, HTML, Steuerzeichen, Sätze an eine KI, Quellen. Antwortet „In Ordnung“ oder nennt, was fehlt.',
+	inputSchema: { type: 'object', properties: {}, required: [] },
+};
+
+const WERKZEUG = recherche ? PRUEFEN : BAUEN;
+const NICHT_DA = recherche ? 'Die Prüfung ist gerade nicht erreichbar.' : 'Der Bau ist gerade nicht erreichbar.';
+const STUMM = recherche ? 'Die Prüfung hat nicht geantwortet.' : 'Der Bau hat nicht geantwortet.';
+
 const frage = (anfrage) =>
 	new Promise((resolve) => {
 		const verbindung = connect(socket);
@@ -31,12 +45,12 @@ const frage = (anfrage) =>
 		verbindung.on('data', (teil) => {
 			antwort += teil.toString();
 		});
-		verbindung.on('error', () => resolve({ text: 'Der Bau ist gerade nicht erreichbar.', fehler: true }));
+		verbindung.on('error', () => resolve({ text: NICHT_DA, fehler: true }));
 		verbindung.on('close', () => {
 			try {
 				resolve(JSON.parse(antwort));
 			} catch {
-				resolve({ text: 'Der Bau hat nicht geantwortet.', fehler: true });
+				resolve({ text: STUMM, fehler: true });
 			}
 		});
 	});

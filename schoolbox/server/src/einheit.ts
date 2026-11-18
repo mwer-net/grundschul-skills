@@ -1023,7 +1023,7 @@ export const erstelleEinheiten = (
 			ordner: path.join(dir(s.id), 'recherche'),
 			ablage: ablageDir(s.id),
 			anfrage: s.rechercheAnfrage,
-			budgetUsd: ueberGuthaben() ? KI_GRENZEN.recherche.budgetGuthabenUsd : KI_GRENZEN.recherche.budgetUsd,
+			guthaben: ueberGuthaben(),
 			schritt: (text) => {
 				if (s.recherche?.status === 'laeuft') {
 					s.recherche.schritt = text;
@@ -1038,6 +1038,7 @@ export const erstelleEinheiten = (
 					writeFileSync(path.join(dir(s.id), PID), String(kind.pid));
 				}
 			},
+			abgebrochen: () => aktiv?.abbruch === true,
 			werkzeug: (name, eingabe) => notiereGelesen(lauf, name, eingabe),
 			mitschrift: mitschrift(s, 'recherche', null),
 		});

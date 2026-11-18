@@ -15,6 +15,8 @@ import { ANSICHT_ORDNER, HINWEIS_OHNE, WURZEL } from '@schoolbox/kern';
 
 export const WERKZEUG_SERVER = 'schoolbox';
 export const WERKZEUG_BAUEN = `mcp__${WERKZEUG_SERVER}__bauen`;
+/** Im Recherche-Lauf (236) statt „bauen“: zählt die Zeichen von `recherche.md` und prüft sie wie der Server. */
+export const WERKZEUG_PRUEFEN = `mcp__${WERKZEUG_SERVER}__pruefen`;
 const MCP_SKRIPT = path.join(WURZEL, 'schoolbox', 'server', 'werkzeug', 'mcp.mjs');
 const MAX_MELDUNGEN = 60;
 
@@ -56,8 +58,9 @@ export const ansichtText = ({ bericht, bilder }: Ansicht, ordner = ANSICHT_ORDNE
 /**
  * Öffnet den Socket in `dir` und schreibt die MCP-Konfiguration daneben. `dir` gehört der Schoolbox und hat Modus
  * 0700; mehr Schutz braucht der Socket nicht. Der Name ist kurz und zufällig: Ein Socket-Pfad fasst nur 108 Zeichen.
+ * Bei `recherche` bietet der MCP-Server „pruefen“ statt „bauen“ an, `bauen` ist dann die Prüfung.
  */
-export const starteWerkzeug = async (dir: string, bauen: Bauen, art: 'blatt' | 'einheit' = 'blatt') => {
+export const starteWerkzeug = async (dir: string, bauen: Bauen, art: 'blatt' | 'einheit' | 'recherche' = 'blatt') => {
 	const name = `w-${randomBytes(4).toString('hex')}`;
 	const socket = path.join(dir, `${name}.sock`);
 	const mcpDatei = path.join(dir, `${name}.json`);
@@ -78,9 +81,12 @@ export const starteWerkzeug = async (dir: string, bauen: Bauen, art: 'blatt' | '
 			reihe = reihe
 				.then(() => bauen(dokument))
 				.then(antworte, (fehler: unknown) => {
-					console.error('Bau für Claude:', fehler);
+					console.error(art === 'recherche' ? 'Prüfung für Claude:' : 'Bau für Claude:', fehler);
 					antworte({
-						text: 'Der Bau ist gescheitert. Prüfe das HTML auf offene Tags und baue noch einmal.',
+						text:
+							art === 'recherche'
+								? 'Die Prüfung ist gescheitert. Rufe pruefen noch einmal auf.'
+								: 'Der Bau ist gescheitert. Prüfe das HTML auf offene Tags und baue noch einmal.',
 						fehler: true,
 					});
 				});

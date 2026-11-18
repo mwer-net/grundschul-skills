@@ -22,7 +22,9 @@ export interface RechercheAnfrage {
 	art?: Art;
 }
 
-export type RechercheErgebnis = { ok: true; text: string; quellen: string[] } | { ok: false; grund: string };
+/** `zeichen` nur, wenn allein die Länge die Datei sperrt: Dann lohnt eine Kürzungsrunde (236). */
+export type RechercheErgebnis =
+	{ ok: true; text: string; quellen: string[] } | { ok: false; grund: string; zeichen?: number };
 
 /** Im Stand von Einheit und Auftrag; `text` nur, wenn sie weitergereicht wurde. */
 export interface RechercheStand {
@@ -61,18 +63,19 @@ export const quellenAus = (text: string) => [
 	...new Set([...text.matchAll(ADRESSE)].map((t) => t[0].replace(/[.,;:!?»“”„]+$/, ''))),
 ];
 
+/** Zahlen wie im Auftrag an Claude: 12.000. */
+export const tausender = (n: number) => n.toLocaleString('de-DE');
+
 /**
  * Was der Server weiterreicht: reiner Text in der Länge von etwa zwei Seiten, mit Quellen, ohne Markup und ohne
- * Sätze, die sich an Claude richten. Abgelehnt wird ganz, nichts wird still entfernt.
+ * Sätze, die sich an Claude richten. Abgelehnt wird ganz, nichts wird still entfernt. Die Länge prüft sie zuletzt,
+ * damit `zeichen` nur bei einer sonst sauberen Datei gesetzt ist.
  */
 export const pruefeRecherche = (roh: string, maxZeichen: number): RechercheErgebnis => {
 	const text = roh.replace(/\r\n?/g, '\n').trim();
 	const nein = (grund: string): RechercheErgebnis => ({ ok: false, grund });
 	if (text.length < MIN_ZEICHEN) {
 		return nein('recherche.md ist leer oder zu kurz.');
-	}
-	if (text.length > maxZeichen) {
-		return nein(`recherche.md ist länger als ${maxZeichen} Zeichen.`);
 	}
 	if (hatSteuerzeichen(text) || UNSICHTBAR.test(text)) {
 		return nein('recherche.md enthält Steuer- oder unsichtbare Zeichen.');
@@ -90,7 +93,35 @@ export const pruefeRecherche = (roh: string, maxZeichen: number): RechercheErgeb
 	if (quellen.length === 0) {
 		return nein('recherche.md nennt keine Quelle.');
 	}
+	if (text.length > maxZeichen) {
+		return {
+			ok: false,
+			grund: `recherche.md hat ${tausender(text.length)} Zeichen, höchstens ${tausender(maxZeichen)}.`,
+			zeichen: text.length,
+		};
+	}
 	return { ok: true, text, quellen: quellen.slice(0, MAX_QUELLEN) };
+};
+
+/**
+ * Die Antwort des Werkzeugs „pruefen“ im Recherche-Lauf (236): dieselbe Prüfung wie danach im Server, nur gegen das
+ * Ziel statt gegen den Höchstwert.
+ */
+export const rechercheBefund = (roh: string, zielZeichen: number) => {
+	const r = pruefeRecherche(roh, zielZeichen);
+	if (r.ok) {
+		return {
+			ok: true,
+			text: `In Ordnung: ${tausender(r.text.length)} Zeichen (höchstens ${tausender(zielZeichen)}), ${r.quellen.length} ${r.quellen.length === 1 ? 'Quelle' : 'Quellen'}.`,
+		};
+	}
+	if (r.zeichen !== undefined) {
+		return {
+			ok: false,
+			text: `recherche.md hat ${tausender(r.zeichen)} Zeichen, höchstens ${tausender(zielZeichen)}: kürze um mindestens ${tausender(r.zeichen - zielZeichen)}.`,
+		};
+	}
+	return { ok: false, text: r.grund };
 };
 
 const KLASSE_TEXT = (k: Klasse) => (k === 'gemischt' ? 'jahrgangsgemischt (1 bis 4)' : `Klasse ${k}`);

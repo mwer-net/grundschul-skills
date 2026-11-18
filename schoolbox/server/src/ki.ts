@@ -61,10 +61,12 @@ import {
 	quelleVon,
 	RECHERCHE_DATEI,
 	rechercheAbschnitt,
+	rechercheBefund,
 	rechercheText,
 	rolleVon,
 	satzBefund,
 	schreibeAtomar,
+	tausender,
 	WURZEL,
 	zerlege,
 } from '@schoolbox/kern';
@@ -79,7 +81,7 @@ import { HttpFehler } from './fehler';
 import type { KiEffort, KiLauf } from './ki-einstellung';
 import { kiLaufJetzt } from './ki-einstellung';
 import type { Bauen } from './ki-werkzeug';
-import { ansichtText, starteWerkzeug, WERKZEUG_BAUEN, WERKZEUG_SERVER } from './ki-werkzeug';
+import { ansichtText, starteWerkzeug, WERKZEUG_BAUEN, WERKZEUG_PRUEFEN, WERKZEUG_SERVER } from './ki-werkzeug';
 import type { MitschriftZiel } from './mitschrift';
 import { schreibeMitschrift } from './mitschrift';
 
@@ -197,9 +199,18 @@ export const KI_GRENZEN = {
 		runden: 60,
 		budgetUsd: 5,
 		budgetGuthabenUsd: 2,
-		/** Etwa zwei Seiten Text mit Adressen. */
+		/** Etwa zwei Seiten Text mit Adressen: das Ziel in Auftrag und Werkzeug „pruefen“ (236). */
 		zeichen: 12_000,
+		/** Was der Server nach dem Lauf annimmt: Eine Datei knapp über dem Ziel geht nicht verloren. */
+		zeichenMax: 15_000,
 		bytes: 64 * 1024,
+		/** Länger als `zeichenMax`: einmal ein kurzer Lauf ohne Web, der nur kürzt. */
+		kuerzen: {
+			zeitMs: 4 * 60_000,
+			runden: 15,
+			budgetUsd: 1,
+			budgetGuthabenUsd: 0.5,
+		},
 	},
 };
 /** Klein genügt: Es soll nur „ok“ sagen. */
@@ -583,10 +594,13 @@ export const kiArgumente = (o: {
  */
 export const RECHERCHE_RECHTE = [`Write(./${RECHERCHE_DATEI})`, `Edit(./${RECHERCHE_DATEI})`];
 export const RECHERCHE_WERKZEUGE = 'Read,Write,WebSearch,WebFetch';
+/** Die Kürzungsrunde (236): kein Web, der Inhalt liegt schon in der Datei. */
+export const KUERZEN_WERKZEUGE = 'Read,Write';
 
 /**
  * Der Recherche-Lauf (219), getrennt von Plan und Bau: Web, Lesen in den Skills und `recherche.md`, sonst nichts. Kein
- * MCP, kein Skill-Werkzeug, keine Sitzung. Text aus dem Web landet so nie in einem Lauf mit Schreibrechten am Material.
+ * MCP außer dem Werkzeug „pruefen“ (236), das nur zählt und prüft; kein Skill-Werkzeug, keine Sitzung. Text aus dem
+ * Web landet so nie in einem Lauf mit Schreibrechten am Material. `kuerzen`: dieselben Rechte ohne Web.
  */
 export const rechercheArgumente = (o: {
 	ablage: string;
@@ -594,6 +608,8 @@ export const rechercheArgumente = (o: {
 	budgetUsd: number;
 	modell: string;
 	effort: KiEffort;
+	mcpDatei?: string | null;
+	kuerzen?: boolean;
 }) => [
 	'-p',
 	'--output-format',
@@ -608,20 +624,21 @@ export const rechercheArgumente = (o: {
 	'--add-dir',
 	o.ablage,
 	'--strict-mcp-config',
+	...(o.mcpDatei ? ['--mcp-config', o.mcpDatei] : []),
 	'--no-session-persistence',
 	'--tools',
-	RECHERCHE_WERKZEUGE,
+	o.kuerzen ? KUERZEN_WERKZEUGE : RECHERCHE_WERKZEUGE,
 	'--allowedTools',
 	...RECHERCHE_RECHTE,
-	'WebSearch',
-	'WebFetch',
+	...(o.kuerzen ? [] : ['WebSearch', 'WebFetch']),
+	...(o.mcpDatei ? [WERKZEUG_PRUEFEN] : []),
 	'--disallowedTools',
 	...NIE_LESEN,
 	...NIE_KONNEKTOR_WERKZEUGE,
 	'--permission-mode',
 	'dontAsk',
 	'--max-turns',
-	String(KI_GRENZEN.recherche.runden),
+	String(o.kuerzen ? KI_GRENZEN.recherche.kuerzen.runden : KI_GRENZEN.recherche.runden),
 	'--max-budget-usd',
 	String(o.budgetUsd),
 	'--append-system-prompt-file',
@@ -647,51 +664,91 @@ const rechercheSchritt = (name: string, eingabe: { url?: unknown }) => {
 			return 'Liest eine Seite im Web';
 		}
 	}
+	if (name === WERKZEUG_PRUEFEN) {
+		return 'Zählt die Zeichen der Recherche';
+	}
 	return name === 'Write' ? 'Schreibt die Recherche auf' : null;
 };
 
-/**
- * Führt die Recherche in `ordner` aus (wird neu angelegt) und prüft `recherche.md`, bevor sie weitergeht. Scheitert
- * sie, ist das kein Fehler des Auftrags: Der Plan läuft weiter und nennt es in den Annahmen.
- */
-export const recherchiere = (o: {
+const VORLAGEN_KI = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki');
+
+/** `recherche.md` so gelesen, wie der Server sie prüft; `null`, wenn es sie nicht gibt. */
+const leseRecherche = (ordner: string): { roh: string } | { grund: string } | null => {
+	const datei = path.join(ordner, RECHERCHE_DATEI);
+	try {
+		if (statSync(datei).size > KI_GRENZEN.recherche.bytes) {
+			return { grund: 'recherche.md ist zu groß.' };
+		}
+		return { roh: new TextDecoder('utf-8', { fatal: true }).decode(readFileSync(datei)) };
+	} catch (fehler) {
+		return (fehler as { code?: string }).code === 'ENOENT'
+			? null
+			: { grund: 'recherche.md ist kein lesbarer Text.' };
+	}
+};
+
+/** Das Werkzeug „pruefen“ (236): dieselbe Datei, dieselbe Prüfung wie nach dem Lauf, gegen das Ziel. */
+const pruefeFuerClaude = (ordner: string) => () => {
+	const datei = leseRecherche(ordner);
+	if (!datei) {
+		return Promise.resolve({ text: 'recherche.md gibt es noch nicht. Schreibe sie zuerst.', fehler: true });
+	}
+	return Promise.resolve({
+		text: 'grund' in datei ? datei.grund : rechercheBefund(datei.roh, KI_GRENZEN.recherche.zeichen).text,
+	});
+};
+
+/** Der Auftrag der Kürzungsrunde; der feste Teil steht in `vorlagen/ki/recherche-kuerzen.md`. */
+export const kuerzenText = (zeichen: number) =>
+	`${RECHERCHE_DATEI} hat ${tausender(zeichen)} Zeichen, höchstens ${tausender(KI_GRENZEN.recherche.zeichen)}. Kürze sie, ohne Teilkompetenzen und Quellen zu verlieren, und prüfe mit pruefen.`;
+
+/** Verbrauch zweier Läufe als einer: Zahlen addiert. */
+const zusammen = (a: Record<string, unknown>, b: Record<string, unknown>) =>
+	Object.fromEntries(
+		[...new Set([...Object.keys(a), ...Object.keys(b)])].map((k) => {
+			const x = a[k];
+			const y = b[k];
+			return [
+				k,
+				typeof x === 'number' || typeof y === 'number'
+					? (typeof x === 'number' ? x : 0) + (typeof y === 'number' ? y : 0)
+					: (y ?? x),
+			];
+		}),
+	);
+
+interface RechercheLauf {
+	/** Was der Server selbst abgebrochen hat, etwa die Zeit. */
+	grund: string | null;
+	code: string | null;
+	verbrauch: Record<string, unknown>;
+}
+
+/** Ein Spawn von `claude` für die Recherche oder die Kürzungsrunde, mit eigener Mitschrift. */
+const rechercheLauf = (o: {
 	bin: string;
-	modell: string;
-	effort: KiEffort;
 	ordner: string;
-	ablage: string;
-	anfrage: RechercheAnfrage;
-	budgetUsd: number;
+	argumente: string[];
+	auftrag: string;
+	zeitMs: number;
 	schritt: (text: string) => void;
 	gestartet?: (kind: ChildProcessWithoutNullStreams) => void;
-	/** Jeder Werkzeugaufruf, für das Protokoll der Einheit (220). */
 	werkzeug?: (name: string, eingabe: Record<string, unknown>) => void;
 	mitschrift?: MitschriftZiel;
 }) =>
-	new Promise<{ ergebnis: RechercheErgebnis; verbrauch: Record<string, unknown> }>((resolve) => {
+	new Promise<RechercheLauf>((resolve) => {
 		const stand: LaufStand = { sitzung: null, fehlerCode: null, ergebnis: {} };
-		const auftragDatei = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'recherche.md');
-		rmSync(o.ordner, { recursive: true, force: true });
-		mkdirSync(o.ordner, { recursive: true });
-		const argumente = rechercheArgumente({
-			ablage: o.ablage,
-			auftragDatei,
-			budgetUsd: o.budgetUsd,
-			modell: o.modell,
-			effort: o.effort,
-		});
-		const auftrag = rechercheText(o.anfrage);
-		const kind = spawn(o.bin, argumente, { cwd: o.ordner, env: kiUmgebung(o.bin) });
-		schreibeMitschrift(o.mitschrift, kind, { argumente, auftrag, cwd: o.ordner });
+		const kind = spawn(o.bin, o.argumente, { cwd: o.ordner, env: kiUmgebung(o.bin) });
+		schreibeMitschrift(o.mitschrift, kind, { argumente: o.argumente, auftrag: o.auftrag, cwd: o.ordner });
 		o.gestartet?.(kind);
 		let grund: string | null = null;
 		let bytes = 0;
 		const frist = setTimeout(() => {
 			grund = 'Die Zeit für die Recherche ist abgelaufen.';
 			beendeKind(kind);
-		}, KI_GRENZEN.recherche.zeitMs);
+		}, o.zeitMs);
 		kind.stdin.on('error', () => undefined);
-		kind.stdin.end(auftrag);
+		kind.stdin.end(o.auftrag);
 		kind.stderr.resume();
 		createInterface({ input: kind.stdout }).on('line', (zeile) => {
 			bytes += zeile.length;
@@ -725,35 +782,106 @@ export const recherchiere = (o: {
 		});
 		kind.on('close', () => {
 			clearTimeout(frist);
-			const verbrauch = stand.ergebnis.verbrauch ?? {};
-			// Auch nach Zeit- oder Rundengrenze zählt eine fertige Datei: Sie hat dieselbe Prüfung vor sich.
-			const datei = path.join(o.ordner, RECHERCHE_DATEI);
-			let ergebnis: RechercheErgebnis;
-			try {
-				const { size } = statSync(datei);
-				if (size > KI_GRENZEN.recherche.bytes) {
-					ergebnis = { ok: false, grund: 'recherche.md ist zu groß.' };
-				} else {
-					const roh = new TextDecoder('utf-8', { fatal: true }).decode(readFileSync(datei));
-					ergebnis = pruefeRecherche(roh, KI_GRENZEN.recherche.zeichen);
-				}
-			} catch (fehler) {
-				const fehlt = (fehler as { code?: string }).code === 'ENOENT';
-				const code = stand.ergebnis.fehler ?? stand.fehlerCode;
-				ergebnis = {
-					ok: false,
-					grund: fehlt
-						? (grund ??
-							(code
-								? (RECHERCHE_FEHLER[code] ?? 'Die Recherche ist abgebrochen.')
-								: 'Claude hat keine recherche.md geschrieben.'))
-						: 'recherche.md ist kein lesbarer Text.',
-				};
-			}
-			rmSync(o.ordner, { recursive: true, force: true });
-			resolve({ ergebnis, verbrauch });
+			resolve({
+				grund,
+				code: stand.ergebnis.fehler ?? stand.fehlerCode,
+				verbrauch: stand.ergebnis.verbrauch ?? {},
+			});
 		});
 	});
+
+/** Auch nach Zeit- oder Rundengrenze zählt eine fertige Datei: Sie hat dieselbe Prüfung vor sich. */
+const rechercheErgebnis = (ordner: string, lauf: RechercheLauf): RechercheErgebnis => {
+	const datei = leseRecherche(ordner);
+	if (!datei) {
+		return {
+			ok: false,
+			grund:
+				lauf.grund ??
+				(lauf.code
+					? (RECHERCHE_FEHLER[lauf.code] ?? 'Die Recherche ist abgebrochen.')
+					: 'Claude hat keine recherche.md geschrieben.'),
+		};
+	}
+	return 'grund' in datei
+		? { ok: false, grund: datei.grund }
+		: pruefeRecherche(datei.roh, KI_GRENZEN.recherche.zeichenMax);
+};
+
+/**
+ * Führt die Recherche in `ordner` aus (wird neu angelegt) und prüft `recherche.md`, bevor sie weitergeht. Ist die
+ * Datei nur zu lang, kürzt ein zweiter Lauf ohne Web sie einmal (236); bei jedem anderen Grund nicht, das ist die
+ * Sperre gegen Text aus dem Web. Scheitert sie, ist das kein Fehler des Auftrags: Der Plan läuft weiter und nennt es
+ * in den Annahmen.
+ */
+export const recherchiere = async (o: {
+	bin: string;
+	modell: string;
+	effort: KiEffort;
+	ordner: string;
+	ablage: string;
+	anfrage: RechercheAnfrage;
+	/** Über das Guthaben: die kleineren Budgets. */
+	guthaben: boolean;
+	schritt: (text: string) => void;
+	gestartet?: (kind: ChildProcessWithoutNullStreams) => void;
+	/** Hat die Lehrkraft abgebrochen? Dann keine Kürzungsrunde. */
+	abgebrochen?: () => boolean;
+	/** Jeder Werkzeugaufruf, für das Protokoll der Einheit (220). */
+	werkzeug?: (name: string, eingabe: Record<string, unknown>) => void;
+	mitschrift?: MitschriftZiel;
+}): Promise<{ ergebnis: RechercheErgebnis; verbrauch: Record<string, unknown> }> => {
+	rmSync(o.ordner, { recursive: true, force: true });
+	mkdirSync(o.ordner, { recursive: true });
+	// Neben dem Arbeitsordner, nicht darin: Socket und Konfiguration gehören nicht zur Recherche.
+	const werkzeug = await starteWerkzeug(path.dirname(o.ordner), pruefeFuerClaude(o.ordner), 'recherche').catch(
+		(fehler: unknown) => {
+			console.error('Werkzeug der Recherche:', fehler);
+			return null;
+		},
+	);
+	const lauf = (kuerzen: boolean, auftrag: string, mitschrift: MitschriftZiel | undefined) => {
+		const g = kuerzen ? KI_GRENZEN.recherche.kuerzen : KI_GRENZEN.recherche;
+		return rechercheLauf({
+			bin: o.bin,
+			ordner: o.ordner,
+			argumente: rechercheArgumente({
+				ablage: o.ablage,
+				auftragDatei: path.join(VORLAGEN_KI, kuerzen ? 'recherche-kuerzen.md' : 'recherche.md'),
+				budgetUsd: o.guthaben ? g.budgetGuthabenUsd : g.budgetUsd,
+				modell: o.modell,
+				effort: o.effort,
+				mcpDatei: werkzeug?.mcpDatei ?? null,
+				kuerzen,
+			}),
+			auftrag,
+			zeitMs: g.zeitMs,
+			schritt: o.schritt,
+			gestartet: o.gestartet,
+			werkzeug: o.werkzeug,
+			mitschrift,
+		});
+	};
+	try {
+		const erst = await lauf(false, rechercheText(o.anfrage), o.mitschrift);
+		let ergebnis = rechercheErgebnis(o.ordner, erst);
+		let verbrauch = erst.verbrauch;
+		if (!ergebnis.ok && ergebnis.zeichen !== undefined && o.abgebrochen?.() !== true) {
+			o.schritt('Kürzt die Recherche');
+			const zweit = await lauf(
+				true,
+				kuerzenText(ergebnis.zeichen),
+				o.mitschrift && { ...o.mitschrift, art: `${o.mitschrift.art}-kuerzen` },
+			);
+			verbrauch = zusammen(verbrauch, zweit.verbrauch);
+			ergebnis = rechercheErgebnis(o.ordner, zweit);
+		}
+		return { ergebnis, verbrauch };
+	} finally {
+		await werkzeug?.ende();
+		rmSync(o.ordner, { recursive: true, force: true });
+	}
+};
 
 /** Der Stand für Oberfläche und `stand.json`: Den Text gibt es nur, wenn er die Prüfung bestanden hat. */
 export const rechercheStand = (e: RechercheErgebnis): RechercheStand =>
@@ -2197,7 +2325,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 				ordner: path.join(path.dirname(arbeit), 'recherche'),
 				ablage,
 				anfrage: w.rechercheAnfrage,
-				budgetUsd: ueberGuthaben() ? KI_GRENZEN.recherche.budgetGuthabenUsd : KI_GRENZEN.recherche.budgetUsd,
+				guthaben: ueberGuthaben(),
 				schritt: (t) => {
 					if (!a.schritte.includes(t)) {
 						a.schritte.push(t);
@@ -2212,6 +2340,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 						writeFileSync(pidDatei, String(kind.pid));
 					}
 				},
+				abgebrochen: () => aktiv?.abbruch === true,
 				mitschrift: mitschrift('recherche'),
 			});
 			// Am Auftrag gespeichert, den auch Plan ändern, Freigabe und „Nochmal“ nehmen: Gesucht wird einmal.
