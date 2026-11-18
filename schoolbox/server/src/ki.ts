@@ -147,6 +147,11 @@ export const KI_GRENZEN = {
 		material: { zeitMs: 30 * 60_000, runden: 200, budgetUsd: 20, budgetGuthabenUsd: 5 },
 		/** Der Schritt „Bilder“: Leitfigur, Posen und die Szenen aller Kapitel, je Bild bis zu drei Versuche. */
 		bilder: { zeitMs: 60 * 60_000, runden: 300, budgetUsd: 25, budgetGuthabenUsd: 5 },
+		/**
+		 * Sperrt Canva das Kontingent (`quota_cooldown`, 235), wartet der Server so viele Minuten und weckt dann dieselbe
+		 * Sitzung; nach der letzten Pause hält die Einheit an. Die Wartezeit zählt nicht auf `zeitMs`.
+		 */
+		canvaPausenMin: [15, 30, 60, 60],
 		/** So oft geht ein Material mit Sperre oder Prüf-FEHLER an seinen Lauf zurück. */
 		korrekturen: 1,
 		/**
@@ -1127,6 +1132,8 @@ export interface Ergebnis {
 	kontext: number;
 	/** Hat Claude überhaupt angefangen? Sonst ist ein Fehler beim Fortsetzen ein Fall für den Rückfall. */
 	gearbeitet: boolean;
+	/** Läufe der Einheit mit Canva (235): Sperrte Canva das Kontingent, zuletzt oder irgendwann im Lauf? */
+	canva?: { gesperrt: boolean; imLauf: boolean };
 }
 
 export interface LaufStand {

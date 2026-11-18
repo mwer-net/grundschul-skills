@@ -13,7 +13,7 @@ import { Tooltip } from '../bausteine/Tooltip';
 import { laufzeit, useJetzt } from '../editor/entwurf';
 import { limitHinweis, useKiZustand } from '../editor/ki';
 import { PlanFreigabe } from '../editor/PlanFreigabe';
-import { ART_NAME } from '../lib/text';
+import { ART_NAME, uhrzeit } from '../lib/text';
 import { einheitAktion, einheitFreigeben, fertig, fortschritt, geplant } from './einheiten';
 import { AufgabenTabelle, Aufklapp, RechercheKurz, RechercheQuellen, StundenKurz } from './EinheitPlanDetails';
 import { PruefungDetails } from './EinheitPruefung';
@@ -170,13 +170,18 @@ const zahlText = (s: EinheitStand, plant: boolean) => {
 	if (s.status !== 'laeuft' || !s.inArbeit) {
 		return stand;
 	}
+	const titel = s.plan.dokumente.find((d) => d.slug === s.inArbeit)?.titel;
+	if (s.canvaPause) {
+		const { bis, versuch, von } = s.canvaPause;
+		const woran = s.inArbeit === BILDER_SCHRITT || !titel ? 'mit den Bildern' : `an „${titel}“`;
+		return `${stand} · Canva-Kontingent erschöpft. Claude macht um ${uhrzeit(bis)} ${woran} weiter (Pause ${versuch} von ${von}).`;
+	}
 	if (s.inArbeit === BILDER_SCHRITT) {
 		return `${stand} · Claude macht die Bilder`;
 	}
 	if (s.inArbeit === SCHLUSS_SCHRITT) {
 		return `${stand} · Claude gleicht alle Materialien ab`;
 	}
-	const titel = s.plan.dokumente.find((d) => d.slug === s.inArbeit)?.titel;
 	if (titel && s.pruefung?.[s.inArbeit]?.status === 'laeuft') {
 		return `${stand} · Claude prüft „${titel}“ mit Kinderaugen`;
 	}

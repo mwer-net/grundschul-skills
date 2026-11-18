@@ -20,7 +20,7 @@ import {
 } from '@schoolbox/kern';
 
 import { einheitenWurzel } from './einheit';
-import { CANVA_MCP, VERBRAUCH_DATEI } from './ki';
+import { CANVA_MCP, KI_GRENZEN, VERBRAUCH_DATEI } from './ki';
 import { leseMitschrift, MITSCHRIFT_ORDNER } from './mitschrift';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
@@ -875,6 +875,77 @@ describe('Lauf einer Einheit (139)', () => {
 			const neu = (await prompts()).slice(vorher);
 			assert.equal(neu.length, 1);
 			assert.match(neu[0] ?? '', /^Schritt 3: der Schlusslauf/);
+		});
+	});
+
+	describe('Canva-Kontingent abwarten (235)', () => {
+		const pausen = KI_GRENZEN.einheit.canvaPausenMin;
+		const MIT_BILDERN = { ...ANGABEN, bilder: true };
+		const bilderLaeufe = async (mappe: string) => {
+			const roh = await readFile(path.join(mappenDir(server.materialDir, mappe), LAUF_DATEI), 'utf8');
+			return (JSON.parse(roh) as LaufProtokoll).laeufe.filter((e) => e.art === 'bilder');
+		};
+
+		after(() => {
+			KI_GRENZEN.einheit.canvaPausenMin = pausen;
+		});
+
+		it('Sperre im Bilder-Lauf: nach der Pause dieselbe Sitzung mit dem kurzen Auftrag, danach sind die Bilder fertig', async () => {
+			KI_GRENZEN.einheit.canvaPausenMin = [0.005, 0.005];
+			await fall('einheit-canva');
+			const vorher = (await jsonl<{ erste: string; resume: boolean }>('laeufe.jsonl')).length;
+			const { id, mappe } = await starte(MIT_BILDERN);
+			const s = await bis(id, 'fertig');
+			assert.equal(s.bilderFertig, true);
+			assert.equal(s.canvaPause, undefined);
+			const laeufe = (await jsonl<{ erste: string; resume: boolean }>('laeufe.jsonl')).slice(vorher);
+			const wieder = laeufe.filter((l) => l.erste.startsWith('Canva ist wieder bereit'));
+			assert.equal(wieder.length, 1);
+			assert.equal(wieder[0]?.resume, true);
+			assert.doesNotMatch(
+				(await prompts()).find((p) => p.startsWith('Canva ist wieder bereit')) ?? '',
+				/Platzhalter|bauen neu/,
+			);
+			const bilder = await bilderLaeufe(mappe);
+			assert.equal(bilder.length, 2);
+			assert.deepEqual(
+				bilder.map((e) => e.ergebnis),
+				['fertig', 'fertig'],
+			);
+			assert.deepEqual(bilder[1]?.pflicht, bilder[0]?.pflicht);
+			assert.deepEqual(Object.keys(s.importiert).sort(), ['fall-1', 'fall-2']);
+		});
+
+		it('Sperrt Canva nach allen Pausen noch, hält die Einheit an, ohne Material zu bauen', async () => {
+			KI_GRENZEN.einheit.canvaPausenMin = [0.005, 0.005];
+			await fall('einheit-canva-stur');
+			const { id, mappe } = await starte(MIT_BILDERN);
+			const s = await bis(id, 'unvollstaendig');
+			assert.match(
+				s.grund ?? '',
+				/^Canva hat nach zwei Pausen \(.*\) noch keine Bilder erzeugt \(Kontingent\)\./,
+			);
+			assert.match(s.grund ?? '', /‚Weiterbauen‘ macht bei den Bildern weiter\./);
+			assert.notEqual(s.bilderFertig, true);
+			assert.deepEqual(s.importiert, {});
+			assert.equal(s.canvaPause, undefined);
+			assert.equal((await bilderLaeufe(mappe)).length, 3);
+		});
+
+		it('Abbrechen beendet die Pause sofort', async () => {
+			KI_GRENZEN.einheit.canvaPausenMin = [10];
+			await fall('einheit-canva-stur');
+			const { id } = await starte(MIT_BILDERN);
+			await warte(async () => (await stand(id)).canvaPause !== undefined);
+			const pause = (await stand(id)).canvaPause;
+			assert.deepEqual([pause?.versuch, pause?.von], [1, 1]);
+			const beginn = Date.now();
+			await api(`/einheiten/${id}/abbrechen`, { method: 'POST' });
+			const s = await bis(id, 'unvollstaendig');
+			assert.ok(Date.now() - beginn < 5000);
+			assert.equal(s.canvaPause, undefined);
+			assert.notEqual(s.bilderFertig, true);
+			assert.equal(s.grund, 'Abgebrochen.');
 		});
 	});
 

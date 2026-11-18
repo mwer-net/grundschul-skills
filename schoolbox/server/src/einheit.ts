@@ -101,6 +101,7 @@ import type { Router as RouterTyp } from 'express';
 
 import type { BildLader } from './canva-bild';
 import { ANSICHT_BILDER, erstelleBildLader, erstelleZuschnitt, notiereCanvaId } from './canva-bild';
+import { neuesKontingent, notiereKontingent } from './canva-kontingent';
 import { schreibeQuelle } from './dokumente';
 import { HttpFehler } from './fehler';
 import type { Ergebnis, KiPruefer, LaufStand } from './ki';
@@ -325,6 +326,8 @@ export const erstelleEinheiten = (
 		verbraucht: { kostenUsd: number; runden: number };
 		/** Modell und Gründlichkeit, beim Start der Handlung gelesen (232): Alle Läufe des Durchgangs nehmen sie. */
 		ki: KiLauf;
+		/** Die Pause nach einer Sperre von Canva (235); `ende` beendet sie sofort. */
+		pause: { ende: () => void } | null;
 	} | null = null;
 	let aufraeumTakt: ReturnType<typeof setInterval> | null = null;
 
@@ -537,6 +540,7 @@ export const erstelleEinheiten = (
 		if (aktiv && !aktiv.abbruch) {
 			aktiv.abbruch = true;
 			aktiv.stand.grund = grund;
+			aktiv.pause?.ende();
 			if (aktiv.kind) {
 				beendeKind(aktiv.kind);
 			}
@@ -723,6 +727,16 @@ export const erstelleEinheiten = (
 	const ZEIT_EINHEIT = 'Die Zeit für die Einheit ist abgelaufen.';
 	const ZEIT_LAUF = 'Die Zeit für dieses Material ist abgelaufen.';
 
+	const FEHLER_TEXT: Record<string, string> = {
+		rate_limit: 'Das Limit des Claude-Kontos ist erreicht.',
+		error_max_turns: 'Die Einheit hat die Zahl der Schritte ausgeschöpft.',
+		error_max_budget_usd: 'Das Budget der Einheit ist aufgebraucht.',
+	};
+	const fehlerText = (fehler: string | null | undefined) => (fehler ? (FEHLER_TEXT[fehler] ?? fehler) : null);
+
+	/** Nach diesen Fehlern eines Materials geht der Durchgang mit dem nächsten weiter; nach allen anderen endet er. */
+	const WEITER_NACH = new Set(['error_max_turns', 'error_max_budget_usd', ZEIT_LAUF]);
+
 	/** Ist der Durchgang erschöpft, startet kein Lauf mehr. */
 	const erschoepft = (g: { zeitMs: number; runden: number; budgetUsd: number }) => {
 		if (g.zeitMs < 60_000) {
@@ -746,7 +760,7 @@ export const erstelleEinheiten = (
 	 * seinen Eintrag ins Protokoll, liest im Strom die Pflichtlektüre mit und startet `bauen`, wenn `o.bauen` gesetzt ist.
 	 * Teil 2 (Prüflauf, Schlusslauf) nutzt ihn mit eigener Art, eigenem Auftrag und eigenen Werkzeugen.
 	 */
-	const starteLauf = async (s: EinheitStand, o: LaufOptionen): Promise<Ergebnis> => {
+	const einLauf = async (s: EinheitStand, o: LaufOptionen): Promise<Ergebnis> => {
 		const eintrag = neuerEintrag(o.art, o.material, o.pflicht);
 		const lauf = { eintrag, pflicht: o.pflicht, gelesen: o.gelesen ?? new Set<string>() };
 		const beginn = Date.now();
@@ -801,6 +815,7 @@ export const erstelleEinheiten = (
 	) =>
 		new Promise<Ergebnis>((resolve) => {
 			const stand: LaufStand = { sitzung: o.sitzung, fehlerCode: null, ergebnis: {} };
+			const kontingent = o.mitCanva ? neuesKontingent() : null;
 			const argumente = kiArgumente({
 				ablage: ablageDir(s.id),
 				auftragDatei: o.auftragDatei,
@@ -846,11 +861,11 @@ export const erstelleEinheiten = (
 					return;
 				}
 				try {
-					werteAus(JSON.parse(zeile) as Record<string, unknown>, stand, {
-						schritt: () => undefined,
-						limit: () => undefined,
-						werkzeug,
-					});
+					const e = JSON.parse(zeile) as Record<string, unknown>;
+					werteAus(e, stand, { schritt: () => undefined, limit: () => undefined, werkzeug });
+					if (kontingent) {
+						notiereKontingent(kontingent, e);
+					}
 				} catch {
 					// Keine JSON-Zeile.
 				}
@@ -869,19 +884,123 @@ export const erstelleEinheiten = (
 					verbrauch: stand.ergebnis.verbrauch ?? {},
 					kontext: stand.kontext ?? 0,
 					gearbeitet: stand.gearbeitet ?? false,
+					...(kontingent ? { canva: { gesperrt: kontingent.gesperrt, imLauf: kontingent.imLauf } } : {}),
 				});
 			});
 		});
 
-	const FEHLER_TEXT: Record<string, string> = {
-		rate_limit: 'Das Limit des Claude-Kontos ist erreicht.',
-		error_max_turns: 'Die Einheit hat die Zahl der Schritte ausgeschöpft.',
-		error_max_budget_usd: 'Das Budget der Einheit ist aufgebraucht.',
+	/** Einträge in `bilder.json`, deren Datei noch nicht in `bilder/` liegt. */
+	const bilderFehlen = async (s: EinheitStand) => {
+		const arbeit = arbeitDir(s.id);
+		const da = new Set(await readdir(path.join(arbeit, 'bilder')).catch(() => [] as string[]));
+		try {
+			const liste = JSON.parse(await readFile(path.join(arbeit, 'bilder.json'), 'utf8')) as unknown;
+			return (Array.isArray(liste) ? (liste as { datei?: unknown }[]) : []).some(
+				(b) => typeof b.datei === 'string' && !da.has(b.datei),
+			);
+		} catch {
+			return false;
+		}
 	};
-	const fehlerText = (fehler: string | null | undefined) => (fehler ? (FEHLER_TEXT[fehler] ?? fehler) : null);
 
-	/** Nach diesen Fehlern eines Materials geht der Durchgang mit dem nächsten weiter; nach allen anderen endet er. */
-	const WEITER_NACH = new Set(['error_max_turns', 'error_max_budget_usd', ZEIT_LAUF]);
+	/** Nach einem Lauf mit Canva (235): Sperrte Canva zuletzt, oder sperrte es im Lauf und es fehlen Bilder? */
+	const mussWarten = async (s: EinheitStand, ergebnis: Ergebnis) => {
+		if (!aktiv || aktiv.abbruch || !ergebnis.canva?.imLauf) {
+			return false;
+		}
+		if (ergebnis.fehler && !WEITER_NACH.has(ergebnis.fehler)) {
+			return false;
+		}
+		if (ergebnis.canva.gesperrt) {
+			return true;
+		}
+		await abgleich();
+		return bilderFehlen(s);
+	};
+
+	/** Wartet `ms` und zeigt die Pause im Stand; `false`, wenn Abbrechen sie beendet hat. */
+	const pausiere = async (s: EinheitStand, ms: number, versuch: number, von: number) => {
+		const a = aktiv;
+		if (!a || a.abbruch) {
+			return false;
+		}
+		const beginn = Date.now();
+		s.canvaPause = { bis: new Date(beginn + ms).toISOString(), versuch, von };
+		await merke(s);
+		const ausgeschlafen = await new Promise<boolean>((resolve) => {
+			if (a.abbruch) {
+				resolve(false);
+				return;
+			}
+			const wecker = setTimeout(() => resolve(true), ms);
+			a.pause = {
+				ende: () => {
+					clearTimeout(wecker);
+					resolve(false);
+				},
+			};
+		});
+		a.pause = null;
+		// Die Zeitgrenze der Einheit gilt für die Arbeit, nicht fürs Warten auf Canva.
+		a.seit += Date.now() - beginn;
+		delete s.canvaPause;
+		await merke(s);
+		return ausgeschlafen && !a.abbruch;
+	};
+
+	const dauerText = (minuten: number) => {
+		const std = Math.floor(minuten / 60);
+		const min = Math.round(minuten % 60);
+		return [std ? `${std} Std.` : '', min || !std ? `${min} Min.` : ''].filter(Boolean).join(' ');
+	};
+	const ZAHLWORT = ['keinen', 'einer', 'zwei', 'drei', 'vier', 'fünf', 'sechs'];
+
+	/** Nach allen Pausen: ein eigener Fehler, nicht in `WEITER_NACH`; die Einheit hält an. */
+	const canvaGesperrt = (s: EinheitStand, o: LaufOptionen) => {
+		const pausen = KI_GRENZEN.einheit.canvaPausenMin;
+		const zahl = ZAHLWORT[pausen.length] ?? String(pausen.length);
+		const titel = s.plan?.dokumente.find((d) => d.slug === o.material)?.titel;
+		const wo = o.material === BILDER_SCHRITT || !titel ? 'den Bildern' : `„${titel}“`;
+		return `Canva hat nach ${zahl} ${pausen.length === 1 ? 'Pause' : 'Pausen'} (${dauerText(pausen.reduce((a, b) => a + b, 0))}) noch keine Bilder erzeugt (Kontingent). ‚Weiterbauen‘ macht bei ${wo} weiter.`;
+	};
+
+	const CANVA_WIEDER = (bauen: boolean) =>
+		[
+			'Canva ist wieder bereit. Mach die Bilder, die noch fehlen: erzeugen, prüfen und in bilder.json eintragen wie zuvor.',
+			bauen
+				? 'Ersetze danach die Platzhalter im Material durch die Bilder, baue mit bauen neu und sieh dir die Seiten an.'
+				: '',
+			'Meldet Canva wieder quota_cooldown, beende den Lauf wie zuvor. Antworte am Ende in höchstens drei Zeilen.',
+		]
+			.filter(Boolean)
+			.join('\n');
+
+	/**
+	 * Ein Lauf der Einheit, mit Canva auch die Pausen (235): Sperrt Canva das Kontingent, wartet der Server und weckt
+	 * dieselbe Sitzung mit derselben Pflichtlektüre und denselben gelesenen Dateien. Jeder Lauf hat seinen Eintrag.
+	 */
+	const starteLauf = async (s: EinheitStand, o: LaufOptionen): Promise<Ergebnis> => {
+		const gelesen = o.gelesen ?? new Set<string>();
+		let ergebnis = await einLauf(s, { ...o, gelesen });
+		const pausen = KI_GRENZEN.einheit.canvaPausenMin;
+		for (let versuch = 0; o.mitCanva && (await mussWarten(s, ergebnis)); versuch += 1) {
+			const minuten = pausen[versuch];
+			if (minuten === undefined) {
+				return { ...ergebnis, fehler: canvaGesperrt(s, o) };
+			}
+			if (!(await pausiere(s, minuten * 60_000, versuch + 1, pausen.length))) {
+				return ergebnis;
+			}
+			const sitzung = ergebnis.sitzung;
+			ergebnis = await einLauf(s, {
+				...o,
+				gelesen,
+				sitzung,
+				text: sitzung ? CANVA_WIEDER(o.bauen !== null) : o.text,
+			});
+		}
+		return ergebnis;
+	};
 
 	/**
 	 * Vor dem ersten Plan (219): ein eigener Lauf mit Websuche, ohne Schreibrecht am Material. Was er schreibt, prüft der
@@ -1725,8 +1844,10 @@ export const erstelleEinheiten = (
 			schlussGebaut: null,
 			verbraucht: { kostenUsd: 0, runden: 0 },
 			ki,
+			pause: null,
 		};
 		brichPruefungAb(s);
+		delete s.canvaPause;
 		s.status = 'laeuft';
 		s.grund = null;
 		s.ende = null;
@@ -1735,6 +1856,7 @@ export const erstelleEinheiten = (
 		(stufe === 'plan' ? plane(s, text, sitzung) : fuehreAus(s)).catch(async (fehler: unknown) => {
 			console.error('Einheit:', fehler);
 			aktiv = null;
+			delete s.canvaPause;
 			s.status = 'unvollstaendig';
 			s.grund = 'Die Einheit ist mit einem Fehler stehen geblieben.';
 			await merke(s).catch(() => undefined);
@@ -2008,6 +2130,7 @@ export const erstelleEinheiten = (
 				s.status = 'unvollstaendig';
 				s.grund = 'Der Server wurde neu gestartet.';
 				s.ende = new Date().toISOString();
+				delete s.canvaPause;
 				if (s.recherche?.status === 'laeuft') {
 					s.recherche = { status: 'gescheitert', grund: s.grund, quellen: [], text: null };
 				}
@@ -2065,6 +2188,8 @@ export const erstelleEinheiten = (
 			if (aktiv) {
 				const s = aktiv.stand;
 				aktiv.abbruch = true;
+				aktiv.pause?.ende();
+				delete s.canvaPause;
 				aktiv.kind?.kill('SIGTERM');
 				if (aktiv.takt) {
 					clearInterval(aktiv.takt);

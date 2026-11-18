@@ -577,6 +577,8 @@ export interface EinheitStand {
 	steckbriefe?: Record<string, Steckbrief>;
 	/** Der Schritt „Bilder“ ist durch; „Weiterbauen“ überspringt ihn. */
 	bilderFertig?: boolean;
+	/** Canva hat das Kontingent gesperrt, der Server wartet bis `bis` (235): Pause `versuch` von `von`. */
+	canvaPause?: { bis: string; versuch: number; von: number };
 	/** Die Lehrkraft will ein eigenes Thema (`thema.css`); fehlt bei Einheiten vor 220. */
 	thema?: boolean;
 	/** Die Recherche vor dem Plan (219). Fehlt bei Einheiten davor; `laeuft`: Claude recherchiert gerade. */

@@ -21,7 +21,7 @@ Je nach Material:
 - Auftakt (Folien): ganz Schauseite, ohne Schema, mit den Bildfolien aller Kapitel (praesentation, „Auftakt“).
 - Hinweise für die Lehrkraft: nennen die Teilkompetenzen mit Fundstelle und die Quellen aus `recherche.md`; beim Verkauf sind sie die Handreichung (html-materialerstellung, references/verkauf.md).
 - Deckblatt, Quellen und Angebot (Verkauf, verkauf.md): Zahlen nur aus der Liste der fertigen Materialien, nie aus dem Kopf; die Vorschau aus den Seitenbildern, die die Nachricht nennt.
-- Bilder im Material: Die Bilder der Einheit nennt die Nachricht (`../../bilder/…`), Willi, Wilma und die anderen Assets bindest du wie immer ein. Braucht nur dein Material ein neues Bild und erlaubt der Auftrag es, erzeuge es wie unter „Die Bilder“; bis es da ist, steht ein Platzhalter mit dem Motiv. Meldet Canva `quota_cooldown`, baue mit Platzhalter weiter.
+- Bilder im Material: Die Bilder der Einheit nennt die Nachricht (`../../bilder/…`), Willi, Wilma und die anderen Assets bindest du wie immer ein. Braucht nur dein Material ein neues Bild und erlaubt der Auftrag es, erzeuge es wie unter „Die Bilder“; bis es da ist, steht ein Platzhalter mit dem Motiv. Meldet Canva `quota_cooldown`, frage kein Bild mehr an, auch nicht ein zweites Mal: Hole laufende Jobs ab, exportiere und trage sie ein, schreibe für jedes fehlende Bild den Vertrag ohne `url` in `bilder.json`, baue mit Platzhalter fertig und beende den Lauf. Der Server wartet und meldet sich in derselben Sitzung.
 
 Die Bilder (Nachricht „die Bilder der Einheit“): kein Material, kein `bauen`. Nach html-materialerstellung, references/bilder.md, Abschnitte 2 bis 4 (Format nach Platz, Bildvertrag, Prompt, Ebenen), mit den Unterschieden aus Abschnitt 2b: Du hast kein Bash und kein curl.
 - Erst die Grundpose jeder Figur, abgenommen. Dann je Fall-Karte ihr Szenenbild im Format ihres Platzes, in der Reihenfolge der Kapitel, danach die Bildfolien des Plans. Jede Szene zeigt die Figuren, die die Geschichte dort zeigt, mit ihrer Grundpose als `imageReferences`; sie stehen oder sitzen auf etwas und tun, was der Text sagt. Figuren liegen nie als Ebene auf einer Szene. Zuletzt die Posen für Tipp und Requisiten (beim Verkauf die aus verkauf.md, Abschnitt 5): Wird das Canva-Kontingent knapp, gehen die Szenen vor. Zettel, Schilder, Baupläne und alles Mathematische kommen als HTML oder SVG auf das Bild, nie aus der KI.
@@ -30,6 +30,7 @@ Die Bilder (Nachricht „die Bilder der Einheit“): kein Material, kein `bauen`
   `datei`: Kleinbuchstaben, Ziffern, Bindestriche, Endung `.png` oder `.jpg` passend zum Export. `motiv` sagt den späteren Läufen, wofür das Bild gedacht ist.
 - Der Server legt zu jedem Bild die Prüfbilder unter `ansicht/bilder/` ab (die Viertel `<name>-v1.png` bis `-v4.png` und den Ausschnitt `<name>-platz.png`) und lädt es dann nach `bilder/`. Die Viertelprüfung ist Pflicht: Sieh dir jedes Prüfbild mit Read an und hake den Vertrag in `pruefung` ab.
 - Antworte am Ende mit einer Zeile je Bild.
+- Meldet Canva `quota_cooldown`, frage kein Bild mehr an, auch nicht ein zweites Mal: Hole laufende Jobs ab, exportiere und trage sie ein, schreibe für jedes fehlende Bild den Vertrag ohne `url` in `bilder.json` und beende den Lauf. Der Server wartet und meldet sich in derselben Sitzung.
 
 Regeln:
 - Du hast kein Bash und rufst blatt.py nicht auf; dafür gibt es `bauen`.

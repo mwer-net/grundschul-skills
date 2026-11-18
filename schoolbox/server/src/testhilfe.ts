@@ -188,6 +188,25 @@ process.stdin.on('end', () => {
 				ende({ result: 'Behoben.' });
 				return;
 			}
+			// 235: „einheit-canva“ bekommt im Bilder-Lauf die Sperre und macht das Bild nach der Pause in derselben Sitzung,
+			// „einheit-canva-stur“ bekommt sie immer. Das Lesen von bilder.md nennt quota_cooldown auch und zählt nicht.
+			const wieder = eingabe.startsWith('Canva ist wieder bereit');
+			if (fall.startsWith('einheit-canva') && (wieder || eingabe.includes('die Bilder der Einheit'))) {
+				lies(lektuere);
+				fs.writeFileSync('bilder.json', JSON.stringify([{ datei: 'szene.png', motiv: 'Szene im Werkraum' }]));
+				const ruf = (id, name, content) => { sag({ type: 'assistant', message: { content: [{ type: 'tool_use', id, name, input: {} }] } }); sag({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: id, content }] } }); };
+				ruf('r1', 'Read', 'Meldet Canva quota_cooldown, warte einige Minuten.');
+				if (wieder && fall === 'einheit-canva') {
+					ruf('g1', 'mcp__canva__generate-image', '{"jobId":"j1"}');
+					ruf('g2', 'mcp__canva__get-generate-image-job', [{ type: 'text', text: '[Resource link: MAattrappe3] https://attrappe.invalid/M/MAattrappe3' }]);
+					fs.mkdirSync('bilder', { recursive: true });
+					fs.writeFileSync('bilder/szene.png', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+				} else {
+					ruf('g1', 'mcp__canva__generate-image', [{ type: 'text', text: '{"status":"failed","failure":{"code":"quota_cooldown","message":"Your credit usage is cooling down."}}' }]);
+				}
+				ende({ result: 'Bilder.' });
+				return;
+			}
 			if (eingabe.includes('die Bilder der Einheit')) { lies(lektuere); ende({ result: 'Keine neuen Bilder.' }); return; }
 			const slug = /der Bau von dokumente\/([a-z0-9-]+)\//.exec(eingabe)?.[1];
 			if (!slug) { ende({ result: 'Kein Material genannt.' }); return; }
