@@ -53,14 +53,14 @@ export const figurenIn = <F extends Pick<BibliotheksFigur, 'name'>>(text: string
 export const MAX_FIGUREN_JE_BILD = 4;
 
 /**
- * Die Figuren für ein Bild aus „Bilder“: nur solche mit Steckbrief oder Media-ID. Im Bildlauf gibt es kein
- * `referenz/<id>.png`, aus dem Claude das Aussehen ablesen könnte; jeder andere Name gilt als gewöhnlicher Name.
+ * Die Figuren für ein Bild aus „Bilder“ (237): solche mit Steckbrief oder Bilddatei. Der Server legt die Grundpose
+ * als `referenzen/<id>.<png|jpg>` in den Arbeitsordner; Claude liest das Aussehen daraus ab, wenn der Steckbrief fehlt.
  */
-export const figurenFuerBild = <F extends Pick<BibliotheksFigur, 'name' | 'steckbrief' | 'canva'>>(
+export const figurenFuerBild = <F extends Pick<BibliotheksFigur, 'name' | 'steckbrief' | 'posen'>>(
 	text: string,
 	figuren: readonly F[],
 ): F[] =>
 	figurenIn(
 		text,
-		figuren.filter((f) => f.steckbrief || f.canva),
+		figuren.filter((f) => f.steckbrief || f.posen.length > 0),
 	);

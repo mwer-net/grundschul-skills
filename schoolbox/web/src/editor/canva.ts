@@ -1,5 +1,6 @@
 /**
- * Besitzer: 176. Die Canva-Läufe im Editor: Liste, Start einer Figur, Abbrechen und Verwerfen, die Meldung am Ende.
+ * Besitzer: 176. Die Läufe für neue KI-Bilder im Editor (237): Liste, Start einer Figur, Abbrechen und Verwerfen, die
+ * Meldung am Ende.
  * 179 nutzt Liste, Aktionen und Meldung für `art: 'bild'` mit.
  */
 import type { CanvaStand } from '@schoolbox/kern/src/canva-auftrag';

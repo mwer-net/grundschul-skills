@@ -254,7 +254,7 @@ export const ANSICHT_ORDNER = 'ansicht';
 
 /** Was blatt.py an den Namen der Quelle hängt: `-s1.png`, `-s1-a2.png`, `-loesung-s1.png`. */
 const BILD_NAME = /^(-loesung)?-s(\d+)(?:-a(\d+))?\.png$/;
-/** Die Bilder eines Baus in `ziel`. Nur sie räumt der nächste Bau ab: Daneben liegen die Prüfbilder aus Canva (215). */
+/** Die Bilder eines Baus in `ziel`. Nur sie räumt der nächste Bau ab: Daneben liegen die Prüfbilder der KI-Bilder (215). */
 const ANSICHT_BILD = /^(loesung-)?seite-\d+(-aufgabe-\d+)?\.png$/;
 
 export interface Ansicht {

@@ -6,6 +6,7 @@ export * from './atomar';
 export * from './ausgabe';
 export * from './bauen';
 export * from './bausteine';
+export * from './bild-formate';
 export * from './bildbefehle';
 export * from './bilder';
 export * from './canva-auftrag';

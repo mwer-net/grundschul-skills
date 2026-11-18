@@ -26,7 +26,11 @@ const leseVersion = (wurzel: string): string => {
 
 const ladeServerKonfig = (): ServerKonfig => {
 	try {
-		return pruefeServerKonfig(ladeKonfig());
+		const konfig = pruefeServerKonfig(ladeKonfig());
+		for (const hinweis of konfig.hinweise) {
+			console.warn(`Hinweis: ${hinweis}`);
+		}
+		return konfig;
 	} catch (fehler) {
 		console.error(fehler instanceof Error ? fehler.message : fehler);
 		process.exit(1);

@@ -10,6 +10,7 @@ import { after, afterEach, before, describe, it } from 'node:test';
 import type { CanvaStand } from '@schoolbox/kern';
 import { figurenDir, MAX_BILD_BYTES, WURZEL } from '@schoolbox/kern';
 
+import { BILDER_AUS } from './bild-zugang';
 import { DATEINAME_HEADER } from './bilder';
 import { VERBRAUCH_DATEI } from './ki';
 import { CSRF_HEADER } from './schutz';
@@ -121,7 +122,7 @@ describe('Bilder-API', () => {
 	});
 });
 
-describe('Bild beschreiben (179)', () => {
+describe('Bild beschreiben (179, 237)', () => {
 	let s: TestServer;
 	let bin: string;
 	let mappe: string;
@@ -162,7 +163,7 @@ describe('Bild beschreiben (179)', () => {
 			.update(await readFile(datei))
 			.digest('hex');
 
-	/** Kiki (177) und drei Figuren, die ein Bild tragen: Bär und Max mit Steckbrief, Igel nur mit Media-ID. */
+	/** Kiki (177) und drei Figuren mit PNG als Grundpose: Bär und Max mit Steckbrief, Igel nur mit alter Media-ID. */
 	const legeBildfigurenAn = async (materialDir: string) => {
 		await legeTestfigurenAn(materialDir);
 		const ordner = figurenDir(materialDir);
@@ -234,7 +235,7 @@ describe('Bild beschreiben (179)', () => {
 		assert.equal((await prompts()).length, vorher.length);
 	});
 
-	it('legt das Bild in bilder/ der Mappe, notiert Media-ID und Verbrauch, ändert kein Blatt', async () => {
+	it('legt das Bild in bilder/ der Mappe, notiert Herkunft und Verbrauch, ändert kein Blatt', async () => {
 		const html = await readFile(path.join(dir, 'material.html'));
 		const id = await starte(WUNSCH);
 		await warte(async () => (await letzterPrompt()).includes(WUNSCH));
@@ -242,13 +243,16 @@ describe('Bild beschreiben (179)', () => {
 		const vorlage = await readFile(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'bild.md'), 'utf8');
 		assert.ok(prompt.startsWith(vorlage.trimEnd()), prompt);
 		assert.match(prompt, /^Palette: Wiese$/m);
-		assert.match(prompt, /^Figur Willi: Aussehen „grauer Waschbär-Junge.*; Referenz MAHXV49zJZE$/m);
-		assert.match(prompt, /^Figur Wilma: Aussehen „graues Waschbär-Mädchen.*; Referenz MAHXV_-A1xo$/m);
+		assert.match(prompt, /^Figur Willi: Aussehen „grauer Waschbär-Junge.*; Referenz referenzen\/willi\.png$/m);
+		assert.match(prompt, /^Figur Wilma: Aussehen „graues Waschbär-Mädchen.*; Referenz referenzen\/wilma\.png$/m);
+		assert.doesNotMatch(prompt, /\bMA[A-Za-z0-9_-]{9}\b/);
 
 		assert.deepEqual(await ende(id), { id, art: 'bild', status: 'fertig', datei: BILD });
 		assert.ok(existsSync(path.join(mappenBilder(), BILD)));
-		const ids = await readFile(path.join(mappenBilder(), 'canva-ids.tsv'), 'utf8');
-		assert.ok(ids.includes(`${BILD}\tMAattrappe2\tWilli und Wilma im Garten\n`), ids);
+		const herkunft = await readFile(path.join(mappenBilder(), 'bilder-herkunft.tsv'), 'utf8');
+		assert.match(herkunft, /^datei\tquelle\tmodell\tdatum\tmotiv\n/);
+		assert.match(herkunft, new RegExp(`^${BILD}\topenai\t[^\t]+\t\\d{4}-\\d{2}-\\d{2}\tWilli und Wilma im Garten$`, 'm'));
+		assert.ok(!existsSync(path.join(mappenBilder(), 'canva-ids.tsv')));
 		const sammlung = (await (await s.holen(`${s.url}/api/dokumente/${mappe}/${dok}/bilder`)).json()) as Sammlung;
 		assert.equal(sammlung.mappe[0]?.schluessel, `${mappe}/bilder/${BILD}`);
 		assert.ok((await readFile(path.join(dir, 'material.html'))).equals(html), 'material.html byte-gleich');
@@ -256,6 +260,7 @@ describe('Bild beschreiben (179)', () => {
 		const zeilen = (await readFile(path.join(s.materialDir, VERBRAUCH_DATEI), 'utf8')).trim().split('\n');
 		const zeile = JSON.parse(zeilen.at(-1) ?? '{}') as Record<string, unknown>;
 		assert.equal(zeile.umfang, 'canva-bild');
+		assert.equal(zeile.bildAufrufe, 1);
 		assert.equal(zeile.mappe, mappe);
 		assert.equal(zeile.dok, dok);
 		assert.deepEqual(await liste(), []);
@@ -270,22 +275,40 @@ describe('Bild beschreiben (179)', () => {
 		assert.ok(existsSync(path.join(mappenBilder(), 'willi-und-wilma-im-garten-2.jpg')));
 	});
 
-	it('ein fremder Name ist keine Figur: keine Media-ID im Auftrag', async () => {
+	it('ein fremder Name ist keine Figur: keine Referenz im Auftrag', async () => {
 		const id = await starte('Paul pflanzt eine Blume');
 		await warte(async () => (await letzterPrompt()).includes('Paul pflanzt'));
 		const prompt = await letzterPrompt();
 		assert.match(prompt, /^Keine Figur aus der Bibliothek\.$/m);
-		assert.doesNotMatch(prompt, /\bMA[A-Za-z0-9_-]{9}\b/);
+		assert.doesNotMatch(prompt, /Referenz referenzen\//);
 		assert.doesNotMatch(prompt, /^Figur /m);
 		await ende(id);
 	});
 
-	it('kein Bild von Canva: Fehler an der Kachel, bilder/ der Mappe bleibt gleich', async () => {
+	it('kein taugliches Bild: Fehler an der Kachel, bilder/ der Mappe bleibt gleich', async () => {
 		await fall('canva-kein-png');
 		const vorher = await inhalt();
 		const id = await starte(WUNSCH);
 		assert.equal((await ende(id))?.status, 'fehler');
-		assert.equal((await liste()).find((l) => l.id === id)?.fehler, 'Canva hat kein Bild geliefert.');
+		assert.equal((await liste()).find((l) => l.id === id)?.fehler, 'Es ist kein Bild entstanden.');
 		assert.deepEqual(await inhalt(), vorher);
+	});
+
+	it('ohne Schlüssel für OpenAI: 409 mit dem Satz für die Lehrkraft, kein Lauf', async () => {
+		const materialDir = await mkdtemp(path.join(tmpdir(), 'schoolbox-bild-ohne-'));
+		const ohne = await starteTestServer({ materialDir, env: { CLAUDE_BIN: bin, OPENAI_API_KEY: '' } });
+		try {
+			const ort = await legeDokumentAn(materialDir);
+			const antwort = await ohne.holen(`${ohne.url}/api/dokumente/${ort.mappe}/${ort.dok}/bilder/beschreiben`, {
+				method: 'POST',
+				headers: schreibKoepfe,
+				body: JSON.stringify({ text: WUNSCH }),
+			});
+			assert.equal(antwort.status, 409);
+			assert.equal(await fehler(antwort), BILDER_AUS);
+			assert.deepEqual(ohne.kontext.canva.liste(), []);
+		} finally {
+			await ohne.stop();
+		}
 	});
 });

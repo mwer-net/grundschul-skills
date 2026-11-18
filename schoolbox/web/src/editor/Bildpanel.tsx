@@ -265,7 +265,7 @@ export const SammlungsKacheln = ({
 	aus?: boolean;
 	/** Nur in der Bilder-Schublade: Kacheln lassen sich aufs Blatt ziehen (103). */
 	ziehen?: BildZiehen | undefined;
-	/** Erste `<li>` derselben Liste: die Canva-Aufträge in „Dieser Ordner“. */
+	/** Erste `<li>` derselben Liste: die Aufträge für neue KI-Bilder in „Dieser Ordner“. */
 	vorne?: ReactNode;
 	entferne?: ((eintrag: SammlungsBild) => void) | undefined;
 }) => (

@@ -8,7 +8,7 @@ import type { Kontext } from '../befehle';
 import type { BildSteuerung } from '../bild';
 import type { Einfuegen } from '../einfuegen';
 import type { GliederungStand } from '../gliederung-stand';
-import type { limitHinweis } from '../ki';
+import type { KiZustand, limitHinweis } from '../ki';
 import type { PalettenEintrag } from '../palette-suche';
 import type { Struktur } from '../struktur';
 import { schublade as bausteine } from './bausteine';
@@ -45,10 +45,14 @@ export interface SchubladenTeile {
 	kontextmenue: (nr: number, art: 'baustein' | 'miniatur', punkt: { x: number; y: number }) => void;
 	/** Ebenen: Zeile „Seitenfläche“, „Seitenrahmen“ oder „Kopfband“ öffnet ihren Abschnitt in „Blatt“ (095, 181). */
 	zeigeSeitengestaltung: (seite: number, teil: SeitenTeil) => void;
-	/** Claude auf dem Server, wie in der Blase: ohne Anmeldung kein Canva-Feld, am Limit gesperrt (176, 179). */
+	/**
+	 * Claude auf dem Server, wie in der Blase: ohne Anmeldung kein Feld für neue Bilder, am Limit gesperrt (176, 179).
+	 * Ohne Bild-API steht `bilder.grund` an der Stelle der Felder (237).
+	 */
 	ki: {
 		verfuegbar: boolean;
 		geladen: boolean;
+		bilder: KiZustand['bilder'];
 		hinweis: ReturnType<typeof limitHinweis>;
 		pruefeLimit: () => Promise<void>;
 	};

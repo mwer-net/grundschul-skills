@@ -22,11 +22,12 @@ import {
 } from '@schoolbox/kern';
 import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
 
+import { BILDER_AUS } from './bild-zugang';
 import {
-	CANVA_MCP,
-	canvaEinstellungen,
+	BLATT_BILD_RECHTE,
 	KI_GRENZEN,
 	kiArgumente,
+	konnektorSperre,
 	kiTempWurzel,
 	kiUmgebung,
 	liesLimit,
@@ -37,6 +38,7 @@ import {
 	zuGrossText,
 } from './ki';
 import { KI_EINSTELLUNG_STANDARD, waehleLauf } from './ki-einstellung';
+import { WERKZEUG_BAUEN, WERKZEUG_BILD_BEARBEITEN, WERKZEUG_BILD_ERZEUGEN } from './ki-werkzeug';
 import { leseMitschrift, MITSCHRIFT_ORDNER } from './mitschrift';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
@@ -239,11 +241,16 @@ describe('Aufträge an Claude', () => {
 
 	it('Umgebung ohne Geheimnisse, auch wenn der Server welche hat', () => {
 		process.env.ANTHROPIC_API_KEY = 'nie-weitergeben';
+		// Der Schlüssel der Bild-API (237) gehört nur dem Server.
+		process.env.OPENAI_API_KEY = 'nie-weitergeben';
 		try {
 			assert.equal(kiUmgebung('/x/claude').ANTHROPIC_API_KEY, undefined);
+			assert.equal(kiUmgebung('/x/claude').OPENAI_API_KEY, undefined);
 			assert.equal(Object.keys(kiUmgebung('/x/claude')).sort().join(), 'HOME,LANG,PATH');
+			assert.equal(Object.values(kiUmgebung('/x/claude')).join('\n').includes('nie-weitergeben'), false);
 		} finally {
 			delete process.env.ANTHROPIC_API_KEY;
+			delete process.env.OPENAI_API_KEY;
 		}
 		const args = kiArgumente({ ablage: '/a', auftragDatei: '/b', modell: 'sonnet', effort: 'medium' });
 		assert.equal(args.includes('--resume'), false);
@@ -1792,6 +1799,27 @@ describe('Aufträge an Claude: Zugang', () => {
 		assert.match(((await res.json()) as { fehler: string }).fehler, /nicht angemeldet/);
 	});
 
+	it('Status nennt, ob neue KI-Bilder gehen; ohne Schlüssel mit dem Grund (237)', async () => {
+		const bilder = async (t: TestServer, init: { method?: string; headers?: Record<string, string> } = {}) =>
+			(
+				(await (
+					await t.holen(`${t.url}/api/ki/${init.method ? 'limit/pruefen' : 'status'}`, init)
+				).json()) as { bilder: unknown }
+			).bilder;
+		const post = { method: 'POST', headers: { 'Content-Type': 'application/json', [CSRF_HEADER]: '1' } };
+		assert.deepEqual(await bilder(server), { verfuegbar: true, grund: null });
+		assert.deepEqual(await bilder(server, post), { verfuegbar: true, grund: null });
+		const ohne = await starteTestServer({
+			env: { CLAUDE_BIN: path.join(ordner, 'claude'), OPENAI_API_KEY: '' },
+		});
+		try {
+			assert.deepEqual(await bilder(ohne), { verfuegbar: false, grund: BILDER_AUS });
+			assert.deepEqual(await bilder(ohne, post), { verfuegbar: false, grund: BILDER_AUS });
+		} finally {
+			await ohne.stop();
+		}
+	});
+
 	it('Ohne Sitzung und über Teilen-Links nicht erreichbar', async () => {
 		const { dok, mappe } = await legeDokumentAn(server.materialDir, { beispiel: true });
 		const ohne = await fetch(`${server.url}/api/dokumente/${mappe}/${dok}/ki`, {
@@ -1828,7 +1856,7 @@ describe('Aufträge an Claude: Zugang', () => {
 	});
 });
 
-describe('Aufruf für ein Canva-Bild (176)', () => {
+describe('Aufruf für ein Bild der Schubladen (176, 237)', () => {
 	const basis = {
 		ablage: '/tmp/a',
 		auftragDatei: '/tmp/b.md',
@@ -1839,37 +1867,29 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 	};
 	const SPERREN = ['Read(~/.claude/**)', 'Read(~/.ssh/**)', 'Read(**/.env)', 'Read(**/materialien/**)'];
 	const KOPF = ['-p', '--output-format', 'stream-json', '--verbose', '--model', 'opus', '--effort', 'medium'];
-	const CANVA = [
-		'generate-image',
-		'get-generate-image-job',
-		'remove-background',
-		'get-assets',
-		'search-designs',
-		'read-design',
-		'edit-design',
-		'resize-design',
-		'export-design',
-	].map((w) => `mcp__canva__${w}`);
+	const BILD = [WERKZEUG_BILD_ERZEUGEN, WERKZEUG_BILD_BEARBEITEN];
 	const KONNEKTOREN = [
 		'mcp__claude_ai_Gmail',
 		'mcp__claude_ai_Google_Drive',
 		'mcp__claude_ai_Claude_Docs',
 		'mcp__claude_ai_Canva',
+		'mcp__canva',
 	];
 	const SCHLUSS = ['--permission-mode', 'dontAsk'];
+	const MCP = '/tmp/w/mcp.json';
 
 	it('Schnappschuss: genau diese Liste', () => {
-		assert.deepEqual(kiArgumente({ ...basis, canvaBild: true }), [
+		assert.deepEqual(kiArgumente({ ...basis, canvaBild: true, mcpDatei: MCP, mcpWerkzeuge: BILD }), [
 			...KOPF,
 			'--setting-sources',
 			'project',
 			'--add-dir',
 			'/tmp/a',
 			'--settings',
-			canvaEinstellungen(),
+			konnektorSperre(),
 			'--strict-mcp-config',
 			'--mcp-config',
-			CANVA_MCP,
+			MCP,
 			'--tools',
 			'Read,Edit,Write',
 			'--allowedTools',
@@ -1877,13 +1897,13 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 			'Edit(./bilder.json)',
 			'Write(./ergebnis.json)',
 			'Edit(./ergebnis.json)',
-			...CANVA,
+			...BILD,
 			'--disallowedTools',
 			...SPERREN,
 			...KONNEKTOREN,
 			...SCHLUSS,
 			'--max-turns',
-			'40',
+			String(KI_GRENZEN.canva.runden),
 			'--max-budget-usd',
 			'1',
 			'--append-system-prompt-file',
@@ -1895,33 +1915,40 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 			modell: 'opus',
 			effort: 'medium',
 			canvaBild: true,
+			mcpDatei: MCP,
 		});
 		assert.equal(ohneBudget[ohneBudget.indexOf('--max-budget-usd') + 1], String(KI_GRENZEN.canva.budgetUsd));
+		assert.ok(BILD.every((w) => ohneBudget.includes(w)), 'ohne Angabe beide Bildwerkzeuge');
 	});
 
-	it('Gegenprobe: kein Skill, kein Material, Gmail, Drive und Docs gesperrt, nur Canva geladen', () => {
-		const args = kiArgumente({ ...basis, canvaBild: true });
+	it('Gegenprobe: kein Skill, kein Material, kein Canva; alle Konnektoren gesperrt, nur der eigene Server', () => {
+		const args = kiArgumente({ ...basis, canvaBild: true, mcpDatei: MCP, mcpWerkzeuge: BILD });
 		const text = args.join(' ');
 		assert.ok(!/\bSkill\b/.test(text));
 		assert.ok(!text.includes('material.html'));
 		assert.ok(!text.includes('dokumente/'));
 		assert.ok(!text.includes('--resume'));
+		assert.ok(!text.includes('mcp__canva__'));
 		assert.ok(args.includes('--strict-mcp-config'));
-		assert.equal(args[args.indexOf('--mcp-config') + 1], CANVA_MCP);
+		assert.equal(args[args.indexOf('--mcp-config') + 1], MCP);
 		const verboten = args.slice(args.indexOf('--disallowedTools') + 1, args.indexOf('--permission-mode'));
 		for (const k of KONNEKTOREN) {
 			assert.ok(verboten.includes(k), k);
 		}
-		const einstellungen = JSON.parse(args[args.indexOf('--settings') + 1] ?? '{}') as {
-			allowedMcpServers: unknown[];
-		};
-		assert.deepEqual(einstellungen.allowedMcpServers, [
+		const einstellungen = JSON.parse(args[args.indexOf('--settings') + 1] ?? '{}') as Record<string, unknown>;
+		assert.deepEqual(einstellungen.allowedMcpServers, [{ serverName: 'schoolbox' }], 'nur der eigene Server');
+		assert.deepEqual(einstellungen.deniedMcpServers, [
+			{ serverName: 'claude.ai Gmail' },
+			{ serverName: 'claude.ai Google Drive' },
+			{ serverName: 'claude.ai Claude Docs' },
+			{ serverName: 'claude.ai Canva' },
+			{ serverUrl: 'https://gmailmcp.googleapis.com/*' },
+			{ serverUrl: 'https://drivemcp.googleapis.com/*' },
 			{ serverUrl: 'https://mcp.canva.com/*' },
-			{ serverName: 'schoolbox' },
 		]);
 	});
 
-	it('Blase und Einheit bleiben unverändert', () => {
+	it('Blase unverändert; neues Blatt mit Bildwerkzeugen: Bildliste ohne Write, Konnektoren gesperrt', () => {
 		const ende = ['--append-system-prompt-file', '/tmp/b.md'];
 		assert.deepEqual(kiArgumente(basis), [
 			...KOPF,
@@ -1944,44 +1971,88 @@ describe('Aufruf für ein Canva-Bild (176)', () => {
 			'1',
 			...ende,
 		]);
-		const einheitRechte = [
-			'Write(./einheit.json)',
-			'Edit(./einheit.json)',
-			'Write(./thema.css)',
-			'Edit(./thema.css)',
-			'Write(./dokumente/**)',
-			'Edit(./dokumente/**)',
-			'Write(./bilder.json)',
-			'Edit(./bilder.json)',
-		];
-		assert.deepEqual(kiArgumente({ ...basis, effort: 'high', einheit: true, mitCanva: true }), [
-			...KOPF.slice(0, -1),
-			'high',
+		// Nur bauen: wie vor 237, ohne Sperre der Konnektoren und ohne Bildliste.
+		const nurBauen = kiArgumente({ ...basis, gross: true, mcpDatei: MCP });
+		assert.ok(!nurBauen.includes('--settings'));
+		assert.ok(!nurBauen.includes('Edit(./bilder.json)'));
+		assert.deepEqual(BLATT_BILD_RECHTE, ['Edit(./bilder.json)']);
+		assert.equal(nurBauen[nurBauen.indexOf('--mcp-config') + 1], MCP);
+		assert.ok(nurBauen.includes(WERKZEUG_BAUEN));
+
+		const blatt = kiArgumente({ ...basis, gross: true, mcpDatei: MCP, mcpWerkzeuge: [WERKZEUG_BAUEN, ...BILD] });
+		assert.deepEqual(blatt, [
+			...KOPF,
 			'--setting-sources',
 			'project',
 			'--add-dir',
 			'/tmp/a',
 			'--settings',
-			canvaEinstellungen(),
+			konnektorSperre(),
 			'--strict-mcp-config',
 			'--mcp-config',
-			CANVA_MCP,
+			MCP,
 			'--tools',
-			'Read,Edit,Write,Skill',
+			'Read,Edit,Skill',
 			'--allowedTools',
-			...einheitRechte,
+			'Edit(./material.html)',
+			...BLATT_BILD_RECHTE,
 			'Skill',
-			...CANVA,
+			WERKZEUG_BAUEN,
+			...BILD,
 			'--disallowedTools',
 			...SPERREN,
 			...KONNEKTOREN,
 			...SCHLUSS,
 			'--max-turns',
-			String(KI_GRENZEN.einheit.runden),
+			String(KI_GRENZEN.blatt.runden),
 			'--max-budget-usd',
 			'1',
 			...ende,
 		]);
+	});
+
+	it('Einheit mit Bildwerkzeugen: eigene Rechte, beide Werkzeuge, Konnektoren gesperrt', () => {
+		const rechte = ['Write(./dokumente/fall-1/**)', 'Edit(./dokumente/fall-1/**)', 'Write(./bilder.json)', 'Edit(./bilder.json)'];
+		assert.deepEqual(
+			kiArgumente({
+				...basis,
+				effort: 'high',
+				einheit: true,
+				rechte,
+				mcpDatei: MCP,
+				mcpWerkzeuge: [WERKZEUG_BAUEN, ...BILD],
+			}),
+			[
+				...KOPF.slice(0, -1),
+				'high',
+				'--setting-sources',
+				'project',
+				'--add-dir',
+				'/tmp/a',
+				'--settings',
+				konnektorSperre(),
+				'--strict-mcp-config',
+				'--mcp-config',
+				MCP,
+				'--tools',
+				'Read,Edit,Write,Skill',
+				'--allowedTools',
+				...rechte,
+				'Skill',
+				WERKZEUG_BAUEN,
+				...BILD,
+				'--disallowedTools',
+				...SPERREN,
+				...KONNEKTOREN,
+				...SCHLUSS,
+				'--max-turns',
+				String(KI_GRENZEN.einheit.runden),
+				'--max-budget-usd',
+				'1',
+				'--append-system-prompt-file',
+				'/tmp/b.md',
+			],
+		);
 	});
 });
 

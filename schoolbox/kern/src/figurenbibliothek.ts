@@ -465,9 +465,9 @@ export interface NeuePose {
 	name?: string;
 	/** Für den Dateinamen `<figur>-<wort>` einer weiteren Pose. */
 	wort?: string;
-	/** Pfad relativ zu `materialien/` oder `canva`. */
+	/** Pfad relativ zu `materialien/`, `openai` (neue Posen seit 237) oder `canva` (alte). */
 	herkunft?: string;
-	/** Media-ID genau dieser Pose; hat die Figur noch keine Referenz, wird sie es. */
+	/** Nur alte Posen aus Canva: Media-ID genau dieser Pose; hat die Figur noch keine Referenz, wird sie es. */
 	canva?: string;
 	/** Aussehen; nur, wenn die Figur noch keinen hat. */
 	steckbrief?: string;

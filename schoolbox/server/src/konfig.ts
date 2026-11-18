@@ -1,15 +1,20 @@
 import { accessSync, constants, existsSync, mkdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 
-import type { Konfig } from '@schoolbox/kern';
-import { istPasswortHash, STANDARD_HOST, STANDARD_PORT } from '@schoolbox/kern';
+import type { BildQualitaet, Konfig } from '@schoolbox/kern';
+import { BILD_QUALITAETEN, istPasswortHash, STANDARD_HOST, STANDARD_PORT } from '@schoolbox/kern';
 
-export interface ServerKonfig extends Konfig {
+export interface ServerKonfig extends Omit<Konfig, 'bildQualitaet'> {
 	portNummer: number;
 	hostName: string;
 	passwortHash: string;
 	sitzungGeheimnis: string;
+	bildQualitaet: BildQualitaet;
+	/** Was fehlt, aber den Start nicht aufhält (237: ohne `OPENAI_API_KEY` keine neuen KI-Bilder). */
+	hinweise: string[];
 }
+
+const istBildQualitaet = (wert: string): wert is BildQualitaet => (BILD_QUALITAETEN as readonly string[]).includes(wert);
 
 const MIN_GEHEIMNIS = 32;
 
@@ -57,6 +62,9 @@ export const pruefeServerKonfig = (konfig: Konfig): ServerKonfig => {
 		konfig.sitzungGeheimnis !== null && konfig.sitzungGeheimnis.length >= MIN_GEHEIMNIS
 			? null
 			: `SITZUNG_GEHEIMNIS fehlt oder ist zu kurz (mindestens ${MIN_GEHEIMNIS} Zeichen, z. B. „openssl rand -hex 32“).`,
+		istBildQualitaet(konfig.bildQualitaet)
+			? null
+			: `SCHOOLBOX_BILD_QUALITAET „${konfig.bildQualitaet}“ ist keine Qualitätsstufe (${BILD_QUALITAETEN.join(', ')}).`,
 	].filter((p): p is string => p !== null);
 	if (probleme.length > 0) {
 		const datei = path.join(konfig.wurzel, '.env');
@@ -68,5 +76,9 @@ export const pruefeServerKonfig = (konfig: Konfig): ServerKonfig => {
 		hostName: konfig.host ?? STANDARD_HOST,
 		passwortHash: konfig.passwortHash ?? '',
 		sitzungGeheimnis: konfig.sitzungGeheimnis ?? '',
+		bildQualitaet: istBildQualitaet(konfig.bildQualitaet) ? konfig.bildQualitaet : 'low',
+		hinweise: konfig.openaiSchluessel
+			? []
+			: ['OPENAI_API_KEY fehlt: Neue KI-Bilder sind aus, alles andere läuft.'],
 	};
 };

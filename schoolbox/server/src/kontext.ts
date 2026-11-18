@@ -5,6 +5,7 @@ import path from 'node:path';
 import { baueAnsicht, baueAusgabe, baueFolienZusatz, dokumentDir, pruefeFassung } from '@schoolbox/kern';
 
 import type { Begrenzung } from './begrenzung';
+import type { BildApi } from './bild-zugang';
 import { erstelleBegrenzung } from './begrenzung';
 import type { Bremse } from './bremse';
 import { erstelleBremse } from './bremse';
@@ -45,6 +46,8 @@ export interface Kontext {
 	canva: CanvaLaeufe;
 	ordner: OrdnerSpeicher;
 	version: string;
+	/** Eingespritzte Bild-API (Tests, E2E); `null` heißt die echte, falls ein Schlüssel da ist (237). */
+	bildApi: BildApi | null;
 }
 
 /** Jeder Bau startet Chromium und braucht entsprechend Speicher: Vorschauen und PDFs zusammen höchstens so viele. */
@@ -63,6 +66,8 @@ export interface Bauer {
 	einheitAnsicht?: EinheitAnsicht;
 	/** Ohne baut blatt.py die Seiten eines neuen Blatts für `bauen` und den Prüflauf. */
 	kiAnsicht?: KiAnsicht;
+	/** Ohne ruft der Server die echte Bild-API von OpenAI, sofern `OPENAI_API_KEY` gesetzt ist. */
+	bildApi?: BildApi;
 }
 
 export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Bauer = {}): Kontext => {
@@ -90,12 +95,14 @@ export const erstelleKontext = (konfig: ServerKonfig, version: string, bauer: Ba
 			konfig,
 			ereignisse,
 			pruefer,
+			bildApi: bauer.bildApi ?? null,
 			ansicht:
 				bauer.kiAnsicht ??
 				((dokDir, html, ziel, optionen) => baueAnsicht(konfig, dokDir, html, ziel, optionen)),
 		}),
 		ordner: erstelleOrdnerSpeicher(materialDir, sperre, ereignisse),
 		version,
+		bildApi: bauer.bildApi ?? null,
 	};
 	// Die Einheiten brauchen den fertigen Kontext (Ordner, Sperre, Quelle schreiben).
 	kontext.einheiten = erstelleEinheiten(kontext as Kontext, pruefer, bauer.einheitAnsicht);

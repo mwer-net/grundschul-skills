@@ -31,7 +31,7 @@ export const ladeFiguren = () => {
 	return laden;
 };
 
-/** Lädt die Bibliothek neu, etwa nach einer neuen Pose aus Canva oder nach „Entfernen“ (176). */
+/** Lädt die Bibliothek neu, etwa nach einer neuen Pose von Claude oder nach „Entfernen“ (176). */
 export const ladeFigurenNeu = () => {
 	laden = null;
 	return ladeFiguren();

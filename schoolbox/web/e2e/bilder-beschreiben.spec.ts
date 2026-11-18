@@ -1,7 +1,7 @@
 /**
  * Bild beschreiben (179): das Feld in der Steuerzeile von „Bilder“, die Bildchen der erkannten Figuren, die Kacheln der
  * Aufträge in „Dieser Ordner“, Fehler, Abbrechen, Limit, Meldung und Wiederkommen. Die Claude-Attrappe malt (Fälle
- * `canva-bild`, `canva-pause`, `haenger`) und wartet 2,5 s. Die Figurenbibliothek wird vor jedem Test gesichert und
+ * `canva-bild`, `bild-gesperrt`, `haenger`) und wartet 2,5 s. Die Figurenbibliothek wird vor jedem Test gesichert und
  * danach zurückgelegt.
  */
 import { copyFile, cp, mkdir, mkdtemp, readdir, readFile, rm, utimes, writeFile } from 'node:fs/promises';
@@ -196,12 +196,12 @@ test.describe('Bild beschreiben (179)', () => {
 		druecke,
 		page,
 	}) => {
-		await kiFall('canva-pause');
+		await kiFall('bild-gesperrt');
 		const { id } = await oeffneBilder(page);
 		await beschreibe(page, WUNSCH);
 		const kachel = canvaKacheln(page);
 		await expect(kachel).toHaveAttribute('data-status', 'fehler', LAUF);
-		await expect(kachel).toContainText('Canva macht gerade eine Pause.');
+		await expect(kachel).toContainText('OpenAI hat keine Bilder mehr erzeugt (Guthaben, Ausgabenlimit oder Schlüssel).');
 		const breite = async (ziel: Locator) => (await ziel.boundingBox())?.width ?? 0;
 		expect(Math.abs((await breite(kachel)) - (await breite(liste(page))))).toBeLessThanOrEqual(1);
 
@@ -236,6 +236,32 @@ test.describe('Bild beschreiben (179)', () => {
 		await expect(schublade(page).getByRole('textbox', { name: 'Bild beschreiben' })).toHaveCount(0);
 		const breite = async (ziel: Locator) => (await ziel.boundingBox())?.width ?? 0;
 		expect(Math.abs((await breite(hochladen(page))) - (await breite(suche(page))))).toBeLessThanOrEqual(1);
+	});
+
+	test('Ohne Bild-API: kein Feld in „Bilder“ und „Figuren“, an seiner Stelle der Grund (237)', async ({ page }) => {
+		const grund = 'Neue KI-Bilder sind aus: Auf dem Server fehlt der Schlüssel für die Bild-API.';
+		await page.route('**/api/ki/status', (r) =>
+			r.fulfill({
+				json: {
+					verfuegbar: true,
+					limit: null,
+					warnAb: 1,
+					einheitWarnAb: 1,
+					aktionen: [],
+					bilder: { verfuegbar: false, grund },
+				},
+			}),
+		);
+		const u = await uhrzeit();
+		await oeffne(page, u.id, u.dok);
+		await oeffneSchublade(page, 'bilder');
+		await expect(hochladen(page)).toBeVisible();
+		await expect(schublade(page).getByRole('textbox', { name: 'Bild beschreiben' })).toHaveCount(0);
+		await expect(schublade(page).locator('[data-ohne-bild-api]')).toHaveText(grund);
+		await oeffneSchublade(page, 'figuren');
+		const figuren = page.locator('[data-schublade-figuren]');
+		await expect(figuren.getByRole('textbox', { name: 'Figur beschreiben' })).toHaveCount(0);
+		await expect(figuren.locator('[data-ohne-bild-api]')).toHaveText(grund);
 	});
 
 	test('Ruhig: kein Bedienhinweis und kein Kürzel in der Schublade', async ({ page }) => {

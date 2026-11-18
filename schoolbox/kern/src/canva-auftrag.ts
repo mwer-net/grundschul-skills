@@ -1,7 +1,7 @@
 /**
- * Besitzer: 176. Der eigene Canva-Lauf (`server/src/canva-lauf.ts`): Wunsch, Stand und der Auftrag für eine Figur.
- * 179 nutzt Wunsch und Stand für `art: 'bild'`. Ohne Abhängigkeiten außer `figuren.ts`, damit der Browser die Typen
- * liest.
+ * Besitzer: 176. Der eigene Lauf der Schubladen (`server/src/canva-lauf.ts`, seit 237 über die Bild-API): Wunsch,
+ * Stand und der Auftrag für eine Figur. 179 nutzt Wunsch und Stand für `art: 'bild'`. Ohne Abhängigkeiten außer
+ * `figuren.ts`, damit der Browser die Typen liest.
  */
 
 import { FIGUREN } from './figuren';
@@ -41,13 +41,15 @@ export interface CanvaStand {
 	start: string;
 }
 
-/** Eine bekannte Figur, wie der Auftrag sie braucht. `farbbild` ist der Pfad ihrer Grundpose. */
+/** Eine bekannte Figur, wie der Auftrag sie braucht (237: Dateien im Arbeitsordner statt Media-IDs von Canva). */
 export interface CanvaFigur {
 	id: string;
 	name: string;
 	steckbrief: string | null;
+	/** Ihre Grundpose als Referenz für die Bild-API, `referenzen/<id>.<png|jpg>`; `null`, wenn sie kein PNG/JPEG ist. */
 	referenz: string | null;
-	farbbild: string;
+	/** Ihre Grundpose zum Ansehen im Arbeitsordner; bei einer Referenz dieselbe Datei. */
+	bild: string;
 }
 
 /** Höchstlänge der Beschreibung im Feld „Figur beschreiben“. */
@@ -56,27 +58,27 @@ export const CANVA_TEXT_ZEICHEN = 300;
 /** So heißt das Bild einer Figur in `bilder/` des Arbeitsordners. */
 export const FIGUR_BILD = 'bild.png';
 
-/** Willi ist die Stil-Referenz für neue Figuren und für Figuren ohne eigene Referenz. */
-const STIL = FIGUREN.find((f) => f.id === 'willi')?.canva ?? '';
+/** Willi ist die Stil-Referenz für neue Figuren und für Figuren ohne eigene Referenz; der Server legt ihn dorthin. */
+export const STIL_FIGUR = FIGUREN.find((f) => f.id === 'willi')?.id ?? 'willi';
+export const STIL_REFERENZ = `referenzen/${STIL_FIGUR}.png`;
 
 export const einzeilig = (text: string) =>
 	// eslint-disable-next-line no-control-regex
 	text.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, ' ').trim();
 
-/** `referenz/<id>.<endung der Grundpose>` im Arbeitsordner; nur für eine Figur ohne Steckbrief. */
-export const referenzDatei = (figur: Pick<CanvaFigur, 'id' | 'farbbild'>) =>
-	`referenz/${figur.id}${/\.[a-z]+$/i.exec(figur.farbbild)?.[0].toLowerCase() ?? '.png'}`;
+/** Braucht der Auftrag Willi als Stil-Referenz? Bei einer neuen Figur und einer Figur ohne eigene Referenz. */
+export const brauchtStil = (figur: CanvaFigur | null) => !figur?.referenz;
 
 /** Die Zeilen nach `vorlagen/ki/canva-figur.md`: Wunsch, Datei und die Figur (`null`: neue Figur). */
 export const canvaAuftragText = (wunsch: string, figur: CanvaFigur | null) => {
-	const stil = `Stil-Referenz ${STIL} (nur der Zeichenstil)`;
+	const stil = `Stil-Referenz ${STIL_REFERENZ} (nur der Zeichenstil)`;
 	const zeilen = [`Wunsch: „${einzeilig(wunsch)}“`, `Datei: ${FIGUR_BILD}`];
 	if (!figur) {
 		zeilen.push(`Neue Figur. ${stil}.`);
 	} else {
 		const aussehen = figur.steckbrief
 			? `Aussehen „${einzeilig(figur.steckbrief)}“`
-			: `kein Steckbrief, Bild ${referenzDatei(figur)}`;
+			: `kein Steckbrief, Bild ${figur.bild}`;
 		zeilen.push(
 			`Figur ${einzeilig(figur.name)}: ${aussehen}; ${figur.referenz ? `Referenz ${figur.referenz}` : stil}`,
 		);

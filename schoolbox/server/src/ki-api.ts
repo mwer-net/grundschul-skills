@@ -11,6 +11,7 @@ import {
 } from '@schoolbox/kern';
 import type { Router as RouterTyp } from 'express';
 
+import { bilderStand } from './bild-zugang';
 import { leseQuelle, schreibeQuelle, verlangeDokument } from './dokumente';
 import { HttpFehler } from './fehler';
 import type { GelesenerVorschlag, KiNachricht } from './ki';
@@ -102,6 +103,8 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 		/** Ab hier warnt der Assistent vor dem Start einer Einheit (190-12). */
 		einheitWarnAb: KI_GRENZEN.einheit.warnAb,
 		aktionen: KI_AKTIONEN,
+		/** Neue KI-Bilder (237): ohne `OPENAI_API_KEY` aus, mit dem Satz für die Lehrkraft. */
+		bilder: bilderStand(konfig),
 	});
 
 	router.get('/ki/status', async (_req, res) => {

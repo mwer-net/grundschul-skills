@@ -22,9 +22,9 @@ export interface Figur {
 	blickt: Blick;
 	/** Für die Suche im Katalog der Bausteine und in ⌘K. */
 	suchwoerter: readonly string[];
-	/** Aussehen für Canva-Prompts. Quelle ist `kindgerecht-gestalten.md` (Abschnitt 3); ein Test hält beide gleich. */
+	/** Aussehen für Bild-Prompts. Quelle ist `kindgerecht-gestalten.md` (Abschnitt 3); ein Test hält beide gleich. */
 	steckbrief?: string;
-	/** Canva-Media-ID der Datei; Quelle ist `bilder.md` (Abschnitt 1), ein Test hält beide gleich. */
+	/** Canva-Media-ID der Datei aus der Zeit vor 237; nur noch lesbar, neue Bilder entstehen über die Bild-API. */
 	canva?: string;
 }
 

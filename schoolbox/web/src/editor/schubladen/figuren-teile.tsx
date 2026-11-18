@@ -29,6 +29,7 @@ import { AblageKachel } from '../gestaltung/ablegen/Kachel';
 import { ladeFigurenNeu, ladeVor, useFiguren, vorschauVon } from '../gestaltung/figuren-quelle';
 import { LimitZeile } from '../LimitZeile';
 import type { SchubladenTeile } from '.';
+import { bildFeld, OhneBildApi } from './bild-beschreiben';
 import { CanvaKacheln } from './CanvaKachel';
 import { gutFuer, srcFuer } from './figuren-daten';
 import { KACHEL_MEHR, SendenKreis } from './kreise';
@@ -245,7 +246,7 @@ export const Inhalt = (t: SchubladenTeile) => {
 	const { laeufe } = useCanvaLaeufe();
 	const [fehler, setFehler] = useState<string | null>(null);
 	const zeigeHinweis = useHinweis();
-	// Steht etwas im Suchfeld, zeigt die Schublade keine Canva-Kacheln.
+	// Steht etwas im Suchfeld, zeigt die Schublade keine Kacheln laufender Aufträge.
 	const canva = woerter.length === 0;
 	const neueFigur = canva && laeufe.some((l) => l.art === 'figur' && !l.ziel.figur);
 	const nochmal = (stand: CanvaStand) =>
@@ -338,7 +339,8 @@ export const Inhalt = (t: SchubladenTeile) => {
 	const steuerung = (
 		<>
 			<Schubladensuche beschriftung="Figuren suchen" wert={suche} setWert={setSuche} />
-			{!(t.ki.geladen && !t.ki.verfuegbar) && (
+			{bildFeld(t.ki) === 'grund' && <OhneBildApi grund={t.ki.bilder.grund} />}
+			{bildFeld(t.ki) === 'feld' && (
 				<FigurBeschreiben ki={t.ki} laeufe={laeufe} fehler={fehler} setFehler={setFehler} />
 			)}
 		</>

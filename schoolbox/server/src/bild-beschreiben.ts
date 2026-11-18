@@ -1,6 +1,6 @@
 /**
- * Besitzer: 179. Ein neues Bild aus der Schublade „Bilder“ über den Canva-Lauf aus 176: die Zeilen des Auftrags nach
- * `vorlagen/ki/bild.md` und die Ablage in `bilder/` der Mappe. Die Route steht in `bilder.ts`.
+ * Besitzer: 179. Ein neues Bild aus der Schublade „Bilder“ über den Lauf aus 176 (seit 237 über die Bild-API): die
+ * Zeilen des Auftrags nach `vorlagen/ki/bild.md` und die Ablage in `bilder/` der Mappe. Die Route steht in `bilder.ts`.
  */
 import { constants, existsSync } from 'node:fs';
 import { copyFile, mkdir } from 'node:fs/promises';
@@ -9,12 +9,15 @@ import path from 'node:path';
 import type { BibliotheksFigur, Palette } from '@schoolbox/kern';
 import { einzeilig, freierStamm, mappenDir, SchoolboxFehler, slug } from '@schoolbox/kern';
 
-import { notiereCanvaId } from './canva-bild';
+import { uebertrageHerkunft } from './bild-herkunft';
 import type { CanvaErgebnis } from './canva-lauf';
+
+/** Eine Figur im Auftrag: `referenz` ist ihre Grundpose unter `referenzen/` im Arbeitsordner (237). */
+export type BildFigur = Pick<BibliotheksFigur, 'name' | 'steckbrief'> & { referenz: string | null };
 
 export interface BildAuftrag {
 	text: string;
-	figuren: readonly Pick<BibliotheksFigur, 'name' | 'steckbrief' | 'canva'>[];
+	figuren: readonly BildFigur[];
 	palette: Palette | null;
 }
 
@@ -32,7 +35,7 @@ export const bildAuftragText = ({ figuren, palette, text }: BildAuftrag) => {
 	const zeilen = [`Wunsch: „${einzeilig(text)}“`, `Palette: ${paletteName(palette)}`];
 	for (const f of figuren) {
 		const aussehen = f.steckbrief ? `Aussehen „${einzeilig(f.steckbrief)}“` : 'kein Steckbrief';
-		const referenz = f.canva ? `Referenz ${einzeilig(f.canva)}` : 'keine Referenz';
+		const referenz = f.referenz ? `Referenz ${einzeilig(f.referenz)}` : 'keine Referenz';
 		zeilen.push(`Figur ${einzeilig(f.name)}: ${aussehen}; ${referenz}`);
 	}
 	if (figuren.length === 0) {
@@ -43,7 +46,7 @@ export const bildAuftragText = ({ figuren, palette, text }: BildAuftrag) => {
 
 /**
  * Das `uebernimm` von 179: das Bild unter einem freien Namen aus dem Motiv nach `bilder/` der Mappe, nie über ein
- * vorhandenes, mit Media-ID auch in `canva-ids.tsv`. Ist die Mappe weg (gelöscht oder im Papierkorb), entsteht kein
+ * vorhandenes, mit seiner Herkunft aus `bilder-herkunft.tsv` des Laufs. Ist die Mappe weg (gelöscht oder im Papierkorb), entsteht kein
  * Ordner ohne `mappe.json`: Er stünde dem Wiederherstellen im Weg.
  */
 export const legeBildAb = async (materialDir: string, mappe: string, e: CanvaErgebnis): Promise<string> => {
@@ -55,8 +58,6 @@ export const legeBildAb = async (materialDir: string, mappe: string, e: CanvaErg
 	await mkdir(ziel, { recursive: true });
 	const name = `${await freierStamm(ziel, slug(e.motiv) || 'bild')}${path.extname(e.datei).toLowerCase()}`;
 	await copyFile(e.pfad, path.join(ziel, name), constants.COPYFILE_EXCL);
-	if (e.mediaId) {
-		await notiereCanvaId(ziel, { datei: name, mediaId: e.mediaId, motiv: e.motiv });
-	}
+	await uebertrageHerkunft(path.dirname(e.pfad), ziel, { [e.datei]: name });
 	return name;
 };

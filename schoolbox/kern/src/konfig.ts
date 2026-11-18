@@ -25,7 +25,18 @@ export interface Konfig {
 	kiModell: string;
 	/** `SCHOOLBOX_KI=aus` schaltet die Aufträge ab, auch wenn `claude` angemeldet ist. */
 	kiAn: boolean;
+	/** Nur der Server liest ihn (237); `claude` bekommt ihn nie. Ohne Schlüssel gibt es keine neuen KI-Bilder. */
+	openaiSchluessel: string | null;
+	bildModell: string;
+	/** Roh aus der `.env`; `pruefeServerKonfig` lehnt alles außer `BILD_QUALITAETEN` ab. */
+	bildQualitaet: string;
 }
+
+/** Bildmodell und Qualität aus dem Modellvergleich in 237 (Doku-Befund). */
+export const STANDARD_BILD_MODELL = 'gpt-image-2.6-sunburst';
+export const BILD_QUALITAETEN = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
+export type BildQualitaet = (typeof BILD_QUALITAETEN)[number];
+export const STANDARD_BILD_QUALITAET: BildQualitaet = 'low';
 
 type Umgebung = Record<string, string | undefined>;
 
@@ -49,5 +60,8 @@ export const ladeKonfig = (env: Umgebung = process.env, wurzel = WURZEL): Konfig
 		claudeBin: wert('CLAUDE_BIN') ?? null,
 		kiModell: wert('SCHOOLBOX_KI_MODELL') ?? 'opus',
 		kiAn: wert('SCHOOLBOX_KI') !== 'aus',
+		openaiSchluessel: wert('OPENAI_API_KEY') ?? null,
+		bildModell: wert('SCHOOLBOX_BILD_MODELL') ?? STANDARD_BILD_MODELL,
+		bildQualitaet: wert('SCHOOLBOX_BILD_QUALITAET') ?? STANDARD_BILD_QUALITAET,
 	};
 };

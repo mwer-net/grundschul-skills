@@ -104,7 +104,7 @@ export interface EinheitAngaben {
 	idee: string;
 	leitfigur: (typeof EINHEIT_LEITFIGUR)[number];
 	aussehen: (typeof EINHEIT_AUSSEHEN)[number];
-	/** Neue Bilder mit Canva (138). */
+	/** Neue KI-Bilder (138, seit 237 über die Bild-API). */
 	bilder: boolean;
 	/** Für den Verkauf: Deckblatt, Quellenverzeichnis und Angebotstext kommen dazu (`html-materialerstellung/references/verkauf.md`). */
 	verkauf: boolean;
@@ -199,6 +199,15 @@ const FIGUR = { willi: 'Willi', wilma: 'Wilma', beide: 'Willi und Wilma', keine:
 export type Bausteine = EinheitAngaben['bausteine'];
 
 /**
+ * Der Satz zu neuen Bildern im Auftrag einer Einheit (237). Bekommt ein Lauf trotz `bilder` keine Bildwerkzeuge (kein
+ * Schlüssel mehr nach einem Neustart), tauscht der Server `mit` gegen `ohne`.
+ */
+export const EINHEIT_BILDER_SATZ = {
+	mit: 'Neue KI-Bilder sind erlaubt (`bild_erzeugen`, `bilder.json`).',
+	ohne: 'Keine neuen Bilder: nur Willi, Wilma und berechnete Abbildungen.',
+};
+
+/**
  * Was ein Baustein in der Einheit bewirkt, an wie aus (`grundschul-didaktik/references/rueckfragen.md`). Ohne den
  * Satz griffe die Empfehlung der Skills, und Abgewähltes käme trotzdem (210).
  */
@@ -257,9 +266,7 @@ export const einheitAuftragAus = (a: EinheitAngaben): string => {
 		`Mit Rahmengeschichte, Idee: ${a.idee ? alsSatz(a.idee) : 'nicht angegeben, erfinde sie selbst.'}`,
 		a.leitfigur === 'keine' ? 'Ohne Leitfigur.' : `Leitfigur: ${FIGUR[a.leitfigur]}.`,
 		aussehenSatz(a.aussehen),
-		a.bilder
-			? 'Neue Bilder mit Canva sind erlaubt (bilder.json).'
-			: 'Keine neuen Bilder: nur Willi, Wilma und berechnete Abbildungen.',
+		a.bilder ? EINHEIT_BILDER_SATZ.mit : EINHEIT_BILDER_SATZ.ohne,
 		...(Object.keys(EINHEIT_BAUSTEIN_SATZ) as (keyof Bausteine)[]).map((b) =>
 			a.bausteine[b] ? EINHEIT_BAUSTEIN_SATZ[b].mit : EINHEIT_BAUSTEIN_SATZ[b].ohne,
 		),
@@ -561,6 +568,7 @@ export interface EinheitStand {
 	verkauf?: boolean;
 	/** Die Wahl der Lehrkraft; der Server meldet Abgewähltes im Material als Befund (210). Fehlt bei alten Einheiten. */
 	bausteine?: Bausteine;
+	/** Seit 237: von den Bildwerkzeugen abgelegte Bilder und gescheiterte Aufrufe, über alle Läufe des Durchgangs. */
 	geladeneBilder: number;
 	fehlgeschlageneBilder: number;
 	/** Claudes Plan als Text: Geschichte, Rätselkette, Materialien. Die Lehrkraft gibt ihn frei, bevor gebaut wird. */
@@ -577,8 +585,6 @@ export interface EinheitStand {
 	steckbriefe?: Record<string, Steckbrief>;
 	/** Der Schritt „Bilder“ ist durch; „Weiterbauen“ überspringt ihn. */
 	bilderFertig?: boolean;
-	/** Canva hat das Kontingent gesperrt, der Server wartet bis `bis` (235): Pause `versuch` von `von`. */
-	canvaPause?: { bis: string; versuch: number; von: number };
 	/** Die Lehrkraft will ein eigenes Thema (`thema.css`); fehlt bei Einheiten vor 220. */
 	thema?: boolean;
 	/** Die Recherche vor dem Plan (219). Fehlt bei Einheiten davor; `laeuft`: Claude recherchiert gerade. */

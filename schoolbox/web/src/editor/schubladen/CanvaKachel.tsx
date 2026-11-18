@@ -1,5 +1,5 @@
 /**
- * Besitzer: 176. Ein Canva-Auftrag in „Figuren“, solange er wartet, läuft oder gescheitert ist. Fertige Aufträge stehen
+ * Besitzer: 176. Ein Auftrag für ein KI-Bild in „Figuren“, solange er wartet, läuft oder gescheitert ist. Fertige Aufträge stehen
  * als normale Kachel der Bibliothek da.
  */
 import type { CanvaStand } from '@schoolbox/kern/src/canva-auftrag';

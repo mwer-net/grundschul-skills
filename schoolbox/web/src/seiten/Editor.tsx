@@ -1154,6 +1154,7 @@ const Bearbeitung = ({ dokument, mappe: mappenDaten }: { mappe: Mappe; dokument:
 		ki: {
 			verfuegbar: ki.zustand.verfuegbar,
 			geladen: ki.geladen,
+			bilder: ki.zustand.bilder,
 			hinweis: limitHinweis(ki.zustand.limit, ki.zustand.warnAb),
 			pruefeLimit: ki.pruefeLimit,
 		},

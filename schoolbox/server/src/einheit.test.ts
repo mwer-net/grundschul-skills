@@ -19,8 +19,10 @@ import {
 	themaBefund,
 } from '@schoolbox/kern';
 
+import { BILDER_GESPERRT } from './bild-zugang';
 import { einheitenWurzel } from './einheit';
-import { CANVA_MCP, KI_GRENZEN, VERBRAUCH_DATEI } from './ki';
+import { VERBRAUCH_DATEI } from './ki';
+import { WERKZEUG_BILD_BEARBEITEN, WERKZEUG_BILD_ERZEUGEN } from './ki-werkzeug';
 import { leseMitschrift, MITSCHRIFT_ORDNER } from './mitschrift';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
@@ -310,7 +312,7 @@ describe('Lauf einer Einheit (139)', () => {
 		assert.match(verbrauch.at(-1) ?? '', /"umfang":"einheit"/);
 	});
 
-	it('Ohne Bilder lädt der Lauf keinen Konnektor; mit Bildern nur Canva', async () => {
+	it('Ohne Bilder keine Bildwerkzeuge; mit Bildern die eigenen, Konnektoren gesperrt (237)', async () => {
 		const aufrufe = async () =>
 			(await readFile(path.join(path.dirname(bin), 'aufrufe.jsonl'), 'utf8'))
 				.trim()
@@ -321,13 +323,24 @@ describe('Lauf einer Einheit (139)', () => {
 				);
 		const ohne = (await aufrufe()).at(-1) ?? [];
 		assert.ok(ohne.includes('--strict-mcp-config'));
-		assert.ok(!ohne.includes(CANVA_MCP));
+		assert.ok(!ohne.join(' ').includes(WERKZEUG_BILD_ERZEUGEN));
+		assert.ok(!ohne.includes('--settings'));
 		const { id } = await starte({ ...ANGABEN, bilder: true });
 		await bis(id, 'fertig');
 		const mit = (await aufrufe()).at(-1) ?? [];
+		const erlaubt = mit.slice(mit.indexOf('--allowedTools') + 1, mit.indexOf('--disallowedTools'));
 		assert.ok(mit.includes('--settings'));
 		assert.ok(mit.includes('--strict-mcp-config'));
-		assert.ok(mit.includes(CANVA_MCP));
+		assert.ok(erlaubt.includes(WERKZEUG_BILD_ERZEUGEN), erlaubt.join(' '));
+		assert.ok(erlaubt.includes(WERKZEUG_BILD_BEARBEITEN), erlaubt.join(' '));
+		// Canva steht nur in der Sperre, nie unter den erlaubten Werkzeugen.
+		assert.ok(!erlaubt.some((w) => /canva/i.test(w)), erlaubt.join(' '));
+		const sperre = JSON.parse(mit[mit.indexOf('--settings') + 1] ?? '{}') as {
+			allowedMcpServers?: unknown[];
+			deniedMcpServers?: unknown[];
+		};
+		assert.deepEqual(sperre.allowedMcpServers, [{ serverName: 'schoolbox' }]);
+		assert.ok((sperre.deniedMcpServers ?? []).length > 0);
 	});
 
 	it('Material ohne data-satz (212): nicht übernommen, eine Korrekturrunde nennt die Angabe', async () => {
@@ -878,75 +891,87 @@ describe('Lauf einer Einheit (139)', () => {
 		});
 	});
 
-	describe('Canva-Kontingent abwarten (235)', () => {
-		const pausen = KI_GRENZEN.einheit.canvaPausenMin;
+	describe('Neue KI-Bilder der Einheit (237)', () => {
 		const MIT_BILDERN = { ...ANGABEN, bilder: true };
 		const bilderLaeufe = async (mappe: string) => {
 			const roh = await readFile(path.join(mappenDir(server.materialDir, mappe), LAUF_DATEI), 'utf8');
 			return (JSON.parse(roh) as LaufProtokoll).laeufe.filter((e) => e.art === 'bilder');
 		};
+		const bildAufrufe = () => jsonl<{ argumente: { datei: string }; fehler?: boolean }>('bild.jsonl');
 
-		after(() => {
-			KI_GRENZEN.einheit.canvaPausenMin = pausen;
-		});
-
-		it('Sperre im Bilder-Lauf: nach der Pause dieselbe Sitzung mit dem kurzen Auftrag, danach sind die Bilder fertig', async () => {
-			KI_GRENZEN.einheit.canvaPausenMin = [0.005, 0.005];
-			await fall('einheit-canva');
-			const vorher = (await jsonl<{ erste: string; resume: boolean }>('laeufe.jsonl')).length;
+		it('Bilder-Lauf erzeugt ein Bild zweimal: einmal geladen, auch mit einem Takt mitten im Lauf; Kosten in der Mitschrift', async () => {
+			await fall('einheit-bild');
+			const vorher = (await bildAufrufe()).length;
 			const { id, mappe } = await starte(MIT_BILDERN);
 			const s = await bis(id, 'fertig');
 			assert.equal(s.bilderFertig, true);
-			assert.equal(s.canvaPause, undefined);
-			const laeufe = (await jsonl<{ erste: string; resume: boolean }>('laeufe.jsonl')).slice(vorher);
-			const wieder = laeufe.filter((l) => l.erste.startsWith('Canva ist wieder bereit'));
-			assert.equal(wieder.length, 1);
-			assert.equal(wieder[0]?.resume, true);
-			assert.doesNotMatch(
-				(await prompts()).find((p) => p.startsWith('Canva ist wieder bereit')) ?? '',
-				/Platzhalter|bauen neu/,
+			assert.equal(s.geladeneBilder, 1, 'dieselbe Datei zählt einmal, der Takt zählt nichts doppelt');
+			assert.equal(s.fehlgeschlageneBilder, 0);
+			const aufrufe = (await bildAufrufe()).slice(vorher);
+			assert.equal(aufrufe.length, 2);
+			assert.ok(aufrufe.every((a) => a.fehler !== true && a.argumente.datei === 'uhr-gross.png'));
+			assert.ok(
+				existsSync(path.join(einheitenWurzel(server.materialDir), `einheit-${id}`, 'arbeit', 'bilder', 'uhr-gross.png')),
 			);
-			const bilder = await bilderLaeufe(mappe);
-			assert.equal(bilder.length, 2);
 			assert.deepEqual(
-				bilder.map((e) => e.ergebnis),
-				['fertig', 'fertig'],
+				(await bilderLaeufe(mappe)).map((e) => e.ergebnis),
+				['fertig'],
 			);
-			assert.deepEqual(bilder[1]?.pflicht, bilder[0]?.pflicht);
-			assert.deepEqual(Object.keys(s.importiert).sort(), ['fall-1', 'fall-2']);
+			// Die Mitschrift des Bilder-Laufs: Ihre Ende-Zeile nennt Aufrufe und Kosten der Bild-API dieses Laufs.
+			const ordner = path.join(server.materialDir, MITSCHRIFT_ORDNER, mappe);
+			let bilderZeile: Record<string, unknown> | undefined;
+			await warte(async () => {
+				for (const n of (await readdir(ordner).catch(() => [])).filter((d) => d.endsWith('.jsonl.gz'))) {
+					const ende = (await leseMitschrift(path.join(ordner, n))).at(-1);
+					if (ende?.typ === 'ende' && (ende.bilder as { aufrufe?: number } | undefined)?.aufrufe) {
+						bilderZeile = ende;
+						return true;
+					}
+				}
+				return false;
+			});
+			assert.deepEqual(bilderZeile?.bilder, { aufrufe: 2, kostenUsd: 0.02, gesperrt: false });
 		});
 
-		it('Sperrt Canva nach allen Pausen noch, hält die Einheit an, ohne Material zu bauen', async () => {
-			KI_GRENZEN.einheit.canvaPausenMin = [0.005, 0.005];
-			await fall('einheit-canva-stur');
+		it('Sperrt OpenAI im Bilder-Lauf: unvollständig mit dem Satz, ohne Pause, ohne Material; Weiterbauen geht dort weiter', async () => {
+			await fall('einheit-bild-gesperrt');
+			const vorher = (await jsonl<{ erste: string }>('laeufe.jsonl')).length;
 			const { id, mappe } = await starte(MIT_BILDERN);
 			const s = await bis(id, 'unvollstaendig');
-			assert.match(
-				s.grund ?? '',
-				/^Canva hat nach zwei Pausen \(.*\) noch keine Bilder erzeugt \(Kontingent\)\./,
-			);
-			assert.match(s.grund ?? '', /‚Weiterbauen‘ macht bei den Bildern weiter\./);
+			assert.equal(s.grund, `${BILDER_GESPERRT} ‚Weiterbauen‘ macht bei den Bildern weiter.`);
 			assert.notEqual(s.bilderFertig, true);
 			assert.deepEqual(s.importiert, {});
-			assert.equal(s.canvaPause, undefined);
-			assert.equal((await bilderLaeufe(mappe)).length, 3);
-		});
+			assert.equal((await bilderLaeufe(mappe)).length, 1, 'kein zweiter Versuch, keine Pause');
+			const laeufe = (await jsonl<{ erste: string }>('laeufe.jsonl')).slice(vorher);
+			assert.ok(!laeufe.some((l) => /wieder bereit/.test(l.erste)));
 
-		it('Abbrechen beendet die Pause sofort', async () => {
-			KI_GRENZEN.einheit.canvaPausenMin = [10];
-			await fall('einheit-canva-stur');
-			const { id } = await starte(MIT_BILDERN);
-			await warte(async () => (await stand(id)).canvaPause !== undefined);
-			const pause = (await stand(id)).canvaPause;
-			assert.deepEqual([pause?.versuch, pause?.von], [1, 1]);
-			const beginn = Date.now();
-			await api(`/einheiten/${id}/abbrechen`, { method: 'POST' });
-			const s = await bis(id, 'unvollstaendig');
-			assert.ok(Date.now() - beginn < 5000);
-			assert.equal(s.canvaPause, undefined);
-			assert.notEqual(s.bilderFertig, true);
-			assert.equal(s.grund, 'Abgebrochen.');
+			await fall('einheit');
+			await api(`/einheiten/${id}/weiter`, { method: 'POST' });
+			const t = await bis(id, 'fertig');
+			assert.equal(t.bilderFertig, true);
+			assert.deepEqual(Object.keys(t.importiert).sort(), ['fall-1', 'fall-2']);
 		});
+	});
+
+	it('Ohne Schlüssel für OpenAI startet eine Einheit mit Bildern ohne sie (237)', async () => {
+		const ohne = await starteTestServer({ env: { CLAUDE_BIN: bin, OPENAI_API_KEY: '' } });
+		try {
+			const antwort = await ohne.holen(`${ohne.url}/api/einheiten`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json', [CSRF_HEADER]: '1' },
+				body: JSON.stringify({ angaben: { ...ANGABEN, bilder: true }, ordner: null }),
+			});
+			assert.equal(antwort.status, 201, await antwort.clone().text());
+			const { id } = (await antwort.json()) as { id: string };
+			const s = (await (await ohne.holen(`${ohne.url}/api/einheiten/${id}`)).json()) as EinheitStand;
+			assert.equal(s.bilder, false);
+			await ohne.holen(`${ohne.url}/api/einheiten/${id}/abbrechen`, {
+				method: 'POST',
+				headers: { [CSRF_HEADER]: '1' },
+			});
+		} finally {
+			await ohne.stop();
+		}
 	});
 
 	it('Fremde IDs gibt es nicht', async () => {

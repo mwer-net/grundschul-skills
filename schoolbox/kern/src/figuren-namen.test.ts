@@ -59,9 +59,10 @@ describe('figurenIn (176, Regeln aus 179)', () => {
 
 describe('figurenFuerBild (179)', () => {
 	const BAER: BibliotheksFigur = { ...figur('baer', 'Bär'), steckbrief: 'brauner Bär mit grüner Mütze' };
-	const IGEL_MIT_ID: BibliotheksFigur = { ...IGEL, canva: 'MAigel00001' };
 	const MAX: BibliotheksFigur = { ...figur('max', 'Max'), steckbrief: 'Junge mit roter Jacke' };
-	const BIBLIOTHEK = [...EINGEBAUTE, BAER, IGEL_MIT_ID, MAX, KIKI];
+	/** Ohne Steckbrief und ohne Bilddatei; im Server kommt das nicht vor, der Filter muss es trotzdem kennen. */
+	const LEER: BibliotheksFigur = { ...figur('leer', 'Lotte'), posen: [] };
+	const BIBLIOTHEK = [...EINGEBAUTE, BAER, IGEL, MAX, KIKI, LEER];
 	const fuerBild = (text: string) => figurenFuerBild(text, BIBLIOTHEK).map((f) => f.name);
 
 	it('findet Willi und Wilma in der Reihenfolge des Textes, auch klein und groß', () => {
@@ -74,12 +75,18 @@ describe('figurenFuerBild (179)', () => {
 		assert.deepEqual(fuerBild('Bärbel winkt'), []);
 	});
 
-	it('lässt eine Figur ohne Steckbrief und ohne Media-ID weg (Gegenprobe: figurenIn findet sie)', () => {
-		assert.deepEqual(fuerBild('Kiki winkt'), []);
-		assert.deepEqual(namen('Kiki winkt', BIBLIOTHEK), ['Kiki']);
+	it('nimmt eine Figur ohne Steckbrief, aber mit Bilddatei (237)', () => {
+		assert.equal(KIKI.steckbrief, undefined);
+		assert.deepEqual(fuerBild('Kiki winkt'), ['Kiki']);
 	});
 
-	it('nimmt eine Figur nur mit Media-ID und kürzt fünf Figuren nicht', () => {
+	it('lässt eine Figur ohne Steckbrief und ohne Bilddatei weg (Gegenprobe: figurenIn findet sie)', () => {
+		assert.deepEqual(fuerBild('Lotte winkt'), []);
+		assert.deepEqual(namen('Lotte winkt', BIBLIOTHEK), ['Lotte']);
+	});
+
+	it('nimmt eine Figur ohne Media-ID von Canva und kürzt fünf Figuren nicht', () => {
+		assert.equal(IGEL.canva, undefined);
 		assert.deepEqual(fuerBild('ein Igel im Laub'), ['Igel']);
 		assert.deepEqual(fuerBild('Willi, Wilma, Bär, Igel und Max'), ['Willi', 'Wilma', 'Bär', 'Igel', 'Max']);
 		assert.ok(fuerBild('Willi, Wilma, Bär, Igel und Max').length > MAX_FIGUREN_JE_BILD);

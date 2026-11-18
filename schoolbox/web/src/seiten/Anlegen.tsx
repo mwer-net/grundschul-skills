@@ -372,8 +372,10 @@ export const MaterialDialog = ({
 		setFehler(null);
 		try {
 			localStorage.setItem(LETZTE, JSON.stringify({ fach: a.fach, klasse: a.klasse }));
+			// Ohne Bild-API fehlt der Schalter; die Vorgabe `bilder: true` darf dann keinen Bildschritt bestellen (237).
+			const angaben = einheitAngabenAus(a);
 			const neu = await sende<{ id: string; ordner: string }>('/api/einheiten', {
-				angaben: einheitAngabenAus(a),
+				angaben: ki.zustand.bilder.verfuegbar ? angaben : { ...angaben, bilder: false },
 				ordner,
 			});
 			fertig();
@@ -677,7 +679,7 @@ export const MaterialDialog = ({
 			/>
 		),
 		eBestandteile: () => <SchrittEBestandteile a={wirksam} setzeEh={setzeEh} />,
-		eRahmen: () => <SchrittERahmen a={wirksam} setzeEh={setzeEh} />,
+		eRahmen: () => <SchrittERahmen a={wirksam} bilder={ki.zustand.bilder} setzeEh={setzeEh} />,
 		bausteine: () => <SchrittBausteine a={wirksam} setze={setze} />,
 		klasse: () => {
 			const schluss = (

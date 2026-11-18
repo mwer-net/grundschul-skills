@@ -1,7 +1,8 @@
 /**
  * Besitzer: 179. „Bild beschreiben …“ in der Steuerzeile von „Bilder“: oben das Feld für den Wunsch, unten die
- * Bildchen der erkannten Figuren und Senden. „Foto hochladen“ steht in einer eigenen Zeile darunter (199-14). Das Bild malt Claude in Canva (176); es landet in „Dieser
- * Ordner“. Optik und Senden wie „Figur beschreiben …“ in „Figuren“.
+ * Bildchen der erkannten Figuren und Senden. „Foto hochladen“ steht in einer eigenen Zeile darunter (199-14). Das Bild
+ * malt Claude mit dem Bildmodell (176, 237); es landet in „Dieser Ordner“. Optik und Senden wie „Figur beschreiben …“ in
+ * „Figuren“. Ohne Bild-API steht `OhneBildApi` an der Stelle des Felds.
  */
 import { CANVA_TEXT_ZEICHEN } from '@schoolbox/kern/src/canva-auftrag';
 import { figurenFuerBild } from '@schoolbox/kern/src/figuren-namen';
@@ -16,6 +17,22 @@ import { useFiguren, vorschauVon } from '../gestaltung/figuren-quelle';
 import { LimitZeile } from '../LimitZeile';
 import type { SchubladenTeile } from '.';
 import { SendenKreis } from './kreise';
+
+/** Ohne Bild-API (237): Felder für neue Bilder und Figuren gibt es nicht, an ihrer Stelle steht der Satz des Servers. */
+export const OhneBildApi = ({ grund }: { grund: string | null }) =>
+	grund && (
+		<p className="text-xs text-leise" data-ohne-bild-api>
+			{grund}
+		</p>
+	);
+
+/** Ohne Claude-Anmeldung erscheint nichts; ohne Bild-API `OhneBildApi`; sonst das Feld. */
+export const bildFeld = (ki: SchubladenTeile['ki']): 'feld' | 'grund' | 'nichts' => {
+	if (ki.geladen && !ki.verfuegbar) {
+		return 'nichts';
+	}
+	return ki.geladen && !ki.bilder.verfuegbar ? 'grund' : 'feld';
+};
 
 /** Bis vier Zeilen wächst das Feld, danach rollt es (wie `FELD_MAX` in `Blase.tsx`). */
 const ZEILEN = 4;

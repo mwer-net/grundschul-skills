@@ -1,14 +1,19 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { connect } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { describe, it } from 'node:test';
+import { createInterface } from 'node:readline';
+import { after, before, describe, it } from 'node:test';
 
 import type { Ansicht, Meldung } from '@schoolbox/kern';
-import { baueAnsichtAus, laufMeldungen } from '@schoolbox/kern';
+import { BILD_FORMAT_NAMEN, baueAnsichtAus, laufMeldungen } from '@schoolbox/kern';
 import { browserSkip } from '@schoolbox/kern/src/browsertest';
 
-import { ansichtText } from './ki-werkzeug';
+import type { BildWerkzeug } from './bild-werkzeug';
+import type { Werkzeug, WerkzeugArt } from './ki-werkzeug';
+import { ansichtText, starteWerkzeug } from './ki-werkzeug';
 
 const ansicht = (meldungen: Meldung[]): Ansicht => ({
 	bericht: { seiten: [{}], meldungen, fehler: meldungen.filter((m) => m.stufe === 'FEHLER').length },
@@ -77,6 +82,167 @@ describe('bauen für Claude: Probeblatt (225, Abnahme)', { skip: browserSkip() }
 			assert.match(text, /^HINWEIS Seite 1: In s\/w kaum lesbar/m);
 		} finally {
 			await rm(tmp, { recursive: true, force: true });
+		}
+	});
+});
+
+interface McpAntwort {
+	id: number;
+	result?: {
+		tools?: { name: string; inputSchema: { properties: Record<string, { enum?: string[] }>; required: string[] } }[];
+		content?: { text: string }[];
+		isError?: boolean;
+	};
+	error?: { code: number };
+}
+
+/** Startet `mcp.mjs` wie `claude` aus der MCP-Datei und schickt die Anfragen; die Antworten nach `id`. */
+const sprich = async (werkzeug: Werkzeug, anfragen: Record<string, unknown>[]): Promise<McpAntwort[]> => {
+	const datei = JSON.parse(await readFile(werkzeug.mcpDatei, 'utf8')) as {
+		mcpServers: Record<string, { command: string; args: string[] }>;
+	};
+	const { args, command } = datei.mcpServers.schoolbox ?? { command: '', args: [] };
+	const kind = spawn(command, args, { stdio: ['pipe', 'pipe', 'inherit'] });
+	const antworten = new Map<number, McpAntwort>();
+	const fertig = new Promise<void>((resolve) => {
+		createInterface({ input: kind.stdout }).on('line', (zeile) => {
+			const antwort = JSON.parse(zeile) as McpAntwort;
+			antworten.set(antwort.id, antwort);
+			if (antworten.size === anfragen.length) {
+				resolve();
+			}
+		});
+	});
+	for (const [i, anfrage] of anfragen.entries()) {
+		kind.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: i + 1, ...anfrage })}\n`);
+	}
+	await fertig;
+	kind.kill();
+	return anfragen.map((_, i) => antworten.get(i + 1) ?? { id: i + 1 });
+};
+
+const namenVon = (antwort: McpAntwort | undefined) => antwort?.result?.tools?.map((t) => t.name) ?? [];
+
+describe('mcp.mjs: mehrere Werkzeuge je Prozess (237)', () => {
+	let dir: string;
+	const bauen: { dokument: string | undefined }[] = [];
+	const bilder: { werkzeug: string; argumente: Record<string, unknown> }[] = [];
+	const bildWerkzeug = {
+		referenzen: [],
+		aufruf: (werkzeug: string, argumente: Record<string, unknown>) => {
+			bilder.push({ werkzeug, argumente });
+			return Promise.resolve({ text: `Bild ${werkzeug}` });
+		},
+		stand: () => ({ gesperrt: false, aufrufe: bilder.length, obergrenze: 3, bilder: [], kostenUsd: 0 }),
+	} as unknown as BildWerkzeug;
+	const baue = (dokument: string | undefined) => {
+		bauen.push({ dokument });
+		return Promise.resolve({ text: `Gebaut ${dokument ?? '-'}` });
+	};
+	const starte = (art: WerkzeugArt, mitBildern: boolean) =>
+		starteWerkzeug(dir, art === 'bilder' ? null : baue, art, { bilder: mitBildern ? bildWerkzeug : null });
+
+	before(async () => {
+		dir = await mkdtemp(path.join(tmpdir(), 'mcp-'));
+	});
+	after(async () => {
+		await rm(dir, { recursive: true, force: true });
+	});
+
+	it('tools/list je art', async () => {
+		const faelle: [WerkzeugArt, boolean, string[]][] = [
+			['blatt', false, ['bauen']],
+			['blatt', true, ['bauen', 'bild_erzeugen', 'bild_bearbeiten']],
+			['einheit', false, ['bauen']],
+			['einheit', true, ['bauen', 'bild_erzeugen', 'bild_bearbeiten']],
+			['bilder', true, ['bild_erzeugen', 'bild_bearbeiten']],
+			['recherche', true, ['pruefen']],
+		];
+		for (const [art, mitBildern, erwartet] of faelle) {
+			const werkzeug = await starte(art, mitBildern);
+			try {
+				const [liste] = await sprich(werkzeug, [{ method: 'tools/list' }]);
+				assert.deepEqual(namenVon(liste), erwartet, `${art} ${mitBildern}`);
+				assert.deepEqual(
+					werkzeug.werkzeuge,
+					erwartet.map((n) => `mcp__schoolbox__${n}`),
+				);
+				const bauenSchema = liste?.result?.tools?.find((t) => t.name === 'bauen')?.inputSchema;
+				if (bauenSchema) {
+					assert.deepEqual(bauenSchema.required, art === 'einheit' ? ['dokument'] : []);
+				}
+			} finally {
+				await werkzeug.ende();
+			}
+		}
+		await assert.rejects(starteWerkzeug(dir, null, 'bilder'));
+	});
+
+	it('bild_erzeugen nennt die Formatnamen aus kern und kein Schriftverbot', async () => {
+		const werkzeug = await starte('bilder', true);
+		try {
+			const [liste] = await sprich(werkzeug, [{ method: 'tools/list' }]);
+			const erzeugen = liste?.result?.tools?.find((t) => t.name === 'bild_erzeugen');
+			assert.deepEqual(erzeugen?.inputSchema.properties.format?.enum, BILD_FORMAT_NAMEN);
+			assert.deepEqual(erzeugen?.inputSchema.required, ['datei', 'prompt', 'format']);
+			const text = JSON.stringify(liste?.result?.tools);
+			assert.match(text, /bilder\.json/);
+			assert.match(text, /nur aus bilder\/, referenzen\/ und den Vorversionen in ansicht\/bilder\/versuche\//);
+			assert.match(text, /Ändere nur/);
+			assert.doesNotMatch(text, /keine Schrift|ohne Schrift|kein Text/i);
+		} finally {
+			await werkzeug.ende();
+		}
+	});
+
+	it('tools/call reicht die Argumente durch, an bauen wie an die Bildwerkzeuge', async () => {
+		const werkzeug = await starte('einheit', true);
+		try {
+			const argumente = { datei: 'luna.png', prompt: 'Eine Eule', format: 'SQUARE_1_1', transparent: true };
+			const [gebaut, bild, fremd] = await sprich(werkzeug, [
+				{ method: 'tools/call', params: { name: 'bauen', arguments: { dokument: 'lesen-1' } } },
+				{ method: 'tools/call', params: { name: 'bild_erzeugen', arguments: argumente } },
+				{ method: 'tools/call', params: { name: 'pruefen', arguments: {} } },
+			]);
+			assert.equal(gebaut?.result?.content?.[0]?.text, 'Gebaut lesen-1');
+			assert.equal(bild?.result?.content?.[0]?.text, 'Bild bild_erzeugen');
+			assert.equal(bild?.result?.isError, false);
+			assert.deepEqual(bauen.at(-1), { dokument: 'lesen-1' });
+			assert.deepEqual(bilder.at(-1), { werkzeug: 'bild_erzeugen', argumente });
+			assert.equal(fremd?.error?.code, -32601);
+		} finally {
+			await werkzeug.ende();
+		}
+	});
+
+	it('der Socket nimmt nur, was die Art anbietet, und prüft die Argumente von bauen', async () => {
+		const werkzeug = await starte('blatt', false);
+		const { args } = (
+			JSON.parse(await readFile(werkzeug.mcpDatei, 'utf8')) as {
+				mcpServers: { schoolbox: { args: string[] } };
+			}
+		).mcpServers.schoolbox;
+		const frage = (zeile: string) =>
+			new Promise<{ text: string; fehler?: boolean }>((resolve) => {
+				const verbindung = connect(args[1] ?? '');
+				let antwort = '';
+				verbindung.on('connect', () => verbindung.write(`${zeile}\n`));
+				verbindung.on('data', (teil) => {
+					antwort += teil.toString();
+				});
+				verbindung.on('close', () => resolve(JSON.parse(antwort) as { text: string; fehler?: boolean }));
+			});
+		try {
+			const vorher = bilder.length;
+			const bild = await frage(JSON.stringify({ werkzeug: 'bild_erzeugen', argumente: { datei: 'a.png' } }));
+			assert.equal(bild.fehler, true);
+			assert.equal(bilder.length, vorher);
+			assert.equal((await frage(JSON.stringify({ werkzeug: 'bauen', argumente: { dokument: 7 } }))).fehler, true);
+			assert.equal((await frage('{"dokument":"alt"}')).fehler, true);
+			assert.equal((await frage('kein json')).fehler, true);
+			assert.equal((await frage(JSON.stringify({ werkzeug: 'bauen', argumente: {} }))).text, 'Gebaut -');
+		} finally {
+			await werkzeug.ende();
 		}
 	});
 });

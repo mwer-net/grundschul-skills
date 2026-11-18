@@ -1,7 +1,7 @@
 /**
- * Neue Bilder aus Canva für ein einzelnes Blatt. Claude trägt sie in `bilder.json` ein wie bei der Einheit
- * (`canva-bild.ts`); geladen wird in den Arbeitsordner, wo Claude sie ansieht. In die Mappe kommt nur, was das Blatt
- * nennt: Ein verworfenes Bild bleibt im Arbeitsordner und verschwindet mit ihm.
+ * Neue KI-Bilder für ein einzelnes Blatt (seit 237 über die Bild-API). Claude trägt den Bildvertrag in `bilder.json`
+ * ein, das Werkzeug `bild_erzeugen` legt das Bild in den Arbeitsordner, wo Claude es ansieht. In die Mappe kommt nur,
+ * was das Blatt nennt, mit seiner Herkunft: Ein verworfenes Bild bleibt im Arbeitsordner und verschwindet mit ihm.
  */
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -10,13 +10,9 @@ import path from 'node:path';
 
 import { uebernimmBilder, wendeBilderAn } from '@schoolbox/kern';
 
-import type { Zuschnitt } from './canva-bild';
-import { erstelleBildLader, notiereCanvaId } from './canva-bild';
+import { uebertrageHerkunft } from './bild-herkunft';
 
 const BILD_IM_BLATT = /\.\.\/\.\.\/bilder\/([a-z0-9][a-z0-9-]{0,59}\.(?:png|jpg))/g;
-const TAKT_MS = 2000;
-
-type Laden = Parameters<typeof erstelleBildLader>[2];
 
 interface Uebernommen {
 	hash: string;
@@ -25,10 +21,7 @@ interface Uebernommen {
 	angelegt: boolean;
 }
 
-export const erstelleBlattBilder = (arbeit: string, mappeDir: string, laden?: Laden, zuschnitt?: Zuschnitt) => {
-	const lader = erstelleBildLader(arbeit, path.join(arbeit, 'bilder'), laden, zuschnitt);
-	// Export-URLs laufen ab, und Claude sieht sich das Bild gleich nach dem Eintrag an.
-	const takt = setInterval(() => void lader.pruefe(), TAKT_MS);
+export const erstelleBlattBilder = (arbeit: string, mappeDir: string) => {
 	const stand = new Map<string, Uebernommen>();
 
 	const uebernimm = async (bild: string) => {
@@ -47,17 +40,15 @@ export const erstelleBlattBilder = (arbeit: string, mappeDir: string, laden?: La
 		// Ein vergebener Name mit anderem Inhalt gehört einem anderen Material der Mappe: Das neue Bild heißt dann anders.
 		const ziel = (await uebernimmBilder(arbeit, mappeDir, [bild]))[bild] ?? bild;
 		stand.set(bild, { hash, ziel, angelegt: !gabEs || ziel !== bild });
-		const wunsch = lader.wunsch(path.basename(bild));
-		if (wunsch) {
-			await notiereCanvaId(path.join(mappeDir, 'bilder'), { ...wunsch, datei: path.basename(ziel) });
-		}
+		await uebertrageHerkunft(path.join(arbeit, 'bilder'), path.join(mappeDir, 'bilder'), {
+			[path.basename(bild)]: path.basename(ziel),
+		});
 		return ziel;
 	};
 
 	return {
 		/** Legt die neuen Bilder, die das Blatt nennt, in die Mappe und setzt dort vergebene Namen im Blatt um. */
 		einsetzen: async (html: string) => {
-			await lader.pruefe();
 			const bilder = [...new Set([...html.matchAll(BILD_IM_BLATT)].map((t) => `bilder/${t[1]}`))].filter((b) =>
 				existsSync(path.join(arbeit, b)),
 			);
@@ -70,7 +61,6 @@ export const erstelleBlattBilder = (arbeit: string, mappeDir: string, laden?: La
 			}
 			return wendeBilderAn(html, umbenannt);
 		},
-		ende: () => clearInterval(takt),
 	};
 };
 

@@ -72,17 +72,28 @@ import {
 } from '@schoolbox/kern';
 import { liesReferenzen, loeseReferenz, pfadText } from '@schoolbox/kern/src/referenz';
 
+import { ANSICHT_BILDER, BILDER_LISTE } from './bild-datei';
+import { BILD_GRENZEN } from './bild-grenzen';
+import type { BildApi, BildKonfig } from './bild-zugang';
+import { erstelleLaufBilder } from './bild-zugang';
 import type { BlattBilder } from './blatt-bilder';
 import { erstelleBlattBilder } from './blatt-bilder';
-import { ANSICHT_BILDER, erstelleZuschnitt } from './canva-bild';
 import { leseQuelle } from './dokumente';
 import type { Ereignisse } from './ereignisse';
 import { HttpFehler } from './fehler';
 import type { KiEffort, KiLauf } from './ki-einstellung';
 import { kiLaufJetzt } from './ki-einstellung';
 import type { Bauen } from './ki-werkzeug';
-import { ansichtText, starteWerkzeug, WERKZEUG_BAUEN, WERKZEUG_PRUEFEN, WERKZEUG_SERVER } from './ki-werkzeug';
-import type { MitschriftZiel } from './mitschrift';
+import {
+	ansichtText,
+	starteWerkzeug,
+	WERKZEUG_BAUEN,
+	WERKZEUG_BILD_BEARBEITEN,
+	WERKZEUG_BILD_ERZEUGEN,
+	WERKZEUG_PRUEFEN,
+	WERKZEUG_SERVER,
+} from './ki-werkzeug';
+import type { BildZaehler, MitschriftZiel } from './mitschrift';
 import { schreibeMitschrift } from './mitschrift';
 
 /**
@@ -149,11 +160,6 @@ export const KI_GRENZEN = {
 		material: { zeitMs: 30 * 60_000, runden: 200, budgetUsd: 20, budgetGuthabenUsd: 5 },
 		/** Der Schritt „Bilder“: Leitfigur, Posen und die Szenen aller Kapitel, je Bild bis zu drei Versuche. */
 		bilder: { zeitMs: 60 * 60_000, runden: 300, budgetUsd: 25, budgetGuthabenUsd: 5 },
-		/**
-		 * Sperrt Canva das Kontingent (`quota_cooldown`, 235), wartet der Server so viele Minuten und weckt dann dieselbe
-		 * Sitzung; nach der letzten Pause hält die Einheit an. Die Wartezeit zählt nicht auf `zeitMs`.
-		 */
-		canvaPausenMin: [15, 30, 60, 60],
 		/** So oft geht ein Material mit Sperre oder Prüf-FEHLER an seinen Lauf zurück. */
 		korrekturen: 1,
 		/**
@@ -179,16 +185,21 @@ export const KI_GRENZEN = {
 		aufhebenMs: 7 * 24 * 60 * 60_000,
 	},
 	/**
-	 * Ein Bild in Canva (176), ein Lauf zur Zeit. Gemessen in 138: 77 s, 19 Runden und 0,79 USD je Bild; die Grenzen
-	 * lassen Platz für eine Reparatur nach `bilder.md` §2a.
+	 * Ein Lauf der Schubladen (176), einer zur Zeit, seit 237 über die Bild-API. Mit Canva brauchte ein Bild 19 Runden
+	 * (138: Hilfsdesign, Export, Abfragen); jetzt sind es Lesen, Vertrag, ein Aufruf, Prüfbilder ansehen und das
+	 * Ergebnis, rund 5 bis 8 Runden, mit zwei Reparaturen nach `bilder.md` §2a gut 20. Die Zeit ist länger als die
+	 * Runden verlangen: Ein Aufruf der Bild-API dauert mit Wiederholungen bis zu `KI_GRENZEN.bild.zeitMs` je Versuch.
+	 * Die Kosten des Bilds zahlt OpenAI, nicht das Budget von Claude.
 	 */
 	canva: {
-		zeitMs: 6 * 60_000,
-		runden: 40,
-		budgetUsd: 2,
-		budgetGuthabenUsd: 1,
+		zeitMs: 12 * 60_000,
+		runden: 30,
+		budgetUsd: 1.5,
+		budgetGuthabenUsd: 0.75,
 		warten: 5,
 	},
+	/** Bilder über die Bild-API von OpenAI (237), im Werkzeug `bild_erzeugen`/`bild_bearbeiten`. */
+	bild: BILD_GRENZEN,
 	/**
 	 * Die Recherche vor dem Plan (219), ein eigener Lauf mit Websuche. Gemessen in zwei Probeläufen: eine Suche oder ein
 	 * Abruf, 5 Runden, gut 20 s und 0,09 bis 0,14 USD. Eine echte Recherche liest viele Seiten; Qualität geht vor
@@ -360,68 +371,44 @@ export type KiPruefer = (dokDir: string, html: string) => Promise<Pruefbericht>;
 /** Baut eine Fassung mit Seitenbildern nach `ziel`, für das Werkzeug „bauen“. */
 export type KiAnsicht = (dokDir: string, html: string, ziel: string, optionen?: AnsichtOptionen) => Promise<Ansicht>;
 
-type KiKonfig = Pick<Konfig, 'claudeBin' | 'kiAn' | 'kiModell' | 'materialDir' | 'pythonBin'>;
+type KiKonfig = Pick<Konfig, 'claudeBin' | 'kiAn' | 'kiModell' | 'materialDir'> & BildKonfig;
 
 interface Abhaengigkeiten {
 	konfig: KiKonfig;
 	ereignisse: Ereignisse;
 	pruefer: KiPruefer;
 	ansicht: KiAnsicht;
+	/** Eingespritzte Bild-API (Tests, E2E); `null`: die echte, sofern ein Schlüssel da ist. */
+	bildApi?: BildApi | null;
 }
 
-export const CANVA_SERVER = 'canva';
-
 /**
- * Canva für die Bilder einer Einheit (138), genau der Ablauf aus `bilder.md` §2 und nichts sonst. Kein Löschen,
- * Teilen, Kommentieren, keine Ordner, kein Upload: Referenzbilder der Leitfigur liegen im selben Konto schon vor.
+ * Weitere Sperren neben `--strict-mcp-config` für jeden Lauf mit Bildwerkzeugen: `konnektorSperre` erlaubt nur den
+ * eigenen Server `schoolbox` (die stärkere Sperre, wie vor 237 neben Canva), und diese Server sind dazu ausdrücklich
+ * verboten, ihre Werkzeuge ebenso. Seit 237 lädt kein Lauf mehr Canva.
  */
-export const CANVA_WERKZEUGE = [
-	// Bild erzeugen und abwarten, bis es fertig ist.
-	'generate-image',
-	'get-generate-image-job',
-	// Figuren und Einzelmotive freistellen.
-	'remove-background',
-	// Originalgröße des Bilds für die Exportseite.
-	'get-assets',
-	// Das Hilfsdesign „Bild-Export (Hilfsdesign)“ finden, lesen und um eine Seite mit dem Bild ergänzen.
-	'search-designs',
-	'read-design',
-	'edit-design',
-	// Fehlt das Hilfsdesign: aus einem vorhandenen eine Kopie in Bildgröße.
-	'resize-design',
-	// Die Seite als PNG oder JPEG exportieren; laden tut der Server (`canva-bild.ts`).
-	'export-design',
-].map((w) => `mcp__${CANVA_SERVER}__${w}`);
-
-/**
- * Der Lauf bringt Canva selbst mit, statt sich auf den Konnektor von claude.ai zu verlassen: Der war ohne Meldung weg,
- * und mit `--setting-sources project` lädt auch ein beim Nutzer eingerichteter Server nicht. Die Anmeldung stammt vom
- * Server gleichen Namens und gleicher Adresse, den der Admin einmal mit `claude mcp add` einrichtet.
- */
-export const CANVA_MCP = JSON.stringify({
-	mcpServers: { [CANVA_SERVER]: { type: 'http', url: 'https://mcp.canva.com/mcp' } },
-});
-
-/** Zweite Sperre neben `--strict-mcp-config`: Nur der Canva-Server und das eigene Werkzeug sind erlaubt. */
-export const CANVA_URL = 'https://mcp.canva.com/*';
-/** Dritte Sperre, falls die anderen nicht greifen: diese Server ausdrücklich verboten, ihre Werkzeuge ebenso. */
 export const NIE_KONNEKTOREN = [
 	'claude.ai Gmail',
 	'claude.ai Google Drive',
 	'claude.ai Claude Docs',
 	'claude.ai Canva',
 ];
-export const NIE_KONNEKTOR_URLS = ['https://gmailmcp.googleapis.com/*', 'https://drivemcp.googleapis.com/*'];
+export const NIE_KONNEKTOR_URLS = [
+	'https://gmailmcp.googleapis.com/*',
+	'https://drivemcp.googleapis.com/*',
+	'https://mcp.canva.com/*',
+];
 export const NIE_KONNEKTOR_WERKZEUGE = [
 	'mcp__claude_ai_Gmail',
 	'mcp__claude_ai_Google_Drive',
 	'mcp__claude_ai_Claude_Docs',
 	'mcp__claude_ai_Canva',
+	'mcp__canva',
 ];
 
-export const canvaEinstellungen = () =>
+export const konnektorSperre = () =>
 	JSON.stringify({
-		allowedMcpServers: [{ serverUrl: CANVA_URL }, { serverName: WERKZEUG_SERVER }],
+		allowedMcpServers: [{ serverName: WERKZEUG_SERVER }],
 		deniedMcpServers: [
 			...NIE_KONNEKTOREN.map((serverName) => ({ serverName })),
 			...NIE_KONNEKTOR_URLS.map((serverUrl) => ({ serverUrl })),
@@ -453,10 +440,13 @@ export const einheitBauRechte = (o: { slug: string | null; thema: boolean; bilde
 	...(o.bilder ? ['Write(./bilder.json)', 'Edit(./bilder.json)'] : []),
 ];
 
-/** Ein neues Blatt mit Bildern aus Canva: neben dem Blatt nur die Bildliste, die der Server abholt (`blatt-bilder.ts`). */
-export const BLATT_BILD_RECHTE = ['Write(./bilder.json)', 'Edit(./bilder.json)'];
+/**
+ * Ein neues Blatt mit Bildwerkzeugen (237): neben dem Blatt nur die Bildliste mit den Bildverträgen. Der Server legt
+ * sie vor dem Lauf leer an, darum reicht Edit; `Write` braucht der Lauf nicht.
+ */
+export const BLATT_BILD_RECHTE = ['Edit(./bilder.json)'];
 
-/** Was ein Canva-Lauf schreiben darf (176): die Bildliste und sein Ergebnis, sonst nichts. */
+/** Was ein Lauf der Schubladen schreiben darf (176): die Bildliste und sein Ergebnis, sonst nichts. */
 export const CANVA_BILD_RECHTE = [
 	'Write(./bilder.json)',
 	'Edit(./bilder.json)',
@@ -464,13 +454,29 @@ export const CANVA_BILD_RECHTE = [
 	'Edit(./ergebnis.json)',
 ];
 
-/** Ein Canva-Bild (176): nur die Bildwerkzeuge von Canva und zwei Dateien, kein Skill, kein Material. */
+/** Hat der Lauf Bildwerkzeuge? Dann darf er die Bildliste schreiben. */
+const mitBildwerkzeug = (werkzeuge: string[]) =>
+	werkzeuge.includes(WERKZEUG_BILD_ERZEUGEN) || werkzeuge.includes(WERKZEUG_BILD_BEARBEITEN);
+
+/**
+ * `--strict-mcp-config` lädt nur die eigene MCP-Konfiguration. Ein Lauf mit Bildwerkzeugen sperrt die Konnektoren des
+ * Kontos dazu ausdrücklich, wie vor 237 der Lauf mit Canva.
+ */
+const konnektorArgumente = (mcpDatei: string | null | undefined, sperre: boolean) => [
+	...(sperre ? ['--settings', konnektorSperre()] : []),
+	'--strict-mcp-config',
+	...(mcpDatei ? ['--mcp-config', mcpDatei] : []),
+];
+
+/** Ein Bild der Schubladen (176, seit 237 über die Bild-API): nur die Bildwerkzeuge und zwei Dateien, kein Skill. */
 const canvaBildArgumente = (o: {
 	ablage: string;
 	auftragDatei: string;
 	budgetUsd?: number;
 	modell: string;
 	effort: KiEffort;
+	mcpDatei?: string | null;
+	mcpWerkzeuge?: string[];
 }) => [
 	'-p',
 	'--output-format',
@@ -484,16 +490,12 @@ const canvaBildArgumente = (o: {
 	'project',
 	'--add-dir',
 	o.ablage,
-	'--settings',
-	canvaEinstellungen(),
-	'--strict-mcp-config',
-	'--mcp-config',
-	CANVA_MCP,
+	...konnektorArgumente(o.mcpDatei, true),
 	'--tools',
 	'Read,Edit,Write',
 	'--allowedTools',
 	...CANVA_BILD_RECHTE,
-	...CANVA_WERKZEUGE,
+	...(o.mcpDatei ? (o.mcpWerkzeuge ?? [WERKZEUG_BILD_ERZEUGEN, WERKZEUG_BILD_BEARBEITEN]) : []),
 	'--disallowedTools',
 	...NIE_LESEN,
 	...NIE_KONNEKTOR_WERKZEUGE,
@@ -507,18 +509,10 @@ const canvaBildArgumente = (o: {
 	o.auftragDatei,
 ];
 
-/** Ein Einheit-Lauf nimmt seine eigenen Werkzeuge; sonst schreibt nur, wer mehrere Dateien oder Bilder anlegt. */
-const werkzeugListe = (o: { einheit?: boolean; werkzeuge?: string }, canva: boolean) => {
-	if (o.einheit) {
-		return o.werkzeuge ?? 'Read,Edit,Write,Skill';
-	}
-	return canva ? 'Read,Edit,Write,Skill' : 'Read,Edit,Skill';
-};
-
 /**
  * Der Aufruf aus Issue 056: Skills ja, sonst nichts. Der Prompt kommt über stdin, weil `--tools` Werte schluckt.
- * `einheit` (139) schreibt mehrere Dateien und hat eigene Grenzen. `mitCanva` (138): eine Einheit mit Bildern oder der
- * Bau eines neuen Blatts.
+ * `einheit` (139) schreibt mehrere Dateien und hat eigene Grenzen. Die MCP-Werkzeuge (`bauen`, seit 237 auch
+ * `bild_erzeugen`/`bild_bearbeiten`) nennt `mcpWerkzeuge`; ohne Angabe nur `bauen`.
  */
 export const kiArgumente = (o: {
 	ablage: string;
@@ -529,11 +523,12 @@ export const kiArgumente = (o: {
 	effort: KiEffort;
 	sitzung?: string | null;
 	einheit?: boolean;
-	mitCanva?: boolean;
-	/** Ein Canva-Bild (176): nur die Bildwerkzeuge von Canva und zwei Dateien, kein Skill, kein Material. */
+	/** Ein Bild der Schubladen (176): nur die Bildwerkzeuge und zwei Dateien, kein Skill, kein Material. */
 	canvaBild?: boolean;
-	/** Die MCP-Konfiguration mit dem Werkzeug „bauen“ (`ki-werkzeug.ts`). */
+	/** Die MCP-Konfiguration des Laufs (`ki-werkzeug.ts`). */
 	mcpDatei?: string | null;
+	/** Die Werkzeuge des MCP-Servers für `--allowedTools` (`werkzeug.werkzeuge`); ohne Angabe nur `bauen`. */
+	mcpWerkzeuge?: string[];
 	/** Ein neues Blatt: mehr Zeit und Runden. */
 	gross?: boolean;
 	runden?: number;
@@ -545,7 +540,8 @@ export const kiArgumente = (o: {
 	if (o.canvaBild === true) {
 		return canvaBildArgumente(o);
 	}
-	const canva = o.mitCanva === true;
+	const mcp = o.mcpDatei ? (o.mcpWerkzeuge ?? [WERKZEUG_BAUEN]) : [];
+	const bilder = mitBildwerkzeug(mcp);
 	const blattRunden = o.gross ? KI_GRENZEN.blatt.runden : KI_GRENZEN.runden;
 	const blattBudget = o.gross ? KI_GRENZEN.blatt.budgetUsd : KI_GRENZEN.budgetUsd;
 	return [
@@ -561,21 +557,18 @@ export const kiArgumente = (o: {
 		'project',
 		'--add-dir',
 		o.ablage,
-		...(canva ? ['--settings', canvaEinstellungen()] : []),
-		'--strict-mcp-config',
-		...(o.mcpDatei || canva
-			? ['--mcp-config', ...(o.mcpDatei ? [o.mcpDatei] : []), ...(canva ? [CANVA_MCP] : [])]
-			: []),
+		...konnektorArgumente(o.mcpDatei, bilder),
 		'--tools',
-		werkzeugListe(o, canva),
+		o.einheit ? (o.werkzeuge ?? 'Read,Edit,Write,Skill') : 'Read,Edit,Skill',
 		'--allowedTools',
-		...(o.einheit ? (o.rechte ?? EINHEIT_RECHTE) : [`Edit(./${WORKFILE})`, ...(canva ? BLATT_BILD_RECHTE : [])]),
+		...(o.einheit
+			? (o.rechte ?? EINHEIT_RECHTE)
+			: [`Edit(./${WORKFILE})`, ...(bilder ? BLATT_BILD_RECHTE : [])]),
 		'Skill',
-		...(o.mcpDatei ? [WERKZEUG_BAUEN] : []),
-		...(canva ? CANVA_WERKZEUGE : []),
+		...mcp,
 		'--disallowedTools',
 		...NIE_LESEN,
-		...(canva ? NIE_KONNEKTOR_WERKZEUGE : []),
+		...(bilder ? NIE_KONNEKTOR_WERKZEUGE : []),
 		'--permission-mode',
 		'dontAsk',
 		'--max-turns',
@@ -951,7 +944,7 @@ const LOESUNG_ORDNER = 'loesung';
 /**
  * Richtet den Ordner des Prüflaufs ein, nachdem `ansicht` die Seiten frisch hineingebaut hat: Lösungsseiten gehen
  * heraus, mit `mitLoesung` (Rollen mit Kinderaugen, 229) liegen die ganzen Lösungsseiten danach unter `loesung/`. Die
- * Prüfbilder der Canva-Bilder des Materials kommen nach `bilder/`. `arbeit` ist der Arbeitsordner des Baus mit
+ * Prüfbilder der neuen Bilder des Materials kommen nach `bilder/`. `arbeit` ist der Arbeitsordner des Baus mit
  * `bilder.json` und `ansicht/bilder/`.
  */
 export const richtePruefOrdnerEin = async (
@@ -977,7 +970,7 @@ export const richtePruefOrdnerEin = async (
 	try {
 		liste = JSON.parse(await readFile(path.join(arbeit, 'bilder.json'), 'utf8'));
 	} catch {
-		// Keine Bildliste: keine Bilder aus Canva.
+		// Keine Bildliste: keine neuen Bilder.
 	}
 	const eintraege = new Map(
 		(Array.isArray(liste) ? (liste as Record<string, unknown>[]) : [])
@@ -1109,7 +1102,11 @@ export const kiPfad = (konfig: Pick<Konfig, 'claudeBin'>) => {
 	return existsSync(ueblich) ? ueblich : 'claude';
 };
 
-/** Nur was `claude` braucht: das echte HOME wegen der Anmeldung, kein Schlüssel und kein Geheimnis aus der `.env`. */
+/**
+ * Nur was `claude` braucht: das echte HOME wegen der Anmeldung, kein Schlüssel und kein Geheimnis aus der `.env`, auch
+ * nicht `OPENAI_API_KEY` (237): Die Bild-API ruft der Server, nicht Claude. `MCP_TOOL_TIMEOUT` bleibt ungesetzt: Ohne
+ * Angabe begrenzt Claude Code einen MCP-Aufruf nur durch 30 min ohne Antwort, mehr als `KI_GRENZEN.bild.gesamtMs`.
+ */
 export const kiUmgebung = (bin: string): Record<string, string> => ({
 	PATH: [path.isAbsolute(bin) ? path.dirname(bin) : '', process.env.PATH ?? ''].filter(Boolean).join(path.delimiter),
 	HOME: homedir(),
@@ -1147,7 +1144,8 @@ const SCHRITT_NAMEN: Record<string, string> = {
 	Read: 'Liest das Blatt',
 	Edit: 'Ändert das Blatt',
 	[WERKZEUG_BAUEN]: 'Baut und prüft das Blatt',
-	[`mcp__${CANVA_SERVER}__generate-image`]: 'Erzeugt ein Bild in Canva',
+	[WERKZEUG_BILD_ERZEUGEN]: 'Erzeugt ein Bild',
+	[WERKZEUG_BILD_BEARBEITEN]: 'Bearbeitet ein Bild',
 };
 
 const textSchritt = (name: string, eingabe: { skill?: unknown; file_path?: unknown }) => {
@@ -1260,8 +1258,8 @@ export interface Ergebnis {
 	kontext: number;
 	/** Hat Claude überhaupt angefangen? Sonst ist ein Fehler beim Fortsetzen ein Fall für den Rückfall. */
 	gearbeitet: boolean;
-	/** Läufe der Einheit mit Canva (235): Sperrte Canva das Kontingent, zuletzt oder irgendwann im Lauf? */
-	canva?: { gesperrt: boolean; imLauf: boolean };
+	/** Läufe mit Bildwerkzeugen (237): Sperrte die Bild-API, und was kosteten die Bilder? */
+	bilder?: { gesperrt: boolean; aufrufe: number; kostenUsd: number };
 }
 
 export interface LaufStand {
@@ -1679,7 +1677,7 @@ const KEIN_RUECKFALL = new Set([
 const fortsetzenGescheitert = ({ fehler, gearbeitet }: Ergebnis) =>
 	Boolean(fehler) && !gearbeitet && !fehler?.includes(' ') && !KEIN_RUECKFALL.has(fehler ?? '');
 
-export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigkeiten) => {
+export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefer }: Abhaengigkeiten) => {
 	const wurzelTmp = kiTempWurzel(konfig.materialDir);
 	const pidDatei = path.join(wurzelTmp, 'pid');
 	const auftraege = new Map<string, KiAuftrag>();
@@ -1866,14 +1864,18 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			gross = false,
 			ki,
 			mcpDatei = null,
-			mitCanva = false,
+			mcpWerkzeuge,
+			bilder = null,
 			mitschrift,
 			werkzeug,
 		}: {
 			gross?: boolean;
 			ki: KiLauf;
 			mcpDatei?: string | null;
-			mitCanva?: boolean;
+			/** Die Werkzeuge des MCP-Servers (`werkzeug.werkzeuge`), mit Bildwerkzeugen auch `bild_*`. */
+			mcpWerkzeuge?: string[];
+			/** Zähler der Bildwerkzeuge für die Mitschrift. */
+			bilder?: BildZaehler | null;
 			werkzeug?: (name: string, eingabe: Record<string, unknown>) => void;
 			mitschrift?: MitschriftZiel;
 		},
@@ -1897,10 +1899,10 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 				sitzung,
 				gross,
 				mcpDatei,
-				mitCanva,
+				mcpWerkzeuge,
 			});
 			const kind = spawn(bin, argumente, { cwd: arbeit, env: kiUmgebung(bin) });
-			schreibeMitschrift(mitschrift, kind, { argumente, auftrag: text, cwd: arbeit });
+			schreibeMitschrift(mitschrift, kind, { argumente, auftrag: text, cwd: arbeit, bilder });
 			if (aktiv) {
 				aktiv.kind = kind;
 			}
@@ -2182,16 +2184,29 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			};
 		};
 
-	/** Neue Bilder gibt es nur beim Bau eines neuen Blatts: Der freigegebene Plan nennt sie. */
-	const bilderFuer = (w: KiWunsch, arbeit: string) =>
-		w.neuesBlatt === true && w.phase !== 'plan'
-			? erstelleBlattBilder(
-					arbeit,
-					mappenDir(konfig.materialDir, w.mappe),
-					undefined,
-					erstelleZuschnitt(konfig.pythonBin, path.join(arbeit, ANSICHT_BILDER)),
-				)
-			: null;
+	/**
+	 * Neue Bilder gibt es nur beim Bau eines neuen Blatts: Der freigegebene Plan nennt sie. Ohne Schlüssel (237) baut
+	 * das Blatt ohne neue Bilder, wie ohne Bilder im Plan.
+	 */
+	const bilderFuer = async (w: KiWunsch, arbeit: string) => {
+		if (w.neuesBlatt !== true || w.phase === 'plan') {
+			return { blatt: null, werkzeug: null };
+		}
+		const werkzeug = await erstelleLaufBilder({ arbeit, art: 'blatt', konfig, api: bildApi }).catch(
+			(fehler: unknown) => {
+				console.error('Bildwerkzeug für Claude:', fehler);
+				return null;
+			},
+		);
+		if (werkzeug) {
+			// Vor dem Lauf leer angelegt: Der Lauf trägt seine Bildverträge mit Edit ein (`BLATT_BILD_RECHTE`).
+			const liste = path.join(arbeit, BILDER_LISTE);
+			if (!existsSync(liste)) {
+				await writeFile(liste, '[]\n');
+			}
+		}
+		return { blatt: erstelleBlattBilder(arbeit, mappenDir(konfig.materialDir, w.mappe)), werkzeug };
+	};
 
 	/** Ein Gespräch behält seinen Ordner, denn die Sitzungsablage von `claude` hängt am `cwd` (Entscheidung 37). */
 	const gespraechPlatz = async (id: string, w: KiWunsch) => {
@@ -2238,7 +2253,7 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 		const platz = w.gespraechId ? await gespraechPlatz(w.gespraechId, w) : await einmalPlatz();
 		const { ablage, arbeit } = platz;
 		const gross = w.neuesBlatt === true;
-		const blattBilder = bilderFuer(w, arbeit);
+		const { blatt: blattBilder, werkzeug: bildWerkzeug } = await bilderFuer(w, arbeit);
 		const mitBildern = async (html: string) => blattBilder?.einsetzen(html) ?? html;
 		// Neues Material (220, Teil 2): Laufprotokoll im Dokument; im Bau Pflichtlektüre vor bauen und ein Prüflauf danach.
 		const mitProtokoll = w.neuesBlatt === true && (w.phase === 'plan' || w.phase === 'bauen');
@@ -2261,11 +2276,19 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 				imBau ? meta.art : null,
 				imBau ? { pflicht, lauf: () => laufJetzt } : null,
 			),
+			'blatt',
+			{ bilder: bildWerkzeug },
 		).catch((fehler: unknown) => {
 			console.error('Werkzeug für Claude:', fehler);
 			return null;
 		});
-		const mit = { gross, ki, mcpDatei: werkzeug?.mcpDatei ?? null, mitCanva: blattBilder !== null };
+		const mit = {
+			gross,
+			ki,
+			mcpDatei: werkzeug?.mcpDatei ?? null,
+			mcpWerkzeuge: werkzeug?.werkzeuge,
+			bilder: bildWerkzeug && werkzeug ? bildWerkzeug.stand : null,
+		};
 		/** Jeder Lauf dieses Auftrags wird mitgeschrieben (233). */
 		const mitschrift = (art: string): MitschriftZiel => ({
 			materialDir: konfig.materialDir,
@@ -2641,7 +2664,6 @@ export const erstelleKi = ({ ansicht, ereignisse, konfig, pruefer }: Abhaengigke
 			await fuehreAus();
 		} finally {
 			await notiereBlattLaeufe(dir, w.dok, protokoll);
-			blattBilder?.ende();
 			await werkzeug?.ende().catch(() => undefined);
 			await platz.ende(letzteSitzung);
 			await rm(pidDatei, { force: true });

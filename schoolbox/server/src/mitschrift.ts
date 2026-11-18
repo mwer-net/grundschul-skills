@@ -12,7 +12,7 @@ import { ID_MUSTER } from '@schoolbox/kern';
  * Die Mitschrift jedes Laufs von `claude` (233): `_ki-mitschrift/<mappe>/<zeit>-<art>[-<dok>].jsonl.gz` in der Ablage. Die
  * erste Zeile (`typ: 'kopf'`) hält Auftrag, Systemauftrag und Argumente, dann folgt jede Zeile von `stream-json`
  * (Nachrichten, Werkzeugaufrufe und ihre Ergebnisse), die letzte (`typ: 'ende'`) zählt die Werkzeuge und nennt die
- * fehlgeschlagenen. Während des Laufs ist die Datei ungepackt; bleibt sie das, endete der Server mitten im Lauf.
+ * fehlgeschlagenen, mit Bildwerkzeugen (237) dazu Aufrufe und Kosten der Bild-API in diesem Lauf. Während des Laufs ist die Datei ungepackt; bleibt sie das, endete der Server mitten im Lauf.
  */
 export const MITSCHRIFT_ORDNER = '_ki-mitschrift';
 export const MITSCHRIFT_TAGE = 30;
@@ -78,6 +78,9 @@ const systemAuftrag = (argumente: string[]) => {
 	}
 };
 
+/** Was die Bildwerkzeuge bis jetzt gezählt haben (`BildWerkzeug.stand()`); ein Werkzeug kann mehreren Läufen dienen. */
+export type BildZaehler = () => { aufrufe: number; kostenUsd: number; gesperrt: boolean };
+
 const textVon = (inhalt: unknown): string => {
 	if (typeof inhalt === 'string') {
 		return inhalt;
@@ -89,6 +92,12 @@ const textVon = (inhalt: unknown): string => {
 		: '';
 };
 
+const bilderImLauf = (vorher: ReturnType<BildZaehler>, nachher: ReturnType<BildZaehler>) => ({
+	aufrufe: nachher.aufrufe - vorher.aufrufe,
+	kostenUsd: Math.round((nachher.kostenUsd - vorher.kostenUsd) * 1e4) / 1e4,
+	gesperrt: nachher.gesperrt,
+});
+
 /**
  * Schreibt einen gestarteten Lauf mit, ohne ihn zu stören: Jeder Fehler beim Schreiben beendet nur das
  * Mitschreiben. Ohne `ziel` (Tests, Limit-Prüfung) geschieht nichts.
@@ -96,13 +105,14 @@ const textVon = (inhalt: unknown): string => {
 export const schreibeMitschrift = (
 	ziel: MitschriftZiel | undefined,
 	kind: ChildProcessWithoutNullStreams,
-	lauf: { argumente: string[]; auftrag: string; cwd: string },
+	lauf: { argumente: string[]; auftrag: string; cwd: string; bilder?: BildZaehler | null },
 ) => {
 	if (!ziel) {
 		return;
 	}
 	const beginn = new Date();
 	const datei = mitschriftDatei(ziel, beginn);
+	const bilderVorher = lauf.bilder?.() ?? null;
 	try {
 		mkdirSync(path.dirname(datei), { recursive: true });
 	} catch (fehler) {
@@ -188,6 +198,7 @@ export const schreibeMitschrift = (
 			signal,
 			werkzeuge,
 			fehlerhaft,
+			...(lauf.bilder && bilderVorher ? { bilder: bilderImLauf(bilderVorher, lauf.bilder()) } : {}),
 			stderr: stderr || null,
 		});
 		aus.end(() => {

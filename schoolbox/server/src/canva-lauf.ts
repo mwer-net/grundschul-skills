@@ -1,10 +1,13 @@
 /**
- * Besitzer: 176. Ein eigener Lauf von `claude` für genau ein Bild in Canva: ein Lauf zur Zeit, bis zu fünf warten, alles
- * nur im Speicher. Figuren (176, `POST /api/canva/figur`) und Bilder (179) gehen denselben Weg; was nur Figuren
- * betrifft, steht in der Route und in `uebernimm`, nicht im Lauf.
+ * Besitzer: 176. Ein eigener Lauf von `claude` für genau ein Bild (seit 237 über die Bild-API, Werkzeuge
+ * `bild_erzeugen`/`bild_bearbeiten`): ein Lauf zur Zeit, bis zu fünf warten, alles nur im Speicher. Figuren (176,
+ * `POST /api/canva/figur`) und Bilder (179) gehen denselben Weg; was nur Figuren betrifft, steht in der Route und in
+ * `uebernimm`, nicht im Lauf.
  *
- * Der Arbeitsordner liegt unter `tmpdir()` und hält nur Kopien: die Regeln aus `skills/` und, wo nötig, das Bild einer
- * Figur. `materialien/` darf Claude nicht lesen (`NIE_LESEN`). Jeder Start des Servers leert den Wurzelordner.
+ * Der Arbeitsordner liegt unter `tmpdir()` und hält nur Kopien: die Regeln aus `skills/`, die Grundposen als Referenz
+ * unter `referenzen/` und, wo nötig, das Bild einer Figur. `materialien/` darf Claude nicht lesen (`NIE_LESEN`). Der
+ * Socket der Werkzeuge liegt daneben in `<id>-w/`, außerhalb des Arbeitsordners. Jeder Start des Servers leert den
+ * Wurzelordner.
  */
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import { spawn } from 'node:child_process';
@@ -16,30 +19,25 @@ import { createInterface } from 'node:readline';
 
 import type { BibliotheksFigur, CanvaEreignisStatus, CanvaFigur, CanvaStand, CanvaWunsch } from '@schoolbox/kern';
 import {
-	ASSETS,
-	ASSETS_SCHLUESSEL,
+	brauchtStil,
 	CANVA_TEXT_ZEICHEN,
 	canvaAuftragText,
 	figurenDir,
 	figurenIn,
 	leseBibliothek,
+	MAX_BILD_BYTES,
 	neueFigurId,
 	nimmPoseAuf,
-	referenzDatei,
 	SchoolboxFehler,
+	STIL_FIGUR,
 	WURZEL,
 } from '@schoolbox/kern';
+import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
 import type { Router as RouterTyp } from 'express';
 
-import {
-	ANSICHT_BILDER,
-	erstelleBildLader,
-	erstelleZuschnitt,
-	leseBildWuensche,
-	MAX_BILD_BYTES,
-	pruefeDateiname,
-	typAus,
-} from './canva-bild';
+import { leseBildVertraege, pruefeDateiname, typAus } from './bild-datei';
+import type { LaufBilder } from './bild-zugang';
+import { BILDER_AUS, BILDER_GESPERRT, bilderStand, erstelleLaufBilder, grundposeReferenz, posenPfad } from './bild-zugang';
 import { HttpFehler } from './fehler';
 import type { KiLimit, LaufStand } from './ki';
 import {
@@ -56,6 +54,8 @@ import {
 } from './ki';
 import type { KiLauf } from './ki-einstellung';
 import { KI_EINSTELLUNG_STANDARD, kiLaufJetzt, waehleLauf } from './ki-einstellung';
+import type { Werkzeug } from './ki-werkzeug';
+import { starteWerkzeug } from './ki-werkzeug';
 import type { Kontext } from './kontext';
 import { schreibeMitschrift } from './mitschrift';
 
@@ -63,7 +63,6 @@ import { schreibeMitschrift } from './mitschrift';
 export interface CanvaErgebnis {
 	pfad: string;
 	datei: string;
-	mediaId: string | null;
 	motiv: string;
 	wort: string;
 	name: string | null;
@@ -75,12 +74,13 @@ export interface CanvaOptionen {
 	uebernimm: (e: CanvaErgebnis) => Promise<string>;
 	/** Dateien, die vor dem Start in den Arbeitsordner kommen: Name dort → Quelle. */
 	beilagen?: Record<string, string>;
+	/** Grundposen als Referenz: Das Bildwerkzeug legt `datei` als `referenzen/<name>.<png|jpg>` ab (237). */
+	figuren?: { name: string; datei: string }[];
 	/** Modell und Gründlichkeit, von der Route beim Start gelesen (232); ohne gilt der Standard. */
 	ki?: KiLauf;
 }
 
 const ID = /^[a-f0-9]{12}$/;
-const TAKT_MS = 2000;
 const ERGEBNIS = 'ergebnis.json';
 const MAX_ERGEBNIS_BYTES = 4096;
 const WORT = /^[a-z0-9]{1,20}$/;
@@ -91,7 +91,7 @@ const REGELN = [
 	path.join('html-materialerstellung', 'references', 'bilder.md'),
 	path.join('grundschul-didaktik', 'references', 'kindgerecht-gestalten.md'),
 ];
-const KEIN_BILD = 'Canva hat kein Bild geliefert.';
+const KEIN_BILD = 'Es ist kein Bild entstanden.';
 
 const kennung = (inhalt: string) => createHash('sha256').update(inhalt).digest('hex').slice(0, 16);
 
@@ -110,7 +110,7 @@ const feld = (wert: unknown, max: number) =>
 		: null;
 
 export interface CanvaAntwort {
-	fehler: 'canva-pause' | 'canva-fehler' | null;
+	fehler: 'canva-fehler' | null;
 	wort: string;
 	name: string | null;
 	steckbrief: string | null;
@@ -130,9 +130,8 @@ export const leseErgebnis = async (arbeit: string): Promise<CanvaAntwort> => {
 	}
 	const e = (typeof roh === 'object' && roh !== null && !Array.isArray(roh) ? roh : {}) as Record<string, unknown>;
 	const ohneFehler = e.fehler === undefined || e.fehler === null || e.fehler === false;
-	const fehler = e.fehler === 'canva-pause' ? 'canva-pause' : 'canva-fehler';
 	return {
-		fehler: ohneFehler ? null : fehler,
+		fehler: ohneFehler ? null : 'canva-fehler',
 		wort: typeof e.wort === 'string' && WORT.test(e.wort) ? e.wort : 'neu',
 		name: feld(e.name, 40),
 		steckbrief: feld(e.steckbrief, 300),
@@ -217,6 +216,7 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 	/** Arbeitsordner und Sitzung: In beiden steht der Wunsch der Lehrkraft. */
 	const loesche = async (arbeit: string) => {
 		await rm(arbeit, { recursive: true, force: true });
+		await rm(socketDir(arbeit), { recursive: true, force: true });
 		await rm(path.join(projekte(), projektName(arbeit)), { recursive: true, force: true });
 	};
 
@@ -236,7 +236,7 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 		}
 	};
 
-	const lauf = (a: Auftrag, arbeit: string) =>
+	const lauf = (a: Auftrag, arbeit: string, werkzeug: Werkzeug, bilder: LaufBilder) =>
 		new Promise<LaufEnde>((resolve) => {
 			if (a.abbruch) {
 				resolve({ grund: null, code: null, verbrauch: {}, zurueck: null });
@@ -251,12 +251,14 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 				modell: a.ki.modell,
 				effort: a.ki.effort,
 				canvaBild: true,
+				mcpDatei: werkzeug.mcpDatei,
+				mcpWerkzeuge: werkzeug.werkzeuge,
 			});
 			const kind = spawn(bin, argumente, { cwd: arbeit, env: kiUmgebung(bin) });
 			schreibeMitschrift(
 				{ materialDir, mappe: a.wunsch.ziel.mappe, dok: a.wunsch.ziel.dok, art: `canva-${a.wunsch.art}` },
 				kind,
-				{ argumente, auftrag: a.wunsch.auftrag, cwd: arbeit },
+				{ argumente, auftrag: a.wunsch.auftrag, cwd: arbeit, bilder: bilder.stand },
 			);
 			a.kind = kind;
 			let grund: string | null = null;
@@ -302,7 +304,7 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 
 	/** Das Bild des letzten Eintrags in `bilder.json`: eine reguläre Datei in `bilder/`, PNG (Bilder auch JPEG). */
 	const bildAus = async (a: Auftrag, arbeit: string) => {
-		const eintrag = (await leseBildWuensche(arbeit)).at(-1);
+		const eintrag = (await leseBildVertraege(arbeit)).at(-1);
 		if (!eintrag) {
 			return null;
 		}
@@ -322,53 +324,61 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 		if (!erlaubt || path.extname(datei).slice(1) !== typ) {
 			return null;
 		}
-		return { pfad, datei, mediaId: eintrag.mediaId || null, motiv: eintrag.motiv || a.stand.text };
+		return { pfad, datei, motiv: eintrag.motiv || a.stand.text };
 	};
+
+	/** Der Ordner des Sockets neben dem Arbeitsordner: Claude erreicht ihn nicht, ein Socket-Pfad bleibt kurz. */
+	const socketDir = (arbeit: string) => `${arbeit}-w`;
 
 	const fuehreAus = async (a: Auftrag) => {
 		const arbeit = arbeitDir(a.stand.id);
 		const start = Date.now();
-		const lader = erstelleBildLader(
-			arbeit,
-			path.join(arbeit, 'bilder'),
-			undefined,
-			erstelleZuschnitt(kontext.konfig.pythonBin, path.join(arbeit, ANSICHT_BILDER)),
-		);
-		const takt = setInterval(() => void lader.pruefe(), TAKT_MS);
 		let grund: string | null = null;
 		let datei: string | undefined;
 		let verbrauch: Record<string, unknown> = {};
+		let werkzeug: Werkzeug | null = null;
 		try {
 			await bereite(a, arbeit);
-			const ende = await lauf(a, arbeit);
-			verbrauch = ende.verbrauch;
-			clearInterval(takt);
-			await lader.pruefe();
+			const bilder = await erstelleLaufBilder({
+				arbeit,
+				art: 'schublade',
+				konfig: kontext.konfig,
+				api: kontext.bildApi,
+				figuren: a.o.figuren,
+			});
+			if (!bilder) {
+				throw new HttpFehler(409, BILDER_AUS);
+			}
+			await mkdir(socketDir(arbeit), { recursive: true, mode: 0o700 });
+			werkzeug = await starteWerkzeug(socketDir(arbeit), null, 'bilder', { bilder });
+			const ende = await lauf(a, arbeit, werkzeug, bilder);
+			const bildStand = bilder.stand();
+			verbrauch = { ...ende.verbrauch, bildAufrufe: bildStand.aufrufe, bildKostenUsd: bildStand.kostenUsd };
 			const antwort = await leseErgebnis(arbeit);
 			if (a.abbruch) {
 				grund = null;
 			} else if (ende.grund) {
 				grund = ende.grund;
-			} else if (antwort.fehler === 'canva-pause') {
-				grund = 'Canva macht gerade eine Pause.';
+			} else if (bildStand.gesperrt) {
+				grund = BILDER_GESPERRT;
 			} else if (antwort.fehler === 'canva-fehler') {
-				grund = KEIN_BILD;
+				grund = bilder.letzterFehler() ?? KEIN_BILD;
 			} else if (ende.code) {
 				grund = fehlerText(ende.code, ende.zurueck);
 			} else {
 				const bild = await bildAus(a, arbeit);
 				if (!bild) {
-					grund = KEIN_BILD;
+					grund = bilder.letzterFehler() ?? KEIN_BILD;
 				} else {
 					const { name, steckbrief, wort } = antwort;
 					datei = await a.o.uebernimm({ ...bild, wort, name, steckbrief });
 				}
 			}
 		} catch (f) {
-			console.error('Canva-Lauf:', f instanceof Error ? f.message : f);
+			console.error('Bild-Lauf:', f instanceof Error ? f.message : f);
 			grund = f instanceof HttpFehler || f instanceof SchoolboxFehler ? f.message : FEHLER_UNBEKANNT;
 		} finally {
-			clearInterval(takt);
+			await werkzeug?.ende().catch(() => undefined);
 		}
 		const ergebnis = datei && !grund ? 'fertig' : 'fehler';
 		const status: CanvaEreignisStatus = a.abbruch ? 'abgebrochen' : ergebnis;
@@ -406,10 +416,17 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 		});
 	};
 
-	/** Wirft `HttpFehler` 409, wenn die Reihe voll ist oder eine Einheit gerade Bilder in Canva malt. */
+	/**
+	 * Wirft `HttpFehler` 409 ohne Schlüssel für die Bild-API (237), wenn die Reihe voll ist oder eine Einheit gerade
+	 * Bilder erzeugt.
+	 */
 	const starte = (wunsch: CanvaWunsch, o: CanvaOptionen): CanvaStand => {
+		const zugang = bilderStand(kontext.konfig);
+		if (!zugang.verfuegbar) {
+			throw new HttpFehler(409, zugang.grund ?? BILDER_AUS);
+		}
 		if (kontext.einheiten.laeuft()?.bilder) {
-			throw new HttpFehler(409, 'Die Unterrichtseinheit malt gerade Bilder in Canva.');
+			throw new HttpFehler(409, 'Die Unterrichtseinheit erzeugt gerade Bilder.');
 		}
 		if (reihe.length >= KI_GRENZEN.canva.warten) {
 			throw new HttpFehler(409, 'Es warten schon fünf Bilder.');
@@ -509,19 +526,37 @@ export const erstelleCanvaLaeufe = (kontext: Kontext) => {
 
 export type CanvaLaeufe = ReturnType<typeof erstelleCanvaLaeufe>;
 
-/** Pfad einer Pose: `_figuren/<datei>` in der Bibliothek, `_assets/bilder/<datei>` in den Assets. */
-const posenPfad = (materialDir: string, schluessel: string) =>
-	schluessel.startsWith(`${ASSETS_SCHLUESSEL}/`)
-		? path.join(ASSETS, schluessel.slice(ASSETS_SCHLUESSEL.length + 1))
-		: path.join(materialDir, schluessel);
+/** Wo eine Figur ohne Grundpose als PNG/JPEG ihr Bild zum Ansehen bekommt; die Bild-API nimmt es nicht als Referenz. */
+const figurBild = (f: BibliotheksFigur) =>
+	`figur/${f.id}${/\.[a-z]+$/i.exec(f.posen[0]?.schluessel ?? '')?.[0].toLowerCase() ?? '.png'}`;
 
-const canvaFigurAus = (materialDir: string, f: BibliotheksFigur): CanvaFigur => ({
-	id: f.id,
-	name: f.name,
-	steckbrief: f.steckbrief ?? null,
-	referenz: f.canva ?? null,
-	farbbild: posenPfad(materialDir, f.posen[0]?.schluessel ?? ''),
-});
+/**
+ * Die Angaben einer Figur für den Auftrag und was dafür in den Arbeitsordner kommt (237): ihre Grundpose als
+ * Referenz, ohne taugliche Referenz Willi als Stil-Referenz und ihr Bild zum Ansehen.
+ */
+export const figurFuerLauf = async (materialDir: string, f: BibliotheksFigur | null) => {
+	const referenz = f ? await grundposeReferenz(materialDir, f) : null;
+	const angaben: CanvaFigur | null = f
+		? {
+				id: f.id,
+				name: f.name,
+				steckbrief: f.steckbrief ?? null,
+				referenz: referenz?.pfad ?? null,
+				bild: referenz?.pfad ?? figurBild(f),
+			}
+		: null;
+	const figuren = referenz ? [{ name: referenz.name, datei: referenz.datei }] : [];
+	const willi = EINGEBAUTE.find((e) => e.id === STIL_FIGUR);
+	const stil = brauchtStil(angaben) && willi ? await grundposeReferenz(materialDir, willi) : null;
+	if (stil) {
+		figuren.push({ name: stil.name, datei: stil.datei });
+	}
+	const beilagen: Record<string, string> =
+		f && angaben && !referenz && !angaben.steckbrief
+			? { [angaben.bild]: posenPfad(materialDir, f.posen[0]?.schluessel ?? '') }
+			: {};
+	return { angaben, figuren, beilagen };
+};
 
 /** Die Routen (176). Hängen am `apiRouter`: nur mit Sitzung, nie über Teilen-Links. */
 export const canvaApi = (router: RouterTyp, kontext: Kontext) => {
@@ -545,8 +580,7 @@ export const canvaApi = (router: RouterTyp, kontext: Kontext) => {
 			figur: id,
 			name,
 			wort: e.wort,
-			herkunft: 'canva',
-			...(e.mediaId ? { canva: e.mediaId } : {}),
+			herkunft: 'openai',
 			...(e.steckbrief ? { steckbrief: e.steckbrief } : {}),
 		});
 		return path.basename(pose.schluessel);
@@ -565,7 +599,7 @@ export const canvaApi = (router: RouterTyp, kontext: Kontext) => {
 			throw new HttpFehler(400, 'Eine Figur je Bild.');
 		}
 		const figur = genannt[0] ?? null;
-		const angaben = figur ? canvaFigurAus(materialDir, figur) : null;
+		const { angaben, beilagen, figuren } = await figurFuerLauf(materialDir, figur);
 		const vorlage = await readFile(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'canva-figur.md'), 'utf8');
 		const ki = await kiLaufJetzt(konfig, 'klein');
 		const stand = canva.starte(
@@ -578,7 +612,8 @@ export const canvaApi = (router: RouterTyp, kontext: Kontext) => {
 			{
 				uebernimm: uebernimmFigur(figur),
 				ki,
-				...(angaben && !angaben.steckbrief ? { beilagen: { [referenzDatei(angaben)]: angaben.farbbild } } : {}),
+				figuren,
+				beilagen,
 			},
 		);
 		res.status(201).json({ id: stand.id });

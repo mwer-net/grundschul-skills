@@ -20,7 +20,7 @@ import { legeInMitte } from '../gestaltung/ablegen/ablegen';
 import { bildGut, mitGeholtemBild } from '../gestaltung/ablegen/bild-gut';
 import { useHolenAmZeiger } from '../gestaltung/ablegen/holen-am-zeiger';
 import type { SchubladenTeile } from '.';
-import { BildBeschreiben } from './bild-beschreiben';
+import { BildBeschreiben, bildFeld, OhneBildApi } from './bild-beschreiben';
 import { CanvaBildKacheln } from './CanvaKachel';
 import { kopf } from './reihe';
 
@@ -32,9 +32,11 @@ export const Inhalt = (t: SchubladenTeile) => {
 	const { daten, fehler, neuLaden } = useLaden<Sammlung>(`${bild.adresse}/bilder`);
 	const [gewaehlt, setGruppe] = useState<SammlungsGruppe | null>(null);
 	const [suche, setSuche] = useState('');
-	// Neue Bilder aus Canva: Aufträge dieses Blatts stehen vorn in „Dieser Ordner“, fertige laden die Liste neu.
+	// Neue KI-Bilder: Aufträge dieses Blatts stehen vorn in „Dieser Ordner“, fertige laden die Liste neu. Ohne Bild-API
+	// bleiben laufende und gescheiterte Aufträge sichtbar, nur das Feld fehlt (237).
 	const { laeufe } = useCanvaLaeufe();
-	const mitClaude = !(t.ki.geladen && !t.ki.verfuegbar);
+	const feldArt = bildFeld(t.ki);
+	const mitClaude = feldArt !== 'nichts';
 	const meineLaeufe = mitClaude ? bildLaeufe(laeufe, t.dokument) : [];
 	// Ohne eigene Wahl die erste Gruppe mit Bildern oder Aufträgen, damit die Schublade nicht leer aufgeht.
 	const ersteMitBildern = BILDGRUPPEN.find(
@@ -158,7 +160,8 @@ export const Inhalt = (t: SchubladenTeile) => {
 				wert={gruppe}
 				waehle={setGruppe}
 			/>
-			{mitClaude && (
+			{feldArt === 'grund' && <OhneBildApi grund={t.ki.bilder.grund} />}
+			{feldArt === 'feld' && (
 				<BildBeschreiben
 					ki={t.ki}
 					ort={t.dokument}

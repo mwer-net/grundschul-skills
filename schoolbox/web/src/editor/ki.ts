@@ -64,6 +64,11 @@ export interface KiZustand {
 	/** Auslastung des 5-Stunden-Fensters, ab der der Assistent vor einer Einheit warnt (190-12). */
 	einheitWarnAb: number;
 	aktionen: KiAktion[];
+	/**
+	 * Neue KI-Bilder über die Bild-API (237): ohne Schlüssel auf dem Server aus. `grund` ist dann der fertige Satz des
+	 * Servers für die Lehrkraft; er steht an der Stelle von Schalter und Feldern.
+	 */
+	bilder: { verfuegbar: boolean; grund: string | null };
 }
 
 export interface Vorschlag {
@@ -88,7 +93,17 @@ export interface VorschlagAmBlatt extends Vorschlag {
 	referenz?: string;
 }
 
-const LEER: KiZustand = { verfuegbar: false, limit: null, warnAb: 1, einheitWarnAb: 1, aktionen: [] };
+const LEER: KiZustand = {
+	verfuegbar: false,
+	limit: null,
+	warnAb: 1,
+	einheitWarnAb: 1,
+	aktionen: [],
+	bilder: { verfuegbar: false, grund: null },
+};
+
+/** Fehlt ein Feld in der Antwort (älterer Server), gilt das aus `LEER`: neue KI-Bilder sind dann aus (237). */
+const mitLeer = (z: Partial<KiZustand>): KiZustand => ({ ...LEER, ...z });
 
 /** Ohne angemeldetes `claude` bleibt `verfuegbar` falsch, und nichts davon erscheint im Editor. */
 export const useKiZustand = () => {
@@ -96,14 +111,17 @@ export const useKiZustand = () => {
 	/** Erst danach heißt `verfuegbar: false` wirklich „nicht angemeldet“. */
 	const [geladen, setGeladen] = useState(false);
 	const neu = useCallback(() => {
-		lade<KiZustand>('/api/ki/status')
-			.then(setZustand, () => setZustand(LEER))
+		lade<Partial<KiZustand>>('/api/ki/status')
+			.then(
+				(z) => setZustand(mitLeer(z)),
+				() => setZustand(LEER),
+			)
 			.finally(() => setGeladen(true));
 	}, []);
 	useEffect(neu, [neu]);
 	/** Fragt das Konto selbst: Nur so löst sich eine Sperre, zum Beispiel nach dem Kauf von Guthaben. */
 	const pruefeLimit = useCallback(async () => {
-		setZustand(await sende<KiZustand>('/api/ki/limit/pruefen'));
+		setZustand(mitLeer(await sende<Partial<KiZustand>>('/api/ki/limit/pruefen')));
 	}, []);
 	return { zustand, geladen, neu, pruefeLimit };
 };

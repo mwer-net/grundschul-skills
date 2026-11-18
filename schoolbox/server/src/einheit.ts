@@ -50,12 +50,14 @@ import {
 	dokumentDir,
 	dopplungTexte,
 	dopplungUebersicht,
+	EINHEIT_BILDER_SATZ,
 	EINHEIT_PLAN,
 	EINHEIT_THEMA,
 	einheitAuftragAus,
 	FACH_NAME,
 	fertigText,
 	figurenDopplungen,
+	figurenIn,
 	formatBefund,
 	formateDesMaterials,
 	freierName,
@@ -65,6 +67,7 @@ import {
 	lebenderOrdner,
 	lektuereFehltText,
 	lektuereZeile,
+	leseBibliothek,
 	lesePlan,
 	lesePruefung,
 	leseSteckbrief,
@@ -97,11 +100,12 @@ import {
 	zahlenBefunde,
 	zahlenText,
 } from '@schoolbox/kern';
+import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
 import type { Router as RouterTyp } from 'express';
 
-import type { BildLader } from './canva-bild';
-import { ANSICHT_BILDER, erstelleBildLader, erstelleZuschnitt, notiereCanvaId } from './canva-bild';
-import { neuesKontingent, notiereKontingent } from './canva-kontingent';
+import { uebertrageHerkunft } from './bild-herkunft';
+import type { LaufBilder } from './bild-zugang';
+import { BILDER_AUS, BILDER_GESPERRT, bilderStand, erstelleLaufBilder, grundposeReferenz } from './bild-zugang';
 import { schreibeQuelle } from './dokumente';
 import { HttpFehler } from './fehler';
 import type { Ergebnis, KiPruefer, LaufStand } from './ki';
@@ -123,7 +127,7 @@ import {
 } from './ki';
 import type { KiLauf } from './ki-einstellung';
 import { KI_EINSTELLUNG_STANDARD, kiLaufJetzt, waehleLauf } from './ki-einstellung';
-import type { Bauen } from './ki-werkzeug';
+import type { Bauen, Werkzeug } from './ki-werkzeug';
 import { ansichtText, starteWerkzeug } from './ki-werkzeug';
 import type { Kontext } from './kontext';
 import { dokSchluessel } from './kontext';
@@ -135,6 +139,12 @@ const ID = /^[a-f0-9]{12}$/;
 const STAND = 'stand.json';
 const PID = 'pid';
 const TAKT_MS = 2000;
+/** So viele Grundposen kommen höchstens als Referenz in einen Lauf; mehr Figuren nennt kein Plan. */
+const MAX_REFERENZ_FIGUREN = 8;
+
+/** Geladen ist eine Datei einmal, auch wenn der Lauf sie mehrmals erzeugt oder bearbeitet hat (237). */
+const verschiedeneBilder = (bilder: LaufBilder) => new Set(bilder.stand().bilder).size;
+
 const MAX_PLAN_BYTES = 256 * 1024;
 const SEITENBILD = /^seite-(\d+)\.png$/;
 const LOESUNGSBILD = /^loesung-seite-\d+\.png$/;
@@ -186,6 +196,7 @@ export interface LaufOptionen {
 	rechte: string[];
 	/** Ohne: `Read,Edit,Write,Skill`. */
 	werkzeuge?: string;
+	/** Mit Bildwerkzeugen (237: `bild_erzeugen`/`bild_bearbeiten`), sofern ein Schlüssel da ist. */
 	mitCanva: boolean;
 	/** Das Werkzeug `bauen`; `null`: kein MCP-Werkzeug der Schoolbox. */
 	bauen: Bauen | null;
@@ -301,7 +312,6 @@ export const erstelleEinheiten = (
 		stufe: Stufe;
 		kind: ChildProcessWithoutNullStreams | null;
 		abbruch: boolean;
-		lader: BildLader | null;
 		takt: ReturnType<typeof setInterval> | null;
 		/** Ein Abgleich zur Zeit; der Takt wartet sonst auf sich selbst. */
 		abgleich: Promise<void>;
@@ -326,8 +336,10 @@ export const erstelleEinheiten = (
 		verbraucht: { kostenUsd: number; runden: number };
 		/** Modell und Gründlichkeit, beim Start der Handlung gelesen (232): Alle Läufe des Durchgangs nehmen sie. */
 		ki: KiLauf;
-		/** Die Pause nach einer Sperre von Canva (235); `ende` beendet sie sofort. */
-		pause: { ende: () => void } | null;
+		/** Die Bildwerkzeuge des laufenden Laufs (237) und die Zahl der Bilder vor ihm, für den Stand der Einheit. */
+		bilder: { werkzeug: LaufBilder; vorher: number } | null;
+		/** Die Bild-API hat in diesem Durchgang gesperrt: Kein Lauf bekommt mehr Bildwerkzeuge, die Einheit hält an. */
+		bilderGesperrt: boolean;
 	} | null = null;
 	let aufraeumTakt: ReturnType<typeof setInterval> | null = null;
 
@@ -394,7 +406,12 @@ export const erstelleEinheiten = (
 
 	const lese = async (id: string): Promise<EinheitStand | null> => {
 		try {
-			return JSON.parse(await readFile(path.join(dir(id), STAND), 'utf8')) as EinheitStand;
+			const stand = JSON.parse(await readFile(path.join(dir(id), STAND), 'utf8')) as EinheitStand & {
+				canvaPause?: unknown;
+			};
+			// `canvaPause` (235) steht noch in alten Ständen; seit 237 gibt es keine Pause mehr.
+			delete stand.canvaPause;
+			return stand;
 		} catch {
 			return null;
 		}
@@ -511,12 +528,11 @@ export const erstelleEinheiten = (
 			existsSync(path.join(arbeitDir(s.id), b)),
 		);
 		const umbenannt = await uebernimmBilder(arbeitDir(s.id), mappeDir, bilder);
-		for (const b of bilder) {
-			const w = aktiv?.lader?.wunsch(path.basename(b));
-			if (w) {
-				await notiereCanvaId(path.join(mappeDir, 'bilder'), { ...w, datei: path.basename(umbenannt[b] ?? b) });
-			}
-		}
+		await uebertrageHerkunft(
+			path.join(arbeitDir(s.id), 'bilder'),
+			path.join(mappeDir, 'bilder'),
+			Object.fromEntries(bilder.map((b) => [path.basename(b), path.basename(umbenannt[b] ?? b)])),
+		);
 		const html = wendeBilderAn(roh, umbenannt);
 		const dok = await dokumentFuer(s, d);
 		await kontext.sperre(dokSchluessel(s.mappe, dok), () =>
@@ -540,14 +556,13 @@ export const erstelleEinheiten = (
 		if (aktiv && !aktiv.abbruch) {
 			aktiv.abbruch = true;
 			aktiv.stand.grund = grund;
-			aktiv.pause?.ende();
 			if (aktiv.kind) {
 				beendeKind(aktiv.kind);
 			}
 		}
 	};
 
-	/** Ein Abgleich im Takt: Bilder laden, im Plan-Schritt den Plan lesen, das Thema übernehmen. */
+	/** Ein Abgleich im Takt: Bilder zählen, im Plan-Schritt den Plan lesen, das Thema übernehmen. */
 	const gleicheAb = async () => {
 		const a = aktiv;
 		if (!a) {
@@ -559,7 +574,6 @@ export const erstelleEinheiten = (
 			stoppe('Der Ordner der Einheit wurde gelöscht.');
 			return;
 		}
-		await a.lader?.pruefe();
 		const planDatei = path.join(arbeitDir(s.id), EINHEIT_PLAN);
 		// Im Bau gilt der freigegebene Plan; was ein Lauf in einheit.json schreibt, liest der Server nicht (220).
 		if (a.stufe === 'plan' && existsSync(planDatei) && (await stat(planDatei)).size <= MAX_PLAN_BYTES) {
@@ -577,10 +591,8 @@ export const erstelleEinheiten = (
 			}
 		}
 		await uebernimmThema(s);
-		if (a.lader) {
-			const stand = a.lader.stand();
-			s.geladeneBilder = stand.filter((b) => b.ok).length;
-			s.fehlgeschlageneBilder = stand.length - s.geladeneBilder;
+		if (a.bilder) {
+			s.geladeneBilder = a.bilder.vorher + verschiedeneBilder(a.bilder.werkzeug);
 		}
 		const jetzt = JSON.stringify(s);
 		if (jetzt !== a.gemeldet) {
@@ -780,19 +792,49 @@ export const erstelleEinheiten = (
 		aktiv.protokoll.laeufe.push(eintrag);
 		aktiv.lauf = lauf;
 		await schreibeProtokoll();
-		const werkzeug = o.bauen
-			? await starteWerkzeug(dir(s.id), o.bauen, 'einheit').catch((fehler: unknown) => {
-					console.error('Werkzeug der Einheit:', fehler);
-					return null;
-				})
-			: null;
+		const bilder = o.mitCanva && !aktiv.bilderGesperrt ? await bilderFuerLauf(s) : null;
+		const werkzeug =
+			o.bauen || bilder
+				? await starteWerkzeug(dir(s.id), o.bauen, o.bauen ? 'einheit' : 'bilder', { bilder }).catch(
+						(fehler: unknown) => {
+							console.error('Werkzeug der Einheit:', fehler);
+							return null;
+						},
+					)
+				: null;
+		const mitBildern = bilder !== null && werkzeug !== null;
+		const bilderVorher = s.geladeneBilder;
+		if (mitBildern && aktiv) {
+			aktiv.bilder = { werkzeug: bilder, vorher: bilderVorher };
+		}
+		// Ohne Bildwerkzeuge verspricht der Auftrag keine neuen Bilder: im Lauf, der sie bräuchte, und in jedem Lauf, wenn
+		// der Schlüssel fehlt (die Einheit begann mit ihm, der Server läuft nach einem Neustart ohne).
+		const keineBilder = !mitBildern && (o.mitCanva || !bilderStand(kontext.konfig).verfuegbar);
+		const ohneWerkzeug = keineBilder ? o.text.replace(EINHEIT_BILDER_SATZ.mit, EINHEIT_BILDER_SATZ.ohne) : o.text;
+		const text = mitBildern && bilder.referenzen.length ? `${o.text}\n\n${referenzZeile(bilder)}` : ohneWerkzeug;
 		let ergebnis = leer;
 		try {
-			ergebnis = await laufMit(s, o, grenzen, werkzeug?.mcpDatei ?? null, (name, eingabe) =>
-				notiereGelesen(lauf, name, eingabe),
+			ergebnis = await laufMit(
+				s,
+				{ ...o, text },
+				grenzen,
+				werkzeug,
+				mitBildern ? bilder : null,
+				(name, eingabe) => notiereGelesen(lauf, name, eingabe),
 			);
 		} finally {
 			await werkzeug?.ende();
+			if (mitBildern) {
+				const st = bilder.stand();
+				// Gesetzt, nicht addiert: Der Takt (`gleicheAb`) hat den Stand womöglich schon geschrieben.
+				s.geladeneBilder = bilderVorher + verschiedeneBilder(bilder);
+				s.fehlgeschlageneBilder += Math.max(0, st.aufrufe - st.bilder.length);
+				ergebnis = { ...ergebnis, bilder: { gesperrt: st.gesperrt, aufrufe: st.aufrufe, kostenUsd: st.kostenUsd } };
+				if (aktiv) {
+					aktiv.bilder = null;
+					aktiv.bilderGesperrt ||= st.gesperrt;
+				}
+			}
 			beendeEintrag(eintrag, beginn, ergebnis.fehler, ergebnis.verbrauch);
 			if (aktiv?.lauf === lauf) {
 				aktiv.lauf = null;
@@ -802,20 +844,63 @@ export const erstelleEinheiten = (
 		await notiereVerbrauch(s, verbrauchStatus(ergebnis.fehler, o.art), beginn, {
 			...ergebnis.verbrauch,
 			lauf: o.art,
+			...(ergebnis.bilder ? { bildAufrufe: ergebnis.bilder.aufrufe, bildKostenUsd: ergebnis.bilder.kostenUsd } : {}),
 		});
 		return ergebnis;
+	};
+
+	/**
+	 * Die Figuren einer Einheit, deren Grundpose als Referenz in den Arbeitsordner kommt (237): die im Plan oder im
+	 * Auftrag genannten, mit PNG- oder JPEG-Grundpose.
+	 */
+	const bildFiguren = async (s: EinheitStand) => {
+		const bibliothek = await leseBibliothek(kontext.konfig, materialDir).catch(() => [...EINGEBAUTE]);
+		const genannt = figurenIn([...(s.plan?.figuren ?? []), s.auftrag].join('\n'), bibliothek).slice(0, MAX_REFERENZ_FIGUREN);
+		const referenzen = await Promise.all(genannt.map((f) => grundposeReferenz(materialDir, f)));
+		return referenzen.flatMap((r, i) => (r ? [{ ...r, figur: genannt[i]?.name ?? r.name }] : []));
+	};
+
+	/** Je Bildwerkzeug: welche Datei in `referenzen/` zu welcher Figur gehört. */
+	const referenzNamen = new WeakMap<LaufBilder, Map<string, string>>();
+
+	/** Die Bildwerkzeuge eines Laufs; `null` ohne Schlüssel. Ein Fehler beim Anlegen lässt den Lauf ohne Bilder. */
+	const bilderFuerLauf = async (s: EinheitStand): Promise<LaufBilder | null> => {
+		try {
+			const figuren = await bildFiguren(s);
+			const bilder = await erstelleLaufBilder({
+				arbeit: arbeitDir(s.id),
+				art: 'einheit',
+				konfig: kontext.konfig,
+				api: kontext.bildApi,
+				figuren: figuren.map(({ datei, name }) => ({ name, datei })),
+			});
+			if (bilder) {
+				referenzNamen.set(bilder, new Map(figuren.map((f) => [f.pfad, f.figur])));
+			}
+			return bilder;
+		} catch (fehler) {
+			console.error('Bildwerkzeug der Einheit:', fehler);
+			return null;
+		}
+	};
+	/** Die Zeile für den Auftrag: welche Grundpose unter welchem Namen in `referenzen/` liegt. */
+	const referenzZeile = (bilder: LaufBilder) => {
+		const namen = referenzNamen.get(bilder);
+		return `Grundposen der Figuren als Referenz: ${bilder.referenzen
+			.map((r) => `${r}${namen?.get(r) ? ` (${namen.get(r)})` : ''}`)
+			.join(', ')}.`;
 	};
 
 	const laufMit = (
 		s: EinheitStand,
 		o: LaufOptionen,
 		grenzen: { zeitMs: number; runden: number; budgetUsd: number },
-		mcpDatei: string | null,
+		mcp: Werkzeug | null,
+		bilder: LaufBilder | null,
 		werkzeug: (name: string, eingabe: Record<string, unknown>) => void,
 	) =>
 		new Promise<Ergebnis>((resolve) => {
 			const stand: LaufStand = { sitzung: o.sitzung, fehlerCode: null, ergebnis: {} };
-			const kontingent = o.mitCanva ? neuesKontingent() : null;
 			const argumente = kiArgumente({
 				ablage: ablageDir(s.id),
 				auftragDatei: o.auftragDatei,
@@ -823,8 +908,8 @@ export const erstelleEinheiten = (
 				...kiJetzt(),
 				sitzung: o.sitzung,
 				einheit: true,
-				mitCanva: o.mitCanva,
-				mcpDatei,
+				mcpDatei: mcp?.mcpDatei ?? null,
+				mcpWerkzeuge: mcp?.werkzeuge,
 				runden: grenzen.runden,
 				rechte: o.rechte,
 				...(o.werkzeuge ? { werkzeuge: o.werkzeuge } : {}),
@@ -834,6 +919,7 @@ export const erstelleEinheiten = (
 				argumente,
 				auftrag: o.text,
 				cwd: arbeitDir(s.id),
+				bilder: bilder?.stand,
 			});
 			if (aktiv) {
 				aktiv.kind = kind;
@@ -863,9 +949,6 @@ export const erstelleEinheiten = (
 				try {
 					const e = JSON.parse(zeile) as Record<string, unknown>;
 					werteAus(e, stand, { schritt: () => undefined, limit: () => undefined, werkzeug });
-					if (kontingent) {
-						notiereKontingent(kontingent, e);
-					}
 				} catch {
 					// Keine JSON-Zeile.
 				}
@@ -884,122 +967,19 @@ export const erstelleEinheiten = (
 					verbrauch: stand.ergebnis.verbrauch ?? {},
 					kontext: stand.kontext ?? 0,
 					gearbeitet: stand.gearbeitet ?? false,
-					...(kontingent ? { canva: { gesperrt: kontingent.gesperrt, imLauf: kontingent.imLauf } } : {}),
 				});
 			});
 		});
 
-	/** Einträge in `bilder.json`, deren Datei noch nicht in `bilder/` liegt. */
-	const bilderFehlen = async (s: EinheitStand) => {
-		const arbeit = arbeitDir(s.id);
-		const da = new Set(await readdir(path.join(arbeit, 'bilder')).catch(() => [] as string[]));
-		try {
-			const liste = JSON.parse(await readFile(path.join(arbeit, 'bilder.json'), 'utf8')) as unknown;
-			return (Array.isArray(liste) ? (liste as { datei?: unknown }[]) : []).some(
-				(b) => typeof b.datei === 'string' && !da.has(b.datei),
-			);
-		} catch {
-			return false;
-		}
-	};
+	/** Ein Lauf der Einheit (seit 237 ohne die Pausen aus 235: Die Bild-API hat kein Kontingent, auf das man wartet). */
+	const starteLauf = (s: EinheitStand, o: LaufOptionen): Promise<Ergebnis> => einLauf(s, o);
 
-	/** Nach einem Lauf mit Canva (235): Sperrte Canva zuletzt, oder sperrte es im Lauf und es fehlen Bilder? */
-	const mussWarten = async (s: EinheitStand, ergebnis: Ergebnis) => {
-		if (!aktiv || aktiv.abbruch || !ergebnis.canva?.imLauf) {
-			return false;
-		}
-		if (ergebnis.fehler && !WEITER_NACH.has(ergebnis.fehler)) {
-			return false;
-		}
-		if (ergebnis.canva.gesperrt) {
-			return true;
-		}
-		await abgleich();
-		return bilderFehlen(s);
-	};
-
-	/** Wartet `ms` und zeigt die Pause im Stand; `false`, wenn Abbrechen sie beendet hat. */
-	const pausiere = async (s: EinheitStand, ms: number, versuch: number, von: number) => {
-		const a = aktiv;
-		if (!a || a.abbruch) {
-			return false;
-		}
-		const beginn = Date.now();
-		s.canvaPause = { bis: new Date(beginn + ms).toISOString(), versuch, von };
-		await merke(s);
-		const ausgeschlafen = await new Promise<boolean>((resolve) => {
-			if (a.abbruch) {
-				resolve(false);
-				return;
-			}
-			const wecker = setTimeout(() => resolve(true), ms);
-			a.pause = {
-				ende: () => {
-					clearTimeout(wecker);
-					resolve(false);
-				},
-			};
-		});
-		a.pause = null;
-		// Die Zeitgrenze der Einheit gilt für die Arbeit, nicht fürs Warten auf Canva.
-		a.seit += Date.now() - beginn;
-		delete s.canvaPause;
-		await merke(s);
-		return ausgeschlafen && !a.abbruch;
-	};
-
-	const dauerText = (minuten: number) => {
-		const std = Math.floor(minuten / 60);
-		const min = Math.round(minuten % 60);
-		return [std ? `${std} Std.` : '', min || !std ? `${min} Min.` : ''].filter(Boolean).join(' ');
-	};
-	const ZAHLWORT = ['keinen', 'einer', 'zwei', 'drei', 'vier', 'fünf', 'sechs'];
-
-	/** Nach allen Pausen: ein eigener Fehler, nicht in `WEITER_NACH`; die Einheit hält an. */
-	const canvaGesperrt = (s: EinheitStand, o: LaufOptionen) => {
-		const pausen = KI_GRENZEN.einheit.canvaPausenMin;
-		const zahl = ZAHLWORT[pausen.length] ?? String(pausen.length);
-		const titel = s.plan?.dokumente.find((d) => d.slug === o.material)?.titel;
-		const wo = o.material === BILDER_SCHRITT || !titel ? 'den Bildern' : `„${titel}“`;
-		return `Canva hat nach ${zahl} ${pausen.length === 1 ? 'Pause' : 'Pausen'} (${dauerText(pausen.reduce((a, b) => a + b, 0))}) noch keine Bilder erzeugt (Kontingent). ‚Weiterbauen‘ macht bei ${wo} weiter.`;
-	};
-
-	const CANVA_WIEDER = (bauen: boolean) =>
-		[
-			'Canva ist wieder bereit. Mach die Bilder, die noch fehlen: erzeugen, prüfen und in bilder.json eintragen wie zuvor.',
-			bauen
-				? 'Ersetze danach die Platzhalter im Material durch die Bilder, baue mit bauen neu und sieh dir die Seiten an.'
-				: '',
-			'Meldet Canva wieder quota_cooldown, beende den Lauf wie zuvor. Antworte am Ende in höchstens drei Zeilen.',
-		]
-			.filter(Boolean)
-			.join('\n');
-
-	/**
-	 * Ein Lauf der Einheit, mit Canva auch die Pausen (235): Sperrt Canva das Kontingent, wartet der Server und weckt
-	 * dieselbe Sitzung mit derselben Pflichtlektüre und denselben gelesenen Dateien. Jeder Lauf hat seinen Eintrag.
-	 */
-	const starteLauf = async (s: EinheitStand, o: LaufOptionen): Promise<Ergebnis> => {
-		const gelesen = o.gelesen ?? new Set<string>();
-		let ergebnis = await einLauf(s, { ...o, gelesen });
-		const pausen = KI_GRENZEN.einheit.canvaPausenMin;
-		for (let versuch = 0; o.mitCanva && (await mussWarten(s, ergebnis)); versuch += 1) {
-			const minuten = pausen[versuch];
-			if (minuten === undefined) {
-				return { ...ergebnis, fehler: canvaGesperrt(s, o) };
-			}
-			if (!(await pausiere(s, minuten * 60_000, versuch + 1, pausen.length))) {
-				return ergebnis;
-			}
-			const sitzung = ergebnis.sitzung;
-			ergebnis = await einLauf(s, {
-				...o,
-				gelesen,
-				sitzung,
-				text: sitzung ? CANVA_WIEDER(o.bauen !== null) : o.text,
-			});
-		}
-		return ergebnis;
+	/** Sperrte die Bild-API (237): ein eigener Fehler, nicht in `WEITER_NACH`; die Einheit hält an. */
+	const bilderGesperrtText = (s: EinheitStand, schritt: string) => {
+		const titel = s.plan?.dokumente.find((d) => d.slug === schritt)?.titel;
+		return schritt === BILDER_SCHRITT || !titel
+			? `${BILDER_GESPERRT} ‚Weiterbauen‘ macht bei den Bildern weiter.`
+			: `${BILDER_GESPERRT} „${titel}“ ist mit Platzhaltern gebaut; ‚Weiterbauen‘ macht danach weiter.`;
 	};
 
 	/**
@@ -1143,7 +1123,7 @@ export const erstelleEinheiten = (
 				...zeilen,
 			].join('\n');
 		}
-		return mitBildern ? 'Bilder der Einheit: noch keine aus Canva.' : '';
+		return mitBildern ? 'Bilder der Einheit: noch keine.' : '';
 	};
 
 	/** Die Bilder der Einheit für den Auftrag: aus `bilder.json`, was schon in `bilder/` liegt; dem Deckblatt die Vorschau. */
@@ -1282,8 +1262,8 @@ export const erstelleEinheiten = (
 		return figurenDopplungen(dokumente);
 	};
 
-	/** Hat das Material Bilder aus Canva? Dann prüft der zweite Blick sie gegen ihren Vertrag. */
-	const mitCanvaBildern = async (s: EinheitStand, html: string) => {
+	/** Hat das Material neue KI-Bilder? Dann prüft der zweite Blick sie gegen ihren Vertrag. */
+	const mitKiBildern = async (s: EinheitStand, html: string) => {
 		if (!s.bilder) {
 			return false;
 		}
@@ -1414,7 +1394,7 @@ export const erstelleEinheiten = (
 		if (!s.importiert[d.slug] || !html || aktiv?.abbruch) {
 			return;
 		}
-		const weise = pruefWeise(rolleVon(d), await mitCanvaBildern(s, html));
+		const weise = pruefWeise(rolleVon(d), await mitKiBildern(s, html));
 		const stand: PruefStand = {
 			status: 'laeuft',
 			runden: 0,
@@ -1435,7 +1415,7 @@ export const erstelleEinheiten = (
 				return [];
 			}
 			await zeige();
-			const p = await pruefeMaterial(s, plan, d, weise.kind, weise.blick && (await mitCanvaBildern(s, html)));
+			const p = await pruefeMaterial(s, plan, d, weise.kind, weise.blick && (await mitKiBildern(s, html)));
 			stand.runden += 1;
 			if (p.fehler) {
 				stand.status = aktiv?.abbruch ? 'abgebrochen' : 'gescheitert';
@@ -1561,6 +1541,10 @@ export const erstelleEinheiten = (
 		const pflicht = lektuereFuer(s, 'bilder');
 		s.inArbeit = BILDER_SCHRITT;
 		await merke(s);
+		// Ohne Schlüssel (237) gibt es den Schritt nicht: Die Einheit hält hier an, bis der Admin ihn einträgt.
+		if (!bilderStand(kontext.konfig).verfuegbar) {
+			return BILDER_AUS;
+		}
 		await halteFreigabe(s);
 		const ergebnis = await starteLauf(s, {
 			art: 'bilder',
@@ -1575,6 +1559,9 @@ export const erstelleEinheiten = (
 			pflicht,
 		});
 		await abgleich();
+		if (ergebnis.bilder?.gesperrt && !aktiv?.abbruch) {
+			return ergebnis.fehler ?? bilderGesperrtText(s, BILDER_SCHRITT);
+		}
 		if (!ergebnis.fehler && !aktiv?.abbruch) {
 			s.bilderFertig = true;
 		}
@@ -1762,7 +1749,9 @@ export const erstelleEinheiten = (
 			return s.bilder && !s.bilderFertig ? baueBilder(s, plan) : null;
 		}
 		const d = plan.dokumente.find((x) => x.slug === schritt);
-		return d && !s.importiert[d.slug] ? baueMaterial(s, plan, d) : null;
+		const fehler = d && !s.importiert[d.slug] ? await baueMaterial(s, plan, d) : null;
+		// Sperrte die Bild-API im Lauf eines Materials, steht es mit Platzhaltern da; die Einheit hält danach an.
+		return fehler ?? (aktiv?.bilderGesperrt && !aktiv.abbruch ? bilderGesperrtText(s, schritt) : null);
 	};
 
 	/** Schritt 2: die Schritte der Reihenfolge nacheinander, jeder in einer neuen Sitzung. Fertiges überspringt er. */
@@ -1823,14 +1812,6 @@ export const erstelleEinheiten = (
 			stufe,
 			kind: null,
 			abbruch: false,
-			lader: s.bilder
-				? erstelleBildLader(
-						arbeitDir(s.id),
-						path.join(arbeitDir(s.id), 'bilder'),
-						undefined,
-						erstelleZuschnitt(kontext.konfig.pythonBin, path.join(arbeitDir(s.id), ANSICHT_BILDER)),
-					)
-				: null,
 			takt: null,
 			abgleich: Promise.resolve(),
 			letzterPlan: '',
@@ -1845,10 +1826,10 @@ export const erstelleEinheiten = (
 			schlussGebaut: null,
 			verbraucht: { kostenUsd: 0, runden: 0 },
 			ki,
-			pause: null,
+			bilder: null,
+			bilderGesperrt: false,
 		};
 		brichPruefungAb(s);
-		delete s.canvaPause;
 		s.status = 'laeuft';
 		s.grund = null;
 		s.ende = null;
@@ -1857,7 +1838,6 @@ export const erstelleEinheiten = (
 		(stufe === 'plan' ? plane(s, text, sitzung) : fuehreAus(s)).catch(async (fehler: unknown) => {
 			console.error('Einheit:', fehler);
 			aktiv = null;
-			delete s.canvaPause;
 			s.status = 'unvollstaendig';
 			s.grund = 'Die Einheit ist mit einem Fehler stehen geblieben.';
 			await merke(s).catch(() => undefined);
@@ -1904,6 +1884,8 @@ export const erstelleEinheiten = (
 		} catch (fehler) {
 			throw new HttpFehler(400, (fehler as Error).message);
 		}
+		// Ohne Schlüssel (237) startet die Einheit wie ohne neue Bilder; der Auftrag sagt es Claude so.
+		angaben = { ...angaben, bilder: angaben.bilder && bilderStand(kontext.konfig).verfuegbar };
 		const ziel = roh.ordner === null || roh.ordner === undefined ? null : roh.ordner;
 		if (ziel !== null && typeof ziel !== 'string') {
 			throw new HttpFehler(400, 'Der Ordner ist ungültig.');
@@ -2131,7 +2113,6 @@ export const erstelleEinheiten = (
 				s.status = 'unvollstaendig';
 				s.grund = 'Der Server wurde neu gestartet.';
 				s.ende = new Date().toISOString();
-				delete s.canvaPause;
 				if (s.recherche?.status === 'laeuft') {
 					s.recherche = { status: 'gescheitert', grund: s.grund, quellen: [], text: null };
 				}
@@ -2189,8 +2170,6 @@ export const erstelleEinheiten = (
 			if (aktiv) {
 				const s = aktiv.stand;
 				aktiv.abbruch = true;
-				aktiv.pause?.ende();
-				delete s.canvaPause;
 				aktiv.kind?.kill('SIGTERM');
 				if (aktiv.takt) {
 					clearInterval(aktiv.takt);

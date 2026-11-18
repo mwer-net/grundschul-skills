@@ -70,8 +70,8 @@ export const GESTALTEN: Abschnitt = {
 				<BefehlTaste id="auswahl.spiegeln" />
 				{') steht im ⋯ und im Inspektor, dort tauschst du auch Figur oder Pose. '}
 				Eigene Figuren benennst du mit einem Doppelklick auf den Namen um; „Entfernen“ im ⋯ der Kachel nimmst du
-				mit „Rückgängig“ zurück. Oben in der Schublade beschreibst du eine neue Figur oder Pose, Claude malt sie
-				in Canva, das dauert ein bis zwei Minuten.
+				mit „Rückgängig“ zurück. Oben in der Schublade beschreibst du eine neue Figur oder Pose, Claude malt sie,
+				das dauert ein bis zwei Minuten.
 			</p>
 
 			<h3>Bilder</h3>
@@ -87,7 +87,7 @@ export const GESTALTEN: Abschnitt = {
 			</p>
 			<p data-hilfe-bild-beschreiben>
 				Oben in der Schublade „Bilder“ beschreibst du ein neues Bild, etwa „Willi und Wilma pflanzen eine
-				Sonnenblume“, und drückst Enter. Claude malt es in Canva, es steht danach unter „Dieser Ordner“. Figuren
+				Sonnenblume“, und drückst Enter. Claude malt es, es steht danach unter „Dieser Ordner“. Figuren
 				aus der Schublade sehen in jedem Bild gleich aus.
 			</p>
 			<p data-hilfe-rahmenstil>

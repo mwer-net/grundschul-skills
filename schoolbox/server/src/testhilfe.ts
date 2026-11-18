@@ -29,6 +29,9 @@ import {
 import { A4, FOLIE, testPdf } from '@schoolbox/kern/src/testpdf';
 
 import { erstelleApp } from './app';
+import type { BildAnfrage } from './bild-api';
+import { BildApiFehler } from './bild-api';
+import type { BildApi } from './bild-zugang';
 import type { EinheitAnsicht } from './einheit';
 import type { KiAnsicht, KiPruefer } from './ki';
 import type { ServerKonfig } from './konfig';
@@ -44,6 +47,43 @@ import { starteUeberwachung } from './ueberwachung';
 import type { VorschauBauer } from './vorschau';
 
 type Init = NonNullable<Parameters<typeof fetch>[1]>;
+
+/** Ein kleines echtes PNG und JPEG für die Attrappen der Bild-API (237). */
+export const TEST_PNG = Buffer.from(
+	'iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAA/0lEQVR42u2ZyxHCMAxEra2GIigiFVAcFaQIiqAbODHDgVgfy7ZMtOdg7ZMyyngpJZVKpWaKvA/crpcX98z+eFIoAInpXjDkbfy+8b+77X4g5GVeYpwDsUBQq3mL8RqIFoKs5j2MH4FoIBDF/Pe5mqWAKOatEIhk3gIB7bYZLa4+tF0ZJWk9RO6+xAcidl9TF2VxIcrmsW6k/51AAiRAAiRAAjQBfG5Fvy7gI8Xd0s7xCs2agqRuFcAzQWtRzQc8uzG6+yKA2VPg6kNzyKgpaPIhaDvRG0IbbsEyzl4QlmTufNnoUVKwVDpdizuW+X+AA/Fak0MAtDBRvvCpVCqA3uJygkAbuBVtAAAAAElFTkSuQmCC',
+	'base64',
+);
+export const TEST_JPG = Buffer.from(
+	'/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCABIAIADASIAAhEBAxEB/8QAGgABAAMBAQEAAAAAAAAAAAAAAAEDBAUCBv/EACgQAAICAQMEAQMFAAAAAAAAAAABAgMRFDGhBBIhUkEFE2EiI1GRsf/EABkBAQADAQEAAAAAAAAAAAAAAAACAwQFAf/EACERAAMAAQMFAQEAAAAAAAAAAAABAhEDEiEEBRMxUUEi/9oADAMBAAIRAxEAPwD7cAGkyAAAAAAAAAAAAAAAAHiTy/wQm1sc2+4xN7Uso2T0dOc5LAE8oHQmlSVL9MjTTwwACR4AAAAAAAAAAAAAAAVtYYLGkyFFI4t9tvf/AC+Doz1k7efYisIkA6+nC04Ur8MF06p0wCnVUe/DGqo9+GeeWPqI5LgU6qj34Y1VHvwx5Y+oZMPX9bP7rqpm4xj4k14bZhrsnVLurk4v8ENtttttvdsgi3k0JJLB2+h6nUU/qf7kfEvHJpOP9NtjVfLvk1Fx5ydLVUe/DJeSV7ZTaSZPVXrp6HN77RX8s4dt1l0s2zcn/ht+qXRsVark2lnK/o5546T9FkJYya+j62dU4xsm3Vs8+cHZPmzt09VV9ivvsfd2rOU98BWl7ZHUSXJpBTqqPfhjVUe/DPfLH1FeS4FOqo9+GNVR78MeWPqGTmgA5BAAAAz2wak2s4fkrNhCilskjTPUYWGi1auFyeKodscvdlgBnqnTyytvLyeLI90cfO5maaeGsGwhpPdJlulrbOGTjU28GaEHN/OPlmoAjqajtkbvcwACsiAAAAAAAAAAAAAAAAAAAAAAAAAAAf/Z',
+	'base64',
+);
+
+/** Platzhalter für `OPENAI_API_KEY` in Tests: Er schaltet die Bildwerkzeuge ein, gerufen wird nur die Attrappe. */
+export const TEST_BILD_SCHLUESSEL = 'platzhalter-nur-fuer-tests';
+
+/** Steht das im Prompt, sperrt die Attrappe der Bild-API wie OpenAI bei Guthaben, Ausgabenlimit oder Schlüssel. */
+export const BILD_GESPERRT_MARKE = '[gesperrt]';
+
+/**
+ * Die Bild-API für Tests und E2E (237): nie ein echter Aufruf. Liefert PNG oder JPEG nach der Endung und sperrt mit
+ * `BILD_GESPERRT_MARKE` im Prompt. `anfragen` hält jede Anfrage fest.
+ */
+export const erstelleBildApiAttrappe = () => {
+	const anfragen: BildAnfrage[] = [];
+	const api: BildApi = (anfrage) => {
+		anfragen.push(anfrage);
+		if (anfrage.prompt.includes(BILD_GESPERRT_MARKE)) {
+			return Promise.reject(new BildApiFehler('gesperrt', 'Bild-API: Das Guthaben ist aufgebraucht.'));
+		}
+		return Promise.resolve({
+			inhalt: anfrage.typ === 'jpg' ? TEST_JPG : TEST_PNG,
+			verbrauch: { bildToken: 0, textToken: 10, ausgabeToken: 100 },
+			kostenUsd: 0.01,
+			wiederholungen: 0,
+		});
+	};
+	return { api, anfragen };
+};
 
 /** Spielt `claude` nach (Issue 057): Kein Test verbraucht Limit. Das Verhalten steht in `fall.txt` daneben. */
 export const KI_ATTRAPPE = String.raw`#!/usr/bin/env node
@@ -90,7 +130,7 @@ process.stdin.on('end', () => {
 			const konfig = JSON.parse(fs.readFileSync(args[args.indexOf('--mcp-config') + 1], 'utf8'));
 			const v = require('node:net').connect(konfig.mcpServers.schoolbox.args[1]);
 			let antwort = '';
-			v.on('connect', () => v.write('{}\n'));
+			v.on('connect', () => v.write(JSON.stringify({ werkzeug: 'pruefen' }) + '\n'));
 			v.on('data', (t) => { antwort += t; });
 			v.on('close', () => { fs.appendFileSync(path.join(__dirname, 'pruefen.jsonl'), JSON.stringify({ kuerzen, art: konfig.mcpServers.schoolbox.args[2], ...JSON.parse(antwort || '{}') }) + '\n'); fertig(); });
 			v.on('error', () => fertig());
@@ -161,7 +201,7 @@ process.stdin.on('end', () => {
 			const konfig = JSON.parse(fs.readFileSync(neben('--mcp-config'), 'utf8'));
 			const v = require('node:net').connect(konfig.mcpServers.schoolbox.args[1]);
 			let antwort = '';
-			v.on('connect', () => v.write(JSON.stringify({ dokument: slug }) + '\n'));
+			v.on('connect', () => v.write(JSON.stringify({ werkzeug: 'bauen', argumente: { dokument: slug } }) + '\n'));
 			v.on('data', (t) => { antwort += t; });
 			v.on('close', () => { const a = JSON.parse(antwort || '{}'); fs.appendFileSync(path.join(__dirname, 'bauen.jsonl'), JSON.stringify({ slug, ...a }) + '\n'); fertig(a); });
 			v.on('error', () => fertig({ fehler: true }));
@@ -209,26 +249,33 @@ process.stdin.on('end', () => {
 				ende({ result: 'Behoben.' });
 				return;
 			}
-			// 235: „einheit-canva“ bekommt im Bilder-Lauf die Sperre und macht das Bild nach der Pause in derselben Sitzung,
-			// „einheit-canva-stur“ bekommt sie immer. Das Lesen von bilder.md nennt quota_cooldown auch und zählt nicht.
-			const wieder = eingabe.startsWith('Canva ist wieder bereit');
-			if (fall.startsWith('einheit-canva') && (wieder || eingabe.includes('die Bilder der Einheit'))) {
+			// 237: „einheit-bild“ erzeugt im Bilder-Lauf dieselbe Datei zweimal über bild_erzeugen und wartet einen Takt des
+			// Servers ab, „einheit-bild-gesperrt“ trifft beim ersten Aufruf auf die Sperre.
+			if (eingabe.includes('die Bilder der Einheit')) {
 				lies(lektuere);
-				fs.writeFileSync('bilder.json', JSON.stringify([{ datei: 'szene.png', motiv: 'Szene im Werkraum' }]));
-				const ruf = (id, name, content) => { sag({ type: 'assistant', message: { content: [{ type: 'tool_use', id, name, input: {} }] } }); sag({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: id, content }] } }); };
-				ruf('r1', 'Read', 'Meldet Canva quota_cooldown, warte einige Minuten.');
-				if (wieder && fall === 'einheit-canva') {
-					ruf('g1', 'mcp__canva__generate-image', '{"jobId":"j1"}');
-					ruf('g2', 'mcp__canva__get-generate-image-job', [{ type: 'text', text: '[Resource link: MAattrappe3] https://attrappe.invalid/M/MAattrappe3' }]);
-					fs.mkdirSync('bilder', { recursive: true });
-					fs.writeFileSync('bilder/szene.png', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
-				} else {
-					ruf('g1', 'mcp__canva__generate-image', [{ type: 'text', text: '{"status":"failed","failure":{"code":"quota_cooldown","message":"Your credit usage is cooling down."}}' }]);
+				if (fall === 'einheit-bild' || fall === 'einheit-bild-gesperrt') {
+					const argumente = { datei: 'uhr-gross.png', prompt: (fall === 'einheit-bild-gesperrt' ? '[gesperrt] ' : '') + 'Eine große Uhr', format: 'SQUARE_1_1', transparent: true };
+					fs.writeFileSync('bilder.json', JSON.stringify([{ datei: argumente.datei, motiv: 'Eine große Uhr' }]));
+					const erzeuge = () => new Promise((fertig) => {
+						const konfig = JSON.parse(fs.readFileSync(neben('--mcp-config'), 'utf8'));
+						const v = require('node:net').connect(konfig.mcpServers.schoolbox.args[1]);
+						let antwort = '';
+						v.on('connect', () => v.write(JSON.stringify({ werkzeug: 'bild_erzeugen', argumente }) + '\n'));
+						v.on('data', (t) => { antwort += t; });
+						v.on('close', () => { const a = JSON.parse(antwort || '{}'); fs.appendFileSync(path.join(__dirname, 'bild.jsonl'), JSON.stringify({ argumente, ...a }) + '\n'); fertig(a); });
+						v.on('error', () => fertig({ fehler: true }));
+					});
+					const a = await erzeuge();
+					if (!a.fehler) {
+						await erzeuge();
+						await warte(2500);
+					}
+					ende({ result: a.fehler ? 'Keine Bilder, OpenAI sperrt.' : 'Ein Bild, zweimal erzeugt.' });
+					return;
 				}
-				ende({ result: 'Bilder.' });
+				ende({ result: 'Keine neuen Bilder.' });
 				return;
 			}
-			if (eingabe.includes('die Bilder der Einheit')) { lies(lektuere); ende({ result: 'Keine neuen Bilder.' }); return; }
 			const slug = /der Bau von dokumente\/([a-z0-9-]+)\//.exec(eingabe)?.[1];
 			if (!slug) { ende({ result: 'Kein Material genannt.' }); return; }
 			if (eingabe.includes('Lege zuerst thema.css an')) { fs.writeFileSync('thema.css', ':root { --akzent: #c33; }'); }
@@ -253,26 +300,47 @@ process.stdin.on('end', () => {
 		})();
 		return;
 	}
-	// Ein Canva-Bild. Die Adresse in bilder.json lädt nie (kein Netz), deshalb legt der Fall das Bild selbst nach bilder/.
-	if (fall.startsWith('canva')) {
+	// Ein Bild der Schubladen (237): erst der Vertrag in bilder.json, dann bild_erzeugen über den Socket wie Claude. Die
+	// Bild-API ist im Server eine Attrappe (erstelleBildApiAttrappe); „bild-gesperrt“ lässt sie sperren, „canva-kein-png“
+	// legt ohne Werkzeug eine kaputte Datei ab. Jede Antwort des Werkzeugs landet in „bild.jsonl“.
+	if (fall.startsWith('canva') || fall === 'bild-gesperrt') {
 		(async () => {
-			if (fall === 'canva-pause') { fs.writeFileSync('ergebnis.json', JSON.stringify({ fehler: 'canva-pause' })); ende({ result: 'Canva macht eine Pause.' }); return; }
-			if (fall === 'canva-bild') {
-				const jpg = Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCABIAIADASIAAhEBAxEB/8QAGgABAAMBAQEAAAAAAAAAAAAAAAEDBAUCBv/EACgQAAICAQMEAQMFAAAAAAAAAAABAgMRFDGhBBIhUkEFE2EiI1GRsf/EABkBAQADAQEAAAAAAAAAAAAAAAACAwQFAf/EACERAAMAAQMFAQEAAAAAAAAAAAABAhEDEiEEBRMxUUEi/9oADAMBAAIRAxEAPwD7cAGkyAAAAAAAAAAAAAAAAHiTy/wQm1sc2+4xN7Uso2T0dOc5LAE8oHQmlSVL9MjTTwwACR4AAAAAAAAAAAAAAAVtYYLGkyFFI4t9tvf/AC+Doz1k7efYisIkA6+nC04Ur8MF06p0wCnVUe/DGqo9+GeeWPqI5LgU6qj34Y1VHvwx5Y+oZMPX9bP7rqpm4xj4k14bZhrsnVLurk4v8ENtttttvdsgi3k0JJLB2+h6nUU/qf7kfEvHJpOP9NtjVfLvk1Fx5ydLVUe/DJeSV7ZTaSZPVXrp6HN77RX8s4dt1l0s2zcn/ht+qXRsVark2lnK/o5546T9FkJYya+j62dU4xsm3Vs8+cHZPmzt09VV9ivvsfd2rOU98BWl7ZHUSXJpBTqqPfhjVUe/DPfLH1FeS4FOqo9+GNVR78MeWPqGTmgA5BAAAAz2wak2s4fkrNhCilskjTPUYWGi1auFyeKodscvdlgBnqnTyytvLyeLI90cfO5maaeGsGwhpPdJlulrbOGTjU28GaEHN/OPlmoAjqajtkbvcwACsiAAAAAAAAAAAAAAAAAAAAAAAAAAAf/Z', 'base64');
+			const neben = (name) => args[args.indexOf(name) + 1] ?? '';
+			const bild = (argumente) => new Promise((fertig) => {
+				sag({ type: 'assistant', message: { content: [{ type: 'tool_use', id: 'b1', name: 'mcp__schoolbox__bild_erzeugen', input: argumente }] } });
+				const konfig = JSON.parse(fs.readFileSync(neben('--mcp-config'), 'utf8'));
+				const v = require('node:net').connect(konfig.mcpServers.schoolbox.args[1]);
+				let antwort = '';
+				v.on('connect', () => v.write(JSON.stringify({ werkzeug: 'bild_erzeugen', argumente }) + '\n'));
+				v.on('data', (t) => { antwort += t; });
+				v.on('close', () => {
+					const a = JSON.parse(antwort || '{}');
+					sag({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'b1', content: a.text ?? '', is_error: a.fehler === true }] } });
+					fs.appendFileSync(path.join(__dirname, 'bild.jsonl'), JSON.stringify({ argumente, ...a }) + '\n');
+					fertig(a);
+				});
+				v.on('error', () => fertig({ fehler: true }));
+			});
+			const jpg = fall === 'canva-bild';
+			const datei = jpg ? 'bild.jpg' : 'bild.png';
+			const motiv = jpg ? 'Willi und Wilma im Garten' : 'Willi mit Lupe';
+			fs.writeFileSync('bilder.json', JSON.stringify([{ datei, motiv }]));
+			if (fall === 'canva-kein-png') {
 				fs.mkdirSync('bilder', { recursive: true });
-				fs.writeFileSync('bilder/bild.jpg', jpg);
-				fs.writeFileSync('bilder.json', JSON.stringify([{ datei: 'bild.jpg', url: 'https://attrappe.invalid/bild.jpg', motiv: 'Willi und Wilma im Garten', mediaId: 'MAattrappe2' }]));
-				fs.writeFileSync('ergebnis.json', '{}');
-				await new Promise((r) => setTimeout(r, 2500));
-				ende({ result: 'Bild fertig.' });
-				return;
+				fs.writeFileSync('bilder/bild.png', 'kein Bild');
+			} else {
+				const referenzen = [...new Set([...eingabe.matchAll(/Referenz (referenzen\/[a-z0-9-]+\.(?:png|jpg))/g)].map((t) => t[1]))];
+				const prompt = (fall === 'bild-gesperrt' ? '[gesperrt] ' : '') + motiv;
+				const a = await bild({ datei, prompt, format: jpg ? 'LANDSCAPE_4_3' : 'SQUARE_1_1', transparent: !jpg, referenzen });
+				if (a.fehler) {
+					fs.writeFileSync('ergebnis.json', JSON.stringify({ fehler: 'canva-fehler' }));
+					await new Promise((r) => setTimeout(r, 2500));
+					ende({ result: 'Kein Bild.' });
+					return;
+				}
 			}
-			const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAA/0lEQVR42u2ZyxHCMAxEra2GIigiFVAcFaQIiqAbODHDgVgfy7ZMtOdg7ZMyyngpJZVKpWaKvA/crpcX98z+eFIoAInpXjDkbfy+8b+77X4g5GVeYpwDsUBQq3mL8RqIFoKs5j2MH4FoIBDF/Pe5mqWAKOatEIhk3gIB7bYZLa4+tF0ZJWk9RO6+xAcidl9TF2VxIcrmsW6k/51AAiRAAiRAAjQBfG5Fvy7gI8Xd0s7xCs2agqRuFcAzQWtRzQc8uzG6+yKA2VPg6kNzyKgpaPIhaDvRG0IbbsEyzl4QlmTufNnoUVKwVDpdizuW+X+AA/Fak0MAtDBRvvCpVCqA3uJygkAbuBVtAAAAAElFTkSuQmCC', 'base64');
-			fs.mkdirSync('bilder', { recursive: true });
-			fs.writeFileSync('bilder/bild.png', fall === 'canva-kein-png' ? 'kein Bild' : png);
-			fs.writeFileSync('bilder.json', JSON.stringify([{ datei: 'bild.png', url: 'https://attrappe.invalid/bild.png', motiv: 'Willi mit Lupe', mediaId: 'MAattrappe1' }]));
 			const neu = /^Neue Figur\./m.test(eingabe);
-			fs.writeFileSync('ergebnis.json', JSON.stringify({ wort: 'lupe', ...(neu ? { name: 'Igel', steckbrief: 'kleiner brauner Igel mit hellem Bauch, gelbes Halstuch' } : {}) }));
+			fs.writeFileSync('ergebnis.json', jpg ? '{}' : JSON.stringify({ wort: 'lupe', ...(neu ? { name: 'Igel', steckbrief: 'kleiner brauner Igel mit hellem Bauch, gelbes Halstuch' } : {}) }));
 			await new Promise((r) => setTimeout(r, 2500));
 			ende({ result: 'Bild fertig.' });
 		})();
@@ -288,7 +356,7 @@ process.stdin.on('end', () => {
 		const konfig = JSON.parse(fs.readFileSync(neben('--mcp-config'), 'utf8'));
 		const v = require('node:net').connect(konfig.mcpServers.schoolbox.args[1]);
 		let antwort = '';
-		v.on('connect', () => v.write(JSON.stringify({ dokument: 'blatt' }) + '\n'));
+		v.on('connect', () => v.write(JSON.stringify({ werkzeug: 'bauen', argumente: {} }) + '\n'));
 		v.on('data', (t) => { antwort += t; });
 		v.on('close', () => { const a = JSON.parse(antwort || '{}'); fs.appendFileSync(path.join(__dirname, 'bauen.jsonl'), JSON.stringify(a) + '\n'); fertig(a); });
 		v.on('error', () => fertig({ fehler: true }));
@@ -458,6 +526,8 @@ export interface TestServerOptionen {
 	einheitAnsicht?: EinheitAnsicht;
 	/** Ohne baut blatt.py die Seiten eines neuen Blatts (Werkzeug `bauen`, Prüflauf). */
 	kiAnsicht?: KiAnsicht;
+	/** Die Bild-API (237); ohne die Attrappe. `env: { OPENAI_API_KEY: '' }` schaltet neue Bilder ab. */
+	bildApi?: BildApi;
 }
 
 export const starteTestServer = async (optionen: TestServerOptionen = {}) => {
@@ -467,6 +537,8 @@ export const starteTestServer = async (optionen: TestServerOptionen = {}) => {
 		PORT: '4999',
 		PASSWORT_HASH: await erzeugePasswortHash(TEST_PASSWORT, 10),
 		SITZUNG_GEHEIMNIS: TEST_GEHEIMNIS,
+		// Ein Platzhalter, kein Schlüssel: Die Bild-API ist die Attrappe. `OPENAI_API_KEY: ''` prüft „ohne Schlüssel“.
+		OPENAI_API_KEY: TEST_BILD_SCHLUESSEL,
 		...optionen.env,
 	};
 	const konfig = pruefeServerKonfig(ladeKonfig(env, materialDir));
@@ -477,6 +549,7 @@ export const starteTestServer = async (optionen: TestServerOptionen = {}) => {
 		kiPruefer: optionen.kiPruefer,
 		einheitAnsicht: optionen.einheitAnsicht,
 		kiAnsicht: optionen.kiAnsicht,
+		bildApi: optionen.bildApi ?? erstelleBildApiAttrappe().api,
 	});
 	const ueberwachung: Ueberwachung | null = optionen.ueberwachung
 		? await starteUeberwachung(kontext, optionen.ruheMs)

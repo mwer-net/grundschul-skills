@@ -292,6 +292,43 @@ describe('nimmPoseAuf (177, für 176 und 179)', () => {
 	});
 });
 
+describe('nimmPoseAuf mit Bildern der Bild-API (237)', () => {
+	it('legt eine neue Figur mit Herkunft openai und ohne canva an; eine weitere Pose ebenso', async () => {
+		const materialDir = await mkdtemp(path.join(tmpdir(), 'schoolbox-figuren-'));
+		const quelle = path.join(materialDir, 'quelle');
+		const bild = await png(quelle, 'bild.png', 40, 40, 0.5, '#4060a0');
+		const grund = await nimmPoseAuf(KONFIG, materialDir, {
+			datei: bild,
+			figur: 'igel',
+			name: 'Igel',
+			herkunft: 'openai',
+			steckbrief: 'kleiner brauner Igel mit gelbem Halstuch',
+		});
+		assert.deepEqual(grund, { id: 'igel', schluessel: '_figuren/igel.png', strich: false });
+		const weitere = await nimmPoseAuf(KONFIG, materialDir, {
+			datei: bild,
+			figur: 'igel',
+			wort: 'lupe',
+			herkunft: 'openai',
+		});
+		assert.equal(weitere.id, 'igel-lupe');
+		assert.equal(weitere.canva, undefined);
+		const igel = (await leseJson(materialDir)).figuren.find((f) => f.id === 'igel');
+		assert.equal(igel?.canva, undefined, 'keine Canva-Referenz');
+		assert.equal(igel?.steckbrief, 'kleiner brauner Igel mit gelbem Halstuch');
+		assert.deepEqual(igel?.posen, [
+			{ datei: 'igel.png', herkunft: 'openai' },
+			{ datei: 'igel-lupe.png', herkunft: 'openai' },
+		]);
+		const gelesen = (await leseBibliothek(KONFIG, materialDir)).find((f) => f.id === 'igel');
+		assert.equal(gelesen?.canva, undefined);
+		assert.deepEqual(
+			gelesen?.posen.map((p) => p.id),
+			['igel', 'igel-lupe'],
+		);
+	});
+});
+
 describe('Canva-Referenz, Steckbrief und entfernePose (176)', () => {
 	/** Eine Bibliothek unter `/tmp` mit Kiki (Grundpose und „winkt“), ohne Steckbrief und ohne Referenz. */
 	const mitKiki = async () => {

@@ -20,6 +20,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { raw, Router } from 'express';
 
 import { bildAuftragText, legeBildAb } from './bild-beschreiben';
+import { grundposeReferenz } from './bild-zugang';
 import { leseQuelle, verlangeDokument } from './dokumente';
 import { HttpFehler } from './fehler';
 import { kiLaufJetzt } from './ki-einstellung';
@@ -114,7 +115,7 @@ export const bilderApi = (kontext: Kontext) => {
 		res.json({ ok: true, tage: PAPIERKORB_TAGE });
 	});
 
-	/** Ein neues Bild über Canva (176). Es landet in `bilder/` der Mappe; material.html ändert sich nicht. */
+	/** Ein neues KI-Bild (176, seit 237 über die Bild-API). Es landet in `bilder/` der Mappe; material.html bleibt. */
 	router.post('/beschreiben', async (req, res) => {
 		const { dir, dok, mappe } = ziel(req);
 		const roh = (req.body as { text?: unknown } | undefined)?.text;
@@ -125,10 +126,17 @@ export const bilderApi = (kontext: Kontext) => {
 		if (text.length > CANVA_TEXT_ZEICHEN) {
 			throw new HttpFehler(400, `Höchstens ${CANVA_TEXT_ZEICHEN} Zeichen.`);
 		}
-		const figuren = figurenFuerBild(text, await leseBibliothek(konfig, konfig.materialDir));
-		if (figuren.length > MAX_FIGUREN_JE_BILD) {
+		const genannt = figurenFuerBild(text, await leseBibliothek(konfig, konfig.materialDir));
+		if (genannt.length > MAX_FIGUREN_JE_BILD) {
 			throw new HttpFehler(400, 'Höchstens vier Figuren je Bild.');
 		}
+		// Ohne Steckbrief braucht eine Figur ihre Grundpose als Referenz; ein anderes Format nimmt die Bild-API nicht.
+		const mitReferenz = await Promise.all(
+			genannt.map(async (f) => ({ f, r: await grundposeReferenz(konfig.materialDir, f) })),
+		);
+		const tauglich = mitReferenz.filter(({ f, r }) => f.steckbrief || r);
+		const figuren = tauglich.map(({ f, r }) => ({ name: f.name, steckbrief: f.steckbrief, referenz: r?.pfad ?? null }));
+		const referenzen = tauglich.flatMap(({ r }) => (r ? [{ name: r.name, datei: r.datei }] : []));
 		const { palette } = leseBlatt(await leseQuelle(dir));
 		const vorlage = await readFile(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'bild.md'), 'utf8');
 		const ki = await kiLaufJetzt(konfig, 'klein');
@@ -139,7 +147,7 @@ export const bilderApi = (kontext: Kontext) => {
 				auftrag: `${vorlage.trimEnd()}\n\n${bildAuftragText({ text, figuren, palette })}`,
 				ziel: { mappe, dok },
 			},
-			{ uebernimm: (e) => legeBildAb(konfig.materialDir, mappe, e), ki },
+			{ uebernimm: (e) => legeBildAb(konfig.materialDir, mappe, e), ki, figuren: referenzen },
 		);
 		res.status(201).json({ id: stand.id });
 	});

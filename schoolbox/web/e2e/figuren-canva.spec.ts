@@ -1,8 +1,8 @@
 /**
- * Figuren über Canva (176): „Figur beschreiben“ in der Schublade „Figuren“, die Kacheln während des Laufs, Fehler und
- * „Noch einmal“, Abbrechen, Entfernen über ⋯ und die Meldung. Die Claude-Attrappe malt (Fälle `canva-figur`,
- * `canva-pause`, `haenger`) und wartet 2,5 s, damit die Kachel mit dem Spinner zu sehen ist. Die Bibliothek mit Kiki
- * wird vor jedem Test gesichert und danach zurückgelegt.
+ * Neue Figuren mit KI-Bildern (176, 237): „Figur beschreiben“ in der Schublade „Figuren“, die Kacheln während des
+ * Laufs, Fehler und „Noch einmal“, Abbrechen, Entfernen über ⋯ und die Meldung. Die Claude-Attrappe malt (Fälle
+ * `canva-figur`, `bild-gesperrt`, `haenger`) und wartet 2,5 s, damit die Kachel mit dem Spinner zu sehen ist. Die
+ * Bibliothek mit Kiki wird vor jedem Test gesichert und danach zurückgelegt.
  */
 import { existsSync } from 'node:fs';
 import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
@@ -70,7 +70,7 @@ test.afterEach(async ({ page }) => {
 	await kiFall('gut');
 });
 
-test.describe('Figuren über Canva (176)', () => {
+test.describe('Neue Figuren mit KI-Bildern (176)', () => {
 	test('Pose: Kachel mit Spinner in Willis Abschnitt, dann „Willi lupe“; Enter noch einmal gibt „Willi lupe 2“', async ({
 		hasTouch,
 		page,
@@ -130,7 +130,7 @@ test.describe('Figuren über Canva (176)', () => {
 		]);
 	});
 
-	test('Suche: Steht etwas im Suchfeld, ist keine Canva-Kachel zu sehen', async ({ page }) => {
+	test('Suche: Steht etwas im Suchfeld, ist keine Kachel eines Auftrags zu sehen', async ({ page }) => {
 		await kiFall('haenger');
 		await oeffneFiguren(page);
 		await beschreibe(page, 'Kiki springt');
@@ -230,12 +230,12 @@ test.describe('Figuren über Canva (176)', () => {
 		druecke,
 		page,
 	}) => {
-		await kiFall('canva-pause');
+		await kiFall('bild-gesperrt');
 		await oeffneFiguren(page);
 		await beschreibe(page, 'Wilma mit einem Buch');
 		const fehler = gruppe(page, 'wilma').locator(CANVA_KACHEL);
 		await expect(fehler).toHaveAttribute('data-status', 'fehler', LAUF);
-		await expect(fehler).toContainText('Canva macht gerade eine Pause.');
+		await expect(fehler).toContainText('OpenAI hat keine Bilder mehr erzeugt (Guthaben, Ausgabenlimit oder Schlüssel).');
 		await expect(fehler.getByRole('button', { name: 'Entfernen' })).toBeVisible();
 
 		await kiFall('canva-figur');
@@ -246,7 +246,7 @@ test.describe('Figuren über Canva (176)', () => {
 	});
 
 	test('× an einer Fehler-Kachel entfernt sie', async ({ druecke, page }) => {
-		await kiFall('canva-pause');
+		await kiFall('bild-gesperrt');
 		await oeffneFiguren(page);
 		await beschreibe(page, 'Wilma mit einem Buch');
 		const fehler = gruppe(page, 'wilma').locator(CANVA_KACHEL);
@@ -299,7 +299,7 @@ test.describe('Figuren über Canva (176)', () => {
 	});
 });
 
-test.describe('Figuren über Canva am Limit (176)', () => {
+test.describe('Neue Figuren mit KI-Bildern am Limit (176)', () => {
 	/** Der Stand lebt im Server: Das Konto neu fragen, die Attrappe meldet wieder Luft. */
 	test.afterEach(async ({ page }) => {
 		await kiFall('gut');

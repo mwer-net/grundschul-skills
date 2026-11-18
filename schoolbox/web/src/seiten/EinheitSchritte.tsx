@@ -19,6 +19,7 @@ import { Schalter } from '../bausteine/Schalter';
 import { Segment } from '../bausteine/Segment';
 import { Stepper } from '../bausteine/Stepper';
 import { Symbol } from '../bausteine/Symbol';
+import type { KiZustand } from '../editor/ki';
 import { Empfohlen, Etikett, TitelFeld, Zaehler } from './AnlegenSchritte';
 
 /** Die Schritte der Unterrichtseinheit im Assistenten (140, Entwurf E1). Daten aus `assistent.ts` und `einheit.ts`. */
@@ -295,8 +296,19 @@ export const SchrittEBestandteile = ({ a, setzeEh }: { a: Antworten; setzeEh: Se
 	);
 };
 
-/** Eine Einheit erzählt immer eine Geschichte (Vorlage seit 140); der Schalter dafür entfällt (190-39). */
-export const SchrittERahmen = ({ a, setzeEh }: { a: Antworten; setzeEh: SetzeEh }) => (
+/**
+ * Eine Einheit erzählt immer eine Geschichte (Vorlage seit 140); der Schalter dafür entfällt (190-39). Ohne Bild-API
+ * fehlt der Schalter „Neue KI-Bilder“, an seiner Stelle steht der Satz des Servers (237).
+ */
+export const SchrittERahmen = ({
+	a,
+	bilder,
+	setzeEh,
+}: {
+	a: Antworten;
+	bilder: KiZustand['bilder'];
+	setzeEh: SetzeEh;
+}) => (
 	<>
 		<label className="mb-4 block">
 			<Etikett zusatz="optional">{EINHEIT_FELDER.idee.name}</Etikett>
@@ -320,18 +332,26 @@ export const SchrittERahmen = ({ a, setzeEh }: { a: Antworten; setzeEh: SetzeEh 
 				waehle={(aussehen) => setzeEh({ aussehen })}
 			/>
 		</Zeile>
-		<div className="mt-4 flex items-center gap-3 rounded-lg border border-rand px-3 py-2">
-			<Symbol name="bild" className="size-5 flex-none text-leise" />
-			<span className="min-w-0 flex-1">
-				<span className="block font-medium">Neue Bilder mit Canva</span>
-				<span className="block text-sm text-leise">
-					Szenen und Motive passend zur Geschichte. Verbraucht dein Canva-Kontingent; Mail und Dateien bleiben
-					gesperrt.
+		{(bilder.verfuegbar || bilder.grund) && (
+			<div
+				className="mt-4 flex items-center gap-3 rounded-lg border border-rand px-3 py-2"
+				data-einheit-bilder={bilder.verfuegbar ? undefined : 'aus'}
+			>
+				<Symbol name="bild" className="size-5 flex-none text-leise" />
+				<span className="min-w-0 flex-1">
+					<span className="block font-medium">Neue KI-Bilder</span>
+					<span className="block text-sm text-leise">
+						{bilder.verfuegbar ? 'Szenen und Motive passend zur Geschichte, über OpenAI rund 2 $ je Einheit.' : bilder.grund}
+					</span>
 				</span>
-			</span>
-			<Empfohlen />
-			<Schalter name="Neue Bilder mit Canva" an={a.eh.bilder} setze={(an) => setzeEh({ bilder: an })} />
-		</div>
+				{bilder.verfuegbar && (
+					<>
+						<Empfohlen />
+						<Schalter name="Neue KI-Bilder" an={a.eh.bilder} setze={(an) => setzeEh({ bilder: an })} />
+					</>
+				)}
+			</div>
+		)}
 	</>
 );
 

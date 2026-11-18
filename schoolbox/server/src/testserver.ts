@@ -8,9 +8,11 @@ import { WEB_DIST } from './app';
 import {
 	baueErsatzAusgabe,
 	baueErsatzFolien,
+	erstelleBildApiAttrappe,
 	KI_ATTRAPPE,
 	legeTestfigurenAn,
 	starteTestServer,
+	TEST_BILD_SCHLUESSEL,
 	TEST_PASSWORT,
 } from './testhilfe';
 
@@ -58,8 +60,10 @@ const starte = async () => {
 	await mkdir(kiOrdner, { recursive: true });
 	await writeFile(claude, KI_ATTRAPPE, { mode: 0o755 });
 	await writeFile(path.join(kiOrdner, 'fall.txt'), 'gut');
+	// Bilder (237): ein Platzhalter-Schlüssel, damit die Oberfläche die Felder zeigt, und die Attrappe der Bild-API.
 	const server = await starteTestServer({
-		env: { CLAUDE_BIN: claude },
+		env: { CLAUDE_BIN: claude, OPENAI_API_KEY: TEST_BILD_SCHLUESSEL },
+		bildApi: erstelleBildApiAttrappe().api,
 		kiPruefer: () => Promise.resolve({ seiten: [], meldungen: [], fehler: 0 }),
 		port: PORT,
 		materialDir: MATERIAL_DIR,

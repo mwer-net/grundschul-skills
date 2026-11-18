@@ -64,7 +64,7 @@ export const PFLICHTLEKTUERE: readonly Lektuere[] = [
 	},
 	{
 		rolle: 'bilder',
-		name: 'Bilder einer Einheit (Canva)',
+		name: 'Bilder einer Einheit',
 		skills: [HTML],
 		fach: false,
 		dateien: [BILDER, KINDGERECHT],
