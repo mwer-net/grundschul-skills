@@ -86,6 +86,7 @@ describe('pruefung.js (mit blatt.py)', () => {
 					'teil-klein',
 					'motiv-klein',
 					'schnitt-knapp',
+					'karten-einzeln',
 					// 225: zeit-viel, Thema und Kit-Anteil prüft „pruefung.js: Prüfbericht im Lauf“; zeitziel-fehlt meldet
 					// der Server (laufMeldungen).
 					'zeit-viel',
@@ -567,7 +568,7 @@ describe('pruefung.js: Bild mit Ebenen (215)', { skip: browserSkip() }, () => {
 });
 
 describe('pruefung.js: Ausschneide- und Legematerial (214)', { skip: browserSkip() }, () => {
-	const CODES = ['teile-viele', 'teil-klein', 'motiv-klein', 'schnitt-knapp'];
+	const CODES = ['teile-viele', 'teil-klein', 'motiv-klein', 'schnitt-knapp', 'karten-einzeln'];
 	const figur = '1 1 0 / 1 1 1 / 0 1 1';
 	const blatt = (body: string, inhalt: string) =>
 		[
@@ -603,6 +604,34 @@ describe('pruefung.js: Ausschneide- und Legematerial (214)', { skip: browserSkip
 
 	it('3 × 3 Karten, Gitter ohne kaestchen füllt die Karte: keine Meldung', async () => {
 		assert.deepEqual(await melde(blatt(' data-satz="2"', karten('--spalten:3;--zeilen:3', 9, ''))), []);
+	});
+
+	describe('Karten je A4 (250)', () => {
+		const wort = (w: string) => `<div class="karte"><span class="kartentext">${w}</span></div>`;
+		const seite = (inhalt: string, mehr = '') =>
+			`<section class="seite"${mehr}><div class="karten" style="--spalten:1;--zeilen:1">${inhalt}</div></section>`;
+		const mappe = (body: string, seiten: string) =>
+			[
+				'<!doctype html><html lang="de"><head><meta charset="utf-8"><title>250</title>',
+				'<link rel="stylesheet" href="blatt.css"><script src="abbildungen.js"></script></head>',
+				`<body class="kl2 farbe"${body}>${seiten}</body></html>`,
+			].join('\n');
+		const einzeln = async (html: string) =>
+			(await melde(html)).filter((m) => m.code === 'karten-einzeln').map((m) => [m.stufe, m.seite]);
+
+		it('Wortkarten eine je A4 ohne Angabe: WARNUNG auf der ersten Seite', async () => {
+			assert.deepEqual(await einzeln(mappe(' data-satz="2"', seite(wort('Hälfte')) + seite(wort('Spiegel')))), [
+				['WARNUNG', 1],
+			]);
+		});
+
+		it('mit data-tafel-gross, ohne data-satz oder mit einem letzten Bogen nach vollen Seiten: keine Meldung', async () => {
+			const zwei = `<section class="seite"><div class="karten" style="--spalten:1;--zeilen:2">${wort('Hälfte')}${wort('Spiegel')}</div></section>`;
+			assert.deepEqual(await einzeln(mappe(' data-satz="2" data-tafel-gross', seite(wort('Hälfte')))), []);
+			assert.deepEqual(await einzeln(mappe(' data-satz="2"', seite(wort('Hälfte'), ' data-tafel-gross'))), []);
+			assert.deepEqual(await einzeln(mappe('', seite(wort('Hälfte')) + seite(wort('Spiegel')))), []);
+			assert.deepEqual(await einzeln(mappe(' data-satz="2"', zwei + seite(wort('Achse')))), []);
+		});
 	});
 
 	it('Schneidebogen mit 30 mm breiten Teilen: „teil-klein“', async () => {

@@ -211,7 +211,7 @@ Karten, Dominosteine, Legeteile und Schneidebögen sind Schauseiten (`kindgerech
 | Spiel- und Lernkarte (Memory, Quartett, Zuordnen, Lösungskarte) | Standard 70 × 100 mm; im Raster 3 × 3 sind es 65 × 94 mm (Untergrenze: `teil-klein`) | lieber 4–6 (Obergrenze: `teile-viele`) |
 | Dominostein | Kl. 1 etwa 150 × 75 mm (Untergrenze: `teil-klein`) | 4 (hoch) oder 6 (`a4-quer`) |
 | Streifenkarte (Satzstreifen, Zahlenstrahl-Abschnitt) | 65–75 × 195 mm | 3 |
-| Tafelkarte (Wortkarte, Bildkarte für die Tafel) | Großbuchstaben mindestens 25 mm hoch | 2–4 |
+| Tafelkarte (Wortkarte, Bildkarte für die Tafel) | Großbuchstaben mindestens 25 mm hoch; Wortkarte als Streifen 65–75 × 195 mm | Wortkarte 3, Bildkarte 2–4; eine je A4 nur mit `data-tafel-gross` und Begründung (sonst `karten-einzeln`) |
 | Teil, das die Kinder selbst schneiden (Kl. 1/2) | bis 50 mm (Untergrenze: `teil-klein`), nur gerade Schnitte | so viele, wie der Bogen bei diesem Maß trägt |
 
 - **Das Motiv füllt die Karte:** 60–70 % der Fläche, ein Bild oder ein Wort je Karte. Geometrische Motive groß und farbig, Kästchen 8–10 mm; `x-gitter` ohne `kaestchen` füllt die Karte von selbst.
@@ -222,7 +222,7 @@ Karten, Dominosteine, Legeteile und Schneidebögen sind Schauseiten (`kindgerech
 - **Schmuck** aus der Figurenbibliothek ist erlaubt, nie Pflicht. KI-Bilder für Karten: `html-materialerstellung/references/bilder.md`.
 - **Drucken und Basteln** steht in den Hinweisen für die Lehrkraft als eigener Abschnitt: doppelseitig über die lange Kante (Hochformat) oder die kurze Kante (`a4-quer`), Schneiden mit Hebelschneider, Laminieren mit 3–5 mm Folienrand um jede Karte, Zubehör (Würfel, Spielfiguren, Klammern, Umschlag oder Dose je Set). Muster: `html-materialerstellung/assets/beispiel-lehrkraft-hinweise.html`.
 
-Mindestmaße, die höchste Zahl je A4 und den Abstand zur Schnittkante prüft `blatt.py` mit `data-satz="2"` (`teile-viele`, `teil-klein`, `motiv-klein`, `schnitt-knapp`); die Grenzen stehen in der Tabelle „Was die Prüfung meldet“.
+Mindestmaße, die höchste und die kleinste Zahl je A4 und den Abstand zur Schnittkante prüft `blatt.py` mit `data-satz="2"` (`teile-viele`, `teil-klein`, `motiv-klein`, `schnitt-knapp`, `karten-einzeln`); die Grenzen stehen in der Tabelle „Was die Prüfung meldet“.
 
 ### Was die Prüfung meldet
 
@@ -253,6 +253,7 @@ Mindestmaße, die höchste Zahl je A4 und den Abstand zur Schnittkante prüft `b
 | `motiv-klein` | WARNUNG | `data-satz="2"`: das Motiv füllt weniger als 50 % der Karte innerhalb ihres Rands |
 | `schnitt-knapp` | WARNUNG | `data-satz="2"`: Text oder Bild näher als 5 mm an der Schnittkante |
 | `linien-wenig` | WARNUNG | `data-antwort="satz"` oder `"begruendung"` mit weniger Schreiblinien als in „Platz zum Kleben, Zeichnen und Schreiben“ |
+| `karten-einzeln` | WARNUNG | `data-satz="2"`: jede Seite mit Karten trägt nur eine (Rückseiten und Deckkarte zählen nicht); `data-tafel-gross` nimmt eine Karte aus |
 | `zeitziel-fehlt` | WARNUNG | nur im Lauf der Schoolbox beim Bau neuen Materials, nicht beim Ändern: Arbeitsblatt, Stationenlernen, Lernzielkontrolle, Klassenarbeit mit `data-satz="2"` und Aufgaben, aber ohne `data-zeit` am `<body>` |
 | `loesung-fehlt` | WARNUNG | nur im Lauf der Schoolbox beim Bau neuen Materials, nicht beim Ändern: je Aufgabe, deren Antwortlinien keine Lösung haben; bei offener Aufgabe reicht ein Satz als `.nur-loesung` |
 | `kit-anteil` | HINWEIS | nur beim Bauen: weniger als 90 % der Elemente mit Klasse nutzen nur Kit-Klassen; im Lauf der Schoolbox nicht im Bericht |

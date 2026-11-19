@@ -52,6 +52,7 @@ import {
 	beendeLaufEintrag,
 	befundZeile,
 	berechneteElemente,
+	bestandteileText,
 	BILDER_SCHRITT,
 	blickLektuere,
 	blickRegeln,
@@ -59,6 +60,7 @@ import {
 	dokumentDir,
 	dopplungTexte,
 	dopplungUebersicht,
+	druckprofilAusHtml,
 	EINHEIT_BILDER_SATZ,
 	EINHEIT_PLAN,
 	EINHEIT_THEMA,
@@ -121,6 +123,7 @@ import {
 	STECKBRIEF_DATEI,
 	themaBefund,
 	uebernimmBilder,
+	vorschauSeiten,
 	wendeAktionAn,
 	wendeBilderAn,
 	WURZEL,
@@ -203,22 +206,23 @@ const VORSCHAU_SLUG = 44;
 /**
  * Einheit zum Verkauf: Das Deckblatt zeigt echte Seiten der Materialien (`html-materialerstellung/references/verkauf.md`).
  * Dafür liegen die Seitenbilder jedes Baus als Bilder der Mappe im Arbeitsordner; in die Schoolbox kommt nur, was das
- * Deckblatt nennt.
+ * Deckblatt nennt. Welche Seiten, wählt der Server (`vorschauSeiten`, 250): nur Kinderseiten ohne eingetragene Lösung.
+ * Bilder eines früheren Baus bleiben liegen, weil ein schon gebautes Deckblatt sie nennen kann.
  */
-const legeVorschauAb = async (arbeit: string, dokument: string, bilder: string[]) => {
+const legeVorschauAb = async (arbeit: string, d: Pick<PlanDokument, 'slug' | 'art'>, html: string, bilder: string[]) => {
 	const seiten = bilder.map((b) => SEITENBILD.exec(b)).filter((t): t is RegExpExecArray => t !== null);
-	if (seiten.length === 0) {
+	const kurz = d.slug.slice(0, VORSCHAU_SLUG).replace(/-+$/, '');
+	const ablage = path.join(arbeit, 'bilder');
+	const erlaubt = new Set(vorschauSeiten(d, html, seiten.length));
+	const gewaehlt = seiten.filter((t) => erlaubt.has(Number(t[1])));
+	if (gewaehlt.length === 0) {
 		return null;
 	}
-	const kurz = dokument.slice(0, VORSCHAU_SLUG).replace(/-+$/, '');
-	await mkdir(path.join(arbeit, 'bilder'), { recursive: true });
-	for (const t of seiten) {
-		await copyFile(
-			path.join(arbeit, ANSICHT_ORDNER, dokument, t[0]),
-			path.join(arbeit, 'bilder', `v-${kurz}-${t[1]}.png`),
-		);
+	await mkdir(ablage, { recursive: true });
+	for (const t of gewaehlt) {
+		await copyFile(path.join(arbeit, ANSICHT_ORDNER, d.slug, t[0]), path.join(ablage, `v-${kurz}-${t[1]}.png`));
 	}
-	return `Seitenbilder für das Deckblatt: ../../bilder/v-${kurz}-<Seite>.png, Seite 1 bis ${seiten.length}.`;
+	return `Seitenbilder für das Deckblatt (nur Kinderseiten ohne Lösung): ${gewaehlt.map((t) => `../../bilder/v-${kurz}-${t[1]}.png`).join(', ')}.`;
 };
 const AENDERUNG_ZEICHEN = 2000;
 type Stufe = 'plan' | 'bau';
@@ -754,7 +758,7 @@ export const erstelleEinheiten = (
 			aktiv?.loesungen.set(d.slug, ansicht.bilder.filter((b) => LOESUNGSBILD.test(b)).length);
 			neu?.add(d.slug);
 			await schreibeProtokoll();
-			const vorschau = s.verkauf ? await legeVorschauAb(arbeitDir(s.id), d.slug, ansicht.bilder) : null;
+			const vorschau = s.verkauf ? await legeVorschauAb(arbeitDir(s.id), d, roh, ansicht.bilder) : null;
 			const auftrag = bausteinVerstoesse(roh, s.bausteine ?? {}).map((t) => `FEHLER: ${t}`);
 			return {
 				text: [
@@ -2021,7 +2025,44 @@ export const erstelleEinheiten = (
 		}
 	};
 
-	const SCHLUSS = (s: EinheitStand, plan: EinheitPlan, dopplung: string[], formate: FormateDerEinheit) => {
+	/** Die Bilder, die die Materialien nennen (`../../bilder/…`, ohne Vorschaubilder), und ob es ihre Strichfassung gibt. */
+	const paketBilder = async (s: EinheitStand, htmls: readonly string[]) => {
+		const da = new Set(await readdir(path.join(arbeitDir(s.id), 'bilder')).catch(() => [] as string[]));
+		const genannt = new Set(
+			htmls.flatMap((h) => [...h.matchAll(/\.\.\/\.\.\/bilder\/([^"'()\s?#]+)/g)].map((t) => t[1] ?? '')),
+		);
+		return [...genannt]
+			.filter((n) => n && da.has(n) && !n.startsWith('v-'))
+			.sort()
+			.map((datei) => {
+				const stamm = datei.replace(/\.[^.]+$/, '');
+				return { datei, strich: [...da].some((n) => n.startsWith(`${stamm}-strich.`)) };
+			});
+	};
+
+	/** Die Bestandteile für Quellen und Angebot (250): gezählt am Gebauten, mit Druckprofil und Strichfassungen. */
+	const bestandteile = async (s: EinheitStand, plan: EinheitPlan, formate: FormateDerEinheit) => {
+		const htmls: Record<string, string> = {};
+		for (const d of plan.dokumente) {
+			const html = await materialHtml(s, d.slug);
+			if (html) {
+				htmls[d.slug] = html;
+			}
+		}
+		return bestandteileText(plan, s.steckbriefe ?? {}, {
+			formate,
+			profile: Object.fromEntries(Object.entries(htmls).map(([slug, h]) => [slug, druckprofilAusHtml(h)])),
+			bilder: await paketBilder(s, Object.values(htmls)),
+		});
+	};
+
+	const SCHLUSS = (
+		s: EinheitStand,
+		plan: EinheitPlan,
+		dopplung: string[],
+		formate: FormateDerEinheit,
+		paket: string,
+	) => {
 		const offen = plan.dokumente.flatMap((d) => {
 			const p = s.pruefung?.[d.slug];
 			const folgen = (s.befunde.find((b) => b.slug === d.slug)?.texte ?? []).filter(istFolgekorrektur);
@@ -2044,6 +2085,7 @@ export const erstelleEinheiten = (
 			),
 			fertigText(plan, fertigeMaterialien(s), s.steckbriefe ?? {}),
 			`Die Zahlen der Schoolbox (nur diese schreibst du ab):\n${zahlenText(plan, s.steckbriefe ?? {}, formate)}`,
+			paket,
 			dopplung.length
 				? ['Doppelte Abbildungen, die der Server gefunden hat:', ...dopplung.map((t) => `- ${t}`)].join('\n')
 				: 'Doppelte Abbildungen: Der Server hat keine gefunden.',
@@ -2125,6 +2167,7 @@ export const erstelleEinheiten = (
 						plan,
 						dopplungUebersicht(await dopplungen(s, plan), titelVon(s)),
 						await formateDerEinheit(s),
+						await bestandteile(s, plan, await formateDerEinheit(s)),
 					),
 					null,
 				);

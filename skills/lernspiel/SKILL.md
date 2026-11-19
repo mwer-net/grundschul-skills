@@ -40,6 +40,15 @@ Die Spielform muss nicht gefragt werden: 2–3 Entwürfe mit verschiedenen passe
 | **Trimino / Puzzle** | Dreiecke/Teile passend legen | Rechnen, Gegensätze | Ergibt Form als Selbstkontrolle |
 | **Wer-hat-…? (Ich habe – wer hat)** | Kettenspiel Klasse | Kopfrechnen, Uhrzeit, Vokabeln | Karten = Kinderzahl |
 
+## Spielidee
+
+Ein Spiel wirkt, wenn man es nur mit dem Können der Stunde sicher gewinnt.
+
+- **Das Spiel übt die Handlung der Stunde.** Braucht die Stunde ein Werkzeug oder ein Verfahren zum Prüfen, lässt sich das Spiel ohne es nicht sicher gewinnen. Beispiele: Mit dem Spiegel prüfen heißt, Fallenkarten weichen nur in einem kleinen Detail ab, das erst der Spiegel zeigt, nicht in Farbe, Größe oder Lage. Mit dem Lineal messen heißt, die Längen liegen so nah beieinander, dass Schätzen nicht reicht. Mit der Umkehraufgabe prüfen heißt, falsche Ergebnisse sind typische Fehler (um eins daneben, Zehner vertauscht), keine offensichtlich falschen Zahlen.
+- **Fallen und Ablenker** zeigen die typischen Fehler des Themas (Fach-Skill, Recherche), nicht zufällige Unterschiede.
+- **Jede Spielregel nennt Ziel, Ende und Gewinner in je einem Satz:** worauf die Kinder hinarbeiten, wann das Spiel aus ist und wer gewinnt (oder bei kooperativen Spielen, wann alle gemeinsam gewonnen haben).
+- **Selbstkontrolle**, die erst nach dem eigenen Prüfen hilft: Rückseite, Lösungskarte, Kontrollbild oder geschlossene Kette.
+
 ## Pflichtbestandteile
 
 1. **Spielanleitung** für Kinder: max. 5 nummerierte Schritte mit Symbolen, Spieleranzahl, Material, Ziel. Anleitung als Karte zum Ausdrucken.
@@ -69,6 +78,8 @@ Würfel für Spielregeln und Spielkarten kommen aus `<x-wuerfel>` (`html-materia
 - [ ] Rätsel als Spiel oder Station: `x-suchsel`, `x-kreuzwort`, zur Kontrolle `x-loesungswort` (Abschnitt „Rätsel“ in `html-materialerstellung/references/abbildungen/spiele-raetsel.md`)
 - [ ] Bingo: Verschiedene Karten und die vollständige Rufliste prüft `x-bingo`
 - [ ] FEHLER aus `blatt.py` ernst nehmen: Sie heißen, dass das Spiel so nicht funktioniert
+- [ ] Prüffrage Wirkung: Lässt sich jede Falle oder jede Karte ohne das Werkzeug oder Verfahren der Stunde sicher zuordnen? Dann übt das Spiel die Handlung nicht.
+- [ ] Prüffrage Regel: Nennt die Spielregel Ziel, Ende und Gewinner?
 - [ ] Anleitung von Kindern ohne Erwachsene verständlich
 - [ ] Druckbild: Vorder- und Rückseite passgenau (Spiegelung beachten)
 

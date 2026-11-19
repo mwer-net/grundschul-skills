@@ -58,6 +58,7 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
 | Fehler finden („Die Leitfigur hat sich vertan“) | `fehler-finden` | Rechnen ab Kl. 2, Rechtschreibung erst ab Kl. 3 | Fehleranzahl angeben („Finde 3 Fehler.“) |
 | Legen, bauen, falten und festhalten | `legen-bauen-falten` | Geometrie, Mengen, Sachunterricht | Material nennen („Lege mit Plättchen.“), das Blatt hält das Ergebnis fest (zeichnen, ankreuzen) |
 | Ins Heft | `ins-heft` | Zeichnen, Rechnen, Schreiben | „Im Heft:“ mit dem Anfang des Eintrags als Heft-Beispiel (`.kasten`) |
+| Tun und beobachten (Beobachtungsbogen) | `beobachten` | Handlungsziele, vor allem in der Lernzielkontrolle | Das Kind tut es mit Material oder Werkzeug, die Lehrkraft hakt je Kind in einer Tabelle ab, was gelingt |
 | Ergänzen (Figur, Muster, Reihe) | `ergaenzen` | Geometrie, Muster und Strukturen | `x-gitter aufgabe="spiegeln"`; Stufen in `fach-mathematik` |
 | Einzeichnen (Achse, Linie, Weg) | `einzeichnen` | Geometrie, Karten, Sachunterricht | Lineal nennen, wenn gerade Linien verlangt sind |
 | Sortieren / Ordnen | `sortieren` | Begriffe, Größen, Reihenfolgen | Tabelle mit Spalten oder Nummern zum Eintragen |

@@ -9,6 +9,7 @@ import {
 	abbildungenIn,
 	befundeDerTeile,
 	berechneteElemente,
+	bestandteileText,
 	blickLektuere,
 	blickRegeln,
 	fachblickStunden,
@@ -28,6 +29,7 @@ import {
 	pruefWeise,
 	rollenErgebnis,
 	verteileLoesungen,
+	vorschauSeiten,
 	zahlenBefunde,
 	zahlenText,
 } from './einheit-pruefung';
@@ -403,6 +405,7 @@ describe('Wer geprüft wird und gegen welche Regeln', () => {
 			alle.filter((r) => !existsSync(path.join(WURZEL, 'skills', r))),
 			[],
 		);
+		assert.ok(blickRegeln('lernspiel', false).includes('lernspiel/SKILL.md'), 'Prüffragen zur Spielidee (250)');
 		assert.deepEqual(blickLektuere(['praesentation/SKILL.md', 'a/references/b.md']), [
 			'skill:praesentation',
 			'a/references/b.md',
@@ -522,6 +525,63 @@ describe('Zahlen auf Deckblatt und Angebot (220, Punkt 4)', () => {
 		assert.match(text, /- Seiten: 7 gesamt, dazu 3 Lösungsseiten;/);
 		assert.doesNotMatch(text, /Folien/);
 		assert.match(text, /ab-2/);
+	});
+});
+
+describe('Verkauf gegen das Paket (250)', () => {
+	const plan: EinheitPlan = {
+		titel: 'Strom',
+		annahmen: [],
+		dokumente: [dok('kapitel-1'), dok('auftakt', 'praesentation', 'folie'), dok('quellen', 'sonstiges')],
+	};
+	const briefe = { 'kapitel-1': brief(3, 2), 'auftakt': brief(12), 'quellen': brief(1) };
+
+	it('Bestandteile: Art, Seiten, Folien, Lösungen und Druckprofil je Dokument, Strichfassungen nur, wo es sie gibt', () => {
+		const text = bestandteileText(plan, briefe, {
+			profile: { 'kapitel-1': 'farbe', 'auftakt': null },
+			bilder: [
+				{ datei: 'fall-1.jpg', strich: false },
+				{ datei: 'luna.png', strich: true },
+			],
+		});
+		assert.match(text, /„kapitel-1“ \(dokumente\/kapitel-1\): Arbeitsblatt, 3 Seiten, 2 Lösungsseiten, in Farbe/);
+		assert.match(text, /„auftakt“ \(dokumente\/auftakt\): Präsentation, 12 Folien, ohne Lösungsseiten$/m);
+		assert.match(text, /- Bilder unter bilder\/: 2 Dateien \(fall-1\.jpg, luna\.png\)\./);
+		assert.match(text, /Strichfassung für den s\/w-Druck \(`-strich`\) gibt es nur zu: luna\.png\./);
+		const ohne = bestandteileText(plan, briefe, { profile: {}, bilder: [{ datei: 'luna.png', strich: false }] });
+		assert.match(ohne, /Strichfassungen der Bilder gibt es keine: Nenne keine Strichzeichnungen\./);
+	});
+
+	const seite = (klassen: string, inhalt: string) => `<section class="${klassen}">${inhalt}</section>`;
+	const AUFGABE = '<div class="aufgabe" data-min="4"><span class="nr">1</span></div>';
+
+	it('Vorschau: keine Seite mit gelöstem Beispiel oder Rückseiten mit Lösung', () => {
+		const html = [
+			seite('seite fall', '<h1>Fall</h1>'),
+			seite('seite', `${AUFGABE}<div class="zelle beispiel">gelöst</div>`),
+			seite('seite', AUFGABE),
+			seite('seite', '<div class="karten rueckseiten"><div class="karte rueckseite">7</div></div>'),
+			seite('seite nur-loesung', 'Lösung'),
+		].join('');
+		assert.deepEqual(vorschauSeiten(dok('kapitel-1'), html, 4), [1, 3]);
+	});
+
+	it('Vorschau: Lernzielkontrolle nur Seiten mit Aufgaben, also ohne Fall-Karte und Auflösung', () => {
+		const html = [
+			seite('seite fall', '<h1>Fall</h1>'),
+			seite('seite', AUFGABE),
+			seite('seite fall', '<div class="fall-band">Auflösung</div>'),
+		].join('');
+		assert.deepEqual(vorschauSeiten(dok('kapitel-6', 'lernzielkontrolle'), html, 3), [2]);
+	});
+
+	it('Vorschau: Hinweise, Vorleseheft, Rahmen und Lösungsmaterial nie; Zählung passt nicht: alle Seiten', () => {
+		const html = seite('seite', AUFGABE);
+		assert.deepEqual(vorschauSeiten(dok('hinweise', 'unterrichtsplanung'), html, 1), []);
+		assert.deepEqual(vorschauSeiten(dok('vorleseheft', 'lesetext'), html, 1), []);
+		assert.deepEqual(vorschauSeiten(dok('deckblatt', 'sonstiges'), html, 1), []);
+		assert.deepEqual(vorschauSeiten(dok('kapitel-1-loesung'), html, 1), []);
+		assert.deepEqual(vorschauSeiten(dok('kapitel-1'), html, 2), [1, 2]);
 	});
 });
 

@@ -8,7 +8,8 @@ import type { PruefRolle, Steckbrief } from './einheit-bau';
 import { rolleVon, SKILL_PRAEFIX } from './einheit-bau';
 import type { PlanFigur } from './einheit-figuren';
 import { planFigurText } from './einheit-figuren';
-import type { Format } from './werte';
+import { ART_NAME } from './namen';
+import type { Druckprofil, Format } from './werte';
 
 export const PRUEF_ARTEN = [
 	'unklar',
@@ -137,7 +138,7 @@ const HTML = 'html-materialerstellung/references';
 const KINDGERECHT = `${GD}/kindgerecht-gestalten.md`;
 const BLICK_REGELN: Record<string, readonly string[]> = {
 	karten: [`${GD}/druck-und-platz.md`, KINDGERECHT],
-	lernspiel: [`${GD}/druck-und-platz.md`, KINDGERECHT],
+	lernspiel: ['lernspiel/SKILL.md', `${GD}/druck-und-platz.md`, KINDGERECHT],
 	praesentation: ['praesentation/SKILL.md', KINDGERECHT],
 	lernplakat: ['lernplakat/SKILL.md', KINDGERECHT],
 	deckblatt: [`${HTML}/verkauf.md`, `${HTML}/gestaltung.md`],
@@ -1064,6 +1065,86 @@ export const zahlenText = (
 	]
 		.filter(Boolean)
 		.join('\n');
+};
+
+/** Ein Bild des Pakets (unter `bilder/` der Einheit) und ob es eine Strichfassung `<stamm>-strich.*` daneben hat. */
+export interface PaketBild {
+	datei: string;
+	strich: boolean;
+}
+
+const PROFIL_NAME: Record<Druckprofil, string> = { farbe: 'in Farbe', sw: 'schwarz-weiß' };
+const MAX_BILDER_LISTE = 12;
+
+/**
+ * Die Bestandteile des Pakets für Quellen und Angebot (250): je Dokument Art, Seiten oder Folien, Lösungsseiten und
+ * Druckprofil, dazu die Bilder und welche eine Strichfassung haben. Der Schlusslauf nennt nur, was hier steht.
+ */
+export const bestandteileText = (
+	plan: EinheitPlan,
+	steckbriefe: Record<string, Steckbrief>,
+	o: { formate?: FormateDerEinheit; profile: Readonly<Record<string, Druckprofil | null>>; bilder: readonly PaketBild[] },
+) => {
+	const z = zaehlung(plan, steckbriefe, o.formate ?? {});
+	const strich = o.bilder.filter((b) => b.strich).map((b) => b.datei);
+	const liste = (namen: readonly string[]) =>
+		`${namen.slice(0, MAX_BILDER_LISTE).join(', ')}${namen.length > MAX_BILDER_LISTE ? ` und ${namen.length - MAX_BILDER_LISTE} weitere` : ''}`;
+	return [
+		'Bestandteile des Pakets (gebaut, nicht geplant). Quellen, Angebot, Deckblatt und Hinweise nennen nur, was hier steht:',
+		...z.map((x) => {
+			const d = plan.dokumente.find((y) => y.slug === x.slug);
+			const profil = o.profile[x.slug];
+			return `- „${x.titel}“ (dokumente/${x.slug}): ${d ? ART_NAME[d.art] : 'Material'}, ${x.seiten ? plural(x.seiten, x.folie ? 'Folie' : 'Seite', x.folie ? 'Folien' : 'Seiten') : 'Seiten unbekannt'}${x.loesung ? `, ${plural(x.loesung, 'Lösungsseite', 'Lösungsseiten')}` : ', ohne Lösungsseiten'}${profil ? `, ${PROFIL_NAME[profil]}` : ''}`;
+		}),
+		o.bilder.length
+			? `- Bilder unter bilder/: ${plural(o.bilder.length, 'Datei', 'Dateien')} (${liste(o.bilder.map((b) => b.datei))}).`
+			: '- Bilder: keine Bilddateien im Paket.',
+		strich.length
+			? `- Strichfassung für den s/w-Druck (\`-strich\`) gibt es nur zu: ${liste(strich)}.`
+			: '- Strichfassungen der Bilder gibt es keine: Nenne keine Strichzeichnungen.',
+	].join('\n');
+};
+
+/** Rollen, deren Seiten nie Vorschaubild werden (250): Rahmen, Hinweise mit Lösungen, Vorleseheft mit Auflösung. */
+const OHNE_VORSCHAU = new Set(['deckblatt', 'quellen', 'angebot', 'hinweise', 'vorleseheft', 'bilder']);
+const KONTROLL_ROLLEN = new Set(['lernzielkontrolle', 'klassenarbeit']);
+const SEITE_AUF = /<(?:section|div)\b[^>]*\bclass\s*=\s*["']([^"']*)["'][^>]*>/gi;
+const KLASSE = (name: string) => new RegExp(`class\\s*=\\s*["'](?:[^"']*\\s)?${name}(?:\\s[^"']*)?["']`, 'i');
+/** Auf der Kinderseite sichtbar eingetragene Lösung: Rückseiten mit Lösung, gelöstes Beispiel. */
+const LOESUNG_AUF_SEITE = [KLASSE('rueckseiten?'), KLASSE('beispiel')];
+const AUFGABE = KLASSE('aufgabe');
+
+/**
+ * Welche Seiten eines Materials Vorschaubild für Deckblatt und Eduki werden dürfen (250): nur Kinderseiten ohne
+ * eingetragene Lösung. Rollen in `OHNE_VORSCHAU` und Slugs mit `loesung` keine; bei Lernzielkontrolle und
+ * Klassenarbeit nur Seiten mit Aufgaben (nicht Fall-Karte und Auflösung). Gezählt wird wie `seite-N.png`: jede
+ * `.seite`, die nicht ausgeblendet oder nur Lösung ist. Stimmt diese Zahl nicht mit `seiten` (den Bildern des Baus)
+ * überein, entscheidet nur die Rolle: dann alle Seiten.
+ */
+export const vorschauSeiten = (d: Pick<PlanDokument, 'slug' | 'art'>, html: string, seiten: number): number[] => {
+	const rolle = rolleVon(d);
+	if (OHNE_VORSCHAU.has(rolle) || /loesung/.test(d.slug)) {
+		return [];
+	}
+	const alle = Array.from({ length: seiten }, (_, i) => i + 1);
+	const auf = [...html.matchAll(SEITE_AUF)].filter((t) => /(?:^|\s)seite(?:\s|$)/.test(t[1] ?? ''));
+	const stuecke = auf
+		.map((t, i) => ({
+			kopf: t[0],
+			klassen: t[1] ?? '',
+			inhalt: html.slice(t.index ?? 0, auf[i + 1]?.index ?? html.length),
+		}))
+		.filter((x) => !/(?:^|\s)nur-loesung(?:\s|$)/.test(x.klassen) && !/\sdata-aus\b/.test(x.kopf));
+	if (stuecke.length !== seiten) {
+		return alle;
+	}
+	return alle.filter((nr) => {
+		const inhalt = stuecke[nr - 1]?.inhalt ?? '';
+		if (LOESUNG_AUF_SEITE.some((m) => m.test(inhalt))) {
+			return false;
+		}
+		return !KONTROLL_ROLLEN.has(rolle) || AUFGABE.test(inhalt);
+	});
 };
 
 /** Alle Teilmengen der Rahmen-Teile: Jede ist eine Zählung, die ein Deckblatt meinen kann. */

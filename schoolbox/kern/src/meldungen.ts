@@ -27,6 +27,8 @@ export const MELDUNG_CODES = [
 	'motiv-klein',
 	/** Nur neues Material: Text oder Bild liegt näher als 5 mm an der Schnittkante (214). */
 	'schnitt-knapp',
+	/** Nur neues Material: Jede Seite mit Karten trägt nur eine, ohne `data-tafel-gross` (250). */
+	'karten-einzeln',
 	/** Nur mit Zeitziel (`data-zeit`): Die geplanten Minuten der Aufgaben reichen nicht für das Ziel. */
 	'zeit-knapp',
 	/** Nur beim Bauen, mit Zeitziel: Die geplanten Minuten gehen mehr als 25 % über das Ziel hinaus (225). */
@@ -244,6 +246,10 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 	'schnitt-knapp': () => ({
 		satz: 'Text oder Bild liegt sehr nah an der Schnittkante und wird beim Ausschneiden leicht angeschnitten.',
 		tipp: 'Text kürzen oder das Bild kleiner machen.',
+	}),
+	'karten-einzeln': () => ({
+		satz: 'Jede Seite trägt nur eine Karte. Das kostet viel Papier, und die Karten werden größer als nötig.',
+		tipp: 'Claude bitten, Wortkarten als Streifen zu dritt und Bildkarten zu zweit bis viert auf eine Seite zu setzen.',
 	}),
 	'zeit-knapp': (_n, text) => {
 		const [, hat, ziel] = /etwa (\d+) min, Ziel sind (\d+) min/.exec(text) ?? [];

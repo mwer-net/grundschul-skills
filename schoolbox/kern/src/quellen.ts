@@ -273,6 +273,7 @@ const pruefSchwellen = (wurzel: string) => {
 		'teil-klein': `${satz}: kurze Kante einer Karte unter ${karte} mm, Dominostein kleiner als ${zahl('STEIN_LANG_MIN')} × ${stein} mm, Teil zum Selbstschneiden unter ${kind} mm (Schneidebogen, \`.ausschneiden\`, \`data-schnitt\`)`,
 		'motiv-klein': `${satz}: das Motiv füllt weniger als ${prozent(zahl('MOTIV_MIN'))} der Karte innerhalb ihres Rands`,
 		'schnitt-knapp': `${satz}: Text oder Bild näher als ${zahl('SCHNITT_MIN')} mm an der Schnittkante`,
+		'karten-einzeln': `${satz}: jede Seite mit Karten trägt nur eine (Rückseiten und Deckkarte zählen nicht); \`data-tafel-gross\` nimmt eine Karte aus`,
 		'kit-anteil': `nur beim Bauen: weniger als ${zahl('KIT_MINDEST')} % der Elemente mit Klasse nutzen nur Kit-Klassen`,
 		'verdeckt': `Gestaltung vorne oder am Anker verdeckt Inhalt um mehr als ${zahl('VERDECKT_MIN')} px²`,
 		'kontrast-sw': `in s/w: Text mit Kontrast unter ${zahl('KONTRAST_MIN')}:1 zu seiner Fläche`,

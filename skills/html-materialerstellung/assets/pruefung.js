@@ -649,6 +649,21 @@
     melde("HINWEIS", 0, "ausgeblendet", `${aus.length} ${eins ? "Element ist" : "Elemente sind"} ausgeblendet und ${eins ? "wird" : "werden"} nicht gedruckt → in den Ebenen wieder einblenden`, [{ sb: m ? +m.getAttribute("data-sb") : null, name: kurz(erstes), rechteck: [0, 0, 0, 0] }]);
   }
 
+  // 250: Karten für Tafel und Tisch: mindestens zwei Karten je A4. Eine Karte je Seite nur mit data-tafel-gross (an
+  // Karte, Kartenraster, Seite oder body). Ein letzter Bogen mit einer Karte zählt nicht: gemeldet wird nur, wenn jede
+  // Seite mit Karten eine einzige trägt. Nur neues Material, nur WARNUNG; Rückseiten und Deckkarte zählen nicht.
+  if (satz2 && !B.classList.contains("a5-hoch")) {
+    const kartenSeiten = [...document.querySelectorAll(".seite")].filter((s) => !s.parentElement.closest(".seite")).map((S, si) => ({
+      S, nr: si + 1,
+      karten: [...S.querySelectorAll(".karten:not(.rueckseiten) > .karte:not(.pass,.rueckseite,.deckkarte)")].filter((e) => !ausgeblendet(e) && sichtbar(e)),
+    })).filter((x) => x.karten.length);
+    const einzeln = kartenSeiten.filter((x) => !x.karten.some((e) => e.closest("[data-tafel-gross]")));
+    if (einzeln.length && kartenSeiten.every((x) => x.karten.length < 2)) {
+      const { S, nr, karten: [erste] } = einzeln[0], P = S.getBoundingClientRect(), r = erste.getBoundingClientRect(), m = erste.closest("[data-sb]");
+      melde("WARNUNG", nr, "karten-einzeln", `${einzeln.length} ${einzeln.length === 1 ? "Seite trägt" : "Seiten tragen"} nur eine Karte (mindestens 2 je A4) → Wortkarten für die Tafel als Streifen 65–75 × 195 mm, drei je A4; Bildkarten 2–4 je A4. Eine Karte je A4 nur mit data-tafel-gross und Begründung`, [{ sb: m ? +m.getAttribute("data-sb") : null, name: kurz(erste), rechteck: [Math.round(r.left - P.left), Math.round(r.top - P.top), Math.round(r.width), Math.round(r.height)] }]);
+    }
+  }
+
   ergebnis = { klasse: kl, seiten };
   ergebnis.felder = felder;
  } catch (e) { M.push({ stufe: "FEHLER", seite: 0, code: "pruefskript", text: "Prüfskript: " + e.message, ziele: [] }); }

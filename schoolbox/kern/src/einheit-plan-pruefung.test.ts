@@ -211,6 +211,49 @@ describe('Plan-Prüfung: die Rechnung (247)', () => {
 		]);
 	});
 
+	describe('Handlungsziele in der Lernzielkontrolle (250)', () => {
+		const sachunterricht = (format: string, handlung?: boolean) =>
+			plan({
+				titel: 'Strom',
+				ziele: [
+					{ nr: 1, text: 'Ich kann einen Stromkreis aufbauen.', ...(handlung === undefined ? {} : { handlung }) },
+				],
+				stunden: [
+					{
+						nr: 1,
+						ziel: 1,
+						handlung: 'Zu zweit mit Batterie, Kabel und Lämpchen einen Stromkreis bauen.',
+						aufgaben: [auf('kapitel-1', 'legen-bauen-falten', 'Stromkreis bauen und zeichnen', { ziel: 1 })],
+					},
+					{
+						nr: 2,
+						kontrolle: true,
+						handlung: 'Kontrolle.',
+						aufgaben: [auf('kontrolle', format, 'Stromkreis', { ziel: 1 })],
+					},
+				],
+				dokumente: DOKUMENTE,
+			});
+
+		it('Handlungsziel nur mit Ankreuzen geprüft: Befund mit den Formaten, die handeln lassen', () => {
+			assert.deepEqual(rechnePlan(sachunterricht('ankreuzen', true)).befunde, [
+				'Ziel 1 („Ich kann einen Stromkreis aufbauen.“) verlangt eine Handlung, die Lernzielkontrolle prüft es aber nur auf dem Papier: Gib ihm dort eine Aufgabe im Format „Legen, bauen, falten und festhalten“ (legen-bauen-falten) oder „Tun und beobachten (Beobachtungsbogen)“ (beobachten).',
+			]);
+		});
+
+		it('Handlung auf dem Blatt festgehalten oder Beobachtungsbogen: kein Befund', () => {
+			assert.deepEqual(rechnePlan(sachunterricht('legen-bauen-falten', true)).befunde, []);
+			assert.deepEqual(rechnePlan(sachunterricht('Tun und beobachten (Beobachtungsbogen)', true)).befunde, []);
+		});
+
+		it('Ziel ohne die Angabe (alter Plan) oder ohne Handlung: kein Befund', () => {
+			assert.deepEqual(rechnePlan(sachunterricht('ankreuzen')).befunde, []);
+			assert.deepEqual(rechnePlan(sachunterricht('ankreuzen', false)).befunde, []);
+			assert.equal(sachunterricht('ankreuzen').ziele?.[0]?.handlung, undefined);
+			assert.equal(sachunterricht('ankreuzen', true).ziele?.[0]?.handlung, true);
+		});
+	});
+
 	it('Niveaus nur, wenn der Auftrag ohne drei Niveaus ist', () => {
 		const roh = structuredClone(NOMEN);
 		const s1 = roh.stunden[0];
@@ -423,7 +466,7 @@ describe('Plan-Prüfung: Auftrag, Rückrunde und Stand (247)', () => {
 		);
 		assert.doesNotMatch(vorlage, /Glöckchen|Ella|Hanne|Willi|Wilma|Achsensymmetr|Faltschnitt|Spiegel/);
 		const plan = readFileSync(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit.md'), 'utf8');
-		assert.match(plan, /"ziele": \[\{"nr": 1, "text": "Ich kann …"\}\]/);
+		assert.match(plan, /"ziele": \[\{"nr": 1, "text": "Ich kann …", "handlung": true\}\]/);
 		assert.match(plan, /"phasen": \[\{"was": "…", "minuten": 10, "arbeit": false\}\]/);
 		const skill = readFileSync(path.join(WURZEL, 'skills', 'unterrichtsplanung', 'SKILL.md'), 'utf8');
 		assert.match(skill, /^### Richtwerte für Minuten \(Kl\. 1–4\)$/m);

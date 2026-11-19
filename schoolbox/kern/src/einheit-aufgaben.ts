@@ -91,6 +91,12 @@ export const AUFGABEN_FORMATE: readonly AufgabenFormat[] = [
 		hinweis: '„Im Heft:“ mit dem Anfang des Eintrags als Heft-Beispiel (`.kasten`)',
 	},
 	{
+		name: 'beobachten',
+		titel: 'Tun und beobachten (Beobachtungsbogen)',
+		geeignet: 'Handlungsziele, vor allem in der Lernzielkontrolle',
+		hinweis: 'Das Kind tut es mit Material oder Werkzeug, die Lehrkraft hakt je Kind in einer Tabelle ab, was gelingt',
+	},
+	{
 		name: 'ergaenzen',
 		titel: 'Ergänzen (Figur, Muster, Reihe)',
 		geeignet: 'Geometrie, Muster und Strukturen',
@@ -121,6 +127,12 @@ export const AUFGABEN_FORMATE: readonly AufgabenFormat[] = [
 		hinweis: '`x-suchsel`, `x-kreuzwort`, nur mit Anschlussaufgabe',
 	},
 ];
+
+/**
+ * Formate, bei denen das Kind die Handlung selbst ausführt (250): Sie prüfen in der Lernzielkontrolle ein Ziel mit
+ * `handlung`. `legen-bauen-falten` hält das Ergebnis auf dem Blatt fest, `beobachten` die Lehrkraft auf einem Bogen.
+ */
+export const HANDLUNGS_FORMATE: readonly string[] = ['legen-bauen-falten', 'beobachten'];
 
 /** Wie oft ein Format in einer Reihe vorkommen darf (218). */
 export const FORMAT_HOECHSTENS = 2;
@@ -162,6 +174,8 @@ export interface PlanPhase {
 export interface PlanZiel {
 	nr: number;
 	text: string;
+	/** 250: Das Ziel verlangt eine Handlung mit Material oder Werkzeug; fehlt bei Plänen davor und bei Zielen ohne. */
+	handlung?: boolean;
 }
 
 export interface PlanStunde {
@@ -226,7 +240,7 @@ export const leseZiele = (roh: unknown): PlanZiel[] => {
 				return null;
 			}
 			gesehen.add(nr);
-			return { nr, text };
+			return { nr, text, ...(x.handlung === true ? { handlung: true } : {}) };
 		})
 		.filter((z): z is PlanZiel => z !== null)
 		.slice(0, PLAN_ZEIT_GRENZEN.ziele);

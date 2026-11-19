@@ -10,7 +10,7 @@
  */
 import type { EinheitPlan } from './einheit';
 import type { PlanAufgabe, PlanStunde } from './einheit-aufgaben';
-import { planBefunde } from './einheit-aufgaben';
+import { formatTitel, HANDLUNGS_FORMATE, planBefunde } from './einheit-aufgaben';
 import { nenntNamen } from './einheit-kanon';
 import type { PruefArt, PruefBefund } from './einheit-pruefung';
 import { PRUEF_ART_NAME } from './einheit-pruefung';
@@ -87,7 +87,8 @@ const istKontrolle = (plan: EinheitPlan, s: PlanStunde, a: PlanAufgabe) =>
 
 /**
  * Ziele: jede Stunde mit ihrem Ziel und einer Aufgabe dazu, jedes Ziel geübt und, wenn es eine Lernzielkontrolle gibt,
- * dort mit einer Aufgabe geprüft. Zugeordnet wird nur über die Nummer, nie über den Wortlaut.
+ * dort mit einer Aufgabe geprüft, ein Ziel mit `handlung` (250) mit einer Aufgabe aus `HANDLUNGS_FORMATE`. Zugeordnet
+ * wird nur über die Nummer und die Angabe am Ziel, nie über den Wortlaut.
  */
 const zielBefunde = (plan: EinheitPlan, stunden: readonly PlanStunde[]) => {
 	const ziele = plan.ziele ?? [];
@@ -124,6 +125,14 @@ const zielBefunde = (plan: EinheitPlan, stunden: readonly PlanStunde[]) => {
 		if (kontrolle.length && !geprueft.has(z.nr)) {
 			befunde.push(
 				`${name(z.nr)} kommt in der Lernzielkontrolle nicht vor: Gib ihm dort eine Aufgabe, die dasselbe verlangt wie in der Stunde.`,
+			);
+		} else if (
+			z.handlung &&
+			kontrolle.length &&
+			!kontrolle.some(({ a }) => a.ziel === z.nr && HANDLUNGS_FORMATE.includes(a.format))
+		) {
+			befunde.push(
+				`${name(z.nr)} verlangt eine Handlung, die Lernzielkontrolle prüft es aber nur auf dem Papier: Gib ihm dort eine Aufgabe im Format ${HANDLUNGS_FORMATE.map((f) => `„${formatTitel(f)}“ (${f})`).join(' oder ')}.`,
 			);
 		}
 	}

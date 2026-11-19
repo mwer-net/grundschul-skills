@@ -28,9 +28,10 @@ Ablauf nach `grundschul-didaktik/references/entwurf-und-aufgabenplan.md`.
 ## Aufbau Lernzielkontrolle
 
 1. Kopf: Name, Datum, Thema; darunter die geprüften Ich-kann-Ziele, damit die Kinder wissen, was sie zeigen sollen.
-2. Aufgaben je Ich-kann-Ziel gruppiert, steigend vom Reproduzieren (AB I) zum Erklären und Übertragen (AB II/III), Gewichtung wie in `klassenarbeit`. Nur bekannte Aufgabenformate, keine Niveau-Wahl (alle zeigen dasselbe Ziel), keine Sternchenaufgabe.
-3. Keine Punkte und keine Note. Ausgewertet wird je Ich-kann-Ziel: „sicher", „teilweise", „noch nicht".
-4. Abschluss: falls gewählt, Selbsteinschätzung je Ich-kann-Ziel mit Wachstumsstufen (vor Abgabe ausfüllen; nach der Rückgabe mit dem Ergebnis vergleichen: „Stimmt meine Einschätzung?"); immer ein Rückmeldefeld mit Prozess-Satzanfängen („Du hast geschafft, …", „Als Nächstes übst du …").
+2. Jedes Ich-kann-Ziel bekommt mindestens eine Aufgabe, die dasselbe verlangt wie die Stunde. Verlangt ein Ziel eine Handlung mit Material oder Werkzeug (herstellen, legen, messen, einen Versuch durchführen, vortragen), prüft es eine Aufgabe, bei der das Kind handelt und das Blatt das Ergebnis festhält, oder ein Beobachtungsbogen für die Lehrkraft (je Kind abhaken, was gelingt), nie nur Ankreuzen.
+3. Aufgaben je Ich-kann-Ziel gruppiert, steigend vom Reproduzieren (AB I) zum Erklären und Übertragen (AB II/III), Gewichtung wie in `klassenarbeit`. Nur bekannte Aufgabenformate, keine Niveau-Wahl (alle zeigen dasselbe Ziel), keine Sternchenaufgabe.
+4. Keine Punkte und keine Note. Ausgewertet wird je Ich-kann-Ziel: „sicher", „teilweise", „noch nicht".
+5. Abschluss: falls gewählt, Selbsteinschätzung je Ich-kann-Ziel mit Wachstumsstufen (vor Abgabe ausfüllen; nach der Rückgabe mit dem Ergebnis vergleichen: „Stimmt meine Einschätzung?"); immer ein Rückmeldefeld mit Prozess-Satzanfängen („Du hast geschafft, …", „Als Nächstes übst du …").
 
 Diagramm lesen und zeichnen ist ein eigener Aufgabentyp: `<x-diagramm werte="…">` zum Ablesen, mit `offen="…"` zum Zeichnen; die Lösung steht dann auf dem Lösungsblatt (`html-materialerstellung/references/abbildungen/mathe-groessen-daten.md`).
 
@@ -55,7 +56,8 @@ In einer Reihe gibt es eine Lernlandkarte oder einen Selbsteinschätzungsbogen n
 ## Qualitätscheck
 
 - [ ] Nur Inhalte, die im Unterricht vorkamen
-- [ ] Jede Aufgabe einem Ich-kann-Ziel zugeordnet, Anforderungsbereiche ausgewogen
+- [ ] Jede Aufgabe einem Ich-kann-Ziel zugeordnet, jedes Ziel mit mindestens einer Aufgabe, ein Handlungsziel mit Handlung oder Beobachtungsbogen; Anforderungsbereiche ausgewogen
+- [ ] Im PDF der Kinder keine Lösung, kein Erwartungshorizont und keine Auflösung
 - [ ] Bearbeitbar in der Zeit (Faustregel: eigene Bearbeitungszeit × 3–4)
 - [ ] Eindeutige Aufgabenstellung, keine Fangfragen (Rechenformate wie `x-zahlenmauer` prüfen die Eindeutigkeit selbst; ein FEHLER bleibt nicht stehen)
 - [ ] Schriftliche Rechnungen nur mit `x-schriftlich`, damit die Lösung stimmt
@@ -66,6 +68,7 @@ In einer Reihe gibt es eine Lernlandkarte oder einen Selbsteinschätzungsbogen n
 ## Umsetzung (`html-materialerstellung`)
 
 - Erwartungshorizont über die Lösungs-Markierungen (`data-l`, `nur-loesung`) als eigenes PDF (`-loesung.pdf`), nie auf dem Blatt der Kinder.
+- Auflösung und Erwartungshorizont als eigenes Material oder eigene Datei (`*-loesung.pdf`), nie als Seite hinter den Kinderseiten im selben PDF. Das gilt auch für die Auflösung einer Geschichte, die die Kontrolle abschließt: Sie steht im Vorleseheft, auf den Folien oder in einem eigenen Material.
 - Aufgaben ohne Kasten mit hängender Nummer (`grundschul-didaktik/references/druck-und-platz.md`); die gewonnene Höhe geht an die Schreibflächen, nicht an mehr Aufgaben.
 
 **Aufgabenformate:** Lückentext, Wortspeicher, Ankreuzen und Richtig/Falsch sind fertige Elemente, siehe `html-materialerstellung/references/abbildungen.md`, Abschnitt „Aufgabenformate“.

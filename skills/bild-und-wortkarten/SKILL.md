@@ -48,6 +48,6 @@ Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Medi
 
 ## Umsetzung (`html-materialerstellung`)
 
-- Tafelkarten: `a4-quer`, eine Karte pro Seite. Tischkarten: 4–9 pro A4 (`.karten` mit `--spalten`, `--zeilen`, `--set`), gemeinsame Schnittlinien, Rückseiten mit `.karten.rueckseiten` auf der nächsten Seite. Abschauen in `html-materialerstellung/assets/beispiel-kartensatz.html`.
+- Tafelkarten: Wortkarten als Streifen 65–75 × 195 mm, drei je A4 (`.karten` mit `--spalten:1;--zeilen:3`); Bildkarten 2–4 je A4. Eine Karte je A4 nur, wenn sie aus der letzten Reihe lesbar sein muss und das anders nicht geht: dann `data-tafel-gross` an `.karten` und die Begründung im Steckbrief (`merken`); sonst meldet `blatt.py` `karten-einzeln`. Tischkarten: 4–9 pro A4 (`.karten` mit `--spalten`, `--zeilen`, `--set`), gemeinsame Schnittlinien, Rückseiten mit `.karten.rueckseiten` auf der nächsten Seite. Abschauen in `html-materialerstellung/assets/beispiel-kartensatz.html`.
 - Mit Schoolbox die Druckhinweise am Dokument hinterlegen (`schoolbox dokument … --druckhinweis "…"`, je Hinweis einmal), z. B. „Doppelseitig drucken, an der langen Kante wenden“ (Bild vorn, Wort hinten), „Laminieren“, „An den weißen Linien zwischen den Rahmen ausschneiden“.
 - Bilder für ein Set in einem Rutsch mit demselben Stilblock per KI erzeugen (Canva oder Bild-API), je Motiv ein Bild, freigestellt, als Datei (`html-materialerstellung/references/bilder.md`, Abschnitt 2).

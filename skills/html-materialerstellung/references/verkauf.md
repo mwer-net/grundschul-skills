@@ -52,7 +52,7 @@ Das Deckblatt ist ein fester Baustein in `blatt.css`. Die Farben kommen aus dem 
 - **Klasse:** eine Zahl oder eine Spanne („1/2“). Jahrgangsgemischt: die Spanne.
 - **Bild:** das stärkste Szenenbild der Reihe, bei einer Reihe das Titelbild. Ohne neue Bilder entfällt `db-bild`; dann steht die Leitfigur größer (`style="height:300px"` an `db-figur`) und der Fächer rückt nach oben.
 - **Inhalt:** drei oder vier Schilder mit dem, was wirklich im Paket ist. Jede Zahl am fertigen Material nachzählen: Stunden, Seiten für Kinder, Lösungen, Lernzielkontrolle, Spiel; „3 Niveaus“ nur, wenn der Auftrag Niveaus nennt und sie gebaut sind. Deckblatt, Handreichung und Angebotstext nennen dieselben Zahlen. Keine Werbewörter („mega“, „toll“).
-- **Seitenvorschau:** vier echte Seiten, jede von anderer Art (Fall-Karte, Arbeitsblatt, Spiel oder Plakat, Lernzielkontrolle). Keine Lösungsseite, keine Seite, die die Auflösung verrät. In der Schoolbox nennt `bauen` nach jedem Material die Bilder (`../../bilder/v-<slug>-<Seite>.png`). In der Claude-App die Seitenbilder aus `blatt.py bauen` nach `bilder/` der Mappe kopieren.
+- **Seitenvorschau:** vier echte Seiten, jede von anderer Art (Fall-Karte, Arbeitsblatt, Spiel oder Plakat, Lernzielkontrolle). Keine Lösungsseite, keine Seite, die die Auflösung verrät, kein gelöstes Beispiel. In der Schoolbox nennt `bauen` nach jedem Material die Bilder, die dafür taugen (`../../bilder/v-<slug>-<Seite>.png`, nur Kinderseiten ohne eingetragene Lösung); andere gibt es nicht. In der Claude-App die Seitenbilder aus `blatt.py bauen` nach `bilder/` der Mappe kopieren.
 - **Figur:** die Leitfigur der Reihe unten rechts. Ohne Leitfigur entfällt sie.
 - Das Deckblatt hat keine Namenszeile, keine Aufgabe und keine Lösung. Es ist nur im Profil `farbe` gedacht.
 
@@ -84,7 +84,7 @@ Prüffragen nach den Qualitätsmerkmalen von Eduki:
 
 Eduki verlangt für jedes Bild, jede Schrift, jeden Text und jedes Werkzeug eine Quelle, bei fremden Inhalten mit Link, bei eigenen „selbst erstellt“. Was mit KI entstand, muss im Material stehen, und zwar mit dem Namen des Werkzeugs: „mit KI-Unterstützung“ lehnt Eduki ab und schickt das Material zurück. Das Quellenverzeichnis ist eine Seite mit Titel „Quellen und Nutzung“, einer `kit-tabelle` (Was, Quelle) und dem Nutzungshinweis. Die Schrift darf klein sein (`data-klein-ok` an der Tabelle). Links stehen als ausgeschriebener Text, nicht als `<a>`.
 
-Nur nennen, was die Reihe wirklich verwendet. Die Quellen der Teile, die mit den Skills kommen, wörtlich:
+Nur nennen, was die Reihe wirklich verwendet und was im Paket liegt: Strichzeichnungen, s/w-Fassungen, Folien oder Lösungen nur, wenn es sie gibt (in der Schoolbox: Liste „Bestandteile des Pakets“ im Schlusslauf). Die Quellen der Teile, die mit den Skills kommen, wörtlich:
 
 | Was | Quelle |
 |---|---|
@@ -126,7 +126,7 @@ Ein Dokument nur für die Autorin, als `kit-tabelle` mit den Feldern, die Eduki 
 | Fach und Thema | Fach und das Themengebiet, wie es im Baum von Eduki heißen könnte („Mathematik → Größen → Geld“) |
 | Umfang | Seitenzahl aller Dokumente, A4, Farbe, Folien getrennt („72 Seiten A4 und 30 Folien“); ob die Arbeitsblätter schwarz-weiß kopierbar sind |
 | Datei | ein PDF aus allen Dokumenten in dieser Reihenfolge: Deckblatt, Handreichung, Kapitel, Material, Lösungen, Quellen. Eduki nimmt Seite 1 als Cover |
-| Vorschau | welche Seiten offen bleiben (Deckblatt, Inhalt des Pakets, ein Kapitel ganz) und ab welcher Seite unscharf, meist ab Seite 10 oder 11 |
+| Vorschau | welche Seiten offen bleiben (Deckblatt, Inhalt des Pakets, ein Kapitel ganz) und ab welcher Seite unscharf, meist ab Seite 10 oder 11. Offen bleibt keine Seite mit Lösung, Erwartungshorizont oder Auflösung; zeigen die Hinweise Lösungen (Rätselkette, typische Fehler), endet der offene Bereich davor oder überspringt sie |
 | Lösungsschlüssel | „an“, wenn Lösungen dabei sind |
 | Quellen: Texte | die Zeile „Texte“ aus dem Quellenverzeichnis |
 | Quellen: Bilder | die Zeilen zu den KI-Bildgeneratoren (Canva, OpenAI) und zu den gezeichneten Abbildungen in einem Satz. Ohne Link: Eduki ordnet eine Quelle mit bekanntem Link einem älteren Eintrag zu und zeigt dann dessen Text |
