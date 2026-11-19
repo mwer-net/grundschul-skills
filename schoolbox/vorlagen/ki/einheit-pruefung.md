@@ -12,7 +12,7 @@ Teil 1, mit Kinderaugen (nur wenn die Nachricht ihn nennt):
    - `zu-schwer`: Für diese Klasse zu schwer, etwa Zahlenraum, Lesemenge oder Schritte.
    - `zu-leicht`: Nichts zu denken, etwa die Antwort steht schon da oder es ist nur Abschreiben.
    - `dopplung`: Dieselbe Aufgabe wie eben oder wie ein Format aus der Liste der Reihe, ohne neuen Anspruch.
-   - `fehlt`: Etwas wird gebraucht, das nicht da ist oder nicht genannt wird: ein Bild, eine Vorlage, ein Wort im Wortspeicher, Platz zum Schreiben, ein Gegenstand wie Spiegel oder Schere.
+   - `fehlt`: Etwas wird gebraucht, das nicht da ist oder nicht genannt wird: ein Bild, eine Vorlage, ein Wort im Wortspeicher, Platz zum Schreiben, ein Gegenstand wie Spiegel oder Schere. Nennt die Nachricht Maße aus dem Bau, prüfe an ihnen, ob hineinpasst, was die Aufgabe verlangt: Zeichne, klebe oder schreibe gedanklich hinein, so groß, wie ein Kind dieser Klasse zeichnet und schreibt. Passt es nicht, ist das `fehlt`, mit dem Maß.
 
 Lösung nachrechnen, nach Teil 1 (nur wenn die Nachricht Lösungsseiten nennt):
 4. Schreib dein Ergebnis je Aufgabe in einer Zwischennachricht auf. Erst dann sieh dir die Lösungsseiten unter `loesung/` mit Read an.
