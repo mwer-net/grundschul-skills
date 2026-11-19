@@ -287,11 +287,12 @@ describe('Plan-Prüfung: Auftrag, Rückrunde und Stand (247)', () => {
 		assert.match(text, /melde es nicht noch einmal:\n- Stunde 1 braucht 75 min von 45\.$/m);
 	});
 
-	it('Rückrunde: Rechnung und Befunde nummeriert, der Block nur mit Befunden der Prüfung', () => {
+	it('Rückrunde: Rechnung und Befunde nummeriert, der Block mit den Begründungen immer', () => {
 		const nur = planRueckrunde([{ von: 'rechnung', text: 'Stunde 1 braucht 75 min von 45.' }]);
 		assert.match(nur, /^Korrekturrunde zum Plan\. /);
 		assert.match(nur, /^1\. Stunde 1 braucht 75 min von 45\.$/m);
-		assert.doesNotMatch(nur, /geprueft/);
+		assert.match(nur, /"geprueft"/);
+		assert.match(nur, /ohne Begründungen im Plan-Text/);
 		const beide = planRueckrunde([
 			{ von: 'rechnung', text: 'Stunde 1 braucht 75 min von 45.' },
 			{ von: 'pruefung', befund },
@@ -308,6 +309,13 @@ describe('Plan-Prüfung: Auftrag, Rückrunde und Stand (247)', () => {
 		assert.deepEqual([...a.geprueft], [[2, { behoben: true, wie: 'LZK ergänzt.' }]]);
 		assert.equal(lesePlanAntwort('Nur Plan.').text, 'Nur Plan.');
 		assert.equal(lesePlanAntwort('Plan.\n```json\n{"geprueft": [}\n```').geprueft.size, 0);
+		const frueher = lesePlanAntwort(
+			'Plan.\n```json\n{"titel": "x"}\n```\nMehr Plan.\n```json\n{"geprueft": [{"nr": 1, "behoben": true, "wie": "Gekürzt."}]}\n```',
+		);
+		assert.equal(frueher.text, 'Plan.\n```json\n{"titel": "x"}\n```\nMehr Plan.');
+		assert.deepEqual([...frueher.geprueft], [[1, { behoben: true, wie: 'Gekürzt.' }]]);
+		const nurFrueher = 'Plan.\n```json\n{"titel": "x"}\n```';
+		assert.equal(lesePlanAntwort(nurFrueher).text, nurFrueher);
 	});
 
 	it('Stand: Rechnung behoben, wenn sie danach fehlt; Prüfung behoben, wenn der Planlauf es sagt', () => {
@@ -319,15 +327,19 @@ describe('Plan-Prüfung: Auftrag, Rückrunde und Stand (247)', () => {
 		const s = planPruefStand({
 			vorher,
 			nachher: ['B'],
-			geprueft: new Map([[3, { behoben: false, wie: 'Bleibt.' }]]),
+			geprueft: new Map([
+				[1, { behoben: false, wie: 'Stunde 1 gekürzt.' }],
+				[2, { behoben: true, wie: 'Bleibt, der Auftrag will 90 min.' }],
+				[3, { behoben: false, wie: 'Bleibt.' }],
+			]),
 			pruefung: { fehler: null },
 			rueckrunde: true,
 		});
 		assert.deepEqual(
 			s.punkte.map((p) => [p.von, p.text, p.stand, p.antwort]),
 			[
-				['rechnung', 'A', 'behoben', undefined],
-				['rechnung', 'B', 'offen', undefined],
+				['rechnung', 'A', 'behoben', 'Stunde 1 gekürzt.'],
+				['rechnung', 'B', 'offen', 'Bleibt, der Auftrag will 90 min.'],
 				['pruefung', befund.text, 'offen', 'Bleibt.'],
 			],
 		);
@@ -353,13 +365,18 @@ describe('Plan-Prüfung: Auftrag, Rückrunde und Stand (247)', () => {
 			],
 			geaendert: false,
 		};
-		const neu = nachAenderung(alt, { vorher: ['C'], nachher: [], rueckrunde: true });
+		const neu = nachAenderung(alt, {
+			vorher: ['C'],
+			nachher: [],
+			rueckrunde: true,
+			geprueft: new Map([[1, { behoben: true, wie: 'Gekürzt.' }]]),
+		});
 		assert.equal(neu?.geaendert, true);
 		assert.deepEqual(
-			neu?.punkte.map((p) => [p.von, p.text, p.stand]),
+			neu?.punkte.map((p) => [p.von, p.text, p.stand, p.antwort]),
 			[
-				['rechnung', 'C', 'behoben'],
-				['pruefung', befund.text, 'offen'],
+				['rechnung', 'C', 'behoben', 'Gekürzt.'],
+				['pruefung', befund.text, 'offen', undefined],
 			],
 		);
 		assert.equal(nachAenderung(undefined, { vorher: ['C'], nachher: ['C'], rueckrunde: false }), undefined);

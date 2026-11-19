@@ -1302,7 +1302,12 @@ export const erstelleEinheiten = (
 					rueckrunde: runde?.lief === true,
 				});
 			} else if (text !== null) {
-				s.planPruefung = nachAenderung(s.planPruefung, { vorher, nachher, rueckrunde: runde?.lief === true });
+				s.planPruefung = nachAenderung(s.planPruefung, {
+					vorher,
+					nachher,
+					rueckrunde: runde?.lief === true,
+					geprueft: runde?.geprueft,
+				});
 			}
 		} finally {
 			clearInterval(takt);

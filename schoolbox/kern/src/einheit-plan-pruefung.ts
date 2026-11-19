@@ -266,7 +266,8 @@ export const RUECKRUNDE_ANFANG = 'Korrekturrunde zum Plan.';
 
 /**
  * Die eine Rückrunde an den Planlauf (`--resume`): erst die Rechnung, dann die Befunde der Plan-Prüfung, nummeriert.
- * Die Antwort endet mit einem Block `geprueft`, den `lesePlanAntwort` liest und aus dem Plan-Text nimmt.
+ * Die Antwort endet immer mit einem Block `geprueft`, den `lesePlanAntwort` liest und aus dem Plan-Text nimmt: Dort
+ * stehen auch die Begründungen, damit sie nicht im Plan der Lehrkraft landen.
  */
 export const planRueckrunde = (punkte: readonly PlanPunkt[]) => {
 	const mitPruefung = punkte.some((p) => p.von === 'pruefung');
@@ -275,16 +276,28 @@ export const planRueckrunde = (punkte: readonly PlanPunkt[]) => {
 			? `${RUECKRUNDE_ANFANG} Die Schoolbox hat den Plan nachgerechnet, und eine Prüfung mit frischem Blick hat ihn gegen Auftrag, Recherche, Fach-Skill und Kanon gelesen. Sie melden:`
 			: `${RUECKRUNDE_ANFANG} Die Schoolbox hat den Plan in einheit.json nachgerechnet und meldet:`,
 		...punkte.map((p, i) => `${i + 1}. ${p.von === 'rechnung' ? p.text : befundSatz(p.befund)}`),
-		'Ändere nur, was nötig ist, und halte dich dabei an den Auftrag der Lehrkraft; wenn nötig auch Dokumente, Kanon und Geschichte. Hältst du einen Punkt für keinen Fehler, ändere nichts daran und sage warum. Schreibe einheit.json neu und antworte wieder mit dem ganzen Plan. Baue noch nichts.',
-		mitPruefung
-			? 'Hänge ganz am Ende, nach dem Plan, einen Block an, je Punkt eine Zeile (wird der Lehrkraft nicht als Plan gezeigt):\n```json\n{"geprueft": [{"nr": 1, "behoben": true, "wie": "ein Satz, was du geändert hast"}, {"nr": 2, "behoben": false, "wie": "ein Satz, warum es so bleibt"}]}\n```'
-			: '',
+		'Ändere nur, was nötig ist, und halte dich dabei an den Auftrag der Lehrkraft; wenn nötig auch Dokumente, Kanon und Geschichte. Hältst du einen Punkt für keinen Fehler, ändere nichts daran. Schreibe einheit.json neu und antworte wieder mit dem ganzen Plan, ohne Begründungen im Plan-Text. Baue noch nichts.',
+		'Hänge ganz am Ende, nach dem Plan, einen Block an, je Punkt eine Zeile; was du geändert hast oder warum ein Punkt bleibt, steht nur hier (die Lehrkraft sieht es am Punkt, nicht im Plan):\n```json\n{"geprueft": [{"nr": 1, "behoben": true, "wie": "ein Satz, was du geändert hast"}, {"nr": 2, "behoben": false, "wie": "ein Satz, warum es so bleibt"}]}\n```',
 	]
 		.filter(Boolean)
 		.join('\n');
 };
 
-const GEPRUEFT_BLOCK = /```(?:json)?\s*(\{[\s\S]*?"geprueft"[\s\S]*?\})\s*```\s*$/;
+const SCHLUSS_FENCE = /```\s*$/;
+
+/** Der letzte Codeblock am Ende der Antwort: Inhalt und wo er beginnt; frühere Blöcke im Plan bleiben unberührt. */
+const letzterBlock = (antwort: string) => {
+	const schluss = SCHLUSS_FENCE.exec(antwort);
+	if (!schluss) {
+		return null;
+	}
+	const auf = antwort.lastIndexOf('```', schluss.index - 1);
+	if (auf < 0) {
+		return null;
+	}
+	const inhalt = antwort.slice(auf + 3, schluss.index).replace(/^json\b/, '');
+	return { inhalt, index: auf };
+};
 
 export interface PunktAntwort {
 	behoben: boolean;
@@ -294,12 +307,16 @@ export interface PunktAntwort {
 /** Nimmt den Block `geprueft` vom Ende der Antwort: der Plan-Text ohne ihn und je Nummer, was der Planlauf sagt. */
 export const lesePlanAntwort = (antwort: string): { text: string; geprueft: Map<number, PunktAntwort> } => {
 	const geprueft = new Map<number, PunktAntwort>();
-	const treffer = GEPRUEFT_BLOCK.exec(antwort);
-	if (!treffer) {
+	const block = letzterBlock(antwort);
+	if (!block) {
 		return { text: antwort, geprueft };
 	}
 	try {
-		const roh = (JSON.parse(treffer[1] ?? '') as { geprueft?: unknown }).geprueft;
+		const wert = JSON.parse(block.inhalt) as { geprueft?: unknown } | null;
+		if (typeof wert !== 'object' || wert === null || !('geprueft' in wert)) {
+			return { text: antwort, geprueft };
+		}
+		const roh = wert.geprueft;
 		for (const x of Array.isArray(roh) ? (roh as Record<string, unknown>[]) : []) {
 			const nr = Number(x.nr);
 			if (Number.isInteger(nr) && nr > 0 && typeof x.behoben === 'boolean') {
@@ -312,7 +329,7 @@ export const lesePlanAntwort = (antwort: string): { text: string; geprueft: Map<
 	} catch {
 		return { text: antwort, geprueft };
 	}
-	return { text: antwort.slice(0, treffer.index).trimEnd(), geprueft };
+	return { text: antwort.slice(0, block.index).trimEnd(), geprueft };
 };
 
 // ── Stand für die Oberfläche ──
@@ -340,7 +357,8 @@ export interface PlanPruefStand {
 
 /**
  * Der Stand nach der Rückrunde: Ein Satz der Rechnung ist behoben, wenn die Rechnung danach ihn nicht mehr ergibt;
- * ein Befund des Prüflaufs, wenn der Planlauf ihn als behoben meldet. Ohne Rückrunde ist alles offen.
+ * ein Befund des Prüflaufs, wenn der Planlauf ihn als behoben meldet. Ohne Rückrunde ist alles offen. Was der Planlauf
+ * im Block `geprueft` zu einem Punkt sagt, steht an ihm als `antwort`.
  */
 export const planPruefStand = (o: {
 	vorher: readonly PlanPunkt[];
@@ -349,12 +367,24 @@ export const planPruefStand = (o: {
 	pruefung: { fehler: string | null };
 	rueckrunde: boolean;
 }): PlanPruefStand => {
-	const rechnungVorher = o.vorher.flatMap((p) => (p.von === 'rechnung' ? [p.text] : []));
+	const antwort = (nr: number) => {
+		const wie = o.rueckrunde ? o.geprueft.get(nr)?.wie : undefined;
+		return wie ? { antwort: wie } : {};
+	};
+	const rechnungVorher = o.vorher.flatMap((p, i) => (p.von === 'rechnung' ? [{ text: p.text, nr: i + 1 }] : []));
+	const nrVon = (text: string) => rechnungVorher.find((r) => r.text === text)?.nr ?? 0;
 	const punkte: PlanPruefPunkt[] = [
 		...rechnungVorher
-			.filter((t) => !o.nachher.includes(t))
-			.map((text): PlanPruefPunkt => ({ von: 'rechnung', text, stand: o.rueckrunde ? 'behoben' : 'offen' })),
-		...o.nachher.map((text): PlanPruefPunkt => ({ von: 'rechnung', text, stand: 'offen' })),
+			.filter((r) => !o.nachher.includes(r.text))
+			.map(
+				(r): PlanPruefPunkt => ({
+					von: 'rechnung',
+					text: r.text,
+					stand: o.rueckrunde ? 'behoben' : 'offen',
+					...antwort(r.nr),
+				}),
+			),
+		...o.nachher.map((text): PlanPruefPunkt => ({ von: 'rechnung', text, stand: 'offen', ...antwort(nrVon(text)) })),
 		...o.vorher.flatMap((p, i): PlanPruefPunkt[] => {
 			if (p.von !== 'pruefung') {
 				return [];
@@ -389,7 +419,12 @@ export const planPruefStand = (o: {
  */
 export const nachAenderung = (
 	alt: PlanPruefStand | undefined,
-	rechnung: { vorher: readonly string[]; nachher: readonly string[]; rueckrunde: boolean },
+	rechnung: {
+		vorher: readonly string[];
+		nachher: readonly string[];
+		rueckrunde: boolean;
+		geprueft?: ReadonlyMap<number, PunktAntwort>;
+	},
 ): PlanPruefStand | undefined => {
 	if (!alt) {
 		return undefined;
@@ -397,7 +432,7 @@ export const nachAenderung = (
 	const neu = planPruefStand({
 		vorher: rechnung.vorher.map((text): PlanPunkt => ({ von: 'rechnung', text })),
 		nachher: rechnung.nachher,
-		geprueft: new Map(),
+		geprueft: rechnung.geprueft ?? new Map(),
 		pruefung: { fehler: alt.grund },
 		rueckrunde: rechnung.rueckrunde,
 	});

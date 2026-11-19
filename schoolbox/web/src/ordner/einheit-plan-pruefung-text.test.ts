@@ -30,6 +30,7 @@ describe('Geprüft im Plan (247)', () => {
 	it('offen und behoben getrennt, mit Zahl im Titel', () => {
 		const a = planPruefAnzeige(STAND);
 		assert.equal(a?.titel, 'Geprüft: 1 Hinweis offen, 1 behoben');
+		assert.equal(a?.nurGerechnet, false);
 		assert.deepEqual(
 			a?.offen.map((p) => p.text),
 			['Die Leitfigur fehlt.'],
@@ -43,7 +44,7 @@ describe('Geprüft im Plan (247)', () => {
 		assert.deepEqual(a?.behoben.map(punktKopf), ['Nachgerechnet']);
 	});
 
-	it('gescheitert und geändert stehen als Satz da; ohne Punkte „nichts gefunden“', () => {
+	it('gescheitert heißt „Nur nachgerechnet“, geändert steht als Satz da; ohne Punkte „nichts gefunden“', () => {
 		const a = planPruefAnzeige({
 			...STAND,
 			pruefung: 'gescheitert',
@@ -51,7 +52,8 @@ describe('Geprüft im Plan (247)', () => {
 			geaendert: true,
 			punkte: [],
 		});
-		assert.equal(a?.titel, 'Geprüft: nichts gefunden');
+		assert.equal(a?.titel, 'Nur nachgerechnet: nichts gefunden');
+		assert.equal(a?.nurGerechnet, true);
 		assert.equal(
 			a?.hinweis,
 			'Die Prüfung mit frischem Blick hat diesmal nicht geklappt (Abgebrochen); nachgerechnet hat die Schoolbox trotzdem. Nach deiner Änderung neu nachgerechnet; die Hinweise der Prüfung stammen vom Plan davor.',

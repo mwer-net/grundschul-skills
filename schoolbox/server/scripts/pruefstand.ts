@@ -371,9 +371,9 @@ const zahlAus = (wert: unknown) => (typeof wert === 'number' && Number.isFinite(
 
 const usd = (n: number) => `${n.toFixed(2).replace('.', ',')} USD`;
 
-/** `plan` prüft dieses Skript selbst (`pruefePlan`), die anderen Teile laufen über die gebauten Materialien. */
+/** Bricht ab, bevor etwas startet, wenn ein gewählter Teil noch nicht gebaut ist. */
 const pruefeGebaut = (teile: Teil[]) => {
-	const fehlt = teile.filter((t) => t !== 'plan' && !GEBAUTE_TEILE.includes(t));
+	const fehlt = teile.filter((t) => !GEBAUTE_TEILE.includes(t));
 	if (fehlt.length) {
 		throw new Abbruch(`${fehlt.map((t) => `Teil ${t}: noch nicht gebaut.`).join(' ')} Abbruch, nichts gestartet.`);
 	}

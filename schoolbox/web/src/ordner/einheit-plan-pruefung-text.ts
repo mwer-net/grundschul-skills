@@ -3,6 +3,8 @@ import { PRUEF_ART_NAME } from '@schoolbox/kern/src/einheit-pruefung';
 
 export interface PlanPruefAnzeige {
 	titel: string;
+	/** Nur die Rechnung lief, die Prüfung mit frischem Blick nicht: kein Haken. */
+	nurGerechnet: boolean;
 	offen: PlanPruefPunkt[];
 	behoben: PlanPruefPunkt[];
 	/** Ein Satz, wenn die Prüfung scheiterte oder der Plan danach geändert wurde. */
@@ -32,8 +34,11 @@ export const planPruefAnzeige = (stand: PlanPruefStand | undefined): PlanPruefAn
 	]
 		.filter(Boolean)
 		.join(' ');
+	const nurGerechnet = stand.pruefung === 'gescheitert';
+	const kopf = nurGerechnet ? 'Nur nachgerechnet' : 'Geprüft';
 	return {
-		titel: teile.length ? `Geprüft: ${teile.join(', ')}` : 'Geprüft: nichts gefunden',
+		titel: `${kopf}: ${teile.length ? teile.join(', ') : 'nichts gefunden'}`,
+		nurGerechnet,
 		offen,
 		behoben,
 		hinweis: hinweis || null,

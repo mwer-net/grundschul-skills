@@ -5,12 +5,12 @@
  */
 import type { PruefBefund } from '@schoolbox/kern';
 
-/** Die Teile eines Prüflaufs; `plan` (247) gibt es noch nicht. */
+/** Die Teile eines Prüflaufs; `plan` ist die Plan-Prüfung vor der Freigabe. */
 export const TEILE = ['kind', 'blick', 'fach', 'plan'] as const;
 export type Teil = (typeof TEILE)[number];
-export const GEBAUTE_TEILE: readonly Teil[] = ['kind', 'blick', 'fach'];
+export const GEBAUTE_TEILE: readonly Teil[] = ['kind', 'blick', 'fach', 'plan'];
 
-/** Was der Plan selbst falsch hat (Punkt 4): findet erst die Plan-Prüfung aus 247. */
+/** Was der Plan selbst falsch hat (Punkt 4): findet die Plan-Prüfung, nicht der Blick auf die Materialien. */
 export const PLAN_DOKUMENT = 'plan';
 
 export interface KatalogEintrag {

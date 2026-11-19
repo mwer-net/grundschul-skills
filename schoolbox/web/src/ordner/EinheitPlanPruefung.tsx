@@ -48,7 +48,7 @@ export const PlanGeprueft = ({ stand, zu = false }: { stand: PlanPruefStand | un
 	return (
 		<div className="flex max-w-[46rem] flex-col gap-1 text-sm" data-einheit-geprueft>
 			<h3 className="flex items-center gap-1 font-medium">
-				<Symbol name={a.offen.length ? 'info' : 'haken'} className="size-3.5 text-leise" />
+				<Symbol name={a.offen.length || a.nurGerechnet ? 'info' : 'haken'} className="size-3.5 text-leise" />
 				{a.titel}
 			</h3>
 			{inhalt}
