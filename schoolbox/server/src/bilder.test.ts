@@ -10,6 +10,7 @@ import { after, afterEach, before, describe, it } from 'node:test';
 import type { BildlaufStand } from '@schoolbox/kern';
 import { figurenDir, MAX_BILD_BYTES, WURZEL } from '@schoolbox/kern';
 
+import { inhaltHash } from './bild-werkzeug';
 import { BILDER_AUS } from './bild-zugang';
 import { DATEINAME_HEADER } from './bilder';
 import { VERBRAUCH_DATEI } from './ki';
@@ -251,10 +252,14 @@ describe('Bild beschreiben (179, 237)', () => {
 		assert.deepEqual(await ende(id), { id, art: 'bild', status: 'fertig', datei: BILD });
 		assert.ok(existsSync(path.join(mappenBilder(), BILD)));
 		const herkunft = await readFile(path.join(mappenBilder(), 'bilder-herkunft.tsv'), 'utf8');
-		assert.match(herkunft, /^datei\tquelle\tmodell\tdatum\tmotiv\n/);
+		const bildHash = inhaltHash(await readFile(path.join(mappenBilder(), BILD)));
+		assert.match(herkunft, /^datei\tquelle\tmodell\tdatum\tmotiv\tart\tbefund\tinhalt\n/);
 		assert.match(
 			herkunft,
-			new RegExp(`^${BILD}\topenai\t[^\t]+\t\\d{4}-\\d{2}-\\d{2}\tWilli und Wilma im Garten$`, 'm'),
+			new RegExp(
+				`^${BILD}\topenai\t[^\t]+\t\\d{4}-\\d{2}-\\d{2}\tWilli und Wilma im Garten\terzeugt\t\t${bildHash}$`,
+				'm',
+			),
 		);
 		assert.ok(!existsSync(path.join(mappenBilder(), 'canva-ids.tsv')));
 		const sammlung = (await (await s.holen(`${s.url}/api/dokumente/${mappe}/${dok}/bilder`)).json()) as Sammlung;
