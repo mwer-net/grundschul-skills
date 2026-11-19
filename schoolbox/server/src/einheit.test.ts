@@ -25,7 +25,7 @@ import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
 
 import { BILDER_GESPERRT, grundposeReferenz } from './bild-zugang';
 import { einheitenWurzel } from './einheit';
-import { VERBRAUCH_DATEI } from './ki';
+import { KI_GRENZEN, VERBRAUCH_DATEI } from './ki';
 import { WERKZEUG_BILD_BEARBEITEN, WERKZEUG_BILD_ERZEUGEN } from './ki-werkzeug';
 import { leseMitschrift, MITSCHRIFT_ORDNER } from './mitschrift';
 import { CSRF_HEADER } from './schutz';
@@ -818,23 +818,26 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.equal(laeufe.find((l) => l.erste.startsWith('Korrekturrunde nach der Prüfung.'))?.resume, true);
 			// Der Prüflauf sieht den Bau nicht: nur die Seiten, Klasse, Fach und den Auftrag (241), beim Arbeitsblatt die
 			// Lösung nach Teil 1 (229). Der Fachblick daneben sieht die Lösung, in seinem eigenen Ordner (244).
+			// Lösungsseiten nie lose im Ordner, nur unter loesung/ (229).
 			const pruefungen = (
-				await jsonl<{ titel: string; rolle: string; loesung: boolean; kind: boolean }>('pruefungen.jsonl')
+				await jsonl<{ titel: string; rolle: string; loesungLose: boolean; loesungOrdner: boolean; kind: boolean }>(
+					'pruefungen.jsonl',
+				)
 			).slice(pruefVorher);
 			assert.deepEqual(
-				pruefungen.filter((x) => x.rolle === 'kind').map((x) => [x.titel, x.loesung, x.kind]),
+				pruefungen.filter((x) => x.rolle === 'kind').map((x) => [x.titel, x.loesungLose, x.loesungOrdner, x.kind]),
 				[
-					['Fall 1', true, true],
-					['Fall 1', true, true],
-					['Fall 2', true, true],
+					['Fall 1', false, true, true],
+					['Fall 1', false, true, true],
+					['Fall 2', false, true, true],
 				],
 			);
 			assert.deepEqual(
-				pruefungen.filter((x) => x.rolle === 'fach').map((x) => [x.titel, x.loesung]),
+				pruefungen.filter((x) => x.rolle === 'fach').map((x) => [x.titel, x.loesungLose, x.loesungOrdner]),
 				[
-					['Fall 1', true],
-					['Fall 1', true],
-					['Fall 2', true],
+					['Fall 1', false, true],
+					['Fall 1', false, true],
+					['Fall 2', false, true],
 				],
 			);
 			const fachPrompt = neu.find((x) => x.startsWith('Fachblick auf „Fall 1“')) ?? '';
@@ -1000,6 +1003,45 @@ describe('Lauf einer Einheit (139)', () => {
 			const neu = (await prompts()).slice(vorher);
 			assert.equal(neu.length, 1);
 			assert.match(neu[0] ?? '', /^Schritt 3: der Schlusslauf/);
+		});
+
+		it('Scheitert nur der Fachblick, zählen die Befunde mit Kinderaugen; das Scheitern steht im Stand (244)', async () => {
+			await fall('einheit-fachblick-scheitert');
+			const vorher = (await prompts()).length;
+			const { id, mappe } = await starte();
+			const s = await bis(id, 'fertig');
+			const p = s.pruefung?.['fall-1'];
+			assert.equal(p?.status, 'fertig');
+			assert.equal(p?.korrekturen, 1);
+			assert.deepEqual(
+				p?.gefunden.map((b) => b.art),
+				['unklar'],
+			);
+			assert.match(p?.luecke ?? '', /^Fachblick gescheitert: /);
+			assert.match(nachPruefung((await prompts()).slice(vorher))[0] ?? '', /Was mit den Uhren zu tun ist/);
+			const e = (await protokoll(mappe)).laeufe.filter((x) => x.art === 'pruefung' && x.material === 'fall-1');
+			assert.ok(e.some((x) => x.rolle === 'fach' && x.ergebnis !== 'fertig'));
+			assert.ok(e.some((x) => x.rolle === 'kind' && x.ergebnis === 'fertig'));
+		});
+
+		it('Reicht das Budget nur für einen Prüflauf, startet der zweite nicht und nur er scheitert (244)', async () => {
+			const runden = KI_GRENZEN.einheit.pruefung.runden;
+			// Der erste Lauf reserviert alle übrigen Runden der Einheit.
+			KI_GRENZEN.einheit.pruefung.runden = KI_GRENZEN.einheit.runden;
+			try {
+				const pruefVorher = (await jsonl('pruefungen.jsonl')).length;
+				const { id } = await starte();
+				const s = await bis(id, 'fertig');
+				const pruefungen = (await jsonl<{ rolle: string }>('pruefungen.jsonl')).slice(pruefVorher);
+				assert.deepEqual(
+					pruefungen.map((x) => x.rolle),
+					['kind', 'kind'],
+				);
+				assert.equal(s.pruefung?.['fall-1']?.status, 'fertig');
+				assert.match(s.pruefung?.['fall-1']?.luecke ?? '', /^Fachblick gescheitert: .*Schritte ausgeschöpft/);
+			} finally {
+				KI_GRENZEN.einheit.pruefung.runden = runden;
+			}
 		});
 
 		const lebt = (pid: number) => existsSync(`/proc/${pid}`) && !/^State:\s+Z/m.test(readFileSync(`/proc/${pid}/status`, 'utf8'));

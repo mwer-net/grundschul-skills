@@ -26,6 +26,7 @@ import {
 	pruefTeile,
 	pruefText,
 	pruefWeise,
+	rollenErgebnis,
 	verteileLoesungen,
 	zahlenBefunde,
 	zahlenText,
@@ -456,6 +457,31 @@ describe('Zahlen auf Deckblatt und Angebot (220, Punkt 4)', () => {
 });
 
 describe('Fachblick (244)', () => {
+	it('rollenErgebnis: jede Rolle zählt für sich, gescheitert nur, wenn alle scheitern', () => {
+		const b = { seite: 1, aufgabe: '1', art: 'unklar' as const, text: 'Unklar.' };
+		const gut = { befunde: [b], lesbar: true, fehler: null };
+		const schlecht = { befunde: [], lesbar: true, fehler: 'Die Einheit hat die Zahl der Schritte ausgeschöpft.' };
+		const eine = rollenErgebnis([
+			{ rolle: 'kind', teile: [gut] },
+			{ rolle: 'fach', teile: [schlecht] },
+		]);
+		assert.deepEqual(eine.befunde, [b]);
+		assert.equal(eine.fehler, null);
+		assert.equal(eine.luecke, 'Fachblick gescheitert: Die Einheit hat die Zahl der Schritte ausgeschöpft.');
+		const alle = rollenErgebnis([
+			{ rolle: 'kind', teile: [gut, schlecht] },
+			{ rolle: 'fach', teile: [schlecht] },
+		]);
+		assert.equal(alle.fehler, schlecht.fehler);
+		assert.equal(alle.luecke, null);
+		assert.deepEqual(alle.befunde, [b]);
+		const ohneFach = rollenErgebnis([
+			{ rolle: 'kind', teile: [gut] },
+			{ rolle: 'fach', teile: [] },
+		]);
+		assert.deepEqual([ohneFach.fehler, ohneFach.luecke], [null, null]);
+	});
+
 	const FACH = {
 		titel: 'Kapitel 4',
 		artName: 'Arbeitsblatt',

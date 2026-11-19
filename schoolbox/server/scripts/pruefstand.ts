@@ -408,10 +408,8 @@ const zahlenText = (t: Pick<PruefAuftrag, 'seiten' | 'loesungen' | 'ausschnitte'
 
 /** Wie der Server (`pruefeMaterial`): die fertigen Materialien davor ohne Rahmen, je mit den Lösungsseiten ihrer Ansicht. */
 const fremdeLoesungen = async (k: Kontext, v: Vorhaben, ordner: string) => {
-	const davor = k.p.zuordnung.slice(
-		0,
-		k.p.zuordnung.findIndex(([s]) => s === v.d.slug),
-	);
+	const stelle = k.p.zuordnung.findIndex(([s]) => s === v.d.slug);
+	const davor = stelle < 0 ? k.p.zuordnung : k.p.zuordnung.slice(0, stelle);
 	const materialien = [];
 	for (const [slug] of davor) {
 		const d = k.p.plan.dokumente.find((x) => x.slug === slug) as PlanDokument;

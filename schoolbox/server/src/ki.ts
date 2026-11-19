@@ -34,7 +34,6 @@ import {
 	ART_NAME,
 	bausteinVerstoesse,
 	beendeLaufEintrag,
-	befundeDerTeile,
 	befundZeile,
 	berechneteElemente,
 	blickLektuere,
@@ -74,6 +73,7 @@ import {
 	rechercheBefund,
 	rechercheText,
 	rolleVon,
+	rollenErgebnis,
 	satzBefund,
 	schreibeAtomar,
 	tausender,
@@ -1109,6 +1109,8 @@ export interface PruefErgebnis {
 	lesbar: boolean;
 	fehler: string | null;
 	verbrauch: Record<string, unknown>;
+	/** 244: Ein Prüfer scheiterte, der andere zählte („Fachblick gescheitert: …“). */
+	luecke?: string | null;
 }
 
 /** Führt einen Prüflauf in `ordner` aus und liest nur seine Befunde. Scheitert er, bleibt das Material, wie es ist. */
@@ -2714,13 +2716,12 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 							)
 						: null,
 				]);
-				const fertig = laeufe.filter((e): e is PruefErgebnis => e !== null);
-				return {
-					befunde: befundeDerTeile(fertig.map((e) => e.befunde)),
-					lesbar: fertig.every((e) => e.lesbar),
-					fehler: fertig.find((e) => e.fehler)?.fehler ?? null,
-					verbrauch: {},
-				};
+				const [kindLauf, fachLauf] = laeufe;
+				const r = rollenErgebnis([
+					{ rolle: 'kind', teile: kindLauf ? [kindLauf] : [] },
+					{ rolle: 'fach', teile: fachLauf ? [fachLauf] : [] },
+				]);
+				return { ...r, ...(aktiv?.abbruch ? { fehler: 'Abgebrochen.', luecke: null } : {}), verbrauch: {} };
 			} catch (fehler) {
 				console.error('Prüflauf des Blatts:', (fehler as Error).message);
 				const eintrag = neuerLaufEintrag('pruefung', null, []);
@@ -2771,6 +2772,9 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 				seite: b.seite ?? 1,
 				text: `${b.art === 'fach' ? `Fachblick, ${FACHLICH_PRUEFEN}` : 'Prüfung mit Kinderaugen'}: ${befundZeile(b)}`,
 			}));
+			if (p?.luecke) {
+				warnungen.push({ stufe: 'HINWEIS', seite: 1, text: p.luecke });
+			}
 			return { neu, antwort, bericht: { ...bericht, meldungen: [...bericht.meldungen, ...warnungen] } };
 		};
 		const schreibeVorschlag = async (neu: string, antwort: string, bericht: Pruefbericht) => {

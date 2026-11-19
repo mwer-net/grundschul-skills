@@ -162,9 +162,10 @@ process.stdin.on('end', () => {
 		// 244: Der Fachblick („Fachblick auf …“) läuft gleichzeitig; er meldet „FACHFEHLER“ auf einer Seite als fach.
 		// „einheit-pruefung-haenger“ bleibt in beiden Läufen stehen, bis der Server sie beendet.
 		const rolle = eingabe.startsWith('Fachblick auf') ? 'fach' : 'kind';
-		fs.appendFileSync(path.join(__dirname, 'pruefungen.jsonl'), JSON.stringify({ titel: /^(?:Prüfung von|Fachblick auf) „([^“]*)“/.exec(eingabe)?.[1] ?? '', rolle, loesung: fs.readdirSync('.').some((n) => n.startsWith('loesung-')) || fs.existsSync('loesung'), kind: eingabe.includes('mit Kinderaugen') }) + '\n');
+		fs.appendFileSync(path.join(__dirname, 'pruefungen.jsonl'), JSON.stringify({ titel: /^(?:Prüfung von|Fachblick auf) „([^“]*)“/.exec(eingabe)?.[1] ?? '', rolle, loesungLose: fs.readdirSync('.').some((n) => n.startsWith('loesung-')), loesungOrdner: fs.existsSync('loesung'), kind: eingabe.includes('mit Kinderaugen') }) + '\n');
 		const fertig = (result, extra = {}) => sag({ type: 'result', subtype: 'success', is_error: false, result, num_turns: 3, total_cost_usd: 0.02, usage: { output_tokens: 5 }, permission_denials: [], ...extra });
 		if (fall === 'einheit-pruefung-haenger') { setInterval(() => {}, 1000); return; }
+		if (fall === 'einheit-fachblick-scheitert' && rolle === 'fach') { fertig('', { subtype: 'error_during_execution', is_error: true }); process.exit(1); }
 		if (fall === 'einheit-pruefung-scheitert') { fertig('', { subtype: 'error_during_execution', is_error: true }); process.exit(1); }
 		if (fall === 'einheit-pruefung-unlesbar') { fertig('Ich habe mir alles angesehen, es passt.'); return; }
 		const befunde = rolle === 'fach' ? (text.includes('FACHFEHLER') ? [{ seite: 1, aufgabe: '1', art: 'fach', text: 'Die Uhr zeigt nicht halb drei, sondern drei.' }] : []) : text.includes('Mach was mit den Uhren') ? [{ seite: 1, aufgabe: '1', art: 'unklar', text: 'Was mit den Uhren zu tun ist, steht nicht da.' }] : [];
@@ -289,7 +290,7 @@ process.stdin.on('end', () => {
 			const zweites = slug !== 'fall-1';
 			fs.writeFileSync(path.join(__dirname, 'letzter.txt'), slug);
 			// „einheit-niveau“: Niveau-Punkte, obwohl der Auftrag ohne Niveaus ist (210). „einheit-altsatz“: Body ohne data-satz (212).
-			const extra = (zweites ? { 'einheit-skript': '<script>window.boese = 1</script>', 'einheit-niveau': '<span class="niveau"><i></i><i></i></span>' }[fall] ?? '' : ['einheit-unklar', 'einheit-stur'].includes(fall) ? UNKLAR : '') + (fall === 'einheit-dopplung' ? GITTER : '') + (slug === 'deckblatt' ? '<p>Diese Einheit hat 12 Seiten.</p>' : '');
+			const extra = (zweites ? { 'einheit-skript': '<script>window.boese = 1</script>', 'einheit-niveau': '<span class="niveau"><i></i><i></i></span>' }[fall] ?? '' : ['einheit-unklar', 'einheit-stur', 'einheit-fachblick-scheitert'].includes(fall) ? UNKLAR : '') + (fall === 'einheit-dopplung' ? GITTER : '') + (slug === 'deckblatt' ? '<p>Diese Einheit hat 12 Seiten.</p>' : '');
 			fs.writeFileSync('dokumente/' + slug + '/material.html', blatt(titelVon(slug), extra, zweites && fall === 'einheit-altsatz' ? '' : undefined));
 			if (fall === 'einheit-ueberschreiben') { fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Anders', dokumente: [{ slug: 'fremd', titel: 'Fremd', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'x' }] })); }
 			if (zweites && fall === 'einheit-haenger') { setInterval(() => {}, 1000); return; }

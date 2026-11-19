@@ -4,7 +4,7 @@
  * neue Blatt aus dem Assistenten. Ohne Abhängigkeiten zur Laufzeit außer reinen Modulen: Die Oberfläche lädt die Datei.
  */
 import type { EinheitPlan, PlanDokument } from './einheit';
-import type { Steckbrief } from './einheit-bau';
+import type { PruefRolle, Steckbrief } from './einheit-bau';
 import { rolleVon, SKILL_PRAEFIX } from './einheit-bau';
 import type { PlanFigur } from './einheit-figuren';
 import type { Meldung } from './meldungen';
@@ -75,6 +75,8 @@ export interface PruefStand {
 	offen: PruefBefund[];
 	server: string[];
 	grund: string | null;
+	/** 244: Ein Prüfer der letzten Runde scheiterte, der andere zählte, etwa „Fachblick gescheitert: …“. */
+	luecke?: string | null;
 }
 
 /** Der Schlusslauf über alle Materialien (220, Teil 2). */
@@ -596,6 +598,34 @@ const ohneDoppelte = (befunde: readonly PruefBefund[]) => {
 
 /** Die Befunde der Teile eines Prüflaufs (241) in einer Liste; die Grenze von 15 galt schon je Teil. */
 export const befundeDerTeile = (teile: readonly (readonly PruefBefund[])[]) => ohneDoppelte(teile.flat());
+
+export const PRUEF_ROLLE_NAME: Record<PruefRolle, string> = { kind: 'Prüfung mit Kinderaugen', fach: 'Fachblick' };
+
+interface TeilErgebnis {
+	befunde: PruefBefund[];
+	lesbar: boolean;
+	fehler: string | null;
+}
+
+/**
+ * Die Läufe der Rollen zusammen (244): Jede Rolle zählt für sich. Die Befunde gelungener Teile gehen immer weiter;
+ * gescheitert ist die Prüfung nur, wenn jede Rolle scheiterte. Scheiterte nur eine, steht das in `luecke`.
+ */
+export const rollenErgebnis = (rollen: readonly { rolle: PruefRolle; teile: readonly TeilErgebnis[] }[]) => {
+	const gelaufen = rollen.filter((r) => r.teile.length);
+	const fehlerVon = (r: { teile: readonly TeilErgebnis[] }) => r.teile.find((t) => t.fehler)?.fehler ?? null;
+	const gescheitert = gelaufen.filter((r) => fehlerVon(r));
+	const alle = gelaufen.length > 0 && gescheitert.length === gelaufen.length;
+	const gelungen = gelaufen.flatMap((r) => r.teile).filter((t) => !t.fehler);
+	return {
+		befunde: befundeDerTeile(gelungen.map((t) => t.befunde)),
+		lesbar: gelungen.every((t) => t.lesbar),
+		fehler: alle ? fehlerVon(gescheitert[0] ?? { teile: [] }) : null,
+		luecke: alle
+			? null
+			: gescheitert.map((r) => `${PRUEF_ROLLE_NAME[r.rolle]} gescheitert: ${fehlerVon(r) ?? ''}`).join(' ') || null,
+	};
+};
 
 const JSON_BLOCK = /```(?:json)?\s*([\s\S]*?)```/g;
 

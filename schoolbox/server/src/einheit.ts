@@ -48,7 +48,6 @@ import {
 	bauReihenfolge,
 	bausteinVerstoesse,
 	beendeLaufEintrag,
-	befundeDerTeile,
 	befundZeile,
 	berechneteElemente,
 	BILDER_SCHRITT,
@@ -106,6 +105,7 @@ import {
 	RECHERCHE_DATEI,
 	rechercheAbschnitt,
 	rolleVon,
+	rollenErgebnis,
 	satzBefund,
 	SCHLUSS_SCHRITT,
 	schreibeAtomar,
@@ -1389,24 +1389,31 @@ export const erstelleEinheiten = (
 
 	/**
 	 * Die Prüfläufe für ein Material: neue Sitzungen, nur Read, frisch gebaute Seiten in einem eigenen Ordner. Der Lauf
-	 * mit Kinderaugen (mit dem zweiten Blick, `mitKind`) und der Fachblick (`fach`, 244) laufen gleichzeitig im selben
-	 * Ordner; die Lösungsseiten liegen unter `loesung/`, der Lauf mit Kinderaugen sieht sie erst nach dem Lösen. Den Bau,
+	 * mit Kinderaugen (mit dem zweiten Blick, `mitKind`) und der Fachblick (`fach`, 244) laufen gleichzeitig, der
+	 * Fachblick in einer Kopie des Ordners (`pruefung-fach`, `trennePruefOrdner`) mit den Lösungsseiten unter `loesung/`.
+	 * Im Ordner mit Kinderaugen liegen sie nur bei Rollen mit Kind, das sie erst nach dem Lösen ansieht. Den Bau,
 	 * die Quelle und den Plan sehen sie nicht; Klasse, Fach, den Auftrag der Lehrkraft, die Figuren, die Formate der Reihe
 	 * und dem Fachblick die Prüfpunkte, die Stunden und die Messung des Baus nennt die Nachricht. Ein langes Material
 	 * prüfen je Rolle getrennte Läufe nacheinander (`pruefTeile`, 241), jeder mit eigenem Eintrag im Protokoll und eigener
-	 * Zählung der Kosten; die Befunde kommen zusammen. Scheitert ein Lauf, ist die Prüfung gescheitert. Den Ordner löscht
-	 * der Server erst, wenn beide Rollen fertig sind; Abbruch beendet beide (`stoppe`).
+	 * Zählung der Kosten; die Befunde kommen zusammen. Jede Rolle zählt für sich (`rollenErgebnis`): Gescheitert ist die
+	 * Prüfung nur, wenn alle Rollen scheitern; scheitert eine, steht es in `luecke`. Die Ordner löscht der Server erst,
+	 * wenn beide Rollen fertig sind; Abbruch beendet beide (`stoppe`).
 	 */
 	const pruefeMaterial = async (
 		s: EinheitStand,
 		plan: EinheitPlan,
 		d: PlanDokument,
 		o: { mitKind: boolean; kind: boolean; bilder: boolean; fach: boolean },
-	): Promise<{ befunde: PruefBefund[]; lesbar: boolean; fehler: string | null }> => {
+	): Promise<{ befunde: PruefBefund[]; lesbar: boolean; fehler: string | null; luecke: string | null }> => {
 		const ordner = path.join(dir(s.id), 'pruefung');
 		const fachOrdner = `${ordner}-fach`;
 		const html = (await materialHtml(s, d.slug)) ?? '';
-		const gescheitert = (grund: string) => ({ befunde: [] as PruefBefund[], lesbar: true, fehler: grund });
+		const gescheitert = (grund: string) => ({
+			befunde: [] as PruefBefund[],
+			lesbar: true,
+			fehler: grund as string | null,
+			luecke: null,
+		});
 		if (!html || sperreVon(html).length) {
 			return gescheitert('Das Material ließ sich nicht prüfen: Die Sperre des Servers greift.');
 		}
@@ -1428,15 +1435,22 @@ export const erstelleEinheiten = (
 			const eintrag: LaufEintrag = { ...neuerEintrag('pruefung', d.slug, pflicht), rolle: pruefRolle };
 			const lauf = { eintrag, gelesen: new Set<string>() };
 			const beginn = Date.now();
-			aktiv?.protokoll.laeufe.push(eintrag);
-			await schreibeProtokoll();
+			// Mit der Reserve des anderen, gleichzeitigen Laufs; ist nichts mehr übrig, startet dieser nicht.
 			const grenzen = grenzenFuer(KI_GRENZEN.einheit.pruefung);
+			const zuEnde = erschoepft(grenzen);
+			aktiv?.protokoll.laeufe.push(eintrag);
+			if (zuEnde) {
+				beendeEintrag(eintrag, beginn, fehlerText(zuEnde), {});
+				await schreibeProtokoll();
+				return { ...gescheitert(fehlerText(zuEnde) ?? 'Abgebrochen.'), verbrauch: {} };
+			}
 			// Der andere Prüflauf dieses Materials läuft womöglich gleichzeitig: seine Grenzen sind bis zum Ende vergeben.
 			const vergeben = { kostenUsd: Math.max(0, grenzen.budgetUsd), runden: Math.max(0, grenzen.runden) };
 			if (aktiv) {
 				aktiv.reserviert.kostenUsd += vergeben.kostenUsd;
 				aktiv.reserviert.runden += vergeben.runden;
 			}
+			await schreibeProtokoll();
 			const ergebnis: PruefErgebnis = await (text
 				? pruefeLauf({
 						bin,
@@ -1503,7 +1517,7 @@ export const erstelleEinheiten = (
 			}
 			return ergebnisse;
 		};
-		const ergebnisse: { befunde: PruefBefund[]; lesbar: boolean; fehler: string | null }[] = [];
+		let beide: { befunde: PruefBefund[]; lesbar: boolean; fehler: string | null }[][] = [[], []];
 		try {
 			let kindLaeufe: { text: string; teil?: PruefTeil }[] | null = null;
 			let fachLaeufe: { text: string; teil?: PruefTeil }[] | null = null;
@@ -1581,20 +1595,19 @@ export const erstelleEinheiten = (
 				console.error('Prüflauf der Einheit:', (fehler as Error).message);
 			}
 			const gebaut = kindLaeufe !== null;
-			const beide = await Promise.all([
+			beide = await Promise.all([
 				o.mitKind ? strecke('kind', gebaut ? kindLaeufe : null) : [],
 				o.fach ? strecke('fach', gebaut ? fachLaeufe : null) : [],
 			]);
-			ergebnisse.push(...beide.flat());
 		} finally {
 			await rm(ordner, { recursive: true, force: true });
 			await rm(fachOrdner, { recursive: true, force: true });
 		}
-		return {
-			befunde: befundeDerTeile(ergebnisse.map((e) => e.befunde)),
-			lesbar: ergebnisse.every((e) => e.lesbar),
-			fehler: ergebnisse.find((e) => e.fehler)?.fehler ?? null,
-		};
+		const r = rollenErgebnis([
+			{ rolle: 'kind', teile: beide[0] ?? [] },
+			{ rolle: 'fach', teile: beide[1] ?? [] },
+		]);
+		return aktiv?.abbruch ? { ...r, fehler: 'Abgebrochen.', luecke: null } : r;
 	};
 
 	/**
@@ -1643,6 +1656,7 @@ export const erstelleEinheiten = (
 				fach: weise.fach,
 			});
 			stand.runden += 1;
+			stand.luecke = p.luecke;
 			if (p.fehler) {
 				stand.status = aktiv?.abbruch ? 'abgebrochen' : 'gescheitert';
 				stand.grund = p.fehler;

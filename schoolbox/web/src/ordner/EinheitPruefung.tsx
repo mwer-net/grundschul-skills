@@ -33,6 +33,7 @@ const pruefZeile = (p: PruefStand) => {
 		p.korrekturen ? anzahl(p.korrekturen, 'Korrekturrunde', 'Korrekturrunden') : '',
 		offenText(offen, p.gefunden.length),
 		fachlich ? `davon ${fachlich} ${FACHLICH_PRUEFEN}` : '',
+		p.luecke ? (p.luecke.split(':')[0] ?? '') : '',
 	]
 		.filter(Boolean)
 		.join(' · ');
@@ -123,6 +124,7 @@ export const PruefungDetails = ({ s }: { s: EinheitStand }) => {
 						<Aufklapp titel={`${d.titel}: ${pruefZeile(p)}`}>
 							<div className="flex flex-col gap-1">
 								{p.grund && <p>{p.grund}</p>}
+								{p.luecke && <p className="text-warnung">{p.luecke}</p>}
 								<Liste titel="Gefunden" zeilen={p.gefunden.map(befundZeile)} />
 								<Liste titel="Offen" zeilen={[...p.offen.map(befundZeile), ...p.server]} />
 							</div>

@@ -37,6 +37,7 @@ import {
 	pruefArgumente,
 	rechercheArgumente,
 	richtePruefOrdnerEin,
+	trennePruefOrdner,
 	werteAus,
 	zuGrossText,
 } from './ki';
@@ -1777,6 +1778,26 @@ describe('Aufträge an Claude', () => {
 			assert.equal(b?.status, 'fehler');
 			assert.match(b?.fehler ?? '', /Limit des Claude-Kontos/);
 		});
+	});
+});
+
+describe('Prüfordner des Fachblicks (244)', () => {
+	it('trennePruefOrdner: der Fachblick hat die Lösung, der Lauf ohne Kind nicht, mit Kind beide', async () => {
+		const wurzel = await mkdtemp(path.join(tmpdir(), 'schoolbox-fachordner-'));
+		try {
+			for (const kind of [false, true]) {
+				const ordner = path.join(wurzel, `pruefung-${kind}`);
+				await mkdir(path.join(ordner, 'loesung'), { recursive: true });
+				await writeFile(path.join(ordner, 'seite-1.png'), 'x');
+				await writeFile(path.join(ordner, 'loesung', 'loesung-seite-1.png'), 'x');
+				await trennePruefOrdner(ordner, `${ordner}-fach`, kind);
+				assert.equal(existsSync(path.join(ordner, 'loesung')), kind);
+				assert.ok(existsSync(path.join(`${ordner}-fach`, 'loesung', 'loesung-seite-1.png')));
+				assert.ok(existsSync(path.join(`${ordner}-fach`, 'seite-1.png')));
+			}
+		} finally {
+			await rm(wurzel, { recursive: true, force: true });
+		}
 	});
 });
 
