@@ -203,7 +203,9 @@ process.stdin.on('end', () => {
 		const mitDeckblatt = fall.startsWith('einheit-seitenzahl');
 		const zweitesDok = mitDeckblatt ? { slug: 'deckblatt', titel: 'Deckblatt', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Titel', fertig: false } : { slug: 'fall-2', titel: 'Fall 2', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Üben', fertig: false };
 		const titelVon = (slug) => ({ 'fall-1': 'Fall 1', 'fall-2': 'Fall 2', deckblatt: 'Deckblatt' })[slug] ?? slug;
-		const plan = () => fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Uhrzeit', annahmen: ['Klasse 2'], ...uebersicht, dokumente: [{ slug: 'fall-1', titel: 'Fall 1', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Einstieg', fertig: false }, zweitesDok] }));
+		// 253: „einheit-figur“ plant Luna neu und Kiki aus der Bibliothek.
+		const figuren = fall === 'einheit-figur' ? { figuren: [{ name: 'Luna', rolle: 'Leitfigur', aussehen: 'Eule mit roter Brille', herkunft: 'neu' }, { name: 'Kiki', rolle: 'Freundin', aussehen: '', herkunft: 'bibliothek:kiki' }] } : {};
+		const plan = () => fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Uhrzeit', annahmen: ['Klasse 2'], ...uebersicht, ...figuren, dokumente: [{ slug: 'fall-1', titel: 'Fall 1', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Einstieg', fertig: false }, zweitesDok] }));
 		// „einheit-unklar“ und „einheit-stur“: fall-1 mit einer unklaren Anweisung, „-stur“ behebt sie nie. „einheit-dopplung“:
 		// dieselbe Abbildung in beiden Materialien.
 		const UNKLAR = '<p>Mach was mit den Uhren.</p>';
@@ -307,6 +309,34 @@ process.stdin.on('end', () => {
 					ende({ result: a.fehler ? 'Keine Bilder, OpenAI sperrt.' : 'Ein Bild, zweimal erzeugt.' });
 					return;
 				}
+				// 253: Grundpose und zwei Fassungen einer Pose von Luna, dazu eine Grundpose für Kiki aus der Bibliothek.
+				if (fall === 'einheit-figur') {
+					const ok = [{ ok: ['passt'] }];
+					const liste = [
+						{ datei: 'luna.png', motiv: 'Grundpose Luna', figur: 'Luna', pose: 'grund', pruefung: ok },
+						{ datei: 'luna-faltet.png', motiv: 'Pose Luna faltet', figur: 'Luna', pose: 'faltet', pruefung: ok },
+						{ datei: 'luna-faltet-2.png', motiv: 'Pose Luna faltet', figur: 'Luna', pose: 'faltet', pruefung: ok },
+						{ datei: 'kiki.png', motiv: 'Grundpose Kiki', figur: 'Kiki', pose: 'grund' },
+					];
+					fs.writeFileSync('bilder.json', JSON.stringify(liste));
+					for (const { datei } of liste) {
+						const argumente = { datei, prompt: 'Figur ' + datei, format: 'SQUARE_1_1', transparent: true };
+						const a = await new Promise((fertig) => {
+							const konfig = JSON.parse(fs.readFileSync(neben('--mcp-config'), 'utf8'));
+							const v = require('node:net').connect(konfig.mcpServers.schoolbox.args[1]);
+							let antwort = '';
+							v.on('connect', () => v.write(JSON.stringify({ werkzeug: 'bild_erzeugen', argumente }) + '\n'));
+							v.on('data', (t) => { antwort += t; });
+							v.on('close', () => fertig(JSON.parse(antwort || '{}')));
+							v.on('error', () => fertig({ fehler: true }));
+						});
+						fs.appendFileSync(path.join(__dirname, 'bild.jsonl'), JSON.stringify({ argumente, ...a }) + '\n');
+						// Jede Fassung mit eigenem Inhalt: Bytes nach IEND stören kein Bild.
+						if (!a.fehler) { fs.appendFileSync('bilder/' + datei, datei); }
+					}
+					ende({ result: 'Luna und ihre Pose.' });
+					return;
+				}
 				ende({ result: 'Keine neuen Bilder.' });
 				return;
 			}
@@ -319,7 +349,7 @@ process.stdin.on('end', () => {
 			const zweites = slug !== 'fall-1';
 			fs.writeFileSync(path.join(__dirname, 'letzter.txt'), slug);
 			// „einheit-niveau“: Niveau-Punkte, obwohl der Auftrag ohne Niveaus ist (210). „einheit-altsatz“: Body ohne data-satz (212).
-			const extra = (zweites ? { 'einheit-skript': '<script>window.boese = 1</script>', 'einheit-niveau': '<span class="niveau"><i></i><i></i></span>' }[fall] ?? '' : ['einheit-unklar', 'einheit-stur', 'einheit-fachblick-scheitert'].includes(fall) ? UNKLAR : '') + (fall === 'einheit-dopplung' ? GITTER : '') + (fall === 'einheit-fachfehler' && !zweites ? '<p>FACHFEHLER</p>' : '') + (slug === 'deckblatt' ? '<p>Diese Einheit hat 12 Seiten.</p>' : '');
+			const extra = (zweites ? { 'einheit-skript': '<script>window.boese = 1</script>', 'einheit-niveau': '<span class="niveau"><i></i><i></i></span>' }[fall] ?? '' : ['einheit-unklar', 'einheit-stur', 'einheit-fachblick-scheitert'].includes(fall) ? UNKLAR : '') + (fall === 'einheit-dopplung' ? GITTER : '') + (fall === 'einheit-fachfehler' && !zweites ? '<p>FACHFEHLER</p>' : '') + (slug === 'deckblatt' ? '<p>Diese Einheit hat 12 Seiten.</p>' : '') + (fall === 'einheit-figur' ? '<img src="../../bilder/luna-faltet-2.png" alt="Luna">' : '');
 			fs.writeFileSync('dokumente/' + slug + '/material.html', blatt(titelVon(slug), extra, zweites && fall === 'einheit-altsatz' ? '' : undefined));
 			if (fall === 'einheit-ueberschreiben') { fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Anders', dokumente: [{ slug: 'fremd', titel: 'Fremd', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'x' }] })); }
 			if (zweites && fall === 'einheit-haenger') { setInterval(() => {}, 1000); return; }

@@ -73,6 +73,7 @@ import {
 	fachSkillDatei,
 	fachSkillVon,
 	fertigText,
+	figurenDir,
 	figurenDopplungen,
 	folgeBefund,
 	FOLGEN_FELD,
@@ -100,6 +101,8 @@ import {
 	neueMappe,
 	neuerLaufEintrag,
 	neuesDokument,
+	neueFigurId,
+	nimmPoseAuf,
 	niveausImAuftrag,
 	notiereLektuere,
 	pflichtAbschnitt,
@@ -119,6 +122,7 @@ import {
 	rechnePlan,
 	rollenErgebnis,
 	rolleVon,
+	sammleRequisiten,
 	satzBefund,
 	SCHLUSS_SCHRITT,
 	schreibeAtomar,
@@ -134,6 +138,7 @@ import {
 } from '@schoolbox/kern';
 import {
 	bibliothekFuerPlan,
+	bibliotheksId,
 	leitfigurIds,
 	lesePlanFiguren,
 	planFigurText,
@@ -148,6 +153,20 @@ import {
 	pruefKanon,
 	widerspruchText,
 } from '@schoolbox/kern/src/einheit-kanon';
+import {
+	artAus,
+	bibliotheksName,
+	bildFigur,
+	GRUNDPOSE,
+	leseHerkunft,
+	posenDatei,
+	posenFuerLauf,
+	posenText,
+	requisitenFuer,
+	requisitenText,
+	steckbriefAus,
+} from '@schoolbox/kern/src/einheit-bibliothek';
+import type { BibliotheksFigur } from '@schoolbox/kern/src/figuren';
 import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
 import type { Router as RouterTyp } from 'express';
 
@@ -155,8 +174,16 @@ import type { BildVertrag } from './bild-datei';
 import { leseBildVertraege } from './bild-datei';
 import { materialKennung, uebertrageHerkunft } from './bild-herkunft';
 import type { BildWerkzeugStand } from './bild-werkzeug';
+import { BILD_HERKUNFT, REFERENZ_ORDNER } from './bild-werkzeug';
 import type { LaufBilder } from './bild-zugang';
-import { BILDER_AUS, BILDER_GESPERRT, bilderStand, erstelleLaufBilder, grundposeReferenz } from './bild-zugang';
+import {
+	BILDER_AUS,
+	BILDER_GESPERRT,
+	bilderStand,
+	erstelleLaufBilder,
+	grundposeReferenz,
+	posenPfad,
+} from './bild-zugang';
 import { schreibeQuelle } from './dokumente';
 import { HttpFehler } from './fehler';
 import type { Ergebnis, KiPruefer, LaufStand, PruefErgebnis } from './ki';
@@ -971,12 +998,221 @@ export const erstelleEinheiten = (
 	 * dem Auftrag zählt.
 	 */
 	const bildFiguren = async (s: EinheitStand) => {
-		const genannt = referenzFiguren(s.plan?.figuren ?? [], s.leitfigur ?? [], await bibliothek()).slice(
-			0,
-			MAX_REFERENZ_FIGUREN,
-		);
+		const genannt = (await figurenDerEinheit(s)).slice(0, MAX_REFERENZ_FIGUREN);
 		const referenzen = await Promise.all(genannt.map((f) => grundposeReferenz(materialDir, f)));
 		return referenzen.flatMap((r, i) => (r ? [{ ...r, figur: genannt[i]?.name ?? r.name }] : []));
+	};
+
+	/**
+	 * 253: Die Figuren der Bibliothek in dieser Einheit: die Leitfigur, die Figuren des Plans mit `bibliothek:<id>` und
+	 * die, die der Bilderlauf dieser Einheit in die Bibliothek gebracht hat.
+	 */
+	const figurenDerEinheit = async (s: EinheitStand) => {
+		const eigene = (s.bibliothekNeu ?? []).filter((n) => n.figur).map((n) => n.id);
+		return referenzFiguren(s.plan?.figuren ?? [], [...(s.leitfigur ?? []), ...eigene], await bibliothek());
+	};
+
+	/** Die Namen, unter denen der Plan oder ein Bildvertrag eine Figur der Bibliothek nennt. */
+	const namenDer = (s: EinheitStand, f: BibliotheksFigur) => [
+		f.name,
+		...(s.plan?.figuren ?? []).filter((p) => bibliotheksId(p) === f.id).map((p) => p.name),
+		...(s.bibliothekNeu ?? []).filter((n) => n.id === f.id).map((n) => n.plan),
+	];
+
+	/**
+	 * 253: Für eine Figur der Bibliothek entsteht keine neue Grundpose und keine Pose, die sie schon hat. Der Grund
+	 * nennt, was der Lauf stattdessen nimmt; `null`, wenn das Bild keine solche Figur zeigt.
+	 */
+	const bibliotheksGrund = (s: EinheitStand, figuren: readonly BibliotheksFigur[], v: BildVertrag) => {
+		const namen = [...(s.plan?.figuren ?? []).map((p) => p.name), ...figuren.flatMap((f) => namenDer(s, f))];
+		const bf = bildFigur(v, namen.filter(Boolean));
+		const gleich = (a: string) => a.toLocaleLowerCase('de') === bf?.figur.toLocaleLowerCase('de');
+		const f = bf?.figur ? figuren.find((x) => namenDer(s, x).some(gleich)) : undefined;
+		if (!bf || !f) {
+			return null;
+		}
+		if (bf.pose === GRUNDPOSE) {
+			return `${f.name} ist eine Figur der Figurenbibliothek: Ihre Grundpose liegt schon in ${REFERENZ_ORDNER}/. Erzeuge keine neue Grundpose; nimm sie als Referenz für Posen und Szenen.`;
+		}
+		const da = posenFuerLauf(f).find((p) => p.id === `${f.id}-${bf.pose}`);
+		return da
+			? `Die Pose „${bf.pose}“ von ${f.name} gibt es schon in der Bibliothek: ../../bilder/${posenDatei(da)}. Binde sie ein, statt sie neu zu erzeugen.`
+			: null;
+	};
+
+	/**
+	 * 253: Legt die Posen der Figuren aus der Bibliothek in `bilder/` des Arbeitsordners (was dort liegt, bleibt) und
+	 * liefert die Zeilen, mit denen ein Lauf sie einbindet.
+	 */
+	const legePosenBereit = async (s: EinheitStand) => {
+		const ziel = path.join(arbeitDir(s.id), 'bilder');
+		const figuren: BibliotheksFigur[] = [];
+		for (const f of await figurenDerEinheit(s)) {
+			const posen = [];
+			for (const p of posenFuerLauf(f)) {
+				const datei = path.join(ziel, posenDatei(p));
+				const da =
+					existsSync(datei) ||
+					(await mkdir(ziel, { recursive: true })
+						.then(() => copyFile(posenPfad(materialDir, p.schluessel), datei))
+						.then(
+							() => true,
+							() => false,
+						));
+				if (da) {
+					posen.push(p);
+				}
+			}
+			if (posen.length) {
+				figuren.push({ ...f, posen });
+			}
+		}
+		return posenText(figuren, '../../bilder/');
+	};
+
+	/** 253: Passende Requisiten früherer Einheiten für den Bilderlauf, als Kopie in `bilder/`. */
+	const legeRequisitenBereit = async (s: EinheitStand, plan: EinheitPlan) => {
+		const ziel = path.join(arbeitDir(s.id), 'bilder');
+		const auftrag = [s.titel, ...(plan.dokumente ?? []).map((d) => d.titel)].join(' ');
+		const alle = await sammleRequisiten(kontext.konfig, materialDir, s.mappe).catch(() => []);
+		const liste = [];
+		for (const r of requisitenFuer(alle, `${auftrag} ${JSON.stringify(plan.geschichte ?? '')}`)) {
+			const datei = path.join(ziel, r.datei);
+			if (existsSync(datei)) {
+				continue;
+			}
+			await mkdir(ziel, { recursive: true });
+			if (await copyFile(r.pfad, datei).then(() => true, () => false)) {
+				liste.push(r);
+			}
+		}
+		return requisitenText(liste, '../../bilder/');
+	};
+
+	/**
+	 * 253: Nach dem Bilderlauf kommt jede abgenommene Grundpose einer neuen Figur des Plans in die Mappe und in die
+	 * Bibliothek, auch wenn noch kein Material sie zeigt. Abgenommen: der letzte Versuch hakt ab, nichts ist `offen`.
+	 */
+	const uebernimmGrundposen = async (s: EinheitStand, plan: EinheitPlan) => {
+		const arbeit = arbeitDir(s.id);
+		const bilderDir = path.join(arbeit, 'bilder');
+		const herkunft = leseHerkunft(await readFile(path.join(bilderDir, BILD_HERKUNFT), 'utf8').catch(() => ''));
+		const namen = (plan.figuren ?? []).map((f) => f.name).filter(Boolean);
+		const mappeDir = mappenDir(materialDir, s.mappe);
+		for (const v of await leseBildVertraege(arbeit)) {
+			const bf = bildFigur(v, namen);
+			const figur = plan.figuren?.find((f) => f.name && bf?.figur.toLocaleLowerCase('de') === f.name.toLocaleLowerCase('de'));
+			const schon = (s.bibliothekNeu ?? []).some((n) => n.figur && n.plan === figur?.name);
+			if (
+				bf?.pose !== GRUNDPOSE ||
+				!figur ||
+				bibliotheksId(figur) ||
+				schon ||
+				!v.geprueft ||
+				v.offen ||
+				herkunft.get(v.datei)?.art === 'offen' ||
+				!existsSync(path.join(bilderDir, v.datei))
+			) {
+				continue;
+			}
+			try {
+				const bild = `bilder/${v.datei}`;
+				const umbenannt = await uebernimmBilder(arbeit, mappeDir, [bild]);
+				const inMappe = path.basename(umbenannt[bild] ?? bild);
+				await uebertrageHerkunft(bilderDir, path.join(mappeDir, 'bilder'), { [v.datei]: inMappe });
+				const alle = await bibliothek();
+				const dateien = await readdir(figurenDir(materialDir)).catch(() => [] as string[]);
+				const id = neueFigurId(figur.name, [...alle.map((f) => f.id), ...dateien.map((d) => path.parse(d).name)]);
+				const kanon = plan.kanon?.figuren.find((k) => k.name.toLocaleLowerCase('de') === figur.name.toLocaleLowerCase('de'));
+				const steckbrief = steckbriefAus(kanon, figur.aussehen);
+				const name = bibliotheksName(figur.name, artAus(figur.aussehen, figur.name), s.titel, alle);
+				await nimmPoseAuf(kontext.konfig, materialDir, {
+					datei: path.join(mappeDir, 'bilder', inMappe),
+					figur: id,
+					name,
+					herkunft: path.relative(materialDir, path.join(mappeDir, 'bilder', inMappe)).split(path.sep).join('/'),
+					...(steckbrief ? { steckbrief } : {}),
+					aus: s.titel,
+				});
+				s.bibliothekNeu = [...(s.bibliothekNeu ?? []), { id, name, plan: figur.name, figur: true, posen: [] }];
+			} catch (fehler) {
+				console.error('Grundpose in die Bibliothek:', (fehler as Error).message);
+			}
+		}
+	};
+
+	/**
+	 * 253: Am Ende der Einheit kommen die neuen Posen der Figuren aus der Bibliothek dazu: je Figur und Pose genau die
+	 * Fassung, die das jüngste Material der Mappe einbindet und die der Lauf abgenommen hat. Varianten, die kein
+	 * Material nennt, und Posen, die die Figur schon hat, kommen nicht.
+	 */
+	const uebernimmPosen = async (s: EinheitStand) => {
+		const plan = s.plan;
+		if (!plan) {
+			return;
+		}
+		const arbeit = arbeitDir(s.id);
+		const bilderDir = path.join(arbeit, 'bilder');
+		const herkunft = leseHerkunft(await readFile(path.join(bilderDir, BILD_HERKUNFT), 'utf8').catch(() => ''));
+		const figuren = await figurenDerEinheit(s);
+		const namen = [...(plan.figuren ?? []).map((f) => f.name), ...figuren.flatMap((f) => namenDer(s, f))];
+		const mappeDir = mappenDir(materialDir, s.mappe);
+		const genannt: { datei: string; zeit: number }[] = [];
+		for (const { dok } of Object.values(s.importiert)) {
+			const html = path.join(dokumentDir(materialDir, s.mappe, dok), 'material.html');
+			const zeit = (await stat(html).catch(() => null))?.mtimeMs ?? 0;
+			for (const t of (await readFile(html, 'utf8').catch(() => '')).matchAll(BILD_IM_DOKUMENT)) {
+				genannt.push({ datei: path.join(mappeDir, 'bilder', t[1] ?? ''), zeit });
+			}
+		}
+		genannt.sort((a, b) => b.zeit - a.zeit);
+		const hash = async (datei: string) =>
+			createHash('sha256')
+				.update(await readFile(datei).catch(() => Buffer.alloc(0)))
+				.digest('hex');
+		const je = new Map<string, Set<string>>();
+		for (const v of await leseBildVertraege(arbeit)) {
+			const bf = bildFigur(v, namen.filter(Boolean));
+			const f = bf ? figuren.find((x) => namenDer(s, x).some((n) => n.toLocaleLowerCase('de') === bf.figur.toLocaleLowerCase('de'))) : undefined;
+			const datei = path.join(bilderDir, v.datei);
+			if (!bf || !f || bf.pose === GRUNDPOSE || !v.geprueft || v.offen || herkunft.get(v.datei)?.art === 'offen' || !existsSync(datei)) {
+				continue;
+			}
+			if (f.posen.some((p) => p.id === `${f.id}-${bf.pose}`)) {
+				continue;
+			}
+			const schluessel = `${f.id}\t${bf.pose}`;
+			je.set(schluessel, new Set([...(je.get(schluessel) ?? []), await hash(datei)]));
+		}
+		for (const [schluessel, inhalte] of je) {
+			const [id = '', wort = ''] = schluessel.split('\t');
+			let fassung: string | null = null;
+			for (const g of genannt) {
+				if (existsSync(g.datei) && inhalte.has(await hash(g.datei))) {
+					fassung = g.datei;
+					break;
+				}
+			}
+			if (!fassung) {
+				continue;
+			}
+			try {
+				await nimmPoseAuf(kontext.konfig, materialDir, {
+					datei: fassung,
+					figur: id,
+					wort,
+					herkunft: path.relative(materialDir, fassung).split(path.sep).join('/'),
+				});
+				const f = figuren.find((x) => x.id === id);
+				const liste = s.bibliothekNeu ?? [];
+				const eintrag = liste.find((n) => n.id === id);
+				s.bibliothekNeu = eintrag
+					? liste.map((n) => (n === eintrag ? { ...n, posen: [...n.posen, wort] } : n))
+					: [...liste, { id, name: f?.name ?? id, plan: f?.name ?? id, figur: false, posen: [wort] }];
+			} catch (fehler) {
+				console.error('Pose in die Bibliothek:', (fehler as Error).message);
+			}
+		}
 	};
 
 	/** Je Bildwerkzeug: welche Datei in `referenzen/` zu welcher Figur gehört. */
@@ -986,13 +1222,15 @@ export const erstelleEinheiten = (
 	const bilderFuerLauf = async (s: EinheitStand): Promise<LaufBilder | null> => {
 		try {
 			const figuren = await bildFiguren(s);
+			const imLauf = await figurenDerEinheit(s);
 			const bilder = await erstelleLaufBilder({
 				arbeit: arbeitDir(s.id),
 				art: 'einheit',
 				konfig: kontext.konfig,
 				api: kontext.bildApi,
 				figuren: figuren.map(({ datei, name }) => ({ name, datei })),
-				...(s.plan?.kanon ? { pruefeVertrag: (v: BildVertrag) => pruefeBildVertrag(s.plan ?? {}, v) } : {}),
+				pruefeVertrag: (v: BildVertrag) =>
+					bibliotheksGrund(s, imLauf, v) ?? (s.plan?.kanon ? pruefeBildVertrag(s.plan, v) : null),
 			});
 			if (bilder) {
 				referenzNamen.set(bilder, new Map(figuren.map((f) => [f.pfad, f.figur])));
@@ -1407,8 +1645,12 @@ export const erstelleEinheiten = (
 				(b) => `- ../../bilder/${String(b.datei)}: ${typeof b.motiv === 'string' ? b.motiv.slice(0, 200) : ''}`,
 			);
 		const vorschau = rolle === 'deckblatt' ? [...da].filter((n) => n.startsWith('v-')).sort() : [];
+		const posen = await legePosenBereit(s);
+		const requisiten = rolle === 'bilder' && s.plan ? await legeRequisitenBereit(s, s.plan) : '';
 		return [
 			bilderAbsatz(zeilen, s.bilder),
+			posen,
+			requisiten,
 			rolle === 'bilder'
 				? bilderKanonText(
 						s.plan?.kanon,
@@ -2067,6 +2309,10 @@ export const erstelleEinheiten = (
 			pflicht,
 		});
 		await abgleich();
+		if (!aktiv?.abbruch) {
+			await uebernimmGrundposen(s, plan);
+			await merke(s);
+		}
 		if (ergebnis.bilder?.gesperrt && !aktiv?.abbruch) {
 			return ergebnis.fehler ?? bilderGesperrtText(s, BILDER_SCHRITT);
 		}
@@ -2357,6 +2603,9 @@ export const erstelleEinheiten = (
 				if (!aktiv?.abbruch && !stehen && alleMaterialien(s) && !schlussErledigt(s)) {
 					const fehler = await schlussLauf(s, plan);
 					letzter = fehler ?? letzter;
+				}
+				if (!aktiv?.abbruch && alleMaterialien(s)) {
+					await uebernimmPosen(s);
 				}
 			}
 			await abgleich();

@@ -221,7 +221,7 @@ export const MAX_REQUISITEN = 8;
  * Die Requisiten, deren Motiv ein Wort des Auftrags teilt (Wortanfänge ab fünf Buchstaben), die mit den meisten
  * gemeinsamen Wörtern zuerst; je Dateiname eines.
  */
-export const requisitenFuer = (alle: readonly Requisit[], auftrag: string, max = MAX_REQUISITEN): Requisit[] => {
+export const requisitenFuer = <R extends Requisit>(alle: readonly R[], auftrag: string, max = MAX_REQUISITEN): R[] => {
 	const gesucht = woerter(auftrag);
 	const gesehen = new Set<string>();
 	return alle
@@ -261,4 +261,30 @@ export const leseHerkunft = (inhalt: string): Map<string, HerkunftZeile> => {
 		}
 	}
 	return je;
+};
+
+/** Eine Figur, die eine Einheit neu in die Bibliothek gebracht hat oder der sie Posen gab. */
+export interface BibliothekNeu {
+	id: string;
+	/** Name in der Bibliothek, „Fridolin (Fuchs)“. */
+	name: string;
+	/** Name im Plan der Einheit, „Fridolin“. */
+	plan: string;
+	/** Die Figur selbst ist neu (Grundpose aus dem Bilderlauf). */
+	figur: boolean;
+	/** Wörter der neuen Posen. */
+	posen: string[];
+}
+
+/** Der Satz im Band der Einheit: „Neu in der Figurenbibliothek: Luna (zeigt, faltet), Posen für Willi: winkt.“ */
+export const bibliothekNeuSatz = (liste: readonly BibliothekNeu[]) => {
+	const neu = liste.filter((n) => n.figur);
+	const mehr = liste.filter((n) => !n.figur && n.posen.length);
+	const mit = (n: BibliothekNeu) => (n.posen.length ? `${n.name} (${n.posen.join(', ')})` : n.name);
+	return [
+		neu.length ? `Neu in der Figurenbibliothek: ${neu.map(mit).join(', ')}.` : '',
+		...mehr.map((n) => `Neue Posen für ${n.name}: ${n.posen.join(', ')}.`),
+	]
+		.filter(Boolean)
+		.join(' ');
 };

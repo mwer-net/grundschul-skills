@@ -197,17 +197,24 @@ export const referenzFiguren = <F extends Pick<BibliotheksFigur, 'id'>>(
 
 const MAX_BIBLIOTHEK = 30;
 const STECKBRIEF_KURZ = 160;
+const MAX_POSEN_PLAN = 12;
 
-/** Die Bibliothek für den Planlauf: je Figur Kennung, Name und Aussehen in einem Satz. */
-export const bibliothekFuerPlan = (bibliothek: readonly Pick<BibliotheksFigur, 'id' | 'name' | 'steckbrief'>[]) =>
+/**
+ * Die Bibliothek für den Planlauf: je Figur Kennung, Name, Aussehen und ihre Posen in einer Zeile (253). Eine neue
+ * Figur bekommt einen Namen, den keine Figur der Bibliothek trägt.
+ */
+export const bibliothekFuerPlan = (
+	bibliothek: readonly Pick<BibliotheksFigur, 'id' | 'name' | 'steckbrief' | 'posen'>[],
+) =>
 	bibliothek.length
 		? [
-				'Figuren der Bibliothek (für „herkunft“ im Plan; Grundpose und Posen gibt es schon):',
-				...bibliothek
-					.slice(0, MAX_BIBLIOTHEK)
-					.map(
-						(f) =>
-							`- bibliothek:${f.id}: ${f.name}, ${f.steckbrief ? kurz(f.steckbrief, STECKBRIEF_KURZ) : 'ohne Steckbrief'}`,
-					),
+				'Figuren der Bibliothek (für „herkunft“ im Plan; Grundpose und genannte Posen gibt es schon, eine neue Figur bekommt einen Namen, den hier keine trägt):',
+				...bibliothek.slice(0, MAX_BIBLIOTHEK).map((f) => {
+					const posen = f.posen
+						.slice(1)
+						.map((p) => (p.id.startsWith(`${f.id}-`) ? p.id.slice(f.id.length + 1) : p.id))
+						.slice(0, MAX_POSEN_PLAN);
+					return `- bibliothek:${f.id}: ${f.name}, ${f.steckbrief ? kurz(f.steckbrief, STECKBRIEF_KURZ) : 'ohne Steckbrief'}${posen.length ? `; Posen: ${posen.join(', ')}` : ''}`;
+				}),
 			].join('\n')
 		: '';

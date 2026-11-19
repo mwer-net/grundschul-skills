@@ -17,6 +17,7 @@ import {
 	laufMeldungen,
 	lektuereZeile,
 	lesePlan,
+	leseBibliothek,
 	mappenDir,
 	pruefeEinheitAngaben,
 	referenzFiguren,
@@ -33,7 +34,7 @@ import { WERKZEUG_BILD_BEARBEITEN, WERKZEUG_BILD_ERZEUGEN } from './ki-werkzeug'
 import { leseMitschrift, MITSCHRIFT_ORDNER } from './mitschrift';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
-import { KI_ATTRAPPE, starteTestServer, TEST_PNG } from './testhilfe';
+import { KI_ATTRAPPE, legeTestfigurenAn, starteTestServer, TEST_PNG } from './testhilfe';
 
 const warte = async (bedingung: () => Promise<boolean> | boolean, ms = 20_000) => {
 	const ende = Date.now() + ms;
@@ -1354,6 +1355,42 @@ describe('Lauf einer Einheit (139)', () => {
 			const t = await bis(id, 'fertig');
 			assert.equal(t.bilderFertig, true);
 			assert.deepEqual(Object.keys(t.importiert).sort(), ['fall-1', 'fall-2']);
+		});
+
+		it('Figuren in die Bibliothek (253): Grundpose nach dem Bilderlauf, nur die eingebundene Pose, keine Grundpose für Kiki', async () => {
+			await legeTestfigurenAn(server.materialDir);
+			await fall('einheit-figur');
+			const vorher = (await bildAufrufe()).length;
+			const { id, mappe } = await starte(MIT_BILDERN);
+			const s = await bis(id, 'fertig');
+			const aufrufe = (await bildAufrufe()).slice(vorher) as { argumente: { datei: string }; fehler?: boolean; text?: string }[];
+			const kiki = aufrufe.find((a) => a.argumente.datei === 'kiki.png');
+			assert.equal(kiki?.fehler, true);
+			assert.match(JSON.stringify(kiki), /Figurenbibliothek/);
+			assert.ok(aufrufe.filter((a) => a.argumente.datei !== 'kiki.png').every((a) => a.fehler !== true));
+			const bilderLauf = (await prompts()).find((p) => p.includes('die Bilder der Einheit')) ?? '';
+			assert.match(bilderLauf, /Posen der Figuren aus der Bibliothek/);
+			assert.match(bilderLauf, /data-figur="kiki-winkt" src="\.\.\/\.\.\/bilder\/kiki-winkt\.png"/);
+
+			const figuren = await leseBibliothek({ pythonBin: 'python3' }, server.materialDir);
+			const luna = figuren.find((f) => f.id === 'luna');
+			assert.deepEqual(
+				luna?.posen.map((p) => p.id),
+				['luna', 'luna-faltet'],
+			);
+			assert.equal(luna?.name, 'Luna');
+			assert.equal(luna?.steckbrief, 'Eule mit roter Brille');
+			assert.equal(luna?.aus, s.titel);
+			assert.deepEqual(figuren.find((f) => f.id === 'kiki')?.posen.map((p) => p.id), ['kiki', 'kiki-winkt']);
+			const bilder = path.join(mappenDir(server.materialDir, mappe), 'bilder');
+			assert.ok(existsSync(path.join(bilder, 'luna.png')), 'Grundpose in der Mappe, auch ohne Material');
+			const bibliothek = path.join(server.materialDir, '_figuren');
+			assert.deepEqual(
+				await readFile(path.join(bibliothek, 'luna-faltet.png')),
+				await readFile(path.join(bilder, 'luna-faltet-2.png')),
+				'die eingebundene Fassung, nicht luna-faltet.png',
+			);
+			assert.deepEqual(s.bibliothekNeu, [{ id: 'luna', name: 'Luna', plan: 'Luna', figur: true, posen: ['faltet'] }]);
 		});
 	});
 

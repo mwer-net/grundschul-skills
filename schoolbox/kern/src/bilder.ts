@@ -16,6 +16,8 @@ import { kopiereAtomar, schreibeAtomar } from './atomar';
 import { fuehreAus } from './bauen';
 import type { Sammlung, SammlungsBild } from './bildbefehle';
 import { beschreibungAus, MAX_BILD_BYTES } from './bildbefehle';
+import type { Requisit } from './einheit-bibliothek';
+import { bildFigur, istRequisit, leseHerkunft } from './einheit-bibliothek';
 import { SchoolboxFehler } from './fehler';
 import {
 	FIGUREN_ORDNER,
@@ -387,6 +389,48 @@ const ohneDoppelte = async <T extends { d: string; groesse: number }>(liste: T[]
 	return ergebnis;
 };
 
+/** Ein Requisit samt seiner Datei. */
+export type RequisitDatei = Requisit & { pfad: string };
+
+/**
+ * 253: Freigestellte Bilder früherer Einheiten ohne Figur, aus `bilder-herkunft.tsv` jeder Mappe außer `ohneMappe`:
+ * nicht `offen`, nicht ausgeblendet, kein Stamm einer Figur (der Bibliothek oder der Mappe), kein Inhalt einer Figur.
+ */
+export const sammleRequisiten = async (
+	konfig: Pick<Konfig, 'pythonBin'>,
+	materialDir: string,
+	ohneMappe?: string,
+): Promise<RequisitDatei[]> => {
+	const bibliothek = (await leseBibliothek(konfig, materialDir)).map((f) => f.name);
+	const inhalte = await figurenInhalte(materialDir);
+	const { mappen } = await sammleMappen(materialDir);
+	const liste: RequisitDatei[] = [];
+	for (const { mappe } of mappen) {
+		const dir = path.join(mappenDir(materialDir, mappe.id), BILDER);
+		const tsv = mappe.id === ohneMappe ? '' : await leseText(path.join(dir, 'bilder-herkunft.tsv'));
+		if (!tsv) {
+			continue;
+		}
+		const zeilen = [...leseHerkunft(tsv).values()];
+		const namen = [...new Set([...bibliothek, ...zeilen.flatMap((z) => bildFigur(z)?.figur || [])])];
+		const staemme = namen.map((n) => slug(n, 60)).filter(Boolean);
+		const aus = await leseAusgeblendet(dir);
+		for (const z of zeilen) {
+			const stamm = stammVon(z.datei);
+			const vonFigur = staemme.some((f) => stamm === f || stamm.startsWith(`${f}-`)) || stamm.endsWith(STRICH);
+			if (z.art === 'offen' || aus.has(z.datei) || vonFigur || !istRequisit(z) || bildFigur(z, namen)) {
+				continue;
+			}
+			const pfad = path.join(dir, z.datei);
+			const info = await stat(pfad).catch(() => null);
+			if (info?.isFile() && !(await gleichtFigur(inhalte, pfad, info))) {
+				liste.push({ datei: z.datei, motiv: z.motiv, mappe: mappe.titel, pfad });
+			}
+		}
+	}
+	return liste;
+};
+
 /** Alles, was die Bildersammlung im Editor zeigt. Was einer Figur gleicht, steht nur unter `figuren` (177). */
 export const sammleBilder = async (
 	konfig: Pick<Konfig, 'pythonBin'>,
@@ -465,10 +509,18 @@ export const sammleBilder = async (
 				.sort((a, b) => b.zeit - a.zeit),
 		)
 	).map(({ kopien, x }) => eintrag(x.d, relativ(x.d), x.titel, kopien));
+	const requisit = new Set((await sammleRequisiten(konfig, materialDir, mappeId)).map((r) => relativ(r.pfad)));
+	const istRequisitBild = (b: SammlungsBild) => (b.kopien ?? [b.schluessel]).some((k) => requisit.has(k));
 	const posen = figuren.flatMap((f) =>
 		f.posen.map((p) => ({ schluessel: p.schluessel, name: path.basename(p.schluessel), alt: [f.name] })),
 	);
-	return { sammlung, mappe, meine, figuren: posen };
+	return {
+		sammlung,
+		mappe,
+		meine: meine.filter((b) => !istRequisitBild(b)),
+		requisiten: meine.filter(istRequisitBild),
+		figuren: posen,
+	};
 };
 
 /** Die Datei zu einem Schlüssel aus „Dieser Ordner“ oder „Andere Ordner“; Mitgeliefertes und Figuren nicht. */

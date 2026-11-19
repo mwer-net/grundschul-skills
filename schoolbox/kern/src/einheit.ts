@@ -5,6 +5,7 @@
 import type { PlanStunde, PlanZiel } from './einheit-aufgaben';
 import { leseStunden, leseZiele } from './einheit-aufgaben';
 import type { Steckbrief } from './einheit-bau';
+import type { BibliothekNeu } from './einheit-bibliothek';
 import type { EinheitLeitfigur, PlanFigur } from './einheit-figuren';
 import { leitfigurSatz, leseLeitfigur, lesePlanFiguren } from './einheit-figuren';
 import type { EinheitKanon, KanonNachtrag } from './einheit-kanon';
@@ -640,6 +641,8 @@ export interface EinheitStand {
 	bildHinweise?: BildHinweis[];
 	/** 248: Kennungen der Bilder (Inhalt und Vertrag), die ein Prüflauf in Vierteln ohne Befund geprüft hat. */
 	bilderGeprueft?: string[];
+	/** 253: Was diese Einheit in die Figurenbibliothek gebracht hat, für den Satz im Band. */
+	bibliothekNeu?: BibliothekNeu[];
 }
 
 /** Ein Bild, das nicht gelungen ist (248): Datei im Arbeitsordner und der Fehler in einem Satz. */

@@ -56,6 +56,8 @@ export interface Sammlung {
 	mappe: SammlungsBild[];
 	/** Bilder aus allen anderen Mappen, neueste zuerst. */
 	meine: SammlungsBild[];
+	/** 253: Freigestellte Bilder früherer Einheiten ohne Figur, sonst unter „Andere Ordner“. */
+	requisiten: SammlungsBild[];
 	/** Jede Pose der Figurenbibliothek (177), für „Willi & Co.“ im Dialog. */
 	figuren: SammlungsBild[];
 }
