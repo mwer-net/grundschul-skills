@@ -175,10 +175,18 @@ describe('Nachricht an den Prüflauf (229)', () => {
 
 	it('nennt den Auftrag der Lehrkraft und die Figuren des Plans vor Teil 1 (241)', () => {
 		const auftrag = 'Erstelle eine Unterrichtseinheit „Spiegeln“.\nLeitfigur: Luna.';
-		const teile = pruefText({ ...AUFTRAG, auftrag, figuren: ['Luna, die Eule', 'Ella'] }).split('\n\n');
+		const figuren = [
+			{ name: 'Luna', rolle: 'Leitfigur, gibt die Tipps', aussehen: 'braune Eule', herkunft: 'neu' as const },
+			{ name: 'Pelle', rolle: 'Postbote', aussehen: '', herkunft: 'bibliothek:pelle' as const },
+			{ name: '', rolle: '', aussehen: 'Ella, Eichhörnchen mit Glöckchen', herkunft: 'neu' as const },
+		];
+		const teile = pruefText({ ...AUFTRAG, auftrag, figuren }).split('\n\n');
 		assert.equal(teile[0], TEIL_1[0]);
 		assert.equal(teile[1], `Auftrag der Lehrkraft (aus dem Assistenten):\n${auftrag}`);
-		assert.equal(teile[2], 'Figuren der Geschichte laut Plan: Luna, die Eule · Ella');
+		assert.equal(
+			teile[2],
+			'Figuren der Geschichte laut Plan: Luna (neu); Leitfigur, gibt die Tipps; Aussehen: braune Eule · Pelle (aus der Bibliothek); Postbote · Ella, Eichhörnchen mit Glöckchen',
+		);
 		assert.deepEqual(teile.slice(3), TEIL_1.slice(1));
 	});
 
@@ -369,12 +377,18 @@ describe('Zahlen auf Deckblatt und Angebot (220, Punkt 4)', () => {
 		assert.deepEqual(befunde('104 Seiten im PDF'), []);
 		const falsch = befunde('51 Seiten');
 		assert.equal(falsch.length, 1);
-		assert.match(falsch[0] ?? '', /nennt 51 Seiten\. Die Schoolbox zählt 74 Seiten A4 und 30 Folien \(mit Lösungen 81 Seiten A4 und 30 Folien\)/);
+		assert.match(
+			falsch[0] ?? '',
+			/nennt 51 Seiten\. Die Schoolbox zählt 74 Seiten A4 und 30 Folien \(mit Lösungen 81 Seiten A4 und 30 Folien\)/,
+		);
 		assert.equal(befunde('31 Folien').length, 1);
 		const umgestellt = zahlenBefunde(paket, zaehlung, angebot('72 Seiten'), { auftakt: 'a4-quer' });
 		assert.equal(umgestellt.length, 1, 'das Format aus meta.json gilt vor dem des Plans');
 		const text = zahlenText(paket, zaehlung);
-		assert.match(text, /- Seiten A4: 74 gesamt, dazu 7 Lösungsseiten; ohne Deckblatt, Quellen, Angebot und Hinweise 71\./);
+		assert.match(
+			text,
+			/- Seiten A4: 74 gesamt, dazu 7 Lösungsseiten; ohne Deckblatt, Quellen, Angebot und Hinweise 71\./,
+		);
 		assert.match(text, /- Folien: 30\. Nenne Seiten und Folien getrennt \(„74 Seiten A4 und 30 Folien“\)/);
 		assert.match(text, /„auftakt“ \(dokumente\/auftakt\): 30 Folien/);
 	});

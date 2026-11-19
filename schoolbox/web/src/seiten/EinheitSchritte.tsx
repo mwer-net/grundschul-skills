@@ -2,13 +2,10 @@ import type { Antworten, EinheitWahl } from '@schoolbox/kern/src/assistent';
 import {
 	EINHEIT_AUSSEHEN_WAHL,
 	EINHEIT_FELDER,
-	EINHEIT_LEITFIGUR_NAME,
-	EINHEIT_LEITFIGUR_WAHL,
 	einheitBestandteile,
 	FREITEXT,
 	ZIEL_ANFAENGE,
 } from '@schoolbox/kern/src/assistent';
-import type { EINHEIT_LEITFIGUR } from '@schoolbox/kern/src/einheit';
 import { EINHEIT_AUSSEHEN, EINHEIT_BESTANDTEILE, EINHEIT_DAUER, EINHEIT_VERBRAUCH } from '@schoolbox/kern/src/einheit';
 import type { ReactNode } from 'react';
 
@@ -21,6 +18,7 @@ import { Stepper } from '../bausteine/Stepper';
 import { Symbol } from '../bausteine/Symbol';
 import type { KiZustand } from '../editor/ki';
 import { Empfohlen, Etikett, TitelFeld, Zaehler } from './AnlegenSchritte';
+import { LeitfigurWahl } from './LeitfigurWahl';
 
 /** Die Schritte der Unterrichtseinheit im Assistenten (140, Entwurf E1). Daten aus `assistent.ts` und `einheit.ts`. */
 
@@ -314,15 +312,10 @@ export const SchrittERahmen = ({
 			<Etikett zusatz="optional">{EINHEIT_FELDER.idee.name}</Etikett>
 			<EinheitFeld feld="idee" wert={a.eh.idee} setze={(t) => setzeEh({ idee: t })} />
 		</label>
-		<Zeile>
-			<span className="font-medium">Leitfigur</span>
-			<Segment<(typeof EINHEIT_LEITFIGUR)[number]>
-				beschriftung="Leitfigur"
-				werte={EINHEIT_LEITFIGUR_WAHL.map((l) => ({ wert: l, titel: EINHEIT_LEITFIGUR_NAME[l] }))}
-				wert={a.eh.leitfigur}
-				waehle={(leitfigur) => setzeEh({ leitfigur })}
-			/>
-		</Zeile>
+		<div className="mb-4">
+			<Etikett>Leitfigur</Etikett>
+			<LeitfigurWahl wert={a.eh.leitfigur} setze={(leitfigur) => setzeEh({ leitfigur })} />
+		</div>
 		<Zeile data-einheit-aussehen={a.eh.aussehen}>
 			<span className="font-medium">Aussehen</span>
 			<Segment<(typeof EINHEIT_AUSSEHEN)[number]>

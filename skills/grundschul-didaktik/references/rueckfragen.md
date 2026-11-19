@@ -110,7 +110,7 @@ Die Antworten gelten für die ganze Unterhaltung, bis die Lehrkraft etwas andere
    3. Funktion in der Reihe (Einführung / Übung / Vertiefung / Überprüfung) und Zeitziel in Minuten
    4. Lerngruppe (Leistungsspanne, DaZ, Förderbedarfe)
    5. Materialspezifisches und Fachspezifisches (aus Material- und Fach-Skill), aber nur, was die Entwürfe nicht zeigen können. Aufgabenformate, Rahmen/Geschichte, Differenzierungsform, Spielform oder Kartentyp werden nicht gefragt, sondern als Varianten in die Entwürfe gelegt (`entwurf-und-aufgabenplan.md`).
-   6. Klassenkonventionen (Schrift, Symbole, Farbcodes) – fest stehen und werden nicht gefragt: Bundesland Baden-Württemberg, Leitfigur Willi/Wilma Waschbär, Kennzeichnung der Niveaus mit ● / ●● / ●●● und Selbsteinschätzung mit Wachstumsstufen (sofern in der Start-Abfrage gewählt)
+   6. Klassenkonventionen (Schrift, Symbole, Farbcodes) – fest stehen und werden nicht gefragt: Bundesland Baden-Württemberg, Leitfigur Willi/Wilma Waschbär (wenn der Auftrag keine andere nennt), Kennzeichnung der Niveaus mit ● / ●● / ●●● und Selbsteinschätzung mit Wachstumsstufen (sofern in der Start-Abfrage gewählt)
    7. Ausgabe (Anzahl Exemplare, Laminieren), falls für das Material relevant
 3. **Eine Frage pro Nachricht.** Ausnahme: Zwei eng verbundene Kleinigkeiten dürfen zusammen gefragt werden.
 4. **Jede Frage hat dieses Format:**

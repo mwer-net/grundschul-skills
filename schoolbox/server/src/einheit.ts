@@ -61,7 +61,6 @@ import {
 	FACH_NAME,
 	fertigText,
 	figurenDopplungen,
-	figurenIn,
 	formatBefund,
 	formateDesMaterials,
 	freierName,
@@ -106,6 +105,13 @@ import {
 	zahlenBefunde,
 	zahlenText,
 } from '@schoolbox/kern';
+import {
+	bibliothekFuerPlan,
+	leitfigurIds,
+	lesePlanFiguren,
+	planFigurText,
+	referenzFiguren,
+} from '@schoolbox/kern/src/einheit-figuren';
 import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
 import type { Router as RouterTyp } from 'express';
 
@@ -249,7 +255,8 @@ const KOPF = (s: EinheitStand) =>
 		.filter(Boolean)
 		.join('\n\n');
 
-const PLAN = (s: EinheitStand) => `Schritt 1: der Plan.\n\n${KOPF(s)}`;
+const PLAN = (s: EinheitStand, bibliothek: string) =>
+	['Schritt 1: der Plan.', KOPF(s), bibliothek].filter(Boolean).join('\n\n');
 
 const PLAN_AENDERN = (wunsch: string) =>
 	`Schritt 1, Änderung. Die Lehrkraft hat den Plan gelesen und möchte ihn anders: „${wunsch}“\nArbeite das ein, schreibe einheit.json neu und antworte mit dem ganzen Plan. Baue noch nichts.`;
@@ -269,7 +276,7 @@ const PLAN_ABSCHNITT = (plan: EinheitPlan) => {
 		'Der freigegebene Plan (steht auch in einheit.json; nur lesen, der Server hält ihn fest):',
 		`Titel: ${plan.titel}`,
 		g?.kurz ? `Geschichte: ${g.kurz}` : '',
-		plan.figuren?.length ? `Figuren: ${plan.figuren.join(' · ')}` : '',
+		plan.figuren?.length ? `Figuren: ${plan.figuren.map(planFigurText).join(' · ')}` : '',
 		g?.verdaechtige.length ? `Verdächtige: ${g.verdaechtige.join(' · ')}` : '',
 		g?.falscheFaehrte ? `Falsche Fährte: ${g.falscheFaehrte}` : '',
 		g?.aufloesung ? `Auflösung: ${g.aufloesung}` : '',
@@ -417,6 +424,10 @@ export const erstelleEinheiten = (
 			};
 			// `canvaPause` (235) steht noch in alten Ständen; seit 237 gibt es keine Pause mehr.
 			delete stand.canvaPause;
+			// Vor 242 war jede Figur im Plan ein Text; sie gilt als `neu`.
+			if (stand.plan?.figuren) {
+				stand.plan.figuren = lesePlanFiguren(stand.plan.figuren);
+			}
 			return stand;
 		} catch {
 			return null;
@@ -869,13 +880,15 @@ export const erstelleEinheiten = (
 		return ergebnis;
 	};
 
+	const bibliothek = () => leseBibliothek(kontext.konfig, materialDir).catch(() => [...EINGEBAUTE]);
+
 	/**
-	 * Die Figuren einer Einheit, deren Grundpose als Referenz in den Arbeitsordner kommt (237): die im Plan oder im
-	 * Auftrag genannten, mit PNG- oder JPEG-Grundpose.
+	 * Die Figuren einer Einheit, deren Grundpose als Referenz in den Arbeitsordner kommt (237): die Leitfigur aus der
+	 * Bibliothek und die Figuren des Plans mit `bibliothek:<id>` (242), mit PNG- oder JPEG-Grundpose. Kein Name aus
+	 * dem Auftrag zählt.
 	 */
 	const bildFiguren = async (s: EinheitStand) => {
-		const bibliothek = await leseBibliothek(kontext.konfig, materialDir).catch(() => [...EINGEBAUTE]);
-		const genannt = figurenIn([...(s.plan?.figuren ?? []), s.auftrag].join('\n'), bibliothek).slice(
+		const genannt = referenzFiguren(s.plan?.figuren ?? [], s.leitfigur ?? [], await bibliothek()).slice(
 			0,
 			MAX_REFERENZ_FIGUREN,
 		);
@@ -1100,7 +1113,10 @@ export const erstelleEinheiten = (
 			if (text === null) {
 				await recherchiereEinheit(s);
 			}
-			ergebnis = await starteLauf(s, planLauf(s, text ?? PLAN(s), sitzung));
+			ergebnis = await starteLauf(
+				s,
+				planLauf(s, text ?? PLAN(s, bibliothekFuerPlan(await bibliothek())), sitzung),
+			);
 			s.sitzung = ergebnis.sitzung ?? s.sitzung;
 			await abgleich();
 			const klasse = s.rechercheAnfrage?.klasse;
@@ -1380,7 +1396,9 @@ export const erstelleEinheiten = (
 				auftrag?.teil
 					? `Prüflauf ${auftrag.teil.nr} von ${auftrag.teil.von}, Seiten ${auftrag.teil.erste}–${auftrag.teil.letzte} von ${auftrag.teil.gesamt}.`
 					: '',
-				ergebnis.lesbar ? '' : 'Die Antwort hatte keinen lesbaren Block mit Befunden: keine Befunde übernommen.',
+				ergebnis.lesbar
+					? ''
+					: 'Die Antwort hatte keinen lesbaren Block mit Befunden: keine Befunde übernommen.',
 			]
 				.filter(Boolean)
 				.join(' ');
@@ -1425,7 +1443,9 @@ export const erstelleEinheiten = (
 			for (const auftrag of auftraege ?? [null]) {
 				const zuEnde = erschoepft(grenzenFuer(KI_GRENZEN.einheit.pruefung));
 				if (!aktiv || aktiv.abbruch || zuEnde) {
-					ergebnisse.push(gescheitert(aktiv?.abbruch ? 'Abgebrochen.' : (fehlerText(zuEnde) ?? 'Abgebrochen.')));
+					ergebnisse.push(
+						gescheitert(aktiv?.abbruch ? 'Abgebrochen.' : (fehlerText(zuEnde) ?? 'Abgebrochen.')),
+					);
 					break;
 				}
 				const e = await einTeil(auftrag);
@@ -1968,6 +1988,18 @@ export const erstelleEinheiten = (
 		}
 		// Ohne Schlüssel (237) startet die Einheit wie ohne neue Bilder; der Auftrag sagt es Claude so.
 		angaben = { ...angaben, bilder: angaben.bilder && bilderStand(kontext.konfig).verfuegbar };
+		// 242: Name und Kennung einer Figur der Bibliothek gelten so, wie die Bibliothek sie führt.
+		if (angaben.leitfigur.art === 'bibliothek') {
+			const da = await bibliothek();
+			const figuren = angaben.leitfigur.figuren.map((w) => {
+				const f = da.find((x) => x.id === w.id);
+				if (!f) {
+					throw new HttpFehler(400, 'Diese Figur gibt es nicht mehr in der Bibliothek.');
+				}
+				return { id: f.id, name: f.name };
+			});
+			angaben = { ...angaben, leitfigur: { art: 'bibliothek', figuren } };
+		}
 		const ziel = roh.ordner === null || roh.ordner === undefined ? null : roh.ordner;
 		if (ziel !== null && typeof ziel !== 'string') {
 			throw new HttpFehler(400, 'Der Ordner ist ungültig.');
@@ -2010,6 +2042,7 @@ export const erstelleEinheiten = (
 			befunde: [],
 			korrigiert: false,
 			auftrag: teil,
+			leitfigur: leitfigurIds(angaben.leitfigur),
 			bilder: angaben.bilder,
 			verkauf: angaben.verkauf,
 			bausteine: angaben.bausteine,
@@ -2078,7 +2111,9 @@ export const erstelleEinheiten = (
 			throw new HttpFehler(400, 'Der Änderungswunsch ist zu lang.');
 		}
 		const sitzung = sitzungVon(s);
-		const kopf = sitzung ? '' : `${KOPF(s)}\n\n`;
+		const kopf = sitzung
+			? ''
+			: `${[KOPF(s), bibliothekFuerPlan(await bibliothek())].filter(Boolean).join('\n\n')}\n\n`;
 		if (wunsch) {
 			await beginne(s, `${kopf}${PLAN_AENDERN(wunsch)}`, sitzung, 'plan');
 			return s;

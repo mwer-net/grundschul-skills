@@ -16,17 +16,20 @@ import {
 	lesePlan,
 	mappenDir,
 	pruefeEinheitAngaben,
+	referenzFiguren,
 	themaBefund,
 } from '@schoolbox/kern';
+import type { BibliotheksFigur } from '@schoolbox/kern/src/figuren';
+import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
 
-import { BILDER_GESPERRT } from './bild-zugang';
+import { BILDER_GESPERRT, grundposeReferenz } from './bild-zugang';
 import { einheitenWurzel } from './einheit';
 import { VERBRAUCH_DATEI } from './ki';
 import { WERKZEUG_BILD_BEARBEITEN, WERKZEUG_BILD_ERZEUGEN } from './ki-werkzeug';
 import { leseMitschrift, MITSCHRIFT_ORDNER } from './mitschrift';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
-import { KI_ATTRAPPE, starteTestServer } from './testhilfe';
+import { KI_ATTRAPPE, starteTestServer, TEST_PNG } from './testhilfe';
 
 const warte = async (bedingung: () => Promise<boolean> | boolean, ms = 20_000) => {
 	const ende = Date.now() + ms;
@@ -44,7 +47,7 @@ const ANGABEN = { thema: 'Uhrzeit', fach: 'mathematik', klasse: 2, bilder: false
 describe('Plan und Thema der Einheit (139)', () => {
 	it('Angaben: Titel aus dem Thema, Unbekanntes abgelehnt, alte Felder still übergangen', () => {
 		const a = pruefeEinheitAngaben({ ...ANGABEN, rahmen: false, menge: 'etwa 6', leitfigur: 'keine' });
-		assert.equal(a.leitfigur, 'keine');
+		assert.deepEqual(a.leitfigur, { art: 'keine' });
 		assert.equal('rahmen' in a || 'menge' in a, false);
 		assert.equal(a.titel, 'Uhrzeit');
 		assert.throws(() => pruefeEinheitAngaben({ ...ANGABEN, aussehen: 'neon' }));
@@ -125,6 +128,61 @@ describe('Plan und Thema der Einheit (139)', () => {
 			],
 		});
 		assert.equal('geschichte' in (lesePlan({ dokumente: [] }) ?? {}), false);
+	});
+
+	it('Plan (242): Figuren mit Herkunft; alte Texte und unbekannte Herkunft gelten als neu', () => {
+		const plan = lesePlan({
+			dokumente: [],
+			figuren: [
+				{ name: 'Luna', rolle: 'Leitfigur', aussehen: 'braune Eule', herkunft: 'neu' },
+				{ name: 'Pelle', rolle: 'Postbote', aussehen: '', herkunft: 'bibliothek:pelle' },
+				{ name: 'Fridolin', rolle: 'Fuchs', aussehen: 'rotes Fell', herkunft: 'bibliothek:../x' },
+				{ name: 'Ella', herkunft: 'irgendwo' },
+				'Fuchs Fridolin, Postbote des Winterwalds: rotes Fell',
+				{ rolle: 'ohne Name und Aussehen' },
+				7,
+			],
+		});
+		assert.deepEqual(plan?.figuren, [
+			{ name: 'Luna', rolle: 'Leitfigur', aussehen: 'braune Eule', herkunft: 'neu' },
+			{ name: 'Pelle', rolle: 'Postbote', aussehen: '', herkunft: 'bibliothek:pelle' },
+			{ name: 'Fridolin', rolle: 'Fuchs', aussehen: 'rotes Fell', herkunft: 'neu' },
+			{ name: 'Ella', rolle: '', aussehen: '', herkunft: 'neu' },
+			{ name: '', rolle: '', aussehen: 'Fuchs Fridolin, Postbote des Winterwalds: rotes Fell', herkunft: 'neu' },
+		]);
+	});
+
+	it('Referenzen (242): nur Figuren mit bibliothek:<id> und die Leitfigur, kein gleicher Name', async () => {
+		const dir = await mkdtemp(path.join(tmpdir(), 'sb-referenz-'));
+		await mkdir(path.join(dir, '_figuren'));
+		const figur = (id: string, name: string): BibliotheksFigur => ({
+			id,
+			name,
+			eingebaut: false,
+			suchwoerter: [],
+			posen: [{ id, schluessel: `_figuren/${id}.png`, strich: false }],
+		});
+		const bibliothek = [...EINGEBAUTE, figur('fridolin', 'Fridolin'), figur('pelle', 'Pelle')];
+		for (const id of ['fridolin', 'pelle']) {
+			await writeFile(path.join(dir, '_figuren', `${id}.png`), TEST_PNG);
+		}
+		const fridolin = { name: 'Fridolin', rolle: 'Fuchs', aussehen: '', herkunft: 'neu' as const };
+		assert.deepEqual(referenzFiguren([fridolin], [], bibliothek), []);
+		const pelle = { ...fridolin, name: 'Pelle', herkunft: 'bibliothek:pelle' as const };
+		const genannt = referenzFiguren([fridolin, pelle], [], bibliothek);
+		assert.deepEqual(
+			genannt.map((f) => f.id),
+			['pelle'],
+		);
+		const [erste] = genannt;
+		assert.ok(erste);
+		const referenz = await grundposeReferenz(dir, erste);
+		assert.equal(referenz?.datei, path.join(dir, '_figuren', 'pelle.png'));
+		assert.deepEqual(
+			referenzFiguren([pelle], ['willi'], bibliothek).map((f) => f.id),
+			['willi', 'pelle'],
+		);
+		assert.deepEqual(referenzFiguren([{ herkunft: 'bibliothek:gibt-es-nicht' }], [], bibliothek), []);
 	});
 
 	it('Thema: kein @import, kein url(), keine Skripte', () => {
@@ -763,7 +821,10 @@ describe('Lauf einer Einheit (139)', () => {
 			);
 			const pruefPrompt = neu.find((x) => x.startsWith('Prüfung von „Fall 1“')) ?? '';
 			assert.match(pruefPrompt, /Klasse 2, Mathematik/);
-			assert.match(pruefPrompt, /Auftrag der Lehrkraft \(aus dem Assistenten\):\nErstelle eine Unterrichtseinheit/);
+			assert.match(
+				pruefPrompt,
+				/Auftrag der Lehrkraft \(aus dem Assistenten\):\nErstelle eine Unterrichtseinheit/,
+			);
 			assert.doesNotMatch(pruefPrompt, /Rätselkette|Schritt 2|Prüflauf 1 von/);
 			assert.doesNotMatch(await quelle(s, mappe, 'fall-1'), /Mach was mit den Uhren/);
 			const e = (await protokoll(mappe)).laeufe.find((x) => x.art === 'pruefung');

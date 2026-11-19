@@ -13,7 +13,7 @@ Nach dem Rückfrage-Protokoll aus `grundschul-didaktik` (eine Frage pro Nachrich
 
 1. **Topic:** z. B. colours, numbers, animals, food, clothes, weather, my body, school things, family, hobbies, seasons/festivals.
 2. **Schriftbild:** Wird schon gelesen/geschrieben oder nur mündlich gearbeitet? *Empfehlung im 1. Lernjahr: Schriftbild nur unterstützend.*
-3. **Lehrwerk und Rituale:** Lehrwerk, Handpuppe im Unterricht, Begrüßungsritual, Classroom phrases? (Leitfigur auf dem Material bleibt Willi oder Wilma Waschbär.)
+3. **Lehrwerk und Rituale:** Lehrwerk, Handpuppe im Unterricht, Begrüßungsritual, Classroom phrases? (Leitfigur auf dem Material bleibt Willi oder Wilma Waschbär, wenn der Auftrag keine andere nennt.)
 4. **Phase:** Einführung neuer Wörter, Festigung, Anwendung (Dialog, Spiel) oder Story?
 
 ## Didaktische Leitlinien

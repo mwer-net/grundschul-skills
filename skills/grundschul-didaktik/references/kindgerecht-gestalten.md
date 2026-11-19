@@ -57,9 +57,9 @@ Hauptfarbe und Akzent für Linien, Konturen, Bilder; für Schrift und Nummernkre
 
 Text bleibt schwarz (`#1D1D1B`).
 
-### 3. Leitfigur: immer Willi oder Wilma Waschbär
+### 3. Leitfigur: Willi oder Wilma Waschbär, wenn der Auftrag keine andere nennt
 
-Feste Vorgabe für alle Materialien: Die Leitfigur ist **Willi Waschbär** oder **Wilma Waschbär** – keine anderen Tiere, keine wechselnden Figuren. Die Wiedererkennung über alle Fächer und Klassenstufen ist der Sinn der Figur.
+Die Leitfigur ist **Willi Waschbär** oder **Wilma Waschbär**, wenn der Auftrag keine andere nennt, und wechselt innerhalb einer Reihe nicht. Die Wiedererkennung über alle Fächer und Klassenstufen ist der Sinn der Figur. Nennt der Auftrag eine andere Leitfigur, etwa die Figur der Klasse, geht sie vor: Dann kommen Willi und Wilma nicht vor, und alles in diesem Abschnitt gilt für sie, mit dem Aussehen aus Auftrag oder Plan.
 
 | Grafik | Aussehen | Datei (`html-materialerstellung/assets/bilder/`) |
 |---|---|---|
@@ -85,7 +85,7 @@ Ein Bild kommt nur auf das Blatt, wenn das Kind es **zum Lösen braucht** oder e
 | Lernobjekt selbst | Uhr, Zwanzigerfeld, Anlautbild, Geldstücke |
 | Bild trägt Information | Preisschilder beim Einkaufen, Mengen zum Zählen, Tierbild zum Beschriften |
 | Bild ersetzt Text für Leseanfänger | Bildsymbol statt Wort in Klasse 1, Bildfolge zum Erzählen |
-| Leitfigur mit Tipp | Willi/Wilma mit Sprechblase |
+| Leitfigur mit Tipp | Leitfigur mit Sprechblase |
 
 Nicht zulässig: Stimmungsbilder zur Sachaufgabe (Kind beim Frühstück, wenn die Uhrzeit im Text steht), Themen-Cliparts in der Überschrift, Randverzierungen.
 
@@ -107,7 +107,7 @@ Bilder und Grafiken, die das Material braucht, erzeugt der Skill nach Bedarf mit
 
 Was hier entschieden wird:
 - **Exaktes und Lesbares:** Aufgabendarstellungen (Uhr zum Ablesen, Mengen zum Zählen, Zahlenstrahl, Geometrie) werden berechnet, längerer Text als HTML gesetzt. Anzahlen, Muster und kurze Schrift in einer Szene malt die Bild-API selbst, mit Canva kommen auch sie als HTML oder SVG (`bilder.md`, Abschnitt 3).
-- Leitfigur: immer Willi oder Wilma Waschbär (Dateien in `html-materialerstellung/assets/bilder/`, neue Posen nach `bilder.md`, Abschnitt 4).
+- Leitfigur: Willi oder Wilma Waschbär, wenn der Auftrag keine andere nennt (Dateien in `html-materialerstellung/assets/bilder/`, neue Posen nach `bilder.md`, Abschnitt 4).
 - Sachabbildungen (Tiere, Pflanzen, Körper) auf fachliche Richtigkeit prüfen.
 - Diversität: Kinder unterschiedlicher Herkunft, Geschlechter und mit/ohne Brille, Rollstuhl usw. selbstverständlich abbilden, ohne es zum Thema zu machen.
 
@@ -118,13 +118,13 @@ Eine durchgehende Geschichte trägt eine ganze Unterrichtsreihe besser als einze
 - **Rahmen:** ein Problem, das sich nur mit dem Lernziel der Reihe lösen lässt (etwas ist verschwunden, kaputt, verzaubert); jede Stunde ein Kapitel oder Fall, dessen Rätsel genau das Ich-kann-Ziel der Stunde ist. Die letzte Stunde löst den Rahmen auf (Überprüfung als „Prüfung“, Fest, Urkunde).
 - **Szenenkarte je Stunde** (Karte, Plakat oder Folie für den Kreisinput, eine Schauseite): Das Szenenbild trägt die Seite (etwa zwei Drittel der Höhe), dazu Titel des Kapitels, ein kurzer Text und die Frage der Stunde. Der Text hat in Kl. 1/2 höchstens 40 Wörter, in Kl. 3/4 höchstens 60 (diese Grenze gilt überall für Fall- und Szenenkarten); erzählt wird in einer Reihe im Vorleseheft (`unterrichtsplanung/references/reihe-als-geschichte.md`, „Das Vorleseheft“). Lieber zwei, drei Sätze wörtliche Rede der Figuren (auch als Sprechblasen) als Erzählprosa; was das Bild zeigt, muss der Text nicht beschreiben. Das Szenenbild ist hier Erzählanlass mit Funktion; der Weglass-Test gilt weiter für die Arbeitsblätter.
 - **Arbeitsblätter bleiben ruhig:** Sie sind Arbeitsseiten. Sie greifen das Kapitel im Titel auf („Fall 3: …“) und haben höchstens die Leitfigur mit Tipp, keine Szenenbilder. Was die Blätter einer Reihe zusammenhält (Kapitel-Marke, Farbe, Fußzeile), kostet keinen Platz; ein Seitenrahmen gehört nicht dazu (`unterrichtsplanung/references/reihe-als-geschichte.md`, Abschnitt 3).
-- **Leitfigur in Bewegung:** Willi oder Wilma zeigt in jeder Szene eine andere Handlung und Pose passend zur Geschichte (rennt, kniet und misst, staunt, zeigt auf eine Spur, jubelt). Immer dieselbe Standardpose wirkt langweilig und erzählt nichts.
+- **Leitfigur in Bewegung:** Die Leitfigur zeigt in jeder Szene eine andere Handlung und Pose passend zur Geschichte (rennt, kniet und misst, staunt, zeigt auf eine Spur, jubelt). Immer dieselbe Standardpose wirkt langweilig und erzählt nichts.
 - **Wiedererkennbar:** Leitfigur und höchstens drei Nebenfiguren (in einer Reihe die Verdächtigen) mit fester Aussehen-Beschreibung; jede Szene entsteht mit der abgenommenen Grundpose jeder Figur darin als Referenz, und der Stilblock ist für die ganze Reihe gleich (`html-materialerstellung/references/bilder.md`, Abschnitte 2 und 4).
 - Szenen erst erzeugen, wenn alle Geschichten der Reihe stehen; danach jede Szene gegen ihren Text prüfen.
 
 ## Prüffragen „ansprechend, aber nicht überladen"
 
-- [ ] Würde ein Kind das Blatt gern in die Hand nehmen? (farbige Überschrift, Schmuckschrift nur auf Schauseiten, Nummernkreise, Farbakzente, Willi oder Wilma mit Funktion)
+- [ ] Würde ein Kind das Blatt gern in die Hand nehmen? (farbige Überschrift, Schmuckschrift nur auf Schauseiten, Nummernkreise, Farbakzente, Leitfigur mit Funktion)
 - [ ] Jedes Bild besteht den Weglass-Test
 - [ ] Nur Bilder, die zum Lösen gebraucht werden, plus Leitfigur
 - [ ] Keine Flächen hinter Aufgaben, Text schwarz, Information nie nur über Farbe

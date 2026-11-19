@@ -382,7 +382,10 @@ describe('Assistent: jede Einstellung steht im Auftrag (210)', () => {
 			bestandteile: [{ bestandteile: [] }, { bestandteile: ['Lernspiel'] }],
 			nochEtwas: [{ nochEtwas: '' }, { nochEtwas: 'ein Elternbrief' }],
 			idee: [{ idee: '' }, { idee: 'Detektive' }],
-			leitfigur: [{ leitfigur: 'willi' }, { leitfigur: 'wilma' }],
+			leitfigur: [
+				{ leitfigur: { art: 'bibliothek', figuren: [{ id: 'willi', name: 'Willi' }] } },
+				{ leitfigur: { art: 'neu', name: 'Luna', aussehen: 'braune Eule' } },
+			],
 			aussehen: [{ aussehen: 'eigen' }, { aussehen: 'schlicht' }],
 			bilder: [{ bilder: true }, { bilder: false }],
 			verkauf: [{ verkauf: false }, { verkauf: true }],
@@ -403,6 +406,43 @@ describe('Assistent: jede Einstellung steht im Auftrag (210)', () => {
 		for (const b of ['selbsteinschaetzung', 'niveaus', 'sternchen'] as const) {
 			const aus = { selbsteinschaetzung: false, niveaus: false, sternchen: false };
 			assert.notEqual(text({ bausteine: aus }), text({ bausteine: { ...aus, [b]: true } }), b);
+		}
+	});
+
+	it('Einheit (242): eine eigene Leitfigur, und im Auftrag steht kein Willi', () => {
+		const angaben = pruefeEinheitAngaben({
+			thema: 'Spiegeln',
+			fach: 'mathematik',
+			klasse: 2,
+			leitfigur: { art: 'neu', name: 'Luna', aussehen: 'braune Eule mit grünem Strickschal.' },
+		});
+		const text = einheitAuftragAus(angaben);
+		assert.match(text, /^Leitfigur: Luna \(neu, Aussehen: braune Eule mit grünem Strickschal\)\.$/m);
+		assert.doesNotMatch(text, /Willi|Wilma/);
+	});
+
+	it('Einheit (242): Figur der Bibliothek, Vorgabe und die Werte vor 242', () => {
+		const satz = (leitfigur: unknown) =>
+			einheitAuftragAus(pruefeEinheitAngaben({ thema: 'Uhrzeit', fach: 'mathematik', klasse: 2, leitfigur }))
+				.split('\n')
+				.find((z) => z.startsWith('Leitfigur') || z.startsWith('Ohne Leitfigur'));
+		assert.equal(
+			satz({ art: 'bibliothek', figuren: [{ id: 'pelle', name: 'Pelle' }] }),
+			'Leitfigur: Pelle aus der Bibliothek.',
+		);
+		assert.equal(satz(undefined), 'Leitfigur: Willi und Wilma aus der Bibliothek.');
+		assert.equal(satz('beide'), 'Leitfigur: Willi und Wilma aus der Bibliothek.');
+		assert.equal(satz('wilma'), 'Leitfigur: Wilma aus der Bibliothek.');
+		assert.equal(satz('keine'), 'Ohne Leitfigur.');
+		assert.equal(satz({ art: 'keine' }), 'Ohne Leitfigur.');
+		assert.equal(satz({ art: 'neu', name: 'Luna' }), 'Leitfigur: Luna (neu, Aussehen: entscheide du).');
+		for (const falsch of [
+			'luna',
+			{ art: 'neu', name: ' ' },
+			{ art: 'bibliothek', figuren: [] },
+			{ art: 'bibliothek', figuren: [{ id: '../x', name: 'X' }] },
+		]) {
+			assert.throws(() => satz(falsch), SchoolboxFehler);
 		}
 	});
 

@@ -10,5 +10,5 @@ Auftrag aus der Schublade „Figuren“: ein Bild einer Figur für die Figurenbi
 - Bei „Neue Figur“ ist die Stil-Referenz die einzige in `referenzen`, und der Prompt sagt: „Bild 1 zeigt nur den Zeichenstil. Übernimm Linien, Augen und Proportionen; zeichne keinen Waschbären.“
   - Den Namen nimmst du aus „namens X“ oder „heißt X“ im Wunsch, sonst das Tier oder Hauptwort mit großem Anfangsbuchstaben („Igel“).
   - Das Aussehen beschreibst du in einem Satz wie in der Tabelle der Leitfiguren.
-- `motiv` in `bilder.json`: zwei bis vier Wörter mit dem Namen der Figur, etwa „Willi mit Lupe“.
+- `motiv` in `bilder.json`: zwei bis vier Wörter mit dem Namen der Figur, etwa „Tilda mit Lupe“.
 - `ergebnis.json`: `{"wort": "lupe"}`. `wort` ist das eine Wort für die Pose, klein, nur a–z und Ziffern (ä als ae, ö als oe, ü als ue, ß als ss). Eine neue Figur bekommt dazu `"name"` und `"steckbrief"`, eine Figur ohne Steckbrief `"steckbrief"`.

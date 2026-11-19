@@ -24,7 +24,7 @@ Nicht fragen, sondern als Varianten in die Entwürfe legen: Differenzierungsform
 Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplans die Endfassung bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
 
 - **Entwürfe unterscheiden sich** im Zugang (kompakt üben / Geschichte als Rahmen / entdeckend), in den Aufgabenformaten und im Wechsel der Formate. Die Menge ist in allen Entwürfen gleich: Sie folgt dem Zeitziel.
-- **Aufgabenplan:** je Niveau jede Aufgabe mit wörtlicher Anweisung, allen Items, vorgelöstem Beispiel, Willi-/Wilma-Tipp, Minuten und ★; je Niveau die Summe der Minuten gegen das Zeitziel; Selbstkontrolle; Lösungsblatt; Bildliste.
+- **Aufgabenplan:** je Niveau jede Aufgabe mit wörtlicher Anweisung, allen Items, vorgelöstem Beispiel, Tipp der Leitfigur, Minuten und ★; je Niveau die Summe der Minuten gegen das Zeitziel; Selbstkontrolle; Lösungsblatt; Bildliste.
 
 ## Aufbau
 
@@ -33,10 +33,10 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
 3. Aufgaben steigend im Anspruch, **ohne Kasten** mit hängender Nummer, jede auf einen Blick verständlich. So viele Aufgaben und Items, dass ein Kind des Niveaus das Zeitziel braucht, mit Wechsel der Formate; reicht eine Seite nicht, geht es auf der Rückseite weiter (`grundschul-didaktik/references/druck-und-platz.md`, Abschnitt „Menge nach Arbeitszeit“). Mit Churer Modell hat jedes Niveau seine eigene Seite zum selben Ziel:
    - Seite ● Grundlage: kleine Schritte, jede Aufgabenart mit vorgelöstem Beispiel ("So geht's"), Hilfen (Wortspeicher, Anschauung), einfache Zahlen und Wörter.
    - Seite ●● Kern: Übung zum Lernziel, dann Anwendung in einer Sachsituation.
-   - Seite ●●● Herausforderung: weniger Hilfen, größere Zahlen oder längere Texte, dazu offen, knobelnd, begründen, erfinden; gern „Willi hat sich vertan".
+   - Seite ●●● Herausforderung: weniger Hilfen, größere Zahlen oder längere Texte, dazu offen, knobelnd, begründen, erfinden; gern „Die Leitfigur hat sich vertan".
    - Auf jeder Seite steigen die Aufgaben vom Sicheren zum Neuen. Alle Seiten sehen gleich aus und haben gleich viel Arbeit, kein Niveau ist „das kurze Blatt“.
    - Ohne Churer Modell dieselbe Steigerung ohne Punkte und Wahlhilfe: alle bearbeiten alle Aufgaben, die erste mit vorgelöstem Beispiel.
-   - Willi oder Wilma gibt einen Strategietipp direkt bei der Aufgabe, zu der er gehört; Tipps und Rückmeldungen in „noch"-Sprache.
+   - Die Leitfigur (Willi oder Wilma, sonst die des Auftrags) gibt einen Strategietipp direkt bei der Aufgabe, zu der er gehört; Tipps und Rückmeldungen in „noch"-Sprache.
    - Falls gewählt: **Sternchenaufgabe ★** als letzte Aufgabe, freiwillig für alle („Wer mag, knobelt hier."), offen oder knobelnd, keine „mehr vom Gleichen". ★ statt Nummernkreis bzw. vor der Nummer.
 4. Fußzeile (nur wenn Selbsteinschätzung gewählt), schlank und ohne Fläche: Ich-kann-Satz mit „So gut kann ich das schon. Kreuze an:“ + Wachstumsgrafik mit vier Kreisen zum Ankreuzen (Samen → Keimling → Pflanze → Blume; Baustein `.wachstum` in der Vorlage) und Reflexionsfrage („Was hat dir geholfen?"; Kl. 1/2 zum Ankreuzen oder mündlich im Kreis, ab Kl. 3 schriftlich). Die Ankreuzwörter nennen nur Hilfen von den Seiten dieses Niveaus. Optional ein Rückmeldefeld für die Lehrkraft. Ohne Selbsteinschätzung entfällt der Fuß, der Platz geht an Aufgaben.
 5. Separates Lösungsblatt zur Selbstkontrolle (gleiches Layout, Lösungen fett und in der dunklen Variante der Hauptfarbe auf der Antwortlinie; setzt `blatt.css`).
@@ -55,7 +55,7 @@ Nach den Rückfragen 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplan
 | Beschriften | `beschriften` | Sachunterricht (Körper, Pflanze) | `x-beschriften` mit Wortspeicher |
 | Schreibrahmen | `schreibrahmen` | Texte, Protokolle | Satzanfänge vorgeben, Element `x-schreibrahmen` (Lineatur nach der Klasse) |
 | Forscheraufgabe / offene Aufgabe | `forscheraufgabe` | Alle Fächer, natürliche Differenzierung | „Finde möglichst viele …“ |
-| Fehler finden („Willi hat sich vertan“) | `fehler-finden` | Rechnen ab Kl. 2, Rechtschreibung erst ab Kl. 3 | Fehleranzahl angeben („Finde 3 Fehler.“) |
+| Fehler finden („Die Leitfigur hat sich vertan“) | `fehler-finden` | Rechnen ab Kl. 2, Rechtschreibung erst ab Kl. 3 | Fehleranzahl angeben („Finde 3 Fehler.“) |
 | Legen, bauen, falten und festhalten | `legen-bauen-falten` | Geometrie, Mengen, Sachunterricht | Material nennen („Lege mit Plättchen.“), das Blatt hält das Ergebnis fest (zeichnen, ankreuzen) |
 | Ins Heft | `ins-heft` | Zeichnen, Rechnen, Schreiben | „Im Heft:“ mit dem Anfang des Eintrags als Heft-Beispiel (`.kasten`) |
 | Ergänzen (Figur, Muster, Reihe) | `ergaenzen` | Geometrie, Muster und Strukturen | `x-gitter aufgabe="spiegeln"`; Stufen in `fach-mathematik` |

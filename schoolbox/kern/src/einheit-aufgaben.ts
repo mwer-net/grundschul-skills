@@ -74,7 +74,7 @@ export const AUFGABEN_FORMATE: readonly AufgabenFormat[] = [
 	},
 	{
 		name: 'fehler-finden',
-		titel: 'Fehler finden („Willi hat sich vertan“)',
+		titel: 'Fehler finden („Die Leitfigur hat sich vertan“)',
 		geeignet: 'Rechnen ab Kl. 2, Rechtschreibung erst ab Kl. 3',
 		hinweis: 'Fehleranzahl angeben („Finde 3 Fehler.“)',
 	},

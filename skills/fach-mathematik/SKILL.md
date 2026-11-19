@@ -56,7 +56,7 @@ Substanzielle Aufgabenformate (Wittmann) tragen Übung und Entdecken zugleich: `
 - Niveaus folgen den Darstellungsebenen: ● mit Material/Bild, ●● symbolisch, ●●● Muster erklären, Aufgaben erfinden, begründen.
 - Strategietipps nennen Rechenstrategien („Rechne erst bis zur 10."), nie „Zähl nach".
 - Offene Aufgaben (natürliche Differenzierung) sind die bevorzugte ●●●-Form und die bevorzugte Sternchenaufgabe ★.
-- „Willi hat sich vertan" mit typischen Fehlvorstellungen (unten) als Lernchance.
+- „Die Leitfigur hat sich vertan" mit typischen Fehlvorstellungen (unten) als Lernchance.
 
 ## Darstellungskonventionen für Materialien
 
@@ -92,7 +92,7 @@ Was die Klassenstufe können soll, steht im Bildungsplan und wird vor dem Plan n
 | 4 Beschreiben und begründen | „Die Figur ist symmetrisch, weil …“ | im Anfangsunterricht mündlich oder ein Satz mit Satzanfang |
 
 - **Vom Leichten zum Schweren:** eine Achse vor mehreren, senkrecht und waagerecht vor schräg, Kästchen vor Linien, Figur an der Achse vor Figur mit Abstand, einmal falten vor zweimal falten, kleine Figuren (je Hälfte höchstens etwa 5 × 6 Kästchen) vor großen. Wie weit die Klasse auf dieser Leiter geht, bestimmen Bildungsplan und Lehrwerk; im Zweifel eine Sprosse tiefer.
-- **Typische Fehler** (für Tipps und „Willi hat sich vertan“): Die Hälfte wird verschoben statt gespiegelt, vor allem wenn die Figur die Achse nicht berührt. Der Abstand zur Achse stimmt nicht (ein Kästchen zu nah oder zu weit). Bei waagerechter Achse wird trotzdem nach rechts gespiegelt. Eine Faltlinie, die keine Spiegelachse ist (Diagonale im Rechteck), wird für eine gehalten.
+- **Typische Fehler** (für Tipps und „Die Leitfigur hat sich vertan“): Die Hälfte wird verschoben statt gespiegelt, vor allem wenn die Figur die Achse nicht berührt. Der Abstand zur Achse stimmt nicht (ein Kästchen zu nah oder zu weit). Bei waagerechter Achse wird trotzdem nach rechts gespiegelt. Eine Faltlinie, die keine Spiegelachse ist (Diagonale im Rechteck), wird für eine gehalten.
 - **Wörter:** Faltlinie, dann Spiegelachse (oder Symmetrieachse, wie im Lehrwerk der Klasse), symmetrisch, Spiegelbild. Das Fachwort steht ab dem ersten Blatt im Wortspeicher und in jeder Anweisung gleich. Wörter aus der Geschichte („echt“, „nachgemacht“, „Zwilling“) dürfen dazukommen, ersetzen es aber nie.
 - **Elemente:** `x-gitter aufgabe="spiegeln"` (Kästchen, Linien oder Punkte; die Achse liegt auf einer Gitterlinie, die Lösung wird berechnet), Faltvorlagen und Legekarten als Ausschneidematerial. Ein gedrucktes Punktefeld heißt Punktefeld, nicht Geobrett. Jede Form (Gitterfigur, Faltvorlage) kommt in einer Reihe nur einmal vor.
 
@@ -111,7 +111,7 @@ Andere Geometrie-Themen folgen demselben Muster (Körper: bauen und kneten vor d
 
 Kl. 1/2 unbenotet (`lernzielkontrolle`), Kl. 3/4 höchstens 6 Arbeiten im Schuljahr (`klassenarbeit`).
 
-- **Prozesse prüfen, nicht nur Rechnen:** mindestens eine Aufgabe zum Erklären, Begründen oder Entdecken („Was fällt dir auf? Begründe.", „Willi hat sich vertan. Finde den Fehler.").
+- **Prozesse prüfen, nicht nur Rechnen:** mindestens eine Aufgabe zum Erklären, Begründen oder Entdecken („Was fällt dir auf? Begründe.", „Tilda hat sich vertan. Finde den Fehler.", mit dem Namen der Leitfigur).
 - **Profi-Aufgaben** (PIKAS, Selter): Platz für Nebenrechnungen und Notizen, Vorgehen beschreiben lassen, offene Aufgaben mit mehreren Lösungen („Finde drei Aufgaben mit dem Ergebnis 100."), Eigenproduktionen („Erfinde eine Aufgabe und löse sie."), beziehungsreiche Aufgaben (schöne Päckchen), Hilfsaufgaben nutzen.
 - **Teilpunkte für den Weg:** Eine richtige Strategie mit Rechenfehler bekommt Punkte; der Erwartungshorizont legt fest, welche Wege zählen.
 - **Leselast niedrig:** Sachaufgaben kurz und mit Bild, damit die Arbeit Mathematik prüft und nicht Lesen. Bei Nachteilsausgleich werden Aufgaben vorgelesen.

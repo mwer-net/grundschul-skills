@@ -6,6 +6,8 @@
 import type { EinheitPlan, PlanDokument } from './einheit';
 import type { Steckbrief } from './einheit-bau';
 import { rolleVon, SKILL_PRAEFIX } from './einheit-bau';
+import type { PlanFigur } from './einheit-figuren';
+import { planFigurText } from './einheit-figuren';
 import type { Format } from './werte';
 
 export const PRUEF_ARTEN = [
@@ -178,8 +180,8 @@ export interface PruefAuftrag {
 	bilder: PruefBild[];
 	/** Der Auftrag der Lehrkraft (`einheitAuftragAus`, 241); fehlt beim Blatt ohne Einheit. */
 	auftrag?: string;
-	/** Die Figuren der Geschichte, heute aus `plan.figuren`. */
-	figuren?: readonly string[];
+	/** Die Figuren der Geschichte aus `plan.figuren`, mit Rolle, Aussehen und Herkunft (242). */
+	figuren?: readonly PlanFigur[];
 	/** Gesetzt, wenn `pruefTeile` das Material auf mehrere Läufe verteilt hat. */
 	teil?: PruefTeil;
 }
@@ -203,7 +205,10 @@ export const pruefTeile = (o: PruefAuftrag): PruefAuftrag[] => {
 	const anfaenge = gruppen.map((g) => seiteVon(g[0] ?? ''));
 	const teilVon = (datei: string) => {
 		const n = seiteVon(datei);
-		return Math.max(0, anfaenge.findLastIndex((a) => a <= n));
+		return Math.max(
+			0,
+			anfaenge.findLastIndex((a) => a <= n),
+		);
 	};
 	return gruppen.map((seiten, i) => ({
 		...o,
@@ -235,13 +240,14 @@ export const pruefText = (o: PruefAuftrag) =>
 		`Prüfung von „${o.titel}“ (${o.artName}), ${o.klasse}, ${o.fach}.`,
 		o.teil ? teilText(o.teil) : '',
 		o.auftrag ? `Auftrag der Lehrkraft (aus dem Assistenten):\n${o.auftrag}` : '',
-		o.figuren?.length ? `Figuren der Geschichte laut Plan: ${o.figuren.join(' · ')}` : '',
+		o.figuren?.length ? `Figuren der Geschichte laut Plan: ${o.figuren.map(planFigurText).join(' · ')}` : '',
 		o.kind
 			? 'Teil 1, mit Kinderaugen: Löse jede Aufgabe wirklich, so wie ein Kind dieser Klasse sie liest und löst.'
 			: 'Hier gibt es nichts zu lösen: nur der zweite Blick.',
-		['Die Seiten liegen in deinem Arbeitsordner. Sieh dir jede mit Read an:', ...o.seiten.map((s) => `- ${s}`)].join(
-			'\n',
-		),
+		[
+			'Die Seiten liegen in deinem Arbeitsordner. Sieh dir jede mit Read an:',
+			...o.seiten.map((s) => `- ${s}`),
+		].join('\n'),
 		o.ausschnitte.length
 			? `Ausschnitte je Aufgabe, wenn du etwas genauer sehen willst: ${o.ausschnitte.slice(0, PRUEF_GRENZEN.ausschnitte).join(', ')}${o.ausschnitte.length > PRUEF_GRENZEN.ausschnitte ? '; weitere Ausschnitte im Ordner' : ''}`
 			: '',

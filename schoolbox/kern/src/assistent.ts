@@ -5,7 +5,9 @@
  * Ohne Node-Abhängigkeiten, damit auch die Oberfläche sie nutzen kann.
  */
 import type { EinheitAngaben } from './einheit';
-import { EINHEIT_AUSSEHEN, EINHEIT_BESTANDTEILE, EINHEIT_DAUER, EINHEIT_LEITFIGUR, EINHEIT_ZEICHEN } from './einheit';
+import { EINHEIT_AUSSEHEN, EINHEIT_BESTANDTEILE, EINHEIT_DAUER, EINHEIT_ZEICHEN } from './einheit';
+import type { EinheitLeitfigur } from './einheit-figuren';
+import { FIGUR_ZEICHEN, leitfigurKurz, leitfigurStandard } from './einheit-figuren';
 import { SchoolboxFehler } from './fehler';
 import { ART_NAME, FACH_NAME } from './namen';
 import type { Art, Fach, Format, Klasse } from './werte';
@@ -154,16 +156,6 @@ export const AUFTRAG_ZEICHEN = 3000;
 
 // ——— Unterrichtseinheit (140) ———
 
-export const EINHEIT_LEITFIGUR_NAME: Record<(typeof EINHEIT_LEITFIGUR)[number], string> = {
-	willi: 'Willi',
-	wilma: 'Wilma',
-	beide: 'Beide',
-	keine: 'Keine',
-};
-
-/** Die Wahl im Assistenten: Die Vorlage der Einheit braucht eine Figur (190, Urteil 3). */
-export const EINHEIT_LEITFIGUR_WAHL: readonly (typeof EINHEIT_LEITFIGUR)[number][] = ['willi', 'wilma', 'beide'];
-
 /** Ein eigenes Thema von Claude oder schlicht, als Segment wie die Leitfigur. */
 export const EINHEIT_AUSSEHEN_WAHL: readonly { wert: (typeof EINHEIT_AUSSEHEN)[number]; name: string }[] = [
 	{ wert: 'eigen', name: 'Eigenes Thema' },
@@ -181,7 +173,8 @@ export interface EinheitWahl {
 	bestandteile: string[] | null;
 	nochEtwas: string;
 	idee: string;
-	leitfigur: (typeof EINHEIT_LEITFIGUR)[number];
+	/** 242: eine Figur der Bibliothek (oder Willi und Wilma), eine eigene oder keine. */
+	leitfigur: EinheitLeitfigur;
 	aussehen: (typeof EINHEIT_AUSSEHEN)[number];
 	bilder: boolean;
 	verkauf: boolean;
@@ -197,7 +190,7 @@ export const leereEinheit = (): EinheitWahl => ({
 	bestandteile: null,
 	nochEtwas: '',
 	idee: '',
-	leitfigur: 'beide',
+	leitfigur: leitfigurStandard(),
 	aussehen: 'eigen',
 	bilder: true,
 	verkauf: false,
@@ -219,6 +212,16 @@ export const EINHEIT_FELDER = {
 		zeichen: EINHEIT_ZEICHEN.idee,
 	},
 	ziel: { name: 'Ich-kann-Ziel', platz: 'z. B. Ich kann volle Stunden ablesen.', zeichen: EINHEIT_ZEICHEN.ziel },
+} as const;
+
+/** Die eigene Leitfigur (242); dieselben Felder in „Neues Material“ (253). */
+export const LEITFIGUR_FELDER = {
+	name: { name: 'Name der Figur', platz: 'z. B. Luna', zeichen: FIGUR_ZEICHEN.name },
+	aussehen: {
+		name: 'Aussehen',
+		platz: 'z. B. braune Eule mit hellen Tupfen und grünem Strickschal',
+		zeichen: FIGUR_ZEICHEN.aussehen,
+	},
 } as const;
 
 export const einheitBestandteile = (e: EinheitWahl): string[] =>
@@ -549,11 +552,14 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 		hilfe: () => 'Eine Geschichte und ein Aussehen halten die Materialien zusammen.',
 		wege: ['claude'],
 		einheit: 'nur',
+		fehlt: (a) =>
+			a.eh.leitfigur.art === 'neu' && !voll(a.eh.leitfigur.name)
+				? 'Bitte gib der eigenen Figur einen Namen.'
+				: null,
 		antwort: (a) =>
-			[
-				EINHEIT_LEITFIGUR_NAME[a.eh.leitfigur],
-				EINHEIT_AUSSEHEN_WAHL.find((w) => w.wert === a.eh.aussehen)?.name,
-			].join(' · '),
+			[leitfigurKurz(a.eh.leitfigur), EINHEIT_AUSSEHEN_WAHL.find((w) => w.wert === a.eh.aussehen)?.name].join(
+				' · ',
+			),
 	},
 	{
 		id: 'bausteine',
@@ -729,7 +735,10 @@ export const einheitAngabenAus = (a: Antworten): EinheitAngaben => {
 		bestandteile: einheitBestandteile(a.eh),
 		nochEtwas: a.eh.nochEtwas.trim(),
 		idee: a.eh.idee.trim(),
-		leitfigur: a.eh.leitfigur,
+		leitfigur:
+			a.eh.leitfigur.art === 'neu'
+				? { art: 'neu', name: a.eh.leitfigur.name.trim(), aussehen: a.eh.leitfigur.aussehen.trim() }
+				: a.eh.leitfigur,
 		aussehen: a.eh.aussehen,
 		bilder: a.eh.bilder,
 		verkauf: a.eh.verkauf,

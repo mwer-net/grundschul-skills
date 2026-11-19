@@ -5,6 +5,8 @@
 import type { PlanStunde } from './einheit-aufgaben';
 import { leseStunden } from './einheit-aufgaben';
 import type { Steckbrief } from './einheit-bau';
+import type { EinheitLeitfigur, PlanFigur } from './einheit-figuren';
+import { leitfigurSatz, leseLeitfigur, lesePlanFiguren } from './einheit-figuren';
 import type { PruefStand, SchlussStand } from './einheit-pruefung';
 import { SchoolboxFehler } from './fehler';
 import { hatSatz } from './html';
@@ -67,8 +69,6 @@ const SLUG = new RegExp(ID_MUSTER);
 const MAX_SLUG = 60;
 
 export const EINHEIT_DAUER = ['1 Woche', '2 Wochen', '3–4 Wochen'] as const;
-/** `keine` gibt es nur noch in alten Anfragen und Einheiten (190, Urteil 3); der Assistent bietet sie nicht an. */
-export const EINHEIT_LEITFIGUR = ['willi', 'wilma', 'beide', 'keine'] as const;
 /** Ein eigenes Thema von Claude oder schlicht. */
 export const EINHEIT_AUSSEHEN = ['eigen', 'schlicht'] as const;
 
@@ -102,7 +102,7 @@ export interface EinheitAngaben {
 	bestandteile: string[];
 	nochEtwas: string;
 	idee: string;
-	leitfigur: (typeof EINHEIT_LEITFIGUR)[number];
+	leitfigur: EinheitLeitfigur;
 	aussehen: (typeof EINHEIT_AUSSEHEN)[number];
 	/** Neue KI-Bilder (138, seit 237 über die Bild-API). */
 	bilder: boolean;
@@ -178,7 +178,7 @@ export const pruefeEinheitAngaben = (roh: unknown): EinheitAngaben => {
 		bestandteile: liste(b.bestandteile, 60, 20, 'Bestandteile'),
 		nochEtwas: text(b.nochEtwas, EINHEIT_ZEICHEN.frei, 'Noch etwas'),
 		idee: text(b.idee, EINHEIT_ZEICHEN.idee, 'Idee'),
-		leitfigur: eins(b.leitfigur, EINHEIT_LEITFIGUR, 'Die Leitfigur', 'beide'),
+		leitfigur: leseLeitfigur(b.leitfigur),
 		aussehen: eins(b.aussehen, EINHEIT_AUSSEHEN, 'Das Aussehen', 'eigen'),
 		bilder: b.bilder === undefined ? true : ja(b.bilder),
 		verkauf: ja(b.verkauf),
@@ -194,7 +194,6 @@ export const pruefeEinheitAngaben = (roh: unknown): EinheitAngaben => {
 };
 
 const KLASSE_NAME = (k: Klasse) => (k === 'gemischt' ? 'jahrgangsgemischt' : `Klasse ${k}`);
-const FIGUR = { willi: 'Willi', wilma: 'Wilma', beide: 'Willi und Wilma', keine: '' };
 
 export type Bausteine = EinheitAngaben['bausteine'];
 
@@ -264,7 +263,7 @@ export const einheitAuftragAus = (a: EinheitAngaben): string => {
 		...bestandteilSaetze(a.bestandteile),
 		a.nochEtwas ? `Außerdem als Bestandteil: ${alsSatz(a.nochEtwas)}` : '',
 		`Mit Rahmengeschichte, Idee: ${a.idee ? alsSatz(a.idee) : 'nicht angegeben, erfinde sie selbst.'}`,
-		a.leitfigur === 'keine' ? 'Ohne Leitfigur.' : `Leitfigur: ${FIGUR[a.leitfigur]}.`,
+		leitfigurSatz(a.leitfigur),
 		aussehenSatz(a.aussehen),
 		a.bilder ? EINHEIT_BILDER_SATZ.mit : EINHEIT_BILDER_SATZ.ohne,
 		...(Object.keys(EINHEIT_BAUSTEIN_SATZ) as (keyof Bausteine)[]).map((b) =>
@@ -313,8 +312,8 @@ export interface EinheitPlan {
 	recherche?: string;
 	/** Aufgaben-Übersicht je Stunde (221, `einheit-aufgaben.ts`); fehlt bei Plänen davor. */
 	stunden?: PlanStunde[];
-	/** Je Figur Name, Rolle und Aussehen; jeder Baulauf bekommt sie (220). */
-	figuren?: string[];
+	/** Je Figur Name, Rolle, Aussehen und Herkunft (220, 242); jeder Bau- und Prüflauf bekommt sie. */
+	figuren?: PlanFigur[];
 	/** Was jedes Kapitel liefert und was am Ende herauskommt (220). */
 	raetselkette?: string;
 }
@@ -403,7 +402,7 @@ export const lesePlan = (roh: unknown, max = EINHEIT_MAX_DOKUMENTE): EinheitPlan
 	const geschichte = leseGeschichte(p);
 	const recherche = kurz(p.recherche, 1200);
 	const stunden = leseStunden(p.stunden, new Set(dokumente.map((d) => d.slug)));
-	const figuren = kurzListe(p.figuren, 300, 8);
+	const figuren = lesePlanFiguren(p.figuren);
 	const raetselkette = kurz(p.raetselkette, 1200);
 	return {
 		titel: kurz(p.titel, EINHEIT_ZEICHEN.titel),
@@ -563,6 +562,8 @@ export interface EinheitStand {
 	korrigiert: boolean;
 	/** Der Teil der Lehrkraft am Auftrag, wie er an Claude ging. */
 	auftrag: string;
+	/** 242: Die Leitfiguren aus der Bibliothek, wie im Assistenten gewählt; ihre Grundpose ist immer Referenz. */
+	leitfigur?: string[];
 	bilder: boolean;
 	/** Verkauf: `bauen` legt die Seitenbilder für das Deckblatt ab. */
 	verkauf?: boolean;
