@@ -15,6 +15,7 @@ import {
 	nimmBildAuf,
 	raeumeAusgeblendeteBilderAuf,
 	sammleBilder,
+	sammleRequisiten,
 	uebernimmBild,
 } from './bilder';
 import { BROWSER_HINWEIS, browserFehlt } from './browsertest';
@@ -474,5 +475,47 @@ describe('Doppelte und entfernte Bilder (199)', () => {
 			false,
 			'bleibt aber ausgeblendet',
 		);
+	});
+});
+
+describe('Requisiten aus Einheiten (253)', () => {
+	it('freigestellte Bilder ohne Figur aus anderen Mappen; Posen, Offenes, Szenen und Ausgeblendetes nicht', async () => {
+		const materialDir = await mkdtemp(path.join(tmpdir(), 'schoolbox-requisiten-'));
+		await mkdir(figurenDir(materialDir), { recursive: true });
+		await writeFile(path.join(figurenDir(materialDir), 'figuren.json'), '{"version":1,"figuren":[],"einheitenUebernommen":true}');
+		const jetzt = new Date(2026, 10, 19);
+		const { mappe: a } = await neueMappe(materialDir, { titel: 'Spiegel', fach: 'mathematik', klasse: 2 }, jetzt);
+		const { mappe: b } = await neueMappe(materialDir, { titel: 'Hier', fach: 'mathematik', klasse: 2 }, jetzt);
+		const bilder = path.join(mappenDir(materialDir, a.id), 'bilder');
+		await mkdir(bilder, { recursive: true });
+		const namen = ['laterne.png', 'schere.png', 'luna-zeigt.png', 'kiste.png', 'folie-1.jpg', 'willi-lupe.png'];
+		for (const [i, n] of namen.entries()) {
+			await writeFile(path.join(bilder, n), `bild ${i}`);
+		}
+		const zeile = (datei: string, motiv: string, art = 'freigestellt') =>
+			[datei, 'openai', 'm', '2026-11-18', motiv, art, '', ''].join('\t');
+		const tsv = [
+			'datei\tquelle\tmodell\tdatum\tmotiv\tart\tbefund\tinhalt',
+			zeile('laterne.png', 'Leuchtende Laterne aus Papier'),
+			zeile('schere.png', 'Kleine Schere'),
+			zeile('luna-zeigt.png', 'Pose Luna zeigt zur Seite'),
+			zeile('kiste.png', 'Spiegelkiste', 'offen'),
+			zeile('folie-1.jpg', 'Bildfolie: Luna am Fenster'),
+			zeile('willi-lupe.png', 'Willi mit Lupe'),
+		];
+		await writeFile(path.join(bilder, 'bilder-herkunft.tsv'), `${tsv.join('\n')}\n`);
+		await writeFile(path.join(bilder, '.ausgeblendet.json'), JSON.stringify({ dateien: ['schere.png'] }));
+		const liste = await sammleRequisiten(KONFIG, materialDir, b.id);
+		assert.deepEqual(
+			liste.map((r) => `${r.datei} ${r.mappe}`),
+			['laterne.png Spiegel'],
+		);
+		assert.deepEqual(await sammleRequisiten(KONFIG, materialDir, a.id), []);
+		const sammlung = await sammleBilder(KONFIG, materialDir, b.id);
+		assert.deepEqual(
+			sammlung.requisiten.map((r) => r.name),
+			['laterne.png'],
+		);
+		assert.ok(!sammlung.meine.some((r) => r.name === 'laterne.png'));
 	});
 });

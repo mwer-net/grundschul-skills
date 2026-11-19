@@ -23,7 +23,8 @@ import { Zeile } from '../bausteine/Zeile';
 import { useLaden } from '../lib/laden';
 import type { BildSteuerung, BildWerte, FreiAblegen } from './bild';
 import { gesehen, merkeGesehen, passt } from './bild-sammlung';
-import { bildBeschreibung, bilderZahl } from './bildpanel-hilfe';
+import type { SammlungsGruppe } from './bildpanel-hilfe';
+import { bildBeschreibung, bildgruppenWerte, bilderZahl } from './bildpanel-hilfe';
 import { elementZu } from './darstellung';
 import type { AblegenTeile } from './gestaltung/ablegen/ablegen';
 import { AblageKachel } from './gestaltung/ablegen/Kachel';
@@ -130,17 +131,6 @@ export const Hochladen = ({
 	);
 };
 
-/**
- * Die drei Gruppen der Bildauswahl, in Schublade und Dialog gleich (199-12, 199-13): erst die Bilder dieses Ordners,
- * dann die der anderen Ordner, dann die mitgelieferten. Figuren stehen nur in „Figuren“ (55).
- */
-export const BILDGRUPPEN = [
-	{ wert: 'mappe', titel: 'Dieser Ordner' },
-	{ wert: 'meine', titel: 'Andere Ordner' },
-	{ wert: 'sammlung', titel: 'Mitgeliefert' },
-] as const;
-
-export type SammlungsGruppe = (typeof BILDGRUPPEN)[number]['wert'];
 
 const bildName = (eintrag: SammlungsBild) => bildBeschreibung(eintrag) || eintrag.name;
 
@@ -316,7 +306,7 @@ export const SammlungDialog = ({
 				<Segment
 					beschriftung="Welche Bilder?"
 					className={STEUER_SEGMENT}
-					werte={[...BILDGRUPPEN]}
+					werte={bildgruppenWerte(daten)}
 					wert={gruppe}
 					waehle={setGruppe}
 				/>

@@ -13,9 +13,10 @@ import { useLaden } from '../../lib/laden';
 import type { FreiAblegen } from '../bild';
 import { bildLaeufe, bildlaufAktion, starteBild, useBildlaufLaeufe } from '../bild-lauf';
 import { passt } from '../bild-sammlung';
-import type { BildZiehen, SammlungsGruppe } from '../Bildpanel';
-import { BILDGRUPPEN, Hochladen, Laeuft, SammlungsKacheln } from '../Bildpanel';
-import { bildBeschreibung, bilderZahl } from '../bildpanel-hilfe';
+import type { BildZiehen } from '../Bildpanel';
+import { Hochladen, Laeuft, SammlungsKacheln } from '../Bildpanel';
+import type { SammlungsGruppe } from '../bildpanel-hilfe';
+import { BILDGRUPPEN, bildBeschreibung, bildgruppenWerte, bilderZahl } from '../bildpanel-hilfe';
 import { legeInMitte } from '../gestaltung/ablegen/ablegen';
 import { bildGut, mitGeholtemBild } from '../gestaltung/ablegen/bild-gut';
 import { useHolenAmZeiger } from '../gestaltung/ablegen/holen-am-zeiger';
@@ -157,7 +158,7 @@ export const Inhalt = (t: SchubladenTeile) => {
 			<Segment
 				beschriftung="Welche Bilder?"
 				className={STEUER_SEGMENT}
-				werte={[...BILDGRUPPEN]}
+				werte={bildgruppenWerte(daten)}
 				wert={gruppe}
 				waehle={setGruppe}
 			/>

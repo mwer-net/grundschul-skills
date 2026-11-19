@@ -366,6 +366,18 @@ export const Inhalt = (t: SchubladenTeile) => {
 							bearbeitet={umbenennen === figur.id}
 							setBearbeitet={(an) => setUmbenennen(an ? figur.id : null)}
 						/>
+						{/* 253: woher die Figur kam, und was die Lehrkraft an ihr prüfen sollte, direkt unter dem Namen. */}
+						{(figur.aus || figur.vermerk) && (
+							<p className="-mt-1.5 text-xs" data-figur-herkunft={figur.id}>
+								{figur.aus && <span className="text-leise">{`aus „${figur.aus}“`}</span>}
+								{figur.aus && figur.vermerk && <span className="text-leise"> · </span>}
+								{figur.vermerk && (
+									<span className="font-medium text-warnung" data-figur-vermerk>
+										{figur.vermerk}
+									</span>
+								)}
+							</p>
+						)}
 						<div className={raster(3)}>
 							{bildlauf && (
 								<BildlaufKacheln laeufe={laeufe} figur={figur.id} nochmal={nochmal} nur="fehler" />

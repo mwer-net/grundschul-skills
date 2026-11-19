@@ -1,4 +1,5 @@
 import type { EinheitStand } from '@schoolbox/kern/src/einheit';
+import { bibliothekNeuSatz } from '@schoolbox/kern/src/einheit-bibliothek';
 import type { PruefBefund, PruefStand, SchlussStand } from '@schoolbox/kern/src/einheit-pruefung';
 import { befundZeile, FACHLICH_PRUEFEN, fachlichOffen } from '@schoolbox/kern/src/einheit-pruefung';
 
@@ -108,6 +109,16 @@ export const BilderHinweise = ({ s }: { s: EinheitStand }) => {
 			</ul>
 		</div>
 	);
+};
+
+/** 253: Was die Einheit in die Figurenbibliothek gebracht hat; dort steht die Figur mit ihrer Herkunft. */
+export const BibliothekNeu = ({ s }: { s: EinheitStand }) => {
+	const satz = bibliothekNeuSatz(s.bibliothekNeu ?? []);
+	return satz ? (
+		<p className="text-sm" data-bibliothek-neu>
+			{satz}
+		</p>
+	) : null;
 };
 
 /**
