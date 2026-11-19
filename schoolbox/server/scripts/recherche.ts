@@ -17,7 +17,7 @@ import { copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import type { Art, Fach, Klasse, RechercheAnfrage } from '@schoolbox/kern';
+import type { Art, Fach, RechercheAnfrage } from '@schoolbox/kern';
 import {
 	ARTEN,
 	FAECHER,

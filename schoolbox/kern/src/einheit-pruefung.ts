@@ -714,7 +714,7 @@ export const leseFolgen = (roh: unknown, slugs: readonly string[], eigenes: stri
 export const folgeBefund = (von: string, titel: string, aussage: string) =>
 	`${FOLGEKORREKTUR} dokumente/${von} („${titel}“): ${aussage}`;
 
-export const istFolgekorrektur = (text: string) => text.startsWith(`${FOLGEKORREKTUR} `);
+export const istFolgekorrektur = (zeile: string) => zeile.startsWith(`${FOLGEKORREKTUR} `);
 
 /** Die Korrekturrunde nach einer Prüfung, im Lauf desselben Materials. */
 export const pruefKorrektur = (befunde: readonly PruefBefund[], server: readonly string[]) =>
