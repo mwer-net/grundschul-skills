@@ -31,6 +31,8 @@ import type {
 	LaufEintrag,
 	LaufProtokoll,
 	PlanDokument,
+	PlanPunkt,
+	PlanRechnung,
 	PruefAuftrag,
 	PruefBefund,
 	Pruefbericht,
@@ -65,6 +67,7 @@ import {
 	fachblickStunden,
 	fachblickText,
 	fachSkillDatei,
+	fachSkillVon,
 	fertigText,
 	figurenDopplungen,
 	folgeBefund,
@@ -83,18 +86,24 @@ import {
 	leseFolgen,
 	leseMeta,
 	lesePlan,
+	lesePlanAntwort,
 	lesePruefung,
 	leseSteckbrief,
 	mappenDir,
+	nachAenderung,
 	namenIn,
 	neueFunde,
 	neueMappe,
 	neuerLaufEintrag,
 	neuesDokument,
+	niveausImAuftrag,
 	notiereLektuere,
 	pflichtAbschnitt,
 	pflichtFuer,
-	planBefunde,
+	PLAN_VORGABE_ART,
+	planPruefStand,
+	planPruefText,
+	planRueckrunde,
 	pruefeEinheitAngaben,
 	pruefKorrektur,
 	pruefpunkteText,
@@ -103,6 +112,7 @@ import {
 	pruefWeise,
 	RECHERCHE_DATEI,
 	rechercheAbschnitt,
+	rechnePlan,
 	rollenErgebnis,
 	rolleVon,
 	satzBefund,
@@ -154,6 +164,7 @@ import {
 	legeFremdeLoesungenAb,
 	lesePids,
 	merkeKind,
+	PLAN_PRUEF_AUFTRAG,
 	PRUEF_AUFTRAG,
 	pruefeLauf,
 	rechercheStand,
@@ -286,14 +297,6 @@ const PLAN = (s: EinheitStand, bibliothek: string) =>
 
 const PLAN_AENDERN = (wunsch: string) =>
 	`Schritt 1, Änderung. Die Lehrkraft hat den Plan gelesen und möchte ihn anders: „${wunsch}“\nArbeite das ein, schreibe einheit.json neu und antworte mit dem ganzen Plan. Baue noch nichts.`;
-
-/** Verstöße gegen die Regeln der Aufgaben-Übersicht (221): eine Runde, wie die Korrektur beim Bau. */
-const PLAN_KORREKTUR = (befunde: string[]) =>
-	[
-		'Korrekturrunde zum Plan. Die Schoolbox hat die Aufgaben-Übersicht in einheit.json („stunden“) nachgezählt und meldet:',
-		...befunde.map((b) => `- ${b}`),
-		'Ändere nur, was nötig ist: Formate, Aufgaben, Fachwörter und Markierungen in „stunden“, wenn nötig auch die Dokumente dazu. Schreibe einheit.json neu und antworte wieder mit dem ganzen Plan. Baue noch nichts.',
-	].join('\n');
 
 /** Der freigegebene Plan für jeden Baulauf (220): Geschichte, Figuren, Rätselkette, Kapitel und die Liste der Materialien. */
 const PLAN_ABSCHNITT = (plan: EinheitPlan) => {
@@ -1130,8 +1133,124 @@ export const erstelleEinheiten = (
 	};
 
 	/**
+	 * Der Prüflauf des Plans (247): frischer Kontext, nur Read, im eigenen Ordner mit Kopien von Plan und Recherche.
+	 * Er meldet Befunde im Format der Materialprüfung; scheitert er, steht der Grund in `fehler`, und der Plan geht
+	 * trotzdem an die Lehrkraft.
+	 */
+	const pruefePlan = async (
+		s: EinheitStand,
+		rechnung: PlanRechnung,
+	): Promise<{ befunde: PruefBefund[]; fehler: string | null }> => {
+		const halt = erschoepft(grenzenFuer(KI_GRENZEN.einheit.planPruefung));
+		if (!aktiv || aktiv.abbruch || halt) {
+			return { befunde: [], fehler: aktiv?.abbruch ? 'Abgebrochen.' : (fehlerText(halt) ?? 'Abgebrochen.') };
+		}
+		const ordner = path.join(dir(s.id), 'pruefung-plan');
+		const ablage = ablageDir(s.id);
+		const skill = (name: string) => path.join(ablage, '.claude', 'skills', name, 'SKILL.md');
+		const fachSkill = fachSkillVon(fach(s));
+		const lektuere = [...(fachSkill ? [`${fachSkill}/SKILL.md`] : []), 'unterrichtsplanung/SKILL.md'];
+		const eintrag: LaufEintrag = {
+			...neuerEintrag('pruefung', null, blickLektuere(lektuere)),
+			hinweis: 'Plan-Prüfung.',
+		};
+		const lauf = { eintrag, gelesen: new Set<string>() };
+		const beginn = Date.now();
+		aktiv.protokoll.laeufe.push(eintrag);
+		await schreibeProtokoll();
+		try {
+			await rm(ordner, { recursive: true, force: true });
+			await mkdir(ordner, { recursive: true });
+			await copyFile(path.join(arbeitDir(s.id), EINHEIT_PLAN), path.join(ordner, EINHEIT_PLAN));
+			const recherche = path.join(arbeitDir(s.id), RECHERCHE_DATEI);
+			const mitRecherche = s.recherche?.status === 'fertig' && existsSync(recherche);
+			if (mitRecherche) {
+				await copyFile(recherche, path.join(ordner, RECHERCHE_DATEI));
+			}
+			const text = planPruefText({
+				titel: s.plan?.titel ?? s.titel,
+				klasse: klasseText(s.rechercheAnfrage?.klasse),
+				fach: FACH_NAME[fach(s)],
+				auftrag: s.auftrag,
+				plan: EINHEIT_PLAN,
+				recherche: mitRecherche ? RECHERCHE_DATEI : null,
+				skills: lektuere.map((r) => skill(r.slice(0, -'/SKILL.md'.length))),
+				rechnung: rechnung.befunde,
+				ausgelassen: rechnung.ausgelassen,
+			});
+			const ergebnis = await pruefeLauf({
+				bin,
+				...kiJetzt(),
+				ordner,
+				ablage,
+				text,
+				grenzen: grenzenFuer(KI_GRENZEN.einheit.planPruefung),
+				auftragDatei: PLAN_PRUEF_AUFTRAG,
+				rolle: 'fach',
+				vorgabe: PLAN_VORGABE_ART,
+				gestartet: (k) => {
+					if (aktiv) {
+						merkeKind(aktiv.kinder, k, path.join(dir(s.id), PID), aktiv.abbruch);
+					}
+				},
+				werkzeug: (name, eingabe) => notiereGelesen(lauf, name, eingabe),
+				mitschrift: mitschrift(s, 'plan-pruefung', null),
+			});
+			const unlesbar = ergebnis.lesbar
+				? null
+				: 'Die Antwort der Plan-Prüfung hatte keinen lesbaren Block mit Befunden.';
+			const fehler = aktiv?.abbruch ? 'Abgebrochen.' : (fehlerText(ergebnis.fehler) ?? unlesbar);
+			eintrag.befunde = ergebnis.befunde.map(befundZeile);
+			if (unlesbar && !ergebnis.fehler) {
+				eintrag.hinweis = `Plan-Prüfung. ${unlesbar}`;
+			}
+			beendeEintrag(eintrag, beginn, fehler, ergebnis.verbrauch);
+			await schreibeProtokoll();
+			await notiereVerbrauch(s, fehler ? 'unvollstaendig' : 'fertig', beginn, {
+				...ergebnis.verbrauch,
+				lauf: 'plan-pruefung',
+			});
+			return { befunde: fehler ? [] : ergebnis.befunde, fehler };
+		} catch (fehler) {
+			console.error('Plan-Prüfung der Einheit:', (fehler as Error).message);
+			const grund = 'Die Plan-Prüfung ließ sich nicht starten.';
+			if (eintrag.ergebnis === 'laeuft') {
+				beendeEintrag(eintrag, beginn, grund, {});
+				await schreibeProtokoll();
+			}
+			return { befunde: [], fehler: grund };
+		} finally {
+			await rm(ordner, { recursive: true, force: true });
+		}
+	};
+
+	/**
+	 * Die eine Rückrunde an den Planlauf (247, davor 221): Rechnung und Befunde der Plan-Prüfung zusammen, `--resume` in
+	 * derselben Sitzung. Scheitert sie, bleibt die Antwort des ersten Laufs der Plan.
+	 */
+	const rueckrunde = async (s: EinheitStand, ergebnis: Ergebnis, punkte: readonly PlanPunkt[]) => {
+		const erste = ergebnis.antwort;
+		s.planSchritt = 'rueckrunde';
+		await merke(s);
+		const zweite = await starteLauf(s, planLauf(s, planRueckrunde(punkte), s.sitzung));
+		s.sitzung = zweite.sitzung ?? s.sitzung;
+		await abgleich();
+		const gelesen = lesePlanAntwort(zweite.antwort);
+		const lief = !zweite.fehler && aktiv?.abbruch !== true;
+		return {
+			ergebnis: aktiv?.abbruch
+				? zweite
+				: { ...zweite, fehler: null, antwort: lief && gelesen.text.trim() ? gelesen.text : erste },
+			geprueft: lief ? gelesen.geprueft : new Map<number, { behoben: boolean; wie: string }>(),
+			lief,
+		};
+	};
+
+	/**
 	 * Schritt 1: Claude schreibt nur den Plan. Danach wartet die Einheit auf die Freigabe der Lehrkraft. Ohne `text` ist
-	 * es ein neuer Plan: erst die Recherche, dann der Plan mit ihr.
+	 * es ein neuer Plan: erst die Recherche, dann der Plan mit ihr, dann die Plan-Prüfung (247) und eine Rückrunde mit
+	 * allem, was Rechnung und Prüfung fanden. Mit `text` („Ändern …“) läuft nur die Rechnung neu, nicht die Prüfung:
+	 * Ihre Befunde von davor bleiben stehen (`nachAenderung`).
 	 */
 	const plane = async (s: EinheitStand, text: string | null, sitzung: string | null) => {
 		const takt = setInterval(() => void abgleich(), TAKT_MS);
@@ -1141,6 +1260,7 @@ export const erstelleEinheiten = (
 		let ergebnis: Ergebnis;
 		try {
 			if (text === null) {
+				delete s.planPruefung;
 				await recherchiereEinheit(s);
 			}
 			ergebnis = await starteLauf(
@@ -1149,18 +1269,44 @@ export const erstelleEinheiten = (
 			);
 			s.sitzung = ergebnis.sitzung ?? s.sitzung;
 			await abgleich();
-			const klasse = s.rechercheAnfrage?.klasse;
-			const befunde = s.plan ? planBefunde(s.plan, klasse) : [];
-			if (!ergebnis.fehler && !aktiv?.abbruch && befunde.length && s.sitzung) {
-				const erste = ergebnis.antwort;
-				ergebnis = await starteLauf(s, planLauf(s, PLAN_KORREKTUR(befunde), s.sitzung));
-				ergebnis = { ...ergebnis, antwort: ergebnis.antwort.trim() ? ergebnis.antwort : erste };
-				s.sitzung = ergebnis.sitzung ?? s.sitzung;
-				await abgleich();
+			const rechne = (): PlanRechnung =>
+				s.plan
+					? rechnePlan(s.plan, { klasse: s.rechercheAnfrage?.klasse, niveaus: niveausImAuftrag(s.auftrag) })
+					: { befunde: [], ausgelassen: [] };
+			const erste = rechne();
+			const vorher = erste.befunde;
+			const weiter = () => !ergebnis.fehler && !aktiv?.abbruch && Boolean(s.plan?.dokumente.length);
+			let pruefung: { befunde: PruefBefund[]; fehler: string | null } | null = null;
+			if (text === null && weiter()) {
+				s.planSchritt = 'pruefung';
+				await merke(s);
+				pruefung = await pruefePlan(s, erste);
 			}
-			s.planBefunde = s.plan ? planBefunde(s.plan, klasse) : [];
+			const punkte: PlanPunkt[] = [
+				...vorher.map((t): PlanPunkt => ({ von: 'rechnung', text: t })),
+				...(pruefung?.befunde ?? []).map((befund): PlanPunkt => ({ von: 'pruefung', befund })),
+			];
+			let runde: Awaited<ReturnType<typeof rueckrunde>> | null = null;
+			if (weiter() && punkte.length && s.sitzung) {
+				runde = await rueckrunde(s, ergebnis, punkte);
+				ergebnis = runde.ergebnis;
+			}
+			const nachher = rechne().befunde;
+			s.planBefunde = nachher;
+			if (pruefung && !aktiv?.abbruch) {
+				s.planPruefung = planPruefStand({
+					vorher: punkte,
+					nachher,
+					geprueft: runde?.geprueft ?? new Map(),
+					pruefung,
+					rueckrunde: runde?.lief === true,
+				});
+			} else if (text !== null) {
+				s.planPruefung = nachAenderung(s.planPruefung, { vorher, nachher, rueckrunde: runde?.lief === true });
+			}
 		} finally {
 			clearInterval(takt);
+			delete s.planSchritt;
 		}
 		schliessePlanAb(s, ergebnis);
 		s.ende = new Date().toISOString();

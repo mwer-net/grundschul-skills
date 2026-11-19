@@ -392,6 +392,16 @@ const schluessel = (name: string) =>
 		.replace(/[^\p{L}\p{N}]+/gu, ' ')
 		.trim();
 
+/**
+ * Nennt ein Text den Gegenstand `name` (247)? Gleich wie der Namensvergleich der Ergänzungen (`schluessel`), dazu
+ * genügt das letzte Wort des Namens als ganzes Wort im Text: „das goldene Glöckchen“ steht in „trägt ein kleines
+ * goldenes Glöckchen“. Kein Wortstamm, keine Ähnlichkeit; Wörter unter drei Zeichen zählen nicht.
+ */
+export const nenntNamen = (text: string, name: string) => {
+	const kern = schluessel(name).split(' ').at(-1) ?? '';
+	return kern.length >= 3 && schluessel(text).split(' ').includes(kern);
+};
+
 /** Namen, die der Plan schon festlegt: Figuren (auch `plan.figuren`), Gegenstände und Fachwörter. */
 const planNamen = (plan: Pick<EinheitPlan, 'kanon' | 'figuren'>) =>
 	new Set(

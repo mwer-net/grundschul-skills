@@ -632,6 +632,125 @@ describe('Lauf einer Einheit (139)', () => {
 		});
 	});
 
+	describe('Plan-Prüfung vor der Freigabe (247)', () => {
+		const planen = async () => {
+			const vorher = (await prompts()).length;
+			const pruefVorher = (await jsonl('plan-pruefungen.jsonl')).length;
+			const antwort = await api('/einheiten', { method: 'POST', body: JSON.stringify({ angaben: ANGABEN }) });
+			const { id, mappe } = (await antwort.json()) as { id: string; mappe: string };
+			const s = await bis(id, 'plan');
+			const laeufe = await jsonl<{ dateien: string[]; auftrag: string; eingabe: string }>(
+				'plan-pruefungen.jsonl',
+			);
+			return { id, mappe, s, neu: (await prompts()).slice(vorher), pruefungen: laeufe.slice(pruefVorher) };
+		};
+		const rueckrunden = (neu: string[]) => neu.filter((p) => p.startsWith('Korrekturrunde zum Plan'));
+		const protokoll = async (mappe: string) =>
+			JSON.parse(
+				await readFile(path.join(mappenDir(server.materialDir, mappe), LAUF_DATEI), 'utf8'),
+			) as LaufProtokoll;
+		const pruefOrdner = (id: string) =>
+			path.join(einheitenWurzel(server.materialDir), `einheit-${id}`, 'pruefung-plan');
+
+		it('Ohne Befund: ein Prüflauf mit Plan und Recherche, keine Rückrunde, der Stand ohne Punkte', async () => {
+			await fall('einheit');
+			const { id, mappe, s, neu, pruefungen } = await planen();
+			assert.equal(pruefungen.length, 1);
+			assert.deepEqual(pruefungen[0]?.dateien, ['einheit.json', 'recherche.md']);
+			assert.equal(pruefungen[0]?.auftrag, 'einheit-plan-pruefung.md');
+			assert.match(pruefungen[0]?.eingabe ?? '', /^Plan-Prüfung der Einheit/);
+			assert.match(pruefungen[0]?.eingabe ?? '', /unterrichtsplanung\/SKILL\.md$/m);
+			assert.deepEqual(rueckrunden(neu), []);
+			assert.deepEqual(s.planPruefung, { pruefung: 'fertig', grund: null, punkte: [], geaendert: false });
+			assert.equal(s.planSchritt, undefined);
+			assert.ok(!existsSync(pruefOrdner(id)));
+			const e = (await protokoll(mappe)).laeufe.filter((x) => x.art === 'pruefung');
+			assert.deepEqual(
+				e.map((x) => [x.material, x.hinweis, x.ergebnis]),
+				[[null, 'Plan-Prüfung.', 'fertig']],
+			);
+			const verbrauch = (await readFile(path.join(server.materialDir, VERBRAUCH_DATEI), 'utf8'))
+				.trim()
+				.split('\n');
+			assert.ok(verbrauch.some((z) => (JSON.parse(z) as { lauf?: string }).lauf === 'plan-pruefung'));
+			await api(`/einheiten/${id}/verwerfen`, { method: 'POST' });
+		});
+
+		it('Befunde gehen in genau eine Rückrunde; behoben und offen stehen im Stand, der Block nicht im Plan', async () => {
+			await fall('einheit-plan-befund');
+			const { id, s, neu } = await planen();
+			const runde = rueckrunden(neu);
+			assert.equal(runde.length, 1);
+			assert.match(runde[0] ?? '', /^1\. Stunde 2, Aufbau der Reihe: Die Lernzielkontrolle prüft/m);
+			assert.match(runde[0] ?? '', /^2\. Figuren, Aufbau der Reihe: Die Leitfigur fehlt\.$/m);
+			assert.match(runde[0] ?? '', /"geprueft"/);
+			assert.equal(s.status, 'plan');
+			assert.match(s.planText ?? '', /Korrigierter Plan/);
+			assert.doesNotMatch(s.planText ?? '', /geprueft/);
+			assert.deepEqual(
+				s.planPruefung?.punkte.map((p) => [p.von, p.stand, p.wo, p.antwort]),
+				[
+					['pruefung', 'behoben', 'Stunde 2', 'Aufgabe ergänzt.'],
+					['pruefung', 'offen', 'Figuren', 'Bleibt so, der Auftrag will es.'],
+				],
+			);
+			await api(`/einheiten/${id}/verwerfen`, { method: 'POST' });
+		});
+
+		it('Nach „Ändern …“ keine neue Prüfung: die Befunde bleiben, als vor der Änderung markiert; Freigabe baut', async () => {
+			await fall('einheit-plan-befund');
+			const { id } = await planen();
+			const vorher = (await jsonl('plan-pruefungen.jsonl')).length;
+			const wunsch = JSON.stringify({ aenderung: 'Lieber eine Schatzsuche.' });
+			assert.equal((await api(`/einheiten/${id}/freigeben`, { method: 'POST', body: wunsch })).status, 200);
+			await warte(async () => /Geänderter Plan/.test((await stand(id)).planText ?? ''));
+			const s = await bis(id, 'plan');
+			assert.equal((await jsonl('plan-pruefungen.jsonl')).length, vorher);
+			assert.equal(s.planPruefung?.geaendert, true);
+			assert.equal(s.planPruefung?.punkte.filter((p) => p.von === 'pruefung').length, 2);
+			assert.equal((await api(`/einheiten/${id}/freigeben`, { method: 'POST', body: '{}' })).status, 200);
+			await bis(id, 'fertig');
+		});
+
+		it('Scheitert die Prüfung, kommt der Plan trotzdem, mit Hinweis; keine Rückrunde', async () => {
+			await fall('einheit-plan-scheitert');
+			const { id, s, neu } = await planen();
+			assert.equal(s.status, 'plan');
+			assert.match(s.planText ?? '', /Zwei Fälle/);
+			assert.deepEqual(rueckrunden(neu), []);
+			assert.equal(s.planPruefung?.pruefung, 'gescheitert');
+			assert.ok(s.planPruefung?.grund);
+			await api(`/einheiten/${id}/verwerfen`, { method: 'POST' });
+		});
+
+		it('Scheitert die Rückrunde, bleibt der erste Plan, die Befunde offen', async () => {
+			await fall('einheit-plan-befund-rueckrunde-scheitert');
+			const { id, s } = await planen();
+			assert.equal(s.status, 'plan');
+			assert.match(s.planText ?? '', /Zwei Fälle/);
+			assert.doesNotMatch(s.planText ?? '', /Korrigierter/);
+			assert.deepEqual(
+				s.planPruefung?.punkte.map((p) => p.stand),
+				['offen', 'offen'],
+			);
+			await api(`/einheiten/${id}/verwerfen`, { method: 'POST' });
+		});
+
+		it('Abbrechen beendet die Prüfung; ohne Stand der Prüfung, der Ordner ist weg', async () => {
+			await fall('einheit-plan-haenger');
+			const antwort = await api('/einheiten', { method: 'POST', body: JSON.stringify({ angaben: ANGABEN }) });
+			const { id } = (await antwort.json()) as { id: string };
+			await warte(async () => (await stand(id)).planSchritt === 'pruefung');
+			await warte(() => existsSync(path.join(pruefOrdner(id), 'einheit.json')));
+			await api(`/einheiten/${id}/abbrechen`, { method: 'POST' });
+			const s = await bis(id, 'unvollstaendig');
+			assert.equal(s.planPruefung, undefined);
+			assert.equal(s.planSchritt, undefined);
+			await warte(() => !existsSync(pruefOrdner(id)));
+			await api(`/einheiten/${id}/verwerfen`, { method: 'POST' });
+		});
+	});
+
 	describe('Ein Lauf je Material (220)', () => {
 		const protokoll = async (mappe: string) =>
 			JSON.parse(
@@ -682,7 +801,7 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.equal(p.einheit, id);
 			assert.deepEqual(
 				p.laeufe.map((e) => e.art).filter((a) => a !== 'recherche'),
-				['plan', 'bau', 'pruefung', 'pruefung', 'bau', 'pruefung', 'pruefung', 'schluss'],
+				['plan', 'pruefung', 'bau', 'pruefung', 'pruefung', 'bau', 'pruefung', 'pruefung', 'schluss'],
 			);
 			for (const e of await baulaeufe(mappe)) {
 				assert.equal(e.ergebnis, 'fertig');
@@ -697,8 +816,8 @@ describe('Lauf einer Einheit (139)', () => {
 				assert.equal(typeof e.sekunden, 'number');
 			}
 			assert.deepEqual(
-				p.laeufe.filter((e) => e.art === 'pruefung').map((e) => e.rolle),
-				['kind', 'fach', 'kind', 'fach'],
+				p.laeufe.filter((e) => e.art === 'pruefung').map((e) => e.rolle ?? e.hinweis),
+				['Plan-Prüfung.', 'kind', 'fach', 'kind', 'fach'],
 			);
 			assert.doesNotMatch(roh, /Auftrag der Lehrkraft|Schritt 2|Uhrzeit|Zur Klasse/);
 		});
@@ -720,7 +839,12 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.equal(dateien.length, p.laeufe.length);
 			const arten = dateien.map((n) => n.replace(/^[\dT-]+Z-/, '').replace(/\.jsonl\.gz$/, ''));
 			const slugs = (await baulaeufe(mappe)).map((e) => e.material);
-			for (const art of ['einheit-plan', 'einheit-schluss', ...slugs.map((s) => `einheit-bau-${s ?? ''}`)]) {
+			for (const art of [
+				'einheit-plan',
+				'einheit-plan-pruefung',
+				'einheit-schluss',
+				...slugs.map((s) => `einheit-bau-${s ?? ''}`),
+			]) {
 				assert.ok(arten.includes(art), `${art} fehlt in ${arten.join(', ')}`);
 			}
 			const plan = dateien.find((n) => n.endsWith('-einheit-plan.jsonl.gz')) ?? '';
@@ -798,6 +922,7 @@ describe('Lauf einer Einheit (139)', () => {
 			const s = await bis(id, 'fertig');
 			assert.deepEqual(await arten(mappe), [
 				'plan:',
+				'pruefung:',
 				'bau:fall-1',
 				'pruefung:fall-1',
 				'pruefung:fall-1',
@@ -867,7 +992,7 @@ describe('Lauf einer Einheit (139)', () => {
 			);
 			assert.doesNotMatch(pruefPrompt, /Rätselkette|Schritt 2|Prüflauf 1 von/);
 			assert.doesNotMatch(await quelle(s, mappe, 'fall-1'), /Mach was mit den Uhren/);
-			const e = (await protokoll(mappe)).laeufe.find((x) => x.art === 'pruefung');
+			const e = (await protokoll(mappe)).laeufe.find((x) => x.art === 'pruefung' && x.material !== null);
 			assert.match(e?.befunde[0] ?? '', /Was mit den Uhren/);
 		});
 
@@ -934,7 +1059,7 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.equal(s.pruefung?.['fall-1']?.status, 'fertig');
 			assert.deepEqual(s.pruefung?.['fall-1']?.offen, []);
 			assert.deepEqual(nachPruefung((await prompts()).slice(vorher)), []);
-			const e = (await protokoll(mappe)).laeufe.filter((x) => x.art === 'pruefung');
+			const e = (await protokoll(mappe)).laeufe.filter((x) => x.art === 'pruefung' && x.material !== null);
 			assert.equal(e.length, 4);
 			assert.ok(e.every((x) => /keinen lesbaren Block/.test(x.hinweis ?? '')));
 		});
@@ -947,7 +1072,7 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.equal(s.pruefung?.['fall-1']?.status, 'gescheitert');
 			assert.ok(s.pruefung?.['fall-1']?.grund);
 			assert.equal(s.schluss?.status, 'fertig');
-			const e = (await protokoll(mappe)).laeufe.filter((x) => x.art === 'pruefung');
+			const e = (await protokoll(mappe)).laeufe.filter((x) => x.art === 'pruefung' && x.material !== null);
 			assert.equal(e.length, 4);
 			assert.ok(e.every((x) => x.ergebnis !== 'fertig'));
 		});

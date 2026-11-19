@@ -2,13 +2,14 @@
  * Unterrichtseinheit (139): Angaben aus dem Assistenten, der Auftrag an Claude und der Plan, den Claude in
  * `einheit.json` schreibt. Eine Einheit ist ein Ordner mit einem Behälter, keine neue `Art` (140).
  */
-import type { PlanStunde } from './einheit-aufgaben';
-import { leseStunden } from './einheit-aufgaben';
+import type { PlanStunde, PlanZiel } from './einheit-aufgaben';
+import { leseStunden, leseZiele } from './einheit-aufgaben';
 import type { Steckbrief } from './einheit-bau';
 import type { EinheitLeitfigur, PlanFigur } from './einheit-figuren';
 import { leitfigurSatz, leseLeitfigur, lesePlanFiguren } from './einheit-figuren';
 import type { EinheitKanon, KanonNachtrag } from './einheit-kanon';
 import { leseKanon } from './einheit-kanon';
+import type { PlanPruefStand } from './einheit-plan-pruefung';
 import type { PruefStand, SchlussStand } from './einheit-pruefung';
 import { SchoolboxFehler } from './fehler';
 import { hatSatz } from './html';
@@ -227,6 +228,17 @@ const EINHEIT_BAUSTEIN_SATZ: Record<keyof Bausteine, { mit: string; ohne: string
 	},
 };
 
+/**
+ * Hat die Lehrkraft drei Niveaus gewählt (247)? Aus dem Satz im Auftrag, wie Server und Prüfstand ihn haben; `null`,
+ * wenn der Auftrag keinen der beiden Sätze enthält (Einheiten vor 210).
+ */
+export const niveausImAuftrag = (auftrag: string) => {
+	if (auftrag.includes(EINHEIT_BAUSTEIN_SATZ.niveaus.mit)) {
+		return true;
+	}
+	return auftrag.includes(EINHEIT_BAUSTEIN_SATZ.niveaus.ohne) ? false : null;
+};
+
 /** Der Teil der Lehrkraft am Auftrag, lesbar und in Sätzen (wie 131). Der feste Teil steht in `vorlagen/ki/einheit.md`. */
 const aussehenSatz = (wert: EinheitAngaben['aussehen']) =>
 	wert === 'eigen' ? 'Aussehen: Gestalte ein eigenes Thema in thema.css.' : 'Aussehen: schlicht, ohne thema.css.';
@@ -314,6 +326,8 @@ export interface EinheitPlan {
 	recherche?: string;
 	/** Aufgaben-Übersicht je Stunde (221, `einheit-aufgaben.ts`); fehlt bei Plänen davor. */
 	stunden?: PlanStunde[];
+	/** Die Ich-kann-Ziele der Reihe mit Nummer (247); Stunden und Aufgaben nennen sie. Fehlt bei Plänen davor. */
+	ziele?: PlanZiel[];
 	/** Je Figur Name, Rolle, Aussehen und Herkunft (220, 242); jeder Bau- und Prüflauf bekommt sie. */
 	figuren?: PlanFigur[];
 	/** Was jedes Kapitel liefert und was am Ende herauskommt (220). */
@@ -411,6 +425,7 @@ export const lesePlan = (roh: unknown, max = EINHEIT_MAX_DOKUMENTE): EinheitPlan
 	const geschichte = leseGeschichte(p);
 	const recherche = kurz(p.recherche, 1200);
 	const stunden = leseStunden(p.stunden, new Set(dokumente.map((d) => d.slug)));
+	const ziele = leseZiele(p.ziele);
 	const figuren = lesePlanFiguren(p.figuren);
 	const raetselkette = kurz(p.raetselkette, 1200);
 	const berichtigungen = kurzListe(p.berichtigungen, 500, 15);
@@ -422,6 +437,7 @@ export const lesePlan = (roh: unknown, max = EINHEIT_MAX_DOKUMENTE): EinheitPlan
 		...(geschichte ? { geschichte } : {}),
 		...(recherche ? { recherche } : {}),
 		...(stunden.length ? { stunden } : {}),
+		...(ziele.length ? { ziele } : {}),
 		...(figuren.length ? { figuren } : {}),
 		...(raetselkette ? { raetselkette } : {}),
 		...(berichtigungen.length ? { berichtigungen } : {}),
@@ -609,6 +625,10 @@ export interface EinheitStand {
 	rechercheAnfrage?: RechercheAnfrage;
 	/** Was nach der Korrekturrunde des Planlaufs an der Aufgaben-Übersicht noch nicht stimmt (221). */
 	planBefunde?: string[];
+	/** Die Prüfung des Plans vor der Freigabe (247): Rechnung und Prüflauf, behoben und offen. Fehlt bei Einheiten davor. */
+	planPruefung?: PlanPruefStand;
+	/** Was im Planlauf gerade geschieht, solange er läuft: der Prüflauf oder die Rückrunde danach (247). */
+	planSchritt?: 'pruefung' | 'rueckrunde';
 	/** Je geprüftem Material der Stand der Prüfung (220, Teil 2). Fehlt bei Einheiten davor. */
 	pruefung?: Record<string, PruefStand>;
 	/** Der Schlusslauf über alle Materialien; fehlt, bis er beginnt. */

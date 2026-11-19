@@ -25,6 +25,7 @@ import {
 	RechercheQuellen,
 	StundenKurz,
 } from './EinheitPlanDetails';
+import { PlanGeprueft } from './EinheitPlanPruefung';
 import { PruefungDetails } from './EinheitPruefung';
 import { useAblage } from './kontext';
 
@@ -172,6 +173,12 @@ const zahlText = (s: EinheitStand, plant: boolean) => {
 	if (s.status === 'plan') {
 		return `${geplant(s)} Materialien geplant`;
 	}
+	if (plant && s.planSchritt === 'pruefung') {
+		return 'Claude prüft den Plan mit frischem Blick …';
+	}
+	if (plant && s.planSchritt === 'rueckrunde') {
+		return 'Claude arbeitet die Hinweise der Prüfung ein …';
+	}
 	if (!s.plan || plant) {
 		return 'Claude plant die Einheit …';
 	}
@@ -278,6 +285,7 @@ const BandPlan = ({
 			zusatz={
 				s.plan && (
 					<div className="mt-3 flex flex-col gap-3">
+						<PlanGeprueft stand={s.planPruefung} />
 						<StundenKurz plan={s.plan} />
 						<RechercheKurz plan={s.plan} recherche={s.recherche} />
 					</div>
@@ -292,6 +300,7 @@ const BandDetails = ({ s }: { s: EinheitStand }) => {
 	const quellen = s.recherche?.status === 'fertig' ? s.recherche.quellen : [];
 	return (
 		<>
+			{s.status !== 'plan' && <PlanGeprueft stand={s.planPruefung} zu />}
 			{s.plan && (s.plan.stunden?.length ?? 0) > 0 && (
 				<Aufklapp titel={`Alle Aufgaben der Reihe (${aufgabenZahl(s.plan)})`}>
 					<div className="flex flex-col gap-3">

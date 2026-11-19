@@ -155,6 +155,19 @@ process.stdin.on('end', () => {
 	}
 	// 220: der Prüflauf mit Kinderaugen, nur Read und ohne Sitzung. Er sieht nur die Seitenbilder in seinem Ordner; die
 	// Ersatz-Ansicht der Tests schreibt die Quelle hinein. Eine Anweisung „Mach was mit den Uhren“ meldet er als unklar.
+	// 247: die Plan-Prüfung, nur Read und ohne Sitzung, mit Kopien von Plan und Recherche im Ordner. Jeder Lauf landet in
+	// „plan-pruefungen.jsonl“. „einheit-plan-befund“ meldet einen Befund, „-scheitert“ endet mit Fehler, „-haenger“ bleibt stehen.
+	if (args[args.indexOf('--tools') + 1] === 'Read' && eingabe.startsWith('Plan-Prüfung')) {
+		const dateien = fs.readdirSync('.').sort();
+		sag({ type: 'assistant', message: { content: dateien.map((n) => ({ type: 'tool_use', name: 'Read', input: { file_path: path.resolve(n) } })) } });
+		fs.appendFileSync(path.join(__dirname, 'plan-pruefungen.jsonl'), JSON.stringify({ dateien, auftrag: path.basename(args[args.indexOf('--append-system-prompt-file') + 1] ?? ''), eingabe }) + '\n');
+		const fertig = (result, extra = {}) => sag({ type: 'result', subtype: 'success', is_error: false, result, num_turns: 3, total_cost_usd: 0.03, usage: { output_tokens: 5 }, permission_denials: [], ...extra });
+		if (fall === 'einheit-plan-haenger') { setInterval(() => {}, 1000); return; }
+		if (fall === 'einheit-plan-scheitert') { fertig('', { subtype: 'error_during_execution', is_error: true }); process.exit(1); }
+		const befunde = fall.startsWith('einheit-plan-befund') ? [{ seite: null, aufgabe: 'Stunde 2', art: 'aufbau', text: 'Die Lernzielkontrolle prüft das Ziel der Stunde 2 nicht.' }, { aufgabe: 'Figuren', text: 'Die Leitfigur fehlt.' }] : [];
+		fertig('Geprüft.\n\x60\x60\x60json\n' + JSON.stringify({ befunde }) + '\n\x60\x60\x60');
+		return;
+	}
 	if (args[args.indexOf('--tools') + 1] === 'Read') {
 		const seiten = fs.readdirSync('.').filter((n) => /^seite-\d+\.png$/.test(n)).sort();
 		sag({ type: 'assistant', message: { content: seiten.map((n) => ({ type: 'tool_use', name: 'Read', input: { file_path: path.resolve(n) } })) } });
@@ -222,7 +235,15 @@ process.stdin.on('end', () => {
 		(async () => {
 			// Schritt 1 schreibt nur den Plan; gebaut wird nach der Freigabe.
 			if (eingabe.includes('Schritt 1')) { plan(); ende({ result: (eingabe.includes('möchte ihn anders') ? 'Geänderter Plan. ' : '') + 'Die Uhr im Rathaus ist stehen geblieben. Zwei Fälle.' }); return; }
-			if (eingabe.includes('Korrekturrunde zum Plan')) { plan(); ende({ result: 'Korrigierter Plan. Zwei Fälle.' }); return; }
+			// 247: Mit Befunden der Plan-Prüfung antwortet die Rückrunde mit dem Block „geprueft“: den ersten Punkt behoben, die anderen nicht.
+			if (eingabe.includes('Korrekturrunde zum Plan')) {
+				plan();
+				const nummern = [...eingabe.matchAll(/^(\d+)\. /gm)].map((t) => Number(t[1]));
+				const block = eingabe.includes('"geprueft"') ? '\n\x60\x60\x60json\n' + JSON.stringify({ geprueft: nummern.map((nr, i) => ({ nr, behoben: i === 0, wie: i === 0 ? 'Aufgabe ergänzt.' : 'Bleibt so, der Auftrag will es.' })) }) + '\n\x60\x60\x60' : '';
+				if (fall === 'einheit-plan-befund-rueckrunde-scheitert') { ende({ subtype: 'error_during_execution', is_error: true, result: '' }); process.exit(1); }
+				ende({ result: 'Korrigierter Plan. Zwei Fälle.' + block });
+				return;
+			}
 			if (eingabe.startsWith('Korrekturrunde nach der Prüfung.')) {
 				const slug = fs.readFileSync(path.join(__dirname, 'letzter.txt'), 'utf8');
 				const datei = 'dokumente/' + slug + '/material.html';

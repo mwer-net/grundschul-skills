@@ -34,6 +34,26 @@ Grundsätze:
 - Lernaufgaben konkret benennen: mindestens eine ● Grundlage (Wiederholung), ●● Kern, mindestens eine ●●● Herausforderung, dazu Wahlhilfe, Tippkarten mit Strategie und Selbstkontrolle.
 - Puffer und "Was, wenn die Zeit nicht reicht?" angeben.
 
+### Richtwerte für Minuten (Kl. 1–4)
+
+Für die Zeit je Phase und Aufgabe im Plan *(Erfahrungsregel)*; Kl. 1/2 am oberen Rand, Kl. 3/4 am unteren:
+
+| Was | Minuten |
+|---|---|
+| Ankommen, Ich-kann-Ziel nennen | 2–3 |
+| Vorlesen | 1 je 100 Wörter; Auftakt 4–5, Kapitel 2–3 |
+| Bildfolie im Kreis besprechen | 0,5–1 je Folie; Impulsfolien rund 2 |
+| Kreisinput mit gemeinsamem Beispiel | 10–12 |
+| Material austeilen, Arbeitsplätze einrichten | 2–3 |
+| Schneiden und Kleben eines Bastelbogens | Kl. 1/2: 15–20, Kl. 3/4: 10 |
+| Arbeitsblatt mit drei bis vier Aufgaben | 20–25 |
+| Eine Aufgabe auf dem Blatt | 4–8, Schreibaufgabe 10 |
+| Spielrunde mit Erklären der Regeln | 10–15 |
+| Aufräumen | 2–3 |
+| Reflexion im Kreis | 5 |
+
+Passt die Summe nicht in die Stunde, wird gestrichen oder verteilt, nicht die Schätzung verkleinert.
+
 ## Reihenplanung
 
 - Lernziel der Reihe → Ich-kann-Ziele pro Stunde, logisch aufbauend (Einführung → Übung → Vertiefung → Anwendung → Überprüfung). Jede Stunde folgt dem Churer Ablauf.

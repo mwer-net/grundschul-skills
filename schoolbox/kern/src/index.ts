@@ -17,6 +17,7 @@ export * from './einheit-aufgaben';
 export * from './einheit-bau';
 export * from './einheit-figuren';
 export * from './einheit-kanon';
+export * from './einheit-plan-pruefung';
 export * from './einheit-pruefung';
 export * from './fehler';
 export type { BibliotheksFigur, Pose } from './figuren';

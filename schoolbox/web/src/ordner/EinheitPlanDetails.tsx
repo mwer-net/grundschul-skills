@@ -33,6 +33,12 @@ const mitDoppelpunkt = (titel: string) => (/[?!.:]$/.test(titel) ? `${titel} ` :
 const woerter = (s: PlanStunde) =>
 	s.begriffe.length ? ` ${s.begriffe.length === 1 ? 'Neues Wort' : 'Neue Wörter'}: ${s.begriffe.join(', ')}.` : '';
 
+/** „ Ziel: Ich kann … (45 min)“ aus den Feldern von 247; leer bei Plänen davor. */
+const zielUndZeit = (plan: EinheitPlan, s: PlanStunde) => {
+	const ziel = plan.ziele?.find((z) => z.nr === s.ziel)?.text;
+	return [ziel ? ` Ziel: ${ziel}` : '', s.minuten ? ` (${s.minuten} min)` : ''].join('');
+};
+
 /** Je Stunde eine Zeile „Was die Kinder tun“. */
 export const StundenKurz = ({ plan }: { plan: EinheitPlan }) => {
 	const stunden = plan.stunden ?? [];
@@ -53,6 +59,7 @@ export const StundenKurz = ({ plan }: { plan: EinheitPlan }) => {
 							{s.handlung || 'noch offen'}
 							{s.kontrolle && <span className="text-leise"> (Lernzielkontrolle)</span>}
 							{woerter(s) && <span className="text-leise">{woerter(s)}</span>}
+							{zielUndZeit(plan, s) && <span className="text-leise">{zielUndZeit(plan, s)}</span>}
 						</dd>
 					</div>
 				))}

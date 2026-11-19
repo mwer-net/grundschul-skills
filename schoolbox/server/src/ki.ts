@@ -20,6 +20,7 @@ import type {
 	LaufArt,
 	LaufEintrag,
 	Meldung,
+	PruefArt,
 	PruefBefund,
 	Pruefbericht,
 	PruefBild,
@@ -188,6 +189,11 @@ export const KI_GRENZEN = {
 		schluss: { zeitMs: 45 * 60_000, runden: 250, budgetUsd: 25, budgetGuthabenUsd: 5, neubau: 4 },
 		/** Die Planung vor der Freigabe: Geschichte und Plan, noch kein Material. */
 		planZeitMs: 15 * 60_000,
+		/**
+		 * Die Prüfung des Plans vor der Freigabe (247): nur Read, Plan und Recherche (zusammen rund 40.000 Zeichen), zwei
+		 * Skills, keine Bilder. Geschätzt 0,5 bis 1 USD; die Grenzen sind die eines Prüflaufs.
+		 */
+		planPruefung: { zeitMs: 10 * 60_000, runden: 40, budgetUsd: 3, budgetGuthabenUsd: 1 },
 		/**
 		 * Über diesem Anteil am 5-Stunden-Fenster sagt der Start es vorher (Entscheidung 35: gesperrt wird nicht). Seit 220
 		 * braucht eine Einheit eher mehr als ein ganzes Fenster; die Warnung kommt deshalb früher.
@@ -947,6 +953,8 @@ const LEKTUERE_WARTEN_MS = 500;
 const MAX_BLATT_LAEUFE = 50;
 
 export const PRUEF_AUFTRAG = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit-pruefung.md');
+/** Die Prüfung des Plans vor der Freigabe (247): frischer Kontext, nur Read, Plan und Recherche im eigenen Ordner. */
+export const PLAN_PRUEF_AUFTRAG = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit-plan-pruefung.md');
 /** Der Fachblick (244): eigener Lauf neben dem mit Kinderaugen, in einer Kopie des Prüfordners. */
 export const FACHBLICK_AUFTRAG = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit-fachblick.md');
 /** Im Prüfordner des Fachblicks der Hinweise: die Lösungsseiten der anderen Materialien, je Material ein Ordner. */
@@ -1152,6 +1160,8 @@ export const pruefeLauf = (o: {
 	auftragDatei?: string;
 	/** Die Rolle des Laufs: Ein Befund ohne bekannte Art bekommt ihre Vorgabe (`PRUEF_VORGABE_ART`). */
 	rolle: PruefRolle;
+	/** Statt der Vorgabe der Rolle, etwa die Plan-Prüfung (247, `PLAN_VORGABE_ART`). */
+	vorgabe?: PruefArt;
 }) =>
 	new Promise<PruefErgebnis>((resolve) => {
 		const stand: LaufStand = { sitzung: null, fehlerCode: null, ergebnis: {} };
@@ -1206,7 +1216,7 @@ export const pruefeLauf = (o: {
 			const fehler = grund ?? stand.ergebnis.fehler ?? (code === 0 ? null : (stand.fehlerCode ?? 'unbekannt'));
 			const gelesen = fehler
 				? { befunde: [], lesbar: true }
-				: lesePruefung(stand.ergebnis.antwort ?? '', PRUEF_VORGABE_ART[o.rolle]);
+				: lesePruefung(stand.ergebnis.antwort ?? '', o.vorgabe ?? PRUEF_VORGABE_ART[o.rolle]);
 			resolve({ ...gelesen, fehler, verbrauch: stand.ergebnis.verbrauch ?? {} });
 		});
 	});

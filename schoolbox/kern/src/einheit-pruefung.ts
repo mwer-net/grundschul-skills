@@ -24,6 +24,8 @@ export const PRUEF_ARTEN = [
 	'fach',
 	'loesung',
 	'kanon',
+	'zeit',
+	'aufbau',
 ] as const;
 export type PruefArt = (typeof PRUEF_ARTEN)[number];
 
@@ -41,6 +43,8 @@ export const PRUEF_ART_NAME: Record<PruefArt, string> = {
 	'fach': 'Fachlich falsch',
 	'loesung': 'Lösung falsch',
 	'kanon': 'Widerspricht der Geschichte',
+	'zeit': 'Zeit der Stunde',
+	'aufbau': 'Aufbau der Reihe',
 };
 
 /** Ein Befund eines Prüf- oder Schlusslaufs. `material` nur im Schlusslauf. Keine Namen, keine Prompts. */
@@ -590,6 +594,15 @@ const SYNONYME: Record<string, PruefArt> = {
 	'kanon': 'kanon',
 	'widerspricht-der-geschichte': 'kanon',
 	'verrat': 'kanon',
+	'zeit': 'zeit',
+	'minuten': 'zeit',
+	'dauer': 'zeit',
+	'aufbau': 'aufbau',
+	'verteilung': 'aufbau',
+	'ziel': 'aufbau',
+	'ziele': 'aufbau',
+	'stufen': 'aufbau',
+	'stufenfolge': 'aufbau',
 };
 
 const schluesselVon = (wert: string) =>

@@ -7,10 +7,12 @@
  * Anfang an, die Prüfpunkte aus der Recherche (`--recherche <datei>`, sonst `<prüfstand>/recherche.md`, wenn es sie
  * gibt), die Stunden des Plans, die berechneten Elemente und bei den Hinweisen die Lösungsseiten der Materialien
  * davor. Mit `kind` und `fach` zusammen laufen die Läufe eines Materials nacheinander (der Server startet sie
- * gleichzeitig); gemessen werden Befunde, nicht Zeit.
+ * gleichzeitig); gemessen werden Befunde, nicht Zeit. Teil `plan` (247) ist die Plan-Prüfung wie im Server: erst die
+ * Rechnung (`rechnePlan`), dann der Prüflauf mit Plan, Recherche, Auftrag und Skills; Rechnung und Befunde zusammen
+ * gehen in den Abgleich. `--plan <datei>` prüft statt `plan.json` einen anderen Plan (Gegenprobe mit behobenem Plan).
  *
- *   pnpm --filter @schoolbox/server exec tsx scripts/pruefstand.ts <prüfstand> [--nur a,b] [--teil kind,blick,fach]
- *     [--recherche <datei>] [--trocken] [--ja] [--abgleich <ergebnis.json>]
+ *   pnpm --filter @schoolbox/server exec tsx scripts/pruefstand.ts <prüfstand> [--nur a,b]
+ *     [--teil kind,blick,fach,plan] [--plan <datei>] [--recherche <datei>] [--trocken] [--ja] [--abgleich <ergebnis.json>]
  *
  * Der Ordner `<prüfstand>` hält `mappe/` (Kopie der Mappe mit `bilder.json` und den Prüfbildern unter
  * `ansicht/bilder/`), `plan.json` (wie `einheit.json`), `zuordnung.json` (Slug des Plans → Dokument der Mappe),
@@ -19,7 +21,7 @@
  */
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -27,7 +29,9 @@ import type {
 	EinheitPlan,
 	Fach,
 	FachblickAuftrag,
+	Klasse,
 	PlanDokument,
+	PlanRechnung,
 	PruefAuftrag,
 	PruefBefund,
 	PruefRolle,
@@ -46,13 +50,18 @@ import {
 	fachSkillVon,
 	formateDesMaterials,
 	klasseText,
+	KLASSEN,
 	ladeKonfig,
 	lesePlan,
+	niveausImAuftrag,
+	PLAN_VORGABE_ART,
+	planPruefText,
 	pruefpunkteAus,
 	pruefpunkteText,
 	pruefTeile,
 	pruefText,
 	pruefWeise,
+	rechnePlan,
 	rolleVon,
 	WURZEL,
 } from '@schoolbox/kern';
@@ -66,6 +75,7 @@ import {
 	kiPfad,
 	legeAblageAn,
 	legeFremdeLoesungenAb,
+	PLAN_PRUEF_AUFTRAG,
 	pruefeLauf,
 	richtePruefOrdnerEin,
 } from '../src/ki';
@@ -76,7 +86,8 @@ import { abgleichTabelle, GEBAUTE_TEILE, gleicheAb, leseKatalog, TEILE } from '.
 /** Gemessen in 238: ein Prüflauf 0,7 bis 1,4 USD, im Mittel 1,1. */
 const KOSTEN_JE_LAUF = { min: 0.7, mittel: 1.1, max: 1.4 };
 const BILD_IM_DOKUMENT = /\.\.\/\.\.\/bilder\/([a-z0-9][a-z0-9-]{0,59}\.(?:png|jpg))/g;
-const NOCH_NICHT: Partial<Record<Teil, string>> = { plan: '247' };
+/** Geschätzt für 247: Plan, Recherche und zwei Skills lesen, ohne Bilder; etwa ein Fachblick ohne Seiten. */
+const KOSTEN_PLAN = { min: 0.4, mittel: 0.7, max: 1.2 };
 /** Wie im Server: Diese Materialien geben dem Fachblick der Hinweise keine Lösungsseiten. */
 const OHNE_FREMDE_LOESUNG = new Set(['deckblatt', 'quellen', 'angebot', 'hinweise', 'bilder']);
 
@@ -90,6 +101,8 @@ interface Optionen {
 	ja: boolean;
 	abgleich: string | null;
 	recherche: string | null;
+	/** `--plan`: statt `plan.json` dieser Plan (Gegenprobe). */
+	plan: string | null;
 }
 
 const leseOptionen = (argv: string[]): Optionen => {
@@ -101,6 +114,7 @@ const leseOptionen = (argv: string[]): Optionen => {
 		ja: false,
 		abgleich: null,
 		recherche: null,
+		plan: null,
 	};
 	const wert = (i: number, name: string) => {
 		const w = argv[i + 1];
@@ -133,6 +147,9 @@ const leseOptionen = (argv: string[]): Optionen => {
 		} else if (a === '--recherche') {
 			o.recherche = path.resolve(wert(i, a));
 			i++;
+		} else if (a === '--plan') {
+			o.plan = path.resolve(wert(i, a));
+			i++;
 		} else if (a === '--trocken') {
 			o.trocken = true;
 		} else if (a === '--ja') {
@@ -161,6 +178,8 @@ interface Pruefstand {
 	ordner: string;
 	mappe: string;
 	plan: EinheitPlan;
+	/** Die Datei des Plans, wie Claude sie schrieb: `plan.json` oder `--plan`. */
+	planDatei: string;
 	/** In der Reihenfolge des Baus, wie die Mappe sie übernommen hat. */
 	zuordnung: [string, string][];
 	auftrag: string;
@@ -184,9 +203,17 @@ const ladeRecherche = async (ordner: string, gewaehlt: string | null) => {
 	return { datei, text: await readFile(datei, 'utf8') };
 };
 
-const ladePruefstand = async (ordner: string, recherche: string | null): Promise<Pruefstand> => {
+const ladePruefstand = async (
+	ordner: string,
+	recherche: string | null,
+	gewaehlt: string | null,
+): Promise<Pruefstand> => {
 	const mappe = path.join(ordner, 'mappe');
-	const plan = lesePlan(await leseJson(path.join(ordner, 'plan.json')), KI_GRENZEN.einheit.dokumente);
+	const planDatei = gewaehlt ?? path.join(ordner, 'plan.json');
+	if (!existsSync(planDatei)) {
+		throw new Abbruch(`--plan ${planDatei}: Datei fehlt.`);
+	}
+	const plan = lesePlan(await leseJson(planDatei), KI_GRENZEN.einheit.dokumente);
 	if (!plan?.dokumente.length || !plan.geschichte || !plan.stunden?.length) {
 		throw new Abbruch('plan.json ergibt keinen vollständigen Plan (Dokumente, Geschichte, Stunden).');
 	}
@@ -214,6 +241,7 @@ const ladePruefstand = async (ordner: string, recherche: string | null): Promise
 		ordner,
 		mappe,
 		plan,
+		planDatei,
 		zuordnung,
 		auftrag: await readFile(path.join(ordner, 'auftrag.txt'), 'utf8'),
 		klasse: meta.klasse,
@@ -343,20 +371,22 @@ const zahlAus = (wert: unknown) => (typeof wert === 'number' && Number.isFinite(
 
 const usd = (n: number) => `${n.toFixed(2).replace('.', ',')} USD`;
 
+/** `plan` prüft dieses Skript selbst (`pruefePlan`), die anderen Teile laufen über die gebauten Materialien. */
 const pruefeGebaut = (teile: Teil[]) => {
-	const fehlt = teile.filter((t) => !GEBAUTE_TEILE.includes(t));
+	const fehlt = teile.filter((t) => t !== 'plan' && !GEBAUTE_TEILE.includes(t));
 	if (fehlt.length) {
-		throw new Abbruch(
-			`${fehlt.map((t) => `Teil ${t}: noch nicht gebaut (${NOCH_NICHT[t] ?? '?'}).`).join(' ')} Abbruch, nichts gestartet.`,
-		);
+		throw new Abbruch(`${fehlt.map((t) => `Teil ${t}: noch nicht gebaut.`).join(' ')} Abbruch, nichts gestartet.`);
 	}
 };
 
 /** Je Material seine Läufe: erst Kinderaugen mit zweitem Blick, dann der Fachblick. */
 const planeVorhaben = async (p: Pruefstand, o: Optionen) => {
 	const vorhaben: Vorhaben[][] = [];
-	const kindTeile = o.teile.filter((t) => t !== 'fach');
+	const kindTeile = o.teile.filter((t) => t === 'kind' || t === 'blick');
 	for (const d of waehleMaterialien(p, o.nur)) {
+		if (!kindTeile.length && !o.teile.includes('fach')) {
+			break;
+		}
 		const liste = [
 			...(kindTeile.length ? [await vorhabenFuer(p, d, kindTeile)] : []),
 			...(o.teile.includes('fach') ? [await fachVorhaben(p, d)] : []),
@@ -621,6 +651,126 @@ const zusammen = (teile: Ergebnis[]): Ergebnis => {
 	};
 };
 
+/** Die Klasse aus `mappe.json`, wie `rechnePlan` sie nimmt. */
+const klasseVon = (k: number | string | undefined): Klasse | undefined =>
+	(KLASSEN as readonly (number | string)[]).includes(k ?? '') ? (k as Klasse) : undefined;
+
+/** Was der Server am Plan rechnet (247), auch ohne Claude: für die Konsole und den Abgleich. */
+const rechnungFuer = (p: Pruefstand) => {
+	const r = rechnePlan(p.plan, { klasse: klasseVon(p.klasse), niveaus: niveausImAuftrag(p.auftrag) });
+	console.log(
+		`- plan: Rechnung ${r.befunde.length ? `${r.befunde.length} Befunde` : 'ohne Befund'}${r.ausgelassen.length ? `, ausgelassen: ${r.ausgelassen.length}` : ''} (${path.basename(p.planDatei)})`,
+	);
+	for (const b of r.befunde) {
+		console.log(`    Rechnung: ${b}`);
+	}
+	for (const a of r.ausgelassen) {
+		console.log(`    Nicht gerechnet: ${a}`);
+	}
+	return r;
+};
+
+/**
+ * Teil `plan` wie `pruefePlan` im Server: Prüfordner mit dem Plan als `einheit.json` und der Recherche, derselbe
+ * Auftrag (`planPruefText`), dieselbe Vorlage und Grenzen. Im Abgleich zählen Rechnung und Befunde des Laufs zusammen.
+ */
+const pruefePlan = async (k: Kontext, r: PlanRechnung): Promise<Ergebnis | null> => {
+	const rechnung = r.befunde;
+	const { p } = k;
+	const ordner = k.ausgabe
+		? path.join(k.ausgabe, 'plan')
+		: await mkdtemp(path.join(tmpdir(), 'schoolbox-pruefstand-'));
+	await mkdir(ordner, { recursive: true });
+	const beginn = Date.now();
+	try {
+		await copyFile(p.planDatei, path.join(ordner, 'einheit.json'));
+		if (p.recherche) {
+			await copyFile(p.recherche.datei, path.join(ordner, 'recherche.md'));
+		}
+		const fachSkill = fachSkillVon(p.fach);
+		const text = planPruefText({
+			titel: p.plan.titel,
+			klasse: klasseText(p.klasse),
+			fach: FACH_NAME[p.fach],
+			auftrag: p.auftrag,
+			plan: 'einheit.json',
+			recherche: p.recherche ? 'recherche.md' : null,
+			skills: [...(fachSkill ? [fachSkill] : []), 'unterrichtsplanung'].map((n) =>
+				path.join(k.ablage, '.claude', 'skills', n, 'SKILL.md'),
+			),
+			rechnung,
+			ausgelassen: r.ausgelassen,
+		});
+		const alsBefund = rechnung.map((t): PruefBefund => ({
+			seite: null,
+			aufgabe: 'Rechnung',
+			art: PLAN_VORGABE_ART,
+			text: t,
+		}));
+		if (k.ausgabe) {
+			const datei = path.join(k.ausgabe, 'plan-pruefung.txt');
+			await writeFile(datei, text);
+			console.log(`plan, Plan-Prüfung: ${rechnung.length} Sätze der Rechnung im Auftrag → ${datei}`);
+			return null;
+		}
+		console.log('plan, Plan-Prüfung läuft …');
+		const gelesen: string[] = [];
+		const e = await pruefeLauf({
+			bin: kiPfad(k.konfig),
+			...k.ki,
+			ordner,
+			ablage: k.ablage,
+			text,
+			grenzen: KI_GRENZEN.einheit.planPruefung,
+			auftragDatei: PLAN_PRUEF_AUFTRAG,
+			rolle: 'fach',
+			vorgabe: PLAN_VORGABE_ART,
+			gestartet: (kind) => {
+				k.zustand.laufend = kind;
+			},
+			werkzeug: (werkzeug, eingabe) => {
+				if (werkzeug === 'Read' && typeof eingabe.file_path === 'string') {
+					gelesen.push(
+						path.relative(eingabe.file_path.startsWith(k.ablage) ? k.ablage : ordner, eingabe.file_path),
+					);
+				}
+			},
+			mitschrift: { materialDir: p.ordner, mappe: 'pruefstand', dok: 'plan', art: 'pruefstand-plan' },
+		});
+		k.zustand.laufend = null;
+		const kosten = zahlAus(e.verbrauch.kostenUsd);
+		console.log(
+			`plan, Plan-Prüfung: ${e.fehler ? `gescheitert (${e.fehler})` : `${e.befunde.length} Befunde`}${e.lesbar ? '' : ', Antwort ohne lesbaren Block'}, ${usd(kosten)}`,
+		);
+		return {
+			slug: 'plan',
+			rolle: 'plan',
+			geprueft: e.fehler ? [] : ['plan'],
+			befunde: [...alsBefund, ...e.befunde],
+			fehler: e.fehler,
+			lesbar: e.lesbar,
+			kostenUsd: kosten,
+			runden: zahlAus(e.verbrauch.runden),
+			sekunden: Math.round((Date.now() - beginn) / 1000),
+			rechnung: rechnung.length,
+			laeufe: [
+				{
+					rolle: 'plan',
+					befunde: e.befunde.length,
+					fehler: e.fehler,
+					lesbar: e.lesbar,
+					verbrauch: e.verbrauch,
+					gelesen,
+				},
+			],
+		};
+	} finally {
+		if (!k.ausgabe) {
+			await rm(ordner, { recursive: true, force: true });
+		}
+	}
+};
+
 const schreibeErgebnis = async (p: Pruefstand, o: Optionen, ki: KiLauf, ergebnisse: Ergebnis[]) => {
 	const abgleich = gleicheAb(p.katalog, ergebnisse);
 	const tabelle = abgleichTabelle(p.katalog, abgleich);
@@ -636,13 +786,13 @@ const schreibeErgebnis = async (p: Pruefstand, o: Optionen, ki: KiLauf, ergebnis
 
 const fuehreAus = async (o: Optionen) => {
 	pruefeGebaut(o.teile);
-	const p = await ladePruefstand(o.ordner, o.recherche);
-	if (o.teile.includes('fach')) {
+	const p = await ladePruefstand(o.ordner, o.recherche, o.plan);
+	if (o.teile.includes('fach') || o.teile.includes('plan')) {
 		const punkte = p.recherche ? pruefpunkteAus(p.recherche.text).length : 0;
 		console.log(
 			p.recherche
 				? `Recherche: ${p.recherche.datei}, ${punkte} Prüfpunkte${punkte ? '' : ' (der Fachblick liest dann den Fach-Skill)'}.`
-				: 'Keine Recherche: Der Fachblick liest den Fach-Skill.',
+				: 'Keine Recherche: Fachblick und Plan-Prüfung lesen den Fach-Skill.',
 		);
 	}
 	if (o.abgleich) {
@@ -651,12 +801,15 @@ const fuehreAus = async (o: Optionen) => {
 		return;
 	}
 	const vorhaben = await planeVorhaben(p, o);
+	const mitPlan = o.teile.includes('plan');
+	const rechnung = mitPlan ? rechnungFuer(p) : { befunde: [], ausgelassen: [] };
 	const ki = await kiLaufJetzt(ladeKonfig(), 'gross');
 	const n = vorhaben.flat().length;
+	const kosten = (art: keyof typeof KOSTEN_JE_LAUF) => n * KOSTEN_JE_LAUF[art] + (mitPlan ? KOSTEN_PLAN[art] : 0);
 	console.log(
-		`\n${vorhaben.length} Materialien, ${n} Prüfläufe (über 24 Seiten einer je 16 Seiten), Modell ${ki.modell}, Gründlichkeit ${ki.effort}. Geschätzt rund ${usd(n * KOSTEN_JE_LAUF.mittel)} (${usd(n * KOSTEN_JE_LAUF.min)} bis ${usd(n * KOSTEN_JE_LAUF.max)}).`,
+		`\n${vorhaben.length} Materialien, ${n} Prüfläufe (über 24 Seiten einer je 16 Seiten)${mitPlan ? ', dazu die Plan-Prüfung' : ''}, Modell ${ki.modell}, Gründlichkeit ${ki.effort}. Geschätzt rund ${usd(kosten('mittel'))} (${usd(kosten('min'))} bis ${usd(kosten('max'))}).`,
 	);
-	if (!n) {
+	if (!n && !mitPlan) {
 		return;
 	}
 	if (!o.trocken && !o.ja) {
@@ -681,6 +834,10 @@ const fuehreAus = async (o: Optionen) => {
 	const ergebnisse: Ergebnis[] = [];
 	try {
 		await legeAblageAn(k.ablage, path.join(WURZEL, 'skills'));
+		const plan = mitPlan ? await pruefePlan(k, rechnung) : null;
+		if (plan) {
+			ergebnisse.push(plan);
+		}
 		for (const liste of vorhaben) {
 			const teile: Ergebnis[] = [];
 			for (const v of liste) {

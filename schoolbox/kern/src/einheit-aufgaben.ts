@@ -127,6 +127,10 @@ export const FORMAT_HOECHSTENS = 2;
 const FORMAT_ZEICHEN = 40;
 const MAX_STUNDEN = 30;
 const MAX_AUFGABEN = 16;
+/** Grenzen der Felder für Zeit und Ziel (247): Minuten einer Stunde oder Phase, Phasen je Stunde, Ziele je Plan. */
+export const PLAN_ZEIT_GRENZEN = { minuten: 240, phasen: 12, was: 120, ziele: 12, ziel: 200 } as const;
+export const NIVEAUS = [1, 2, 3] as const;
+export type Niveau = (typeof NIVEAUS)[number];
 
 export const ANFORDERUNGSBEREICHE = ['I', 'II', 'III'] as const;
 export type Anforderungsbereich = (typeof ANFORDERUNGSBEREICHE)[number];
@@ -139,6 +143,25 @@ export interface PlanAufgabe {
 	inhalt: string;
 	bereich: Anforderungsbereich | null;
 	zweitesMal: boolean;
+	/** 247: Nummer des Ich-kann-Ziels aus `EinheitPlan.ziele`, das die Aufgabe übt oder prüft. */
+	ziel?: number;
+	/** 247: geschätzte Arbeitszeit eines Kindes in Minuten. */
+	minuten?: number;
+	/** 247: Niveau (●, ●●, ●●●) bei drei Niveaus zur Wahl; fehlt bei einer Aufgabe für alle. */
+	niveau?: Niveau;
+}
+
+/** Ein Abschnitt der Stunde mit seiner Dauer (247); `arbeit`: die Kinder arbeiten an den Aufgaben der Stunde. */
+export interface PlanPhase {
+	was: string;
+	minuten: number;
+	arbeit: boolean;
+}
+
+/** Ein Ich-kann-Ziel des Plans (247); Stunden und Aufgaben nennen es über `nr`. */
+export interface PlanZiel {
+	nr: number;
+	text: string;
 }
 
 export interface PlanStunde {
@@ -148,6 +171,12 @@ export interface PlanStunde {
 	aufgaben: PlanAufgabe[];
 	/** Lernzielkontrolle: nutzt die Formate der Reihe mit neuen Items und zählt nicht mit. */
 	kontrolle: boolean;
+	/** 247: Länge der Stunde in Minuten; fehlt bei Plänen davor. */
+	minuten?: number;
+	/** 247: Nummer des Ich-kann-Ziels der Stunde. */
+	ziel?: number;
+	/** 247: der Ablauf der Stunde mit Minuten. */
+	phasen?: PlanPhase[];
 }
 
 const gleich = (wert: string) => wert.toLowerCase().replace(/\s+/g, ' ').trim();
@@ -167,6 +196,48 @@ export const formatAus = (roh: unknown) => {
 export const formatTitel = (format: string) => AUFGABEN_FORMATE.find((f) => f.name === format)?.titel ?? format;
 
 const kurz = (wert: unknown, max: number) => (typeof wert === 'string' ? wert.trim().slice(0, max) : '');
+
+/** Eine ganze Zahl von 1 bis `max` (auch als Text), sonst `undefined`. */
+const ganz = (wert: unknown, max: number) => {
+	const n = typeof wert === 'string' && wert.trim() ? Number(wert) : wert;
+	return typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= max ? n : undefined;
+};
+
+const lesePhasen = (roh: unknown): PlanPhase[] =>
+	(Array.isArray(roh) ? roh : [])
+		.map((p): PlanPhase | null => {
+			const x = (p ?? {}) as Record<string, unknown>;
+			const minuten = ganz(x.minuten, PLAN_ZEIT_GRENZEN.minuten);
+			const was = kurz(x.was, PLAN_ZEIT_GRENZEN.was);
+			return minuten && was ? { was, minuten, arbeit: x.arbeit === true } : null;
+		})
+		.filter((p): p is PlanPhase => p !== null)
+		.slice(0, PLAN_ZEIT_GRENZEN.phasen);
+
+/** Liest `ziele` aus `einheit.json` (247): je Ziel Nummer und Ich-kann-Satz, eine Nummer nur einmal. */
+export const leseZiele = (roh: unknown): PlanZiel[] => {
+	const gesehen = new Set<number>();
+	return (Array.isArray(roh) ? roh : [])
+		.map((z): PlanZiel | null => {
+			const x = (z ?? {}) as Record<string, unknown>;
+			const nr = ganz(x.nr, PLAN_ZEIT_GRENZEN.ziele * 2);
+			const text = kurz(x.text, PLAN_ZEIT_GRENZEN.ziel);
+			if (!nr || !text || gesehen.has(nr)) {
+				return null;
+			}
+			gesehen.add(nr);
+			return { nr, text };
+		})
+		.filter((z): z is PlanZiel => z !== null)
+		.slice(0, PLAN_ZEIT_GRENZEN.ziele);
+};
+
+/** Die Felder aus 247 nur, wenn sie gültig dastehen: Alte Pläne behalten ihre Form. */
+const mitZahlen = (x: Record<string, unknown>) => {
+	const ziel = ganz(x.ziel, PLAN_ZEIT_GRENZEN.ziele * 2);
+	const minuten = ganz(x.minuten, PLAN_ZEIT_GRENZEN.minuten);
+	return { ...(ziel ? { ziel } : {}), ...(minuten ? { minuten } : {}) };
+};
 
 /** Liest `stunden` aus `einheit.json` tolerant wie `lesePlan`: Ungültiges fällt heraus, eine Stunde je Nummer. */
 export const leseStunden = (roh: unknown, slugs: ReadonlySet<string>): PlanStunde[] => {
@@ -189,10 +260,20 @@ export const leseStunden = (roh: unknown, slugs: ReadonlySet<string>): PlanStund
 					}
 					const dokument = typeof y.dokument === 'string' && slugs.has(y.dokument) ? y.dokument : '';
 					const bereich = ANFORDERUNGSBEREICHE.find((b) => b === kurz(y.bereich, 4).toUpperCase()) ?? null;
-					return { dokument, format, inhalt, bereich, zweitesMal: y.zweitesMal === true };
+					const niveau = NIVEAUS.find((n) => n === ganz(y.niveau, 3));
+					return {
+						dokument,
+						format,
+						inhalt,
+						bereich,
+						zweitesMal: y.zweitesMal === true,
+						...mitZahlen(y),
+						...(niveau ? { niveau } : {}),
+					};
 				})
 				.filter((a): a is PlanAufgabe => a !== null)
 				.slice(0, MAX_AUFGABEN);
+			const phasen = lesePhasen(x.phasen);
 			return {
 				nr,
 				handlung: kurz(x.handlung, 300),
@@ -202,6 +283,8 @@ export const leseStunden = (roh: unknown, slugs: ReadonlySet<string>): PlanStund
 					.slice(0, 8),
 				aufgaben,
 				kontrolle: x.kontrolle === true,
+				...mitZahlen(x),
+				...(phasen.length ? { phasen } : {}),
 			};
 		})
 		.filter((s): s is PlanStunde => s !== null)
@@ -385,8 +468,29 @@ export const planBefunde = (plan: EinheitPlan, klasse?: Klasse): string[] => {
 	];
 };
 
+/** Niveau, Ziel und Minuten einer Aufgabe (247); leer bei Plänen davor, damit ihr Auftrag gleich bleibt. */
+const zahlenZeile = (a: PlanAufgabe) =>
+	[
+		a.niveau ? `Niveau ${'●'.repeat(a.niveau)}` : '',
+		a.ziel ? `Ziel ${a.ziel}` : '',
+		a.minuten ? `etwa ${a.minuten} min` : '',
+	]
+		.filter(Boolean)
+		.map((t) => `, ${t}`)
+		.join('');
+
 const zeile = (a: PlanAufgabe) =>
-	`- ${formatTitel(a.format) || 'ohne Format'}, Bereich ${a.bereich ?? '?'}${a.zweitesMal ? ', zum zweiten Mal: mit höherem Anspruch als beim ersten' : ''}: ${a.inhalt}`;
+	`- ${formatTitel(a.format) || 'ohne Format'}, Bereich ${a.bereich ?? '?'}${zahlenZeile(a)}${a.zweitesMal ? ', zum zweiten Mal: mit höherem Anspruch als beim ersten' : ''}: ${a.inhalt}`;
+
+/** Länge und Ziel einer Stunde für den Bau (247); leer bei Plänen davor. */
+const stundenZahlen = (plan: EinheitPlan, s: PlanStunde) => {
+	const ziel = plan.ziele?.find((z) => z.nr === s.ziel);
+	const phasen = s.phasen?.length ? `: ${s.phasen.map((p) => `${p.was} ${p.minuten} min`).join(', ')}` : '';
+	return [
+		s.minuten ? `Die Stunde hat ${s.minuten} min${phasen}.` : '',
+		ziel ? `Ziel der Stunde (Ziel ${ziel.nr}): ${ziel.text}` : '',
+	].filter(Boolean);
+};
 
 /**
  * Was der Baulauf eines Materials aus der Übersicht braucht (für 220): die Stunde mit Handlungsform und Fachwörtern,
@@ -407,6 +511,7 @@ export const aufgabenFuerBau = (plan: EinheitPlan, slug: string): string => {
 			'',
 			`Stunde ${s.nr}${s.kontrolle ? ' (Lernzielkontrolle: Formate der Reihe, neue Items)' : ''}. Was die Kinder tun: ${s.handlung || 'nicht angegeben'}`,
 			`Neue Fachwörter: ${s.begriffe.join(', ') || 'keine'}. Schon eingeführt: ${frueher.join(', ') || 'keine'}.`,
+			...stundenZahlen(plan, s),
 			'Aufgaben dieses Materials, in dieser Reihenfolge:',
 			...s.aufgaben.filter((a) => a.dokument === slug).map(zeile),
 		);
