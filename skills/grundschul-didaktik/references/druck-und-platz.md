@@ -233,7 +233,6 @@ Mindestmaße, die höchste Zahl je A4 und den Abstand zur Schnittkante prüft `b
 | `teil-klein` | WARNUNG | `data-satz="2"`: kurze Kante einer Karte unter 50 mm, Dominostein kleiner als 105 × 50 mm, Teil zum Selbstschneiden unter 40 mm |
 | `motiv-klein` | WARNUNG | `data-satz="2"`: das Motiv füllt weniger als 50 % der Karte innerhalb ihres Rands |
 | `schnitt-knapp` | WARNUNG | `data-satz="2"`: Text oder Bild näher als 5 mm an der Schnittkante |
-| `symmetrie` | WARNUNG, HINWEIS | nur beim Bauen, aus `blatt.py`: je Aufgabe, die von Symmetrie oder dem Spiegel spricht, die Deckung der freien Motive (HINWEIS); WARNUNG, wo die Anweisung nach Symmetrie fragt, die Lösung „nicht symmetrisch“ sagt und ein Motiv an einer gefragten Mitte zu mindestens 99 % deckt |
 | `zeitziel-fehlt` | WARNUNG | nur im Lauf der Schoolbox beim Bau neuen Materials, nicht beim Ändern: Arbeitsblatt, Stationenlernen, Lernzielkontrolle, Klassenarbeit mit `data-satz="2"` und Aufgaben, aber ohne `data-zeit` am `<body>` |
 | `loesung-fehlt` | WARNUNG | nur im Lauf der Schoolbox beim Bau neuen Materials, nicht beim Ändern: je Aufgabe, deren Antwortlinien keine Lösung haben; bei offener Aufgabe reicht ein Satz als `.nur-loesung` |
 | `kit-anteil` | HINWEIS | nur beim Bauen: weniger als 90 % der Elemente mit Klasse nutzen nur Kit-Klassen; im Lauf der Schoolbox nicht im Bericht |
@@ -241,7 +240,6 @@ Mindestmaße, die höchste Zahl je A4 und den Abstand zur Schnittkante prüft `b
 | `kontrast-sw` | HINWEIS | in s/w: Text mit Kontrast unter 3:1 zu seiner Fläche |
 | `bild-kontrast-sw` | HINWEIS | in s/w: ein Bild, dessen Grauwerte weniger als 40 von 255 auseinanderliegen |
 | `bild-unscharf` | HINWEIS | ein Bild hat im Druck unter 150 dpi |
-| `symmetrie-motive` | HINWEIS | nur beim Bauen: ein freies Bild in einer Aufgabe über Symmetrie zeigt mehrere Motive (Teilbilder oder Titel) |
 | `ausgeblendet` | HINWEIS | einmal je Material: Elemente mit `data-aus` werden nicht gedruckt; im Lauf der Schoolbox nicht im Bericht |
 <!-- /erzeugt: pruef-schwellen -->
 

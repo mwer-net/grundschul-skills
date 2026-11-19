@@ -93,10 +93,8 @@ describe('pruefung.js (mit blatt.py)', () => {
 					'thema-layout',
 					'kit-anteil',
 					'zeitziel-fehlt',
-					// Symmetrie (245) prüft „pruefung.js und blatt.py: Symmetrie“.
-					'symmetrie',
+					// Symmetrie (245) prüft „pruefung.js: Symmetrie“.
 					'symmetrie-achse',
-					'symmetrie-motive',
 				].includes(c),
 		);
 		assert.deepEqual(fehlt, [], 'jede Regel kommt in den Testdaten vor');
@@ -706,19 +704,14 @@ describe('pruefung.js: Prüfbericht im Lauf (225)', { skip: browserSkip() }, () 
 	});
 });
 
-describe('pruefung.js und blatt.py: Symmetrie (245)', { skip: browserSkip() }, () => {
-	const motiv = (titel: string, form: string, haken: string) =>
-		`<div class="zelle"><svg data-frei data-frei-titel="${titel}" viewBox="0 0 100 100" width="100" height="100">${form}</svg>` +
-		`<div class="zeile"><span class="antwort" data-l="${haken}"></span></div></div>`;
-	const DREIECK = '<polygon points="10,10 90,50 10,90" fill="#c33" stroke="#000" stroke-width="3"/>';
-	const HAKEN = '<path d="M10 10V90H40V60H90V10Z" fill="#36c" stroke="#000" stroke-width="3"/>';
-	const blatt = (anweisung: string, zellen: string) =>
+describe('pruefung.js: Symmetrie (245)', { skip: browserSkip() }, () => {
+	const blatt = (anweisung: string, inhalt: string) =>
 		[
 			'<!doctype html><html lang="de"><head><meta charset="utf-8"><title>245</title>',
 			'<link rel="stylesheet" href="blatt.css"><script src="abbildungen.js"></script></head>',
 			'<body class="kl3 farbe"><section class="seite"><div class="kopf"><div class="titel"><h1>Spiegel</h1></div></div>',
 			`<div class="aufgabe"><span class="nr">1</span><div class="anw"><span class="text">${anweisung}</span></div>`,
-			`<div class="koerper"><div class="reihe" style="--spalten:2">${zellen}</div></div></div>`,
+			`<div class="koerper">${inhalt}</div></div>`,
 			'</section></body></html>',
 		].join('\n');
 	const melde = async (html: string) => {
@@ -731,41 +724,6 @@ describe('pruefung.js und blatt.py: Symmetrie (245)', { skip: browserSkip() }, (
 			await rm(tmp, { recursive: true, force: true });
 		}
 	};
-
-	it('Dreieck mit waagerechter Achse, als „nicht symmetrisch“ angekreuzt: WARNUNG', async () => {
-		const meldungen = await melde(
-			blatt(
-				'Kreuze an, welche Figur nicht symmetrisch ist.',
-				motiv('Dreieck', DREIECK, '✓') + motiv('Haken', HAKEN, ''),
-			),
-		);
-		const warnungen = meldungen.filter((m) => m.stufe === 'WARNUNG');
-		assert.equal(warnungen.length, 1);
-		assert.match(warnungen[0]?.text ?? '', /„Dreieck“ als nicht symmetrisch.*waagerechten Mitte/);
-		const hinweis = meldungen.find((m) => m.stufe === 'HINWEIS');
-		assert.match(hinweis?.text ?? '', /„Haken“: an keiner Mitte deckungsgleich/);
-	});
-
-	it('Passt die Lösung zur Zeichnung, bleibt es beim HINWEIS', async () => {
-		const meldungen = await melde(
-			blatt('Kreuze an, welche Figur symmetrisch ist.', motiv('Dreieck', DREIECK, '✓') + motiv('Haken', HAKEN, '')),
-		);
-		assert.deepEqual(
-			meldungen.map((m) => m.stufe),
-			['HINWEIS'],
-		);
-	});
-
-	it('Ohne Frage nach Symmetrie keine WARNUNG: Hälfte gefärbt, Spiegel in der Sache', async () => {
-		const haelfte = '<rect x="10" y="10" width="40" height="80" fill="#c33"/><rect x="50" y="10" width="40" height="80" fill="none" stroke="#000" stroke-width="3"/>';
-		const zellen = motiv('Hälfte rot', haelfte, '') + motiv('Dreieck', DREIECK, '✓');
-		assert.deepEqual(await melde(blatt('Kreuze an, wo genau die Hälfte gefärbt ist.', zellen)), []);
-		const spiegel = await melde(blatt('Halte einen Spiegel an das Bild. Kreuze an, was du siehst.', zellen));
-		assert.deepEqual(
-			spiegel.map((m) => m.stufe),
-			['HINWEIS'],
-		);
-	});
 
 	it('Gitter mit „nur“, die Anweisung nennt die Achse nicht: FEHLER', async () => {
 		const gitter = '<x-gitter spalten="4" zeilen="4" aufgabe="pruefen" nur="senkrecht" figur="1 1 / 1 0"></x-gitter>';

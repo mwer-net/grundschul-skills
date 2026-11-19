@@ -68,10 +68,6 @@ export const MELDUNG_CODES = [
 	'kit-anteil',
 	/** `x-gitter aufgabe="pruefen"` zählt nur eine Achse, die Anweisung nennt sie nicht (245). */
 	'symmetrie-achse',
-	/** Nur beim Bauen: Ein freies Bild in einer Aufgabe über Symmetrie zeigt mehrere Motive (245). */
-	'symmetrie-motive',
-	/** Nur beim Bauen, aus `blatt.py`: Deckung freier Motive an den Mitten, Widerspruch zur Lösung als Warnung (245). */
-	'symmetrie',
 ] as const;
 
 export type MeldungCode = (typeof MELDUNG_CODES)[number];
@@ -273,14 +269,6 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 	'symmetrie-achse': (_n, text) => ({
 		satz: text.replace(/ → .*$/, '.'),
 		tipp: 'Die Achse in die Anweisung schreiben, z. B. „… zur senkrechten Achse“.',
-	}),
-	'symmetrie-motive': (_n, text) => ({
-		satz: text.replace(/ → .*$/, '.'),
-		tipp: 'Jedes Motiv, über das die Kinder urteilen, als eigenes Bild.',
-	}),
-	'symmetrie': (_n, text) => ({
-		satz: text.replace(/ → .*$/, '.'),
-		tipp: 'Lösung und Zeichnung vergleichen: Passt die Lösung zur Figur?',
 	}),
 	'masstab': () => ({
 		satz: 'Dieses Blatt hat echte Maße. Bitte in Originalgröße drucken (100 %, nicht „An Seite anpassen“).',

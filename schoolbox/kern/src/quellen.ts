@@ -30,7 +30,6 @@ const RUECKFRAGEN = 'skills/grundschul-didaktik/references/rueckfragen.md';
 const DRUCK = 'skills/grundschul-didaktik/references/druck-und-platz.md';
 const BLATT_CSS = 'skills/html-materialerstellung/assets/blatt.css';
 const PRUEFUNG_JS = 'skills/html-materialerstellung/assets/pruefung.js';
-const BLATT_PY = 'skills/html-materialerstellung/scripts/blatt.py';
 const LAYOUT = 'skills/html-materialerstellung/references/layout.md';
 const GESTALTUNG = 'skills/html-materialerstellung/references/gestaltung.md';
 const ARBEITSBLATT = 'skills/arbeitsblatt/SKILL.md';
@@ -226,8 +225,8 @@ const satzSchwellen = (js: string) => {
 	};
 };
 
-/** Je Code die Stufen, mit denen `pruefung.js`, `blatt.py` und der Lauf der Schoolbox ihn melden. */
-const meldungStufen = (js: string, py = '') => {
+/** Je Code die Stufen, mit denen `pruefung.js` und der Lauf der Schoolbox ihn melden. */
+const meldungStufen = (js: string) => {
 	const stufen = new Map<string, Set<string>>();
 	const neben = (code: string, stufe: string) => stufen.set(code, (stufen.get(code) ?? new Set()).add(stufe));
 	for (const t of js.matchAll(/melde\("([A-Z]+)", [^,]+, ([^,]+),/g)) {
@@ -235,9 +234,6 @@ const meldungStufen = (js: string, py = '') => {
 		neben(codes.join(', '), t[1] ?? '');
 	}
 	for (const t of js.matchAll(/stufe: "([A-Z]+)", seite: \d+, code: "([a-z-]+)"/g)) {
-		neben(t[2] ?? '', t[1] ?? '');
-	}
-	for (const t of py.matchAll(/"stufe": "([A-Z]+)", "seite": [^,]+, "code": "([a-z-]+)"/g)) {
 		neben(t[2] ?? '', t[1] ?? '');
 	}
 	for (const [code, stufe] of Object.entries(LAUF_MELDUNGEN)) {
@@ -286,10 +282,8 @@ const pruefSchwellen = (wurzel: string) => {
 		'zeitziel-fehlt': `${laufNeu}: ${MIT_ZEITZIEL.map((a) => ART_ANGABEN[a].name).join(', ')} mit ${satz} und Aufgaben, aber ohne \`data-zeit\` am \`<body>\``,
 		'loesung-fehlt': `${laufNeu}: je Aufgabe, deren Antwortlinien keine Lösung haben; bei offener Aufgabe reicht ein Satz als \`.nur-loesung\``,
 		'symmetrie-achse': '`x-gitter aufgabe="pruefen"` mit `nur`, und die Anweisung spricht von Symmetrie, nennt die Achse aber nicht',
-		'symmetrie-motive': `nur beim Bauen: ein freies Bild in einer Aufgabe über Symmetrie zeigt mehrere Motive (Teilbilder oder Titel)`,
-		'symmetrie': `nur beim Bauen, aus \`blatt.py\`: je Aufgabe, die von Symmetrie oder dem Spiegel spricht, die Deckung der freien Motive (HINWEIS); WARNUNG, wo die Anweisung nach Symmetrie fragt, die Lösung „nicht symmetrisch“ sagt und ein Motiv an einer gefragten Mitte zu mindestens ${prozent(zahl('SYMMETRIE_DECKUNG'))} deckt`,
 	};
-	const stufen = meldungStufen(js, readFileSync(path.join(wurzel, BLATT_PY), 'utf8'));
+	const stufen = meldungStufen(js);
 	for (const code of OHNE_SCHWELLE) {
 		stufen.delete(code);
 	}
