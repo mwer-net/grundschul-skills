@@ -679,8 +679,8 @@ def symmetrie_satz(name, werte, schwelle):
 
 
 def symmetrie_messen(bericht, text, quelle_dir, tmp):
-    """Meldungen zur Deckung: je Aufgabe ein HINWEIS mit den Werten, eine WARNUNG, wo die Lösung „nicht symmetrisch“
-    sagt und die Messung an einer gefragten Achse deckungsgleich ist. Teilbilder und Felder erscheinen nur in Warnungen,
+    """Meldungen zur Deckung: je Aufgabe ein HINWEIS mit den Werten, eine WARNUNG, wo die Anweisung nach Symmetrie fragt,
+    die Lösung „nicht symmetrisch“ sagt und die Messung an einer gefragten Achse deckungsgleich ist. Teilbilder und Felder erscheinen nur in Warnungen,
     sobald es mehr als acht sind."""
     daten = bericht.pop("symmetrie", None)
     if not daten or not daten.get("motive"):
@@ -699,7 +699,7 @@ def symmetrie_messen(bericht, text, quelle_dir, tmp):
             continue
         m["deckung"] = werte
         je_aufgabe.setdefault((m["seite"], m["aufgabe"]), []).append(m)
-        if m["markiert"] is None:
+        if m["markiert"] is None or not m.get("frage"):
             continue
         symmetrisch_laut_loesung = m["markiert"] != m["nein"]
         gefragt = [werte[0] if a == "senkrecht" else werte[1] for a in m["achsen"]]

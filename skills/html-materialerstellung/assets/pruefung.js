@@ -60,6 +60,10 @@
     für „deckungsgleich“, am Prüfstand festgelegt (Ticket 245). */
  const SYMMETRIE_DECKUNG = 0.99;
  const SYMMETRIE_WORT = /symmetr|spiegel|achse|hälfte|faltlinie/i;
+ /* Gemessen wird in Aufgaben, die von Symmetrie oder dem Spiegel sprechen; „Hälfte“ (Brüche) und „x-Achse“
+    (Diagramm) allein zählen nicht. Eine WARNUNG gibt es nur, wenn die Anweisung nach Symmetrie fragt. */
+ const SYMMETRIE_AUFGABE = /symmetr|spiegel|faltlinie|deckungsgleich/i;
+ const SYMMETRIE_FRAGE = /symmetr|spiegelachse|deckungsgleich/i;
  const SYMMETRIE_NEIN = /nicht symmetr|keine (?:faltlinie|spiegelachse|achse)|nicht deckungsgleich/i;
  const MOTIV_PX = 240;
  const NICHT_GEZEICHNET = "defs,symbol,clipPath,mask,pattern,marker,.nur-loesung,text";
@@ -533,8 +537,8 @@
         if (["senkrecht", "waagerecht"].includes(wort) && SYMMETRIE_WORT.test(anw) && !anw.toLowerCase().includes(wort))
           melde("FEHLER", nr, "symmetrie-achse", `${nrText}: Das Gitter zählt nur die ${wort}e Achse, die Anweisung nennt sie nicht → „${wort}“ in die Anweisung schreiben`, [ziel(g)]);
       });
-      if (!warten || loesungsblatt || ausgeblendet(a) || !SYMMETRIE_WORT.test(a.textContent)) return;
-      const nein = SYMMETRIE_NEIN.test(anw), s = /senkrecht/i.test(anw), w = /waagerecht/i.test(anw);
+      if (!warten || loesungsblatt || ausgeblendet(a) || !SYMMETRIE_AUFGABE.test(a.textContent)) return;
+      const frage = SYMMETRIE_FRAGE.test(anw), nein = SYMMETRIE_NEIN.test(anw), s = /senkrecht/i.test(anw), w = /waagerecht/i.test(anw);
       const achsen = s && !w ? ["senkrecht"] : w && !s ? ["waagerecht"] : ["senkrecht", "waagerecht"];
       const frei = [...a.querySelectorAll("[data-frei]")].filter((e) => !e.parentElement.closest("[data-frei]") && !ausgeblendet(e));
       const motive = frei.flatMap((f) => (f.matches("svg, img") ? [f] : [...f.querySelectorAll("svg, img")].filter((e) => !e.parentElement.closest("svg")))
@@ -543,7 +547,7 @@
       motive.forEach(({ f }) => gezaehlt.set(f, (gezaehlt.get(f) || 0) + 1));
       for (const { e, f } of motive) {
           const titel = f.getAttribute("data-frei-titel") || e.getAttribute("alt") || "ohne Titel";
-          const eintrag = { seite: nr, aufgabe: nrText, titel, nein, achsen, ziel: ziel(e) };
+          const eintrag = { seite: nr, aufgabe: nrText, titel, frage, nein, achsen, ziel: ziel(e) };
           const zelle = e.closest(".zelle");
           const allein = zelle && a.contains(zelle) && [...zelle.querySelectorAll("[data-frei]")].length === 1;
           if (e.localName === "img") {

@@ -287,7 +287,7 @@ const pruefSchwellen = (wurzel: string) => {
 		'loesung-fehlt': `${laufNeu}: je Aufgabe, deren Antwortlinien keine Lösung haben; bei offener Aufgabe reicht ein Satz als \`.nur-loesung\``,
 		'symmetrie-achse': '`x-gitter aufgabe="pruefen"` mit `nur`, und die Anweisung spricht von Symmetrie, nennt die Achse aber nicht',
 		'symmetrie-motive': `nur beim Bauen: ein freies Bild in einer Aufgabe über Symmetrie zeigt mehrere Motive (Teilbilder oder Titel)`,
-		'symmetrie': `nur beim Bauen, aus \`blatt.py\`: je Aufgabe über Symmetrie die Deckung der freien Motive (HINWEIS); WARNUNG, wo die Lösung „nicht symmetrisch“ sagt und ein Motiv an einer gefragten Mitte zu mindestens ${prozent(zahl('SYMMETRIE_DECKUNG'))} deckt`,
+		'symmetrie': `nur beim Bauen, aus \`blatt.py\`: je Aufgabe, die von Symmetrie oder dem Spiegel spricht, die Deckung der freien Motive (HINWEIS); WARNUNG, wo die Anweisung nach Symmetrie fragt, die Lösung „nicht symmetrisch“ sagt und ein Motiv an einer gefragten Mitte zu mindestens ${prozent(zahl('SYMMETRIE_DECKUNG'))} deckt`,
 	};
 	const stufen = meldungStufen(js, readFileSync(path.join(wurzel, BLATT_PY), 'utf8'));
 	for (const code of OHNE_SCHWELLE) {

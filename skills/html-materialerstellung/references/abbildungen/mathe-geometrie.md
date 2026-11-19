@@ -37,7 +37,7 @@ Muster: `assets/muster/ebene-geometrie.html`. Gitter und Figuren mit `masse` sin
 | `nur` | nur bei `pruefen`: `senkrecht` oder `waagerecht`; es zählt nur diese Achse, und sie steht unter dem Gitter in der Frage. Ohne `nur` zählen alle Achsen, auch die schrägen |
 | `achsen-hinweis` | nur bei `frage="achsen"` ohne `nur`: die Zahl der Achsen, dann steht „Zeichne beide Achsen ein.“ unter dem Gitter; sie muss zur Figur passen |
 
-Bei `pruefen` sucht das Element alle Achsen der Figur selbst: senkrecht und waagerecht durch die Mitte ihres Rands, dazu beide Diagonalen. Die Lösung kreuzt ja oder nein an und zeichnet die Achsen. Fehler: `frage="achsen"` bei einer Figur ohne Achse, `achsen-hinweis` passt nicht zur Figur, `achse` beim Prüfen; im Prüfbericht ein FEHLER, wenn das Gitter `nur` hat und die Anweisung von Symmetrie spricht, die Achse aber nicht nennt.
+Bei `pruefen` sucht das Element alle Achsen der Figur selbst. Bei Kästchen (`figur`) sind das senkrecht und waagerecht durch die Mitte ihres Rands und beide Diagonalen; bei Linien (`linien`) jede Richtung, auch die schrägen Achsen eines gekippten Quadrats auf dem Geobrett. Die Lösung kreuzt ja oder nein an und zeichnet die Achsen. Fehler: `frage="achsen"` bei einer Figur ohne Achse, `achsen-hinweis` passt nicht zur Figur, `achse` beim Prüfen; im Prüfbericht ein FEHLER, wenn das Gitter `nur` hat und die Anweisung von Symmetrie spricht, die Achse aber nicht nennt.
 
 Die Lösung wird berechnet, nie angegeben. Fehler: Figur kreuzt die Achse, Spiegelbild oder vergrößerte Figur passt nicht, Weg verlässt das Gitter, Umfang bei schrägen Linien, Halbieren ohne volle 2×2-Felder.
 

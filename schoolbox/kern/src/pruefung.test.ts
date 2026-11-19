@@ -756,6 +756,17 @@ describe('pruefung.js und blatt.py: Symmetrie (245)', { skip: browserSkip() }, (
 		);
 	});
 
+	it('Ohne Frage nach Symmetrie keine WARNUNG: Hälfte gefärbt, Spiegel in der Sache', async () => {
+		const haelfte = '<rect x="10" y="10" width="40" height="80" fill="#c33"/><rect x="50" y="10" width="40" height="80" fill="none" stroke="#000" stroke-width="3"/>';
+		const zellen = motiv('Hälfte rot', haelfte, '') + motiv('Dreieck', DREIECK, '✓');
+		assert.deepEqual(await melde(blatt('Kreuze an, wo genau die Hälfte gefärbt ist.', zellen)), []);
+		const spiegel = await melde(blatt('Halte einen Spiegel an das Bild. Kreuze an, was du siehst.', zellen));
+		assert.deepEqual(
+			spiegel.map((m) => m.stufe),
+			['HINWEIS'],
+		);
+	});
+
 	it('Gitter mit „nur“, die Anweisung nennt die Achse nicht: FEHLER', async () => {
 		const gitter = '<x-gitter spalten="4" zeilen="4" aufgabe="pruefen" nur="senkrecht" figur="1 1 / 1 0"></x-gitter>';
 		const ohne = await melde(blatt('Ist die Figur symmetrisch?', gitter));

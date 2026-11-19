@@ -902,7 +902,7 @@ const rechenkerne = () => {
 		skaliere: (form: Form, faktor: number) => Form;
 		gehWeg: (start: number[], schritte: string[], spalten: number, zeilen: number) => number[][];
 		flaecheUmfang: (form: Form) => { flaeche: number; umfang: number | null };
-		symmetrieAchsen: (form: Form) => { art: string; mitte: number[] }[];
+		symmetrieAchsen: (form: Form) => { art: string; mitte: number[]; richtung?: number[] }[];
 		symmetrieGruppe: (arten: string[]) => string;
 		SYMMETRIE_ZEICHEN: Record<string, string>;
 		zeichenGruppe: (z: string) => string | null;
@@ -1230,6 +1230,39 @@ describe('Ebene Geometrie (025)', () => {
 		assert.deepEqual(arten({ zellen: zellen('1 0 / 1 0 / 1 1'), polys: leer }), []);
 		assert.equal(symmetrieGruppe([]), 'keine');
 		assert.deepEqual(arten({ zellen: zellen('0 1 0 / 1 1 1'), polys: leer }), ['senkrecht']);
+	});
+
+	it('Symmetrie (245): schräge Achsen auf dem Geobrett', () => {
+		const { symmetrieAchsen } = rechenkerne();
+		const steigungen = (ecken: number[][]) =>
+			[...symmetrieAchsen({ zellen: [], polys: [ecken] })]
+				.map((a) => {
+					assert.equal(a.art, 'schraeg');
+					const [dx = 0, dy = 0] = a.richtung ?? [];
+					return Math.round((dy / dx) * 1000) / 1000;
+				})
+				.sort((x, y) => x - y);
+		const quadrat = [
+			[0, 1],
+			[3, 0],
+			[4, 3],
+			[1, 4],
+		];
+		assert.deepEqual(steigungen(quadrat), [-2, -0.333, 0.5, 3]);
+		const drachen = [
+			[0, 1],
+			[3, 0],
+			[6, 4],
+			[1, 4],
+		];
+		assert.deepEqual(steigungen(drachen), [0.5]);
+		const rechteck = [
+			[0, 2],
+			[4, 0],
+			[5, 2],
+			[1, 4],
+		];
+		assert.deepEqual(steigungen(rechteck), [-0.5, 2]);
 	});
 
 	it('Symmetrie (245): Die Tabelle der Zeichen ist dieselbe wie im Kern, B gehört zu waagerecht', () => {

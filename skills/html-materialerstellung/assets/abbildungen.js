@@ -1077,8 +1077,43 @@
   };
   const formSchluessel = (form) =>
     `${form.zellen.map(([x, y]) => `${x},${y}`).sort().join(" ")}|${form.polys.map(vieleckSchluessel).sort().join(";")}`;
-  /** Alle Spiegelachsen der Figur: senkrecht und waagerecht durch die Mitte ihres Rands, dazu beide Diagonalen. */
+  const ACHSE_RICHTUNG = { senkrecht: [0, 1], waagerecht: [1, 0], fallend: [1, 1], steigend: [1, -1] };
+  /** Art einer Achse nach ihrer Richtung; jede andere Richtung ist „schraeg“. */
+  const achsenArt = ([dx, dy]) => {
+    const fast = (a, b) => Math.abs(a - b) < 1e-9;
+    return fast(dx, 0) ? "senkrecht" : fast(dy, 0) ? "waagerecht" : fast(dx, dy) ? "fallend" : fast(dx, -dy) ? "steigend" : "schraeg";
+  };
+  const rund = (v) => { const r = Math.round(v * 1e6) / 1e6; return r === 0 ? 0 : r; };
+  /** Achsen eines Vielecks oder mehrerer Vielecke in beliebiger Richtung: Jede Achse geht durch den Schwerpunkt der
+      Ecken und bildet die erste Ecke auf eine Ecke ab; geprüft wird die Spiegelung aller Vielecke. */
+  const vieleckAchsen = (roh) => {
+    const polys = roh.map((p) => vieleckSchluessel(p).split(" ").filter(Boolean).map((e) => e.split(",").map(Number)));
+    const ecken = polys.flat();
+    if (ecken.length < 2) return [];
+    const gx = ecken.reduce((s, e) => s + e[0], 0) / ecken.length, gy = ecken.reduce((s, e) => s + e[1], 0) / ecken.length;
+    const v = ecken.find(([x, y]) => Math.abs(x - gx) > 1e-9 || Math.abs(y - gy) > 1e-9);
+    if (!v) return [];
+    const selbst = polys.map(vieleckSchluessel).sort().join(";"), gesehen = new Set(), achsen = [];
+    for (const w of ecken) {
+      const gleich = Math.abs(w[0] - v[0]) < 1e-9 && Math.abs(w[1] - v[1]) < 1e-9;
+      let [dx, dy] = gleich ? [v[0] - gx, v[1] - gy] : [-(w[1] - v[1]), w[0] - v[0]];
+      const l = Math.hypot(dx, dy);
+      if (l < 1e-9) continue;
+      [dx, dy] = [dx / l, dy / l];
+      if (dy < -1e-9 || (Math.abs(dy) < 1e-9 && dx < 0)) [dx, dy] = [-dx, -dy];
+      const schluessel = `${rund(dx)},${rund(dy)}`;
+      if (gesehen.has(schluessel)) continue;
+      gesehen.add(schluessel);
+      const T = (x, y) => { const px = x - gx, py = y - gy, s = 2 * (px * dx + py * dy); return [rund(gx + s * dx - px), rund(gy + s * dy - py)]; };
+      if (polys.map((p) => vieleckSchluessel(p.map(([x, y]) => T(x, y)))).sort().join(";") === selbst) achsen.push({ art: achsenArt([dx, dy]), mitte: [gx, gy], richtung: [dx, dy] });
+    }
+    const reihe = [...ACHSEN_ARTEN, "schraeg"];
+    return achsen.sort((a, b) => reihe.indexOf(a.art) - reihe.indexOf(b.art));
+  };
+  /** Alle Spiegelachsen der Figur. Kästchen: senkrecht und waagerecht durch die Mitte ihres Rands, dazu beide
+      Diagonalen. Nur Vielecke: jede Richtung, auch schräge Achsen eines gekippten Quadrats (Art „schraeg“). */
   const symmetrieAchsen = (form) => {
+    if (form.zellen.length === 0 && form.polys.length > 0) return vieleckAchsen(form.polys);
     const xs = [...form.zellen.flatMap((z) => [z[0], z[0] + 1]), ...form.polys.flat().map((p) => p[0])];
     const ys = [...form.zellen.flatMap((z) => [z[1], z[1] + 1]), ...form.polys.flat().map((p) => p[1])];
     if (xs.length === 0) return [];
@@ -1090,7 +1125,10 @@
       steigend: (x, y) => [cx - y + cy, cy - x + cx],
     };
     const selbst = formSchluessel(form);
-    return ACHSEN_ARTEN.filter((art) => formSchluessel(bildVon(form, T[art])) === selbst).map((art) => ({ art, mitte: [cx, cy] }));
+    return ACHSEN_ARTEN.filter((art) => formSchluessel(bildVon(form, T[art])) === selbst).map((art) => {
+      const [dx, dy] = ACHSE_RICHTUNG[art], l = Math.hypot(dx, dy);
+      return { art, mitte: [cx, cy], richtung: [dx / l, dy / l] };
+    });
   };
   /** Spalte beim Sortieren: nur senkrecht, nur waagerecht, beide oder keine; schräge Achsen zählen hier nicht. */
   const symmetrieGruppe = (arten) => {
@@ -1125,10 +1163,15 @@
     return [Math.max(0, Math.min(...xs) - 0.5), Math.max(0, Math.min(...ys) - 0.5), Math.min(spalten, Math.max(...xs) + 0.5), Math.min(zeilen, Math.max(...ys) + 0.5)];
   };
   /** Eine Spiegelachse als gestrichelte Linie über die Figur, ein halbes Kästchen über ihren Rand hinaus. */
-  const achsenLinie = ({ art, mitte: [cx, cy] }, [x0, y0, x1, y1], k) => {
-    const [a, b] = art === "senkrecht" ? [[cx, y0], [cx, y1]] : art === "waagerecht" ? [[x0, cy], [x1, cy]]
-      : art === "fallend" ? [[cx - Math.min(cx - x0, cy - y0), cy - Math.min(cx - x0, cy - y0)], [cx + Math.min(x1 - cx, y1 - cy), cy + Math.min(x1 - cx, y1 - cy)]]
-        : [[cx - Math.min(cx - x0, y1 - cy), cy + Math.min(cx - x0, y1 - cy)], [cx + Math.min(x1 - cx, cy - y0), cy - Math.min(x1 - cx, cy - y0)]];
+  const achsenLinie = ({ art, mitte: [cx, cy], richtung: [dx, dy] }, [x0, y0, x1, y1], k) => {
+    let von = -Infinity, bis = Infinity;
+    for (const [p, d, lo, hi] of [[cx, dx, x0, x1], [cy, dy, y0, y1]]) {
+      if (Math.abs(d) < 1e-9) continue;
+      const [s, e] = [(lo - p) / d, (hi - p) / d].sort((m, n) => m - n);
+      von = Math.max(von, s);
+      bis = Math.min(bis, e);
+    }
+    const a = [cx + von * dx, cy + von * dy], b = [cx + bis * dx, cy + bis * dy];
     return `<line class="achse-loesung" data-achse="${art}" x1="${r1(a[0] * k)}" y1="${r1(a[1] * k)}" x2="${r1(b[0] * k)}" y2="${r1(b[1] * k)}" stroke="${SCHWARZ}" stroke-width="2.5" stroke-dasharray="8 5"/>`;
   };
   /** x-gitter aufgabe="pruefen" (245): Ist die Figur symmetrisch, welche Achsen hat sie? Die Lösung ist berechnet. */
