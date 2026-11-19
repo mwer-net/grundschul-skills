@@ -157,7 +157,7 @@ Die Skills gelten für Grundschulen in Baden-Württemberg.
   - https://spedsupport.tea.texas.gov/resource-library/autism-toolkit/visual-timer
   - https://www.timetimer.com/pages/research-in-special-needs (Herstellerangaben)
 
-Erfahrungsregeln ohne eigenen Beleg (im Skill so gekennzeichnet): Höchstzahl der Folien und Minuten je Folie, 48 px in Kl. 1/2, fachliche Genauigkeit (wie in `lernplakat`), Willi oder Wilma als Fragesteller, Platz für die Beiträge der Kinder, Halbkreis vor dem Bild bzw. A3-Ausdruck in der Kreismitte, Timer, Notizen je Folie.
+Erfahrungsregeln ohne eigenen Beleg (im Skill so gekennzeichnet): Höchstzahl der Folien und Minuten je Folie, 48 px in Kl. 1/2, fachliche Genauigkeit (wie in `lernplakat`), die Leitfigur (Willi oder Wilma) als Fragesteller, Platz für die Beiträge der Kinder, Halbkreis vor dem Bild bzw. A3-Ausdruck in der Kreismitte, Timer, Notizen je Folie.
 
 ## Differenzierung, Sprachsensibilität, offene Formen
 

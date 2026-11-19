@@ -32,7 +32,7 @@ Farbe ist **Akzent**, das Layout bleibt kompakt:
    - Nummernkreise: gefüllt in der dunklen Variante der Hauptfarbe, weiße fette Ziffer,
    - Überschrift in der dunklen Variante der Hauptfarbe (Kontrast zu Weiß ≥ 3:1, Spalte in der Palettentabelle),
    - Kontur der Tipp-Sprechblase in der Hauptfarbe (setzt `blatt.css`; im Beispiel steht die Lösung fett und schwarz auf der Antwortlinie),
-   - Willi oder Wilma, Wachstumsgrafik und Abbildungen in der farbigen Version,
+   - Willi oder Wilma (sonst die Leitfigur des Auftrags), Wachstumsgrafik und Abbildungen in der farbigen Version,
    - Farbcodes der Klasse (Wortarten, Stellenwerte, Wendeplättchen) direkt farbig.
 3. **Text bleibt schwarz** (`#1D1D1B`). Farbige Schrift nur für die Überschrift und kurze Hervorhebungen, nie für Anweisungen oder Fließtext. Einzige Ausnahme: Silbenfarben aus `x-silben`, wenn die Klasse damit arbeitet (Kontrast mindestens 4,5:1).
 4. **Kleine Tönungen nur mit Funktion:** Füllung der Tipp-Sprechblase oder eines Wortspeichers in sehr hellem Ton ist erlaubt; dunklere Flächen meldet die Prüfung als `flaeche` (Grenze in der Tabelle „Was die Prüfung meldet“); ganze Aufgaben werden nicht hinterlegt.

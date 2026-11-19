@@ -48,7 +48,8 @@ const feld = (wert: unknown, max: number, pflicht: boolean) => {
 	if (typeof wert !== 'string' || wert.length > max || (pflicht && !wert.trim())) {
 		throw ungueltig();
 	}
-	return wert.trim();
+	// Name und Aussehen stehen je in einer Zeile des Auftrags und des Prüflaufs.
+	return wert.replace(/\s+/g, ' ').trim();
 };
 
 /** Prüft die Leitfigur aus dem Assistenten; ohne Angabe die Vorgabe. */

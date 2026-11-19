@@ -58,7 +58,7 @@ Schreibfläche immer größer als gedacht: Kinderhandschrift braucht Platz.
 
 ## Bilder und Illustrationen
 
-- Funktional: Das Bild trägt Information (Anlaut, Mengenbild, Sachabbildung), wird zum Lösen gebraucht oder gibt als Leitfigur (Willi/Wilma Waschbär) einen Tipp. Weglass-Test und Dosierung: `kindgerecht-gestalten.md`.
+- Funktional: Das Bild trägt Information (Anlaut, Mengenbild, Sachabbildung), wird zum Lösen gebraucht oder gibt als Leitfigur (Willi/Wilma Waschbär, sonst die des Auftrags) einen Tipp. Weglass-Test und Dosierung: `kindgerecht-gestalten.md`.
 - Eindeutig: Ein Bild, ein Begriff. Bei Anlautbildern Mehrdeutigkeiten vermeiden (Hund vs. Dackel, Auto vs. PKW).
 - Stil: flache Illustration in der Palette, einheitlich im ganzen Material, nicht gemischt mit Fotos. Eine **Strichzeichnung** (schwarze Konturen, weiße Füllung, keine Graustufenflächen) als `name-strich.png` neben `name.png`, wenn die Kinder anmalen sollen: Der s/w-Druck nimmt sie von selbst, wenn das Seitenverhältnis gleich ist; sonst wird das Bild in Graustufen gedruckt.
 - Für Ausmalaufgaben: klare schwarze Konturen, keine Graustufenflächen.

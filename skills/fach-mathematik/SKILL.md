@@ -111,7 +111,7 @@ Andere Geometrie-Themen folgen demselben Muster (Körper: bauen und kneten vor d
 
 Kl. 1/2 unbenotet (`lernzielkontrolle`), Kl. 3/4 höchstens 6 Arbeiten im Schuljahr (`klassenarbeit`).
 
-- **Prozesse prüfen, nicht nur Rechnen:** mindestens eine Aufgabe zum Erklären, Begründen oder Entdecken („Was fällt dir auf? Begründe.", „Tilda hat sich vertan. Finde den Fehler.", mit dem Namen der Leitfigur).
+- **Prozesse prüfen, nicht nur Rechnen:** mindestens eine Aufgabe zum Erklären, Begründen oder Entdecken („Was fällt dir auf? Begründe.", „Willi hat sich vertan. Finde den Fehler.", sonst die Leitfigur des Auftrags).
 - **Profi-Aufgaben** (PIKAS, Selter): Platz für Nebenrechnungen und Notizen, Vorgehen beschreiben lassen, offene Aufgaben mit mehreren Lösungen („Finde drei Aufgaben mit dem Ergebnis 100."), Eigenproduktionen („Erfinde eine Aufgabe und löse sie."), beziehungsreiche Aufgaben (schöne Päckchen), Hilfsaufgaben nutzen.
 - **Teilpunkte für den Weg:** Eine richtige Strategie mit Rechenfehler bekommt Punkte; der Erwartungshorizont legt fest, welche Wege zählen.
 - **Leselast niedrig:** Sachaufgaben kurz und mit Bild, damit die Arbeit Mathematik prüft und nicht Lesen. Bei Nachteilsausgleich werden Aufgaben vorgelesen.

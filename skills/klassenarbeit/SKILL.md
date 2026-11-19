@@ -62,7 +62,7 @@ Ablauf nach `grundschul-didaktik/references/entwurf-und-aufgabenplan.md`.
    - **AB I Reproduzieren** ca. 40–50 %
    - **AB II Zusammenhänge herstellen** ca. 30–40 %
    - **AB III Verallgemeinern und Reflektieren** ca. 10–20 %
-3. **Jede Aufgabe:** Punktzahl sichtbar, nur aus dem Unterricht und der Probearbeit bekannte Formate, Operatoren wie im Unterricht (`grundschul-didaktik/references/sprachsensibel.md`). Keine Fangfragen, kein vorgelöstes Beispiel. Willi oder Wilma höchstens einmal mit einem Arbeitstipp („Lies jede Aufgabe genau. Prüfe am Ende."), nie mit einem Lösungshinweis.
+3. **Jede Aufgabe:** Punktzahl sichtbar, nur aus dem Unterricht und der Probearbeit bekannte Formate, Operatoren wie im Unterricht (`grundschul-didaktik/references/sprachsensibel.md`). Keine Fangfragen, kein vorgelöstes Beispiel. Willi oder Wilma (sonst die Leitfigur des Auftrags) höchstens einmal mit einem Arbeitstipp („Lies jede Aufgabe genau. Prüfe am Ende."), nie mit einem Lösungshinweis.
 4. **Prozesse sichtbar machen (Profi-Aufgaben):** mindestens eine Aufgabe, in der das Kind erklärt, begründet oder einen Fehler findet; Platz für Nebenrechnungen und Notizen; Teilpunkte für richtige Wege. Leselast niedrig, damit Mathematik nicht zur Leseprüfung wird.
 5. **Differenzierung ohne Notendeckel:** Gleichwertige Wahlaufgaben („Wähle 2 von 3", gleicher Anforderungsbereich, gleiche Punkte) erhalten das Churer-Element Wahl. Getrennte Niveaus mit gedeckelter Note gibt es nicht.
 6. **Sternchenaufgabe ★** (falls gewählt): am Ende, freiwillig, offen. Sie zählt nicht zur Note, wird aber kommentiert. Bonuspunkte nur, wenn das Schulkonzept sie vorsieht und die Kinder es vorher wissen.

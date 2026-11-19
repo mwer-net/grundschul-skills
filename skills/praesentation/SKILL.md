@@ -32,7 +32,7 @@ Wünscht die Lehrkraft für einen Impuls eine lange Präsentation (15 Folien zu 
 
 2–3 Entwürfe zeigen, erst nach Freigabe des Aufgabenplans die Endfassung bauen (`grundschul-didaktik/references/entwurf-und-aufgabenplan.md`).
 
-- **Entwürfe unterscheiden sich im Einstieg:** Bildimpuls mit Frage, Rätsel mit Vermutungen zum Abstimmen, Willi oder Wilma erzählt eine kleine Geschichte. Ein Entwurf besteht nur aus der **Einstiegsfolie**, denn die Vorschau zeigt die erste Seite. Den geplanten Ablauf nennt die Idee im `<title>`: „B · Willis Kartoffel – keimende Kartoffel, Vermutung, Pflanze aufdecken, 3 Lernaufgaben“.
+- **Entwürfe unterscheiden sich im Einstieg:** Bildimpuls mit Frage, Rätsel mit Vermutungen zum Abstimmen, Willi oder Wilma (sonst die Leitfigur des Auftrags) erzählt eine kleine Geschichte. Ein Entwurf besteht nur aus der **Einstiegsfolie**, denn die Vorschau zeigt die erste Seite. Den geplanten Ablauf nennt die Idee im `<title>`: „B · Willis Kartoffel – keimende Kartoffel, Vermutung, Pflanze aufdecken, 3 Lernaufgaben“.
 - **Aufgabenplan Folie für Folie:** Zweck, Bild (vorhanden oder KI-Motiv, Größe), Text wörtlich, Aufdeck-Schritte in ihrer Reihenfolge, Lösung, Notiz (Impulsfrage, erwartete Antworten und Fehlvorstellungen, Übergang), Minuten je Folie. Dazu die Lernaufgaben mit Niveau bzw. ★ und die Reflexionsfrage.
 
 ## Auftakt
@@ -69,7 +69,7 @@ Plant die Reihe eine Rahmengeschichte (`unterrichtsplanung/references/reihe-als-
 
 | Folie | Inhalt | Wann |
 |---|---|---|
-| 1 Einstieg | Ich-kann-Ziel, großes Bild, eine Frage (Willi oder Wilma stellt sie) | immer |
+| 1 Einstieg | Ich-kann-Ziel, großes Bild, eine Frage (Willi oder Wilma stellt sie, sonst die Leitfigur des Auftrags) | immer |
 | 2 Vermuten | Frage mit 2–3 Antworten zum Abstimmen oder offene Frage, Platz für die Strichliste | immer, bei kurzen Inputs in Folie 1 |
 | 3 Aufdecken | Antwort in Schritten, die richtige Antwort neben der Vermutung | immer |
 | 4 Merksatz | ein Satz mit verdecktem Schlüsselwort, Bild | Ergebnissicherung |
@@ -88,7 +88,7 @@ Der Ablauf folgt dem Churer Modell: Kreisinput mit Ich-kann-Ziel, Lernaufgaben v
 - **Das Wesentliche hervorheben:** das eine Wort, den einen Teil im Bild, mit Rahmen, Pfeil oder Farbe der Palette *(Signalisieren)*.
 - **Lesbar aus 6 m:** Text mindestens 40 px, Überschrift 64 px *(Lesbarkeit aus der Entfernung)*; Kl. 1/2 48 px *(Erfahrungsregel)*. `blatt.css` setzt das für `folie`, die Prüfung warnt unter 32 px (Kl. 1/2: 38 px). Schrift schwarz auf Weiß, nie in Hauptfarbe oder Akzent, keine Flächen hinter Text; vorne am Bild das Licht aus *(Kontrast am Beamer)*.
 - **Fachlich exakt in Kindersprache**, ohne falsche Vereinfachungen *(Erfahrungsregel, wie in `lernplakat`)*. Im Sachunterricht die Vorstellungen der Kinder aufgreifen, nicht übergehen *(Schülervorstellungen)*.
-- **Willi oder Wilma mit Funktion:** stellt die Frage oder gibt den Strategietipp, eine Figur je Präsentation *(Erfahrungsregel)*.
+- **Willi oder Wilma mit Funktion** (sonst die Leitfigur des Auftrags): stellt die Frage oder gibt den Strategietipp, eine Figur je Präsentation *(Erfahrungsregel)*.
 - **Platz für die Kinder:** Strichliste, Wortkarten, Antworten, die die Lehrkraft am Board ergänzt; was die Kinder gesagt haben, in der Reflexion aufgreifen *(Erfahrungsregel)*.
 - **Alle sehen das Bild:** Kreis zur Wand hin öffnen (Halbkreis vor Beamer oder Board). Ohne Beamer die Einstiegsfolie in A3 drucken und in die Mitte legen *(Erfahrungsregel)*.
 - **Timer nur mit Zweck:** für die Arbeitszeit der Lernaufgaben oder eine kurze Partnerphase; Scheibe wie ein Time Timer, kein Ton *(Erfahrungsregel, Belege nur aus Einzelfallstudien)*.

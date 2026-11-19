@@ -30,7 +30,7 @@ Zuerst die Start-Abfrage (`grundschul-didaktik/references/rueckfragen.md`): Medi
 - Beispiel-orientiert: Regel + 1–2 farbig markierte Beispiele ("Nomen schreibt man groß: der **H**und, die **S**onne").
 - Strategien als nummerierte Schritte mit Symbolen (z. B. Rechenweg "Erst zum Zehner, dann weiter").
 - Farbcodes konsistent mit Arbeitsblättern und Klassenkonvention.
-- Willi oder Wilma Waschbär mit Funktion (spricht den Merksatz oder den Strategietipp in der Sprechblase), eine Figur pro Plakat.
+- Willi oder Wilma Waschbär (sonst die Leitfigur des Auftrags) mit Funktion (spricht den Merksatz oder den Strategietipp in der Sprechblase), eine Figur pro Plakat.
 - Fachlich exakte Begriffe in Kindersprache, keine falschen Vereinfachungen ("Minus macht kleiner" stimmt später nicht – lieber "Wegnehmen").
 
 ## Plakat und Folien

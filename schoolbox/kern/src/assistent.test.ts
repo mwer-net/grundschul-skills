@@ -421,6 +421,18 @@ describe('Assistent: jede Einstellung steht im Auftrag (210)', () => {
 		assert.doesNotMatch(text, /Willi|Wilma/);
 	});
 
+	it('Einheit (242): Name und Aussehen der eigenen Figur bleiben je in einer Zeile', () => {
+		const text = einheitAuftragAus(
+			pruefeEinheitAngaben({
+				thema: 'Spiegeln',
+				fach: 'mathematik',
+				klasse: 2,
+				leitfigur: { art: 'neu', name: ' Luna\n\nEule ', aussehen: 'braun,\r\n\tmit Schal' },
+			}),
+		);
+		assert.match(text, /^Leitfigur: Luna Eule \(neu, Aussehen: braun, mit Schal\)\.$/m);
+	});
+
 	it('Einheit (242): Figur der Bibliothek, Vorgabe und die Werte vor 242', () => {
 		const satz = (leitfigur: unknown) =>
 			einheitAuftragAus(pruefeEinheitAngaben({ thema: 'Uhrzeit', fach: 'mathematik', klasse: 2, leitfigur }))
