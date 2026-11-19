@@ -48,6 +48,45 @@ export interface Abgleich {
 const istTextListe = (wert: unknown): wert is string[] =>
 	Array.isArray(wert) && wert.every((w) => typeof w === 'string' && w.trim() !== '');
 
+/** Prüft einen Eintrag mit gültiger `id`; jeder Fehler bricht den Abgleich ab. */
+const katalogEintrag = (
+	x: Record<string, unknown> & { id: string },
+	wo: string,
+	slugs: ReadonlySet<string>,
+): KatalogEintrag => {
+	if (typeof x.dokument !== 'string' || (x.dokument !== PLAN_DOKUMENT && !slugs.has(x.dokument))) {
+		throw new Error(`${wo} (${x.id}): „dokument“ ist kein Slug des Plans und nicht „${PLAN_DOKUMENT}“.`);
+	}
+	if (x.seite !== null && !(typeof x.seite === 'number' && Number.isInteger(x.seite) && x.seite > 0)) {
+		throw new Error(`${wo} (${x.id}): „seite“ ist keine Seitenzahl und nicht null.`);
+	}
+	if (!istTextListe(x.teil) || !x.teil.every((t) => (TEILE as readonly string[]).includes(t))) {
+		throw new Error(`${wo} (${x.id}): „teil“ braucht eine Liste aus ${TEILE.join(', ')}.`);
+	}
+	const erwartung = x.erwartung ?? 'gefunden';
+	if (erwartung !== 'gefunden' && erwartung !== 'still') {
+		throw new Error(`${wo} (${x.id}): „erwartung“ ist „gefunden“ oder „still“.`);
+	}
+	if (erwartung === 'gefunden' && !istTextListe(x.stichwoerter)) {
+		throw new Error(`${wo} (${x.id}): „stichwoerter“ fehlt.`);
+	}
+	if (erwartung === 'still' && x.seite === null) {
+		throw new Error(`${wo} (${x.id}): Eine Gegenprobe „still“ braucht eine Seite.`);
+	}
+	return {
+		id: x.id,
+		dokument: x.dokument,
+		seite: x.seite,
+		aufgabe: typeof x.aufgabe === 'string' ? x.aufgabe : '',
+		art: typeof x.art === 'string' ? x.art : '',
+		teil: x.teil as Teil[],
+		stichwoerter: istTextListe(x.stichwoerter) ? x.stichwoerter : [],
+		beschreibung: typeof x.beschreibung === 'string' ? x.beschreibung : '',
+		erwartung,
+		...(typeof x.begruendung === 'string' ? { begruendung: x.begruendung } : {}),
+	};
+};
+
 /** Liest `fehler.json` streng: Ein falscher Eintrag verfälscht jeden Abgleich, deshalb bricht er ab. */
 export const leseKatalog = (roh: unknown, slugs: ReadonlySet<string>): KatalogEintrag[] => {
 	const liste = (roh as { eintraege?: unknown } | null)?.eintraege;
@@ -62,37 +101,7 @@ export const leseKatalog = (roh: unknown, slugs: ReadonlySet<string>): KatalogEi
 			throw new Error(`${wo}: „id“ fehlt oder ist doppelt.`);
 		}
 		ids.add(x.id);
-		if (typeof x.dokument !== 'string' || (x.dokument !== PLAN_DOKUMENT && !slugs.has(x.dokument))) {
-			throw new Error(`${wo} (${x.id}): „dokument“ ist kein Slug des Plans und nicht „${PLAN_DOKUMENT}“.`);
-		}
-		if (x.seite !== null && !(typeof x.seite === 'number' && Number.isInteger(x.seite) && x.seite > 0)) {
-			throw new Error(`${wo} (${x.id}): „seite“ ist keine Seitenzahl und nicht null.`);
-		}
-		if (!istTextListe(x.teil) || !x.teil.every((t) => (TEILE as readonly string[]).includes(t))) {
-			throw new Error(`${wo} (${x.id}): „teil“ braucht eine Liste aus ${TEILE.join(', ')}.`);
-		}
-		const erwartung = x.erwartung ?? 'gefunden';
-		if (erwartung !== 'gefunden' && erwartung !== 'still') {
-			throw new Error(`${wo} (${x.id}): „erwartung“ ist „gefunden“ oder „still“.`);
-		}
-		if (erwartung === 'gefunden' && !istTextListe(x.stichwoerter)) {
-			throw new Error(`${wo} (${x.id}): „stichwoerter“ fehlt.`);
-		}
-		if (erwartung === 'still' && x.seite === null) {
-			throw new Error(`${wo} (${x.id}): Eine Gegenprobe „still“ braucht eine Seite.`);
-		}
-		return {
-			id: x.id,
-			dokument: x.dokument,
-			seite: x.seite,
-			aufgabe: typeof x.aufgabe === 'string' ? x.aufgabe : '',
-			art: typeof x.art === 'string' ? x.art : '',
-			teil: x.teil as Teil[],
-			stichwoerter: istTextListe(x.stichwoerter) ? x.stichwoerter : [],
-			beschreibung: typeof x.beschreibung === 'string' ? x.beschreibung : '',
-			erwartung,
-			...(typeof x.begruendung === 'string' ? { begruendung: x.begruendung } : {}),
-		};
+		return katalogEintrag(x as Record<string, unknown> & { id: string }, wo, slugs);
 	});
 };
 
@@ -109,6 +118,13 @@ const nennt = (e: KatalogEintrag, b: PruefBefund) => {
 	return e.stichwoerter.some((w) => text.includes(normal(w)));
 };
 
+const standVon = (erwartung: KatalogEintrag['erwartung'], getroffen: boolean): EintragStand => {
+	if (erwartung === 'still') {
+		return getroffen ? 'gemeldet' : 'still';
+	}
+	return getroffen ? 'gefunden' : 'nicht gefunden';
+};
+
 export const gleicheAb = (katalog: readonly KatalogEintrag[], materialien: readonly MaterialErgebnis[]): Abgleich => {
 	const benutzt = new Set<string>();
 	const eintraege = katalog.map((e) => {
@@ -122,14 +138,7 @@ export const gleicheAb = (katalog: readonly KatalogEintrag[], materialien: reado
 		for (const { nr } of treffer) {
 			benutzt.add(`${m.slug}#${nr}`);
 		}
-		const stand: EintragStand =
-			e.erwartung === 'still'
-				? treffer.length
-					? 'gemeldet'
-					: 'still'
-				: treffer.length
-					? 'gefunden'
-					: 'nicht gefunden';
+		const stand = standVon(e.erwartung, treffer.length > 0);
 		return { id: e.id, dokument: e.dokument, seite: e.seite, stand, befunde: treffer.map((t) => t.nr + 1) };
 	});
 	const neu = materialien.flatMap((m) =>

@@ -260,21 +260,16 @@ const zahlAus = (wert: unknown) => (typeof wert === 'number' && Number.isFinite(
 
 const usd = (n: number) => `${n.toFixed(2).replace('.', ',')} USD`;
 
-const fuehreAus = async (o: Optionen) => {
-	const fehlt = o.teile.filter((t) => !GEBAUTE_TEILE.includes(t));
+const pruefeGebaut = (teile: Teil[]) => {
+	const fehlt = teile.filter((t) => !GEBAUTE_TEILE.includes(t));
 	if (fehlt.length) {
 		throw new Abbruch(
-			fehlt.map((t) => `Teil ${t}: noch nicht gebaut (${NOCH_NICHT[t] ?? '?'}).`).join(' ') +
-				' Abbruch, nichts gestartet.',
+			`${fehlt.map((t) => `Teil ${t}: noch nicht gebaut (${NOCH_NICHT[t] ?? '?'}).`).join(' ')} Abbruch, nichts gestartet.`,
 		);
 	}
-	const p = await ladePruefstand(o.ordner);
-	if (o.abgleich) {
-		const alt = (await leseJson(path.resolve(o.abgleich))) as { materialien?: MaterialErgebnis[] };
-		console.log(abgleichTabelle(p.katalog, gleicheAb(p.katalog, alt.materialien ?? [])));
-		return;
-	}
-	const teilName = o.teile.join('-');
+};
+
+const planeVorhaben = async (p: Pruefstand, o: Optionen) => {
 	const vorhaben: Vorhaben[] = [];
 	for (const d of waehleMaterialien(p, o.nur)) {
 		const v = await vorhabenFuer(p, d, o.teile);
@@ -287,6 +282,171 @@ const fuehreAus = async (o: Optionen) => {
 			);
 		}
 	}
+	return vorhaben;
+};
+
+type KiLauf = Awaited<ReturnType<typeof kiLaufJetzt>>;
+type Ergebnis = MaterialErgebnis & Record<string, unknown>;
+type Lauf = PruefErgebnis & { teil: PruefTeil | null; gelesen: string[] };
+
+/** Was alle Materialien eines Aufrufs teilen; `abgebrochen` und `laufend` setzt auch Strg+C. */
+interface Kontext {
+	p: Pruefstand;
+	konfig: ReturnType<typeof ladeKonfig>;
+	ki: KiLauf;
+	ablage: string;
+	ausgabe: string | null;
+	teilName: string;
+	zustand: { abgebrochen: boolean; laufend: ChildProcessWithoutNullStreams | null };
+}
+
+const teileFuer = async (k: Kontext, v: Vorhaben, ordner: string) => {
+	const ansicht = await baueAnsichtAus(k.konfig, v.quelle, ordner, { sw: false });
+	const ein = await richtePruefOrdnerEin(ordner, ansicht.bilder, v.html, k.p.mappe, v.kind);
+	return pruefTeile({
+		titel: v.d.titel,
+		artName: ART_NAME[v.d.art],
+		klasse: klasseText(k.p.klasse),
+		fach: FACH_NAME[k.p.fach],
+		...ein,
+		...(v.bilder ? {} : { bilder: [] }),
+		formate: formateDavor(k.p, v.d.slug),
+		kind: v.kind,
+		regeln: v.regeln.map((r) => path.join(k.ablage, '.claude', 'skills', r)),
+		auftrag: k.p.auftrag,
+		figuren: k.p.plan.figuren ?? [],
+	});
+};
+
+const schreibeTrocken = async (ausgabe: string, k: Kontext, v: Vorhaben, teile: PruefAuftrag[]) => {
+	for (const t of teile) {
+		const datei = path.join(ausgabe, `${v.d.slug}-${k.teilName}${t.teil ? `-lauf-${t.teil.nr}` : ''}.txt`);
+		await writeFile(datei, `${pruefText(t)}\n`);
+		console.log(
+			`${v.d.slug}${t.teil ? ` (Prüflauf ${t.teil.nr} von ${t.teil.von})` : ''}: ${t.seiten.length} Seiten, ${t.loesungen.length} Lösungsseiten, ${t.ausschnitte.length} Ausschnitte, ${t.bilder.length} KI-Bilder → ${datei}`,
+		);
+	}
+};
+
+const laufeTeile = async (k: Kontext, v: Vorhaben, ordner: string, teile: PruefAuftrag[]) => {
+	const laeufe: Lauf[] = [];
+	for (const t of teile) {
+		if (k.zustand.abgebrochen) {
+			break;
+		}
+		console.log(`${v.d.slug}: ${t.teil ? `Prüflauf ${t.teil.nr} von ${t.teil.von}` : 'Prüflauf'} läuft …`);
+		const gelesen: string[] = [];
+		const e = await pruefeLauf({
+			bin: kiPfad(k.konfig),
+			...k.ki,
+			ordner,
+			ablage: k.ablage,
+			text: pruefText(t),
+			grenzen: KI_GRENZEN.einheit.pruefung,
+			gestartet: (kind) => {
+				k.zustand.laufend = kind;
+			},
+			werkzeug: (werkzeug, eingabe) => {
+				if (werkzeug === 'Read' && typeof eingabe.file_path === 'string') {
+					gelesen.push(
+						path.relative(eingabe.file_path.startsWith(k.ablage) ? k.ablage : ordner, eingabe.file_path),
+					);
+				}
+			},
+			mitschrift: {
+				materialDir: k.p.ordner,
+				mappe: 'pruefstand',
+				dok: v.d.slug,
+				art: `pruefstand-${k.teilName}`,
+			},
+		});
+		k.zustand.laufend = null;
+		laeufe.push({ ...e, teil: t.teil ?? null, gelesen });
+		if (e.fehler) {
+			break;
+		}
+	}
+	return laeufe;
+};
+
+const ergebnisAus = (v: Vorhaben, laeufe: Lauf[], teile: number, beginn: number): Ergebnis => {
+	const kosten = laeufe.reduce((summe, e) => summe + zahlAus(e.verbrauch.kostenUsd), 0);
+	const fehler = laeufe.find((e) => e.fehler)?.fehler ?? (laeufe.length < teile ? 'Abgebrochen.' : null);
+	const befunde = befundeDerTeile(laeufe.map((e) => e.befunde));
+	console.log(
+		`${v.d.slug}: ${fehler ? `gescheitert (${fehler})` : `${befunde.length} Befunde`}${laeufe.length > 1 ? ` aus ${laeufe.length} Prüfläufen` : ''}, ${usd(kosten)}`,
+	);
+	return {
+		slug: v.d.slug,
+		geprueft: fehler ? [] : v.geprueft,
+		befunde,
+		fehler,
+		lesbar: laeufe.every((e) => e.lesbar),
+		kostenUsd: kosten,
+		runden: laeufe.reduce((summe, e) => summe + zahlAus(e.verbrauch.runden), 0),
+		sekunden: Math.round((Date.now() - beginn) / 1000),
+		laeufe: laeufe.map((e) => ({
+			teil: e.teil,
+			befunde: e.befunde.length,
+			fehler: e.fehler,
+			lesbar: e.lesbar,
+			verbrauch: e.verbrauch,
+			gelesen: e.gelesen,
+		})),
+	};
+};
+
+/** Ein Material: im Trockenlauf nur die Aufträge (ohne Ergebnis), sonst die Prüfläufe. */
+const pruefeMaterial = async (k: Kontext, v: Vorhaben): Promise<Ergebnis | null> => {
+	const ordner = k.ausgabe
+		? path.join(k.ausgabe, v.d.slug)
+		: await mkdtemp(path.join(tmpdir(), 'schoolbox-pruefstand-'));
+	await mkdir(ordner, { recursive: true });
+	const beginn = Date.now();
+	try {
+		const teile = await teileFuer(k, v, ordner);
+		if (k.ausgabe) {
+			await schreibeTrocken(k.ausgabe, k, v, teile);
+			return null;
+		}
+		return ergebnisAus(v, await laufeTeile(k, v, ordner, teile), teile.length, beginn);
+	} catch (fehler) {
+		console.error(`${v.d.slug}: ${(fehler as Error).message}`);
+		return {
+			slug: v.d.slug,
+			geprueft: [],
+			befunde: [] as PruefBefund[],
+			fehler: 'Die Seiten ließen sich nicht bauen.',
+		};
+	} finally {
+		if (!k.ausgabe) {
+			await rm(ordner, { recursive: true, force: true });
+		}
+	}
+};
+
+const schreibeErgebnis = async (p: Pruefstand, o: Optionen, ki: KiLauf, ergebnisse: Ergebnis[]) => {
+	const abgleich = gleicheAb(p.katalog, ergebnisse);
+	const tabelle = abgleichTabelle(p.katalog, abgleich);
+	const summe = ergebnisse.reduce((s, e) => s + zahlAus(e.kostenUsd), 0);
+	const name = `ergebnis-${zeitstempel()}-${o.teile.join('-')}`;
+	await writeFile(
+		path.join(p.ordner, `${name}.json`),
+		`${JSON.stringify({ datum: new Date().toISOString(), teile: o.teile, ki, kostenUsd: summe, materialien: ergebnisse, abgleich }, null, '\t')}\n`,
+	);
+	await writeFile(path.join(p.ordner, `${name}.md`), `# Prüfstand ${name}\n\nKosten ${usd(summe)}.\n\n${tabelle}\n`);
+	console.log(`\n${tabelle}\n\nKosten ${usd(summe)}. Geschrieben: ${name}.json und ${name}.md`);
+};
+
+const fuehreAus = async (o: Optionen) => {
+	pruefeGebaut(o.teile);
+	const p = await ladePruefstand(o.ordner);
+	if (o.abgleich) {
+		const alt = (await leseJson(path.resolve(o.abgleich))) as { materialien?: MaterialErgebnis[] };
+		console.log(abgleichTabelle(p.katalog, gleicheAb(p.katalog, alt.materialien ?? [])));
+		return;
+	}
+	const vorhaben = await planeVorhaben(p, o);
 	const ki = await kiLaufJetzt(ladeKonfig(), 'gross');
 	const n = vorhaben.length;
 	console.log(
@@ -299,148 +459,41 @@ const fuehreAus = async (o: Optionen) => {
 		console.log('Nichts gestartet. Mit --ja starten, mit --trocken nur Ordner und Aufträge bauen.');
 		return;
 	}
-	const konfig = ladeKonfig();
-	const ablage = await mkdtemp(path.join(tmpdir(), 'schoolbox-pruefstand-ablage-'));
-	const ausgabe = o.trocken ? path.join(tmpdir(), `pruefstand-trocken-${zeitstempel()}`) : null;
-	let laufend: ChildProcessWithoutNullStreams | null = null;
-	let abgebrochen = false;
+	const k: Kontext = {
+		p,
+		konfig: ladeKonfig(),
+		ki,
+		ablage: await mkdtemp(path.join(tmpdir(), 'schoolbox-pruefstand-ablage-')),
+		ausgabe: o.trocken ? path.join(tmpdir(), `pruefstand-trocken-${zeitstempel()}`) : null,
+		teilName: o.teile.join('-'),
+		zustand: { abgebrochen: false, laufend: null },
+	};
 	process.on('SIGINT', () => {
-		abgebrochen = true;
-		if (laufend) {
-			beendeKind(laufend);
+		k.zustand.abgebrochen = true;
+		if (k.zustand.laufend) {
+			beendeKind(k.zustand.laufend);
 		}
 	});
-	const ergebnisse: (MaterialErgebnis & Record<string, unknown>)[] = [];
+	const ergebnisse: Ergebnis[] = [];
 	try {
-		await legeAblageAn(ablage, path.join(WURZEL, 'skills'));
+		await legeAblageAn(k.ablage, path.join(WURZEL, 'skills'));
 		for (const v of vorhaben) {
-			if (abgebrochen) {
+			if (k.zustand.abgebrochen) {
 				break;
 			}
-			const ordner = ausgabe
-				? path.join(ausgabe, v.d.slug)
-				: await mkdtemp(path.join(tmpdir(), 'schoolbox-pruefstand-'));
-			await mkdir(ordner, { recursive: true });
-			const beginn = Date.now();
-			try {
-				const ansicht = await baueAnsichtAus(konfig, v.quelle, ordner, { sw: false });
-				const ein = await richtePruefOrdnerEin(ordner, ansicht.bilder, v.html, p.mappe, v.kind);
-				const teile = pruefTeile({
-					titel: v.d.titel,
-					artName: ART_NAME[v.d.art],
-					klasse: klasseText(p.klasse),
-					fach: FACH_NAME[p.fach],
-					...ein,
-					...(v.bilder ? {} : { bilder: [] }),
-					formate: formateDavor(p, v.d.slug),
-					kind: v.kind,
-					regeln: v.regeln.map((r) => path.join(ablage, '.claude', 'skills', r)),
-					auftrag: p.auftrag,
-					figuren: p.plan.figuren ?? [],
-				});
-				if (ausgabe) {
-					for (const t of teile) {
-						const datei = path.join(ausgabe, `${v.d.slug}-${teilName}${t.teil ? `-lauf-${t.teil.nr}` : ''}.txt`);
-						await writeFile(datei, `${pruefText(t)}\n`);
-						console.log(
-							`${v.d.slug}${t.teil ? ` (Prüflauf ${t.teil.nr} von ${t.teil.von})` : ''}: ${t.seiten.length} Seiten, ${t.loesungen.length} Lösungsseiten, ${t.ausschnitte.length} Ausschnitte, ${t.bilder.length} KI-Bilder → ${datei}`,
-						);
-					}
-					continue;
-				}
-				const laeufe: (PruefErgebnis & { teil: PruefTeil | null; gelesen: string[] })[] = [];
-				for (const t of teile) {
-					if (abgebrochen) {
-						break;
-					}
-					console.log(`${v.d.slug}: ${t.teil ? `Prüflauf ${t.teil.nr} von ${t.teil.von}` : 'Prüflauf'} läuft …`);
-					const gelesen: string[] = [];
-					const e = await pruefeLauf({
-						bin: kiPfad(konfig),
-						...ki,
-						ordner,
-						ablage,
-						text: pruefText(t),
-						grenzen: KI_GRENZEN.einheit.pruefung,
-						gestartet: (k) => {
-							laufend = k;
-						},
-						werkzeug: (werkzeug, eingabe) => {
-							if (werkzeug === 'Read' && typeof eingabe.file_path === 'string') {
-								gelesen.push(
-									path.relative(eingabe.file_path.startsWith(ablage) ? ablage : ordner, eingabe.file_path),
-								);
-							}
-						},
-						mitschrift: {
-							materialDir: p.ordner,
-							mappe: 'pruefstand',
-							dok: v.d.slug,
-							art: `pruefstand-${teilName}`,
-						},
-					});
-					laufend = null;
-					laeufe.push({ ...e, teil: t.teil ?? null, gelesen });
-					if (e.fehler) {
-						break;
-					}
-				}
-				const kosten = laeufe.reduce((n, e) => n + zahlAus(e.verbrauch.kostenUsd), 0);
-				const fehler =
-					laeufe.find((e) => e.fehler)?.fehler ?? (laeufe.length < teile.length ? 'Abgebrochen.' : null);
-				const befunde = befundeDerTeile(laeufe.map((e) => e.befunde));
-				ergebnisse.push({
-					slug: v.d.slug,
-					geprueft: fehler ? [] : v.geprueft,
-					befunde,
-					fehler,
-					lesbar: laeufe.every((e) => e.lesbar),
-					kostenUsd: kosten,
-					runden: laeufe.reduce((n, e) => n + zahlAus(e.verbrauch.runden), 0),
-					sekunden: Math.round((Date.now() - beginn) / 1000),
-					laeufe: laeufe.map((e) => ({
-						teil: e.teil,
-						befunde: e.befunde.length,
-						fehler: e.fehler,
-						lesbar: e.lesbar,
-						verbrauch: e.verbrauch,
-						gelesen: e.gelesen,
-					})),
-				});
-				console.log(
-					`${v.d.slug}: ${fehler ? `gescheitert (${fehler})` : `${befunde.length} Befunde`}${laeufe.length > 1 ? ` aus ${laeufe.length} Prüfläufen` : ''}, ${usd(kosten)}`,
-				);
-			} catch (fehler) {
-				console.error(`${v.d.slug}: ${(fehler as Error).message}`);
-				ergebnisse.push({
-					slug: v.d.slug,
-					geprueft: [],
-					befunde: [] as PruefBefund[],
-					fehler: 'Die Seiten ließen sich nicht bauen.',
-				});
-			} finally {
-				if (!ausgabe) {
-					await rm(ordner, { recursive: true, force: true });
-				}
+			const e = await pruefeMaterial(k, v);
+			if (e) {
+				ergebnisse.push(e);
 			}
 		}
 	} finally {
-		await rm(ablage, { recursive: true, force: true });
+		await rm(k.ablage, { recursive: true, force: true });
 	}
-	if (ausgabe) {
-		console.log(`\nTrockenlauf: Ordner und Aufträge unter ${ausgabe}. Kein Claude gestartet.`);
+	if (k.ausgabe) {
+		console.log(`\nTrockenlauf: Ordner und Aufträge unter ${k.ausgabe}. Kein Claude gestartet.`);
 		return;
 	}
-	const abgleich = gleicheAb(p.katalog, ergebnisse);
-	const tabelle = abgleichTabelle(p.katalog, abgleich);
-	const summe = ergebnisse.reduce((s, e) => s + zahlAus(e.kostenUsd), 0);
-	const name = `ergebnis-${zeitstempel()}-${teilName}`;
-	await writeFile(
-		path.join(p.ordner, `${name}.json`),
-		`${JSON.stringify({ datum: new Date().toISOString(), teile: o.teile, ki, kostenUsd: summe, materialien: ergebnisse, abgleich }, null, '\t')}\n`,
-	);
-	await writeFile(path.join(p.ordner, `${name}.md`), `# Prüfstand ${name}\n\nKosten ${usd(summe)}.\n\n${tabelle}\n`);
-	console.log(`\n${tabelle}\n\nKosten ${usd(summe)}. Geschrieben: ${name}.json und ${name}.md`);
+	await schreibeErgebnis(p, o, ki, ergebnisse);
 };
 
 Promise.resolve()
