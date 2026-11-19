@@ -144,11 +144,10 @@ export const KI_GRENZEN = {
 	limitBudgetUsd: 0.1,
 	/**
 	 * Eine Unterrichtseinheit (139), seit 220 ein frischer Lauf je Material. `zeitMs`, `runden` und die Budgets gelten
-	 * für einen Durchgang des Baus (Freigabe oder „Weiterbauen“) über alle Läufe zusammen. Der Lauf vom 2026-11-16 in einem
-	 * Stück: 15 Materialien, 54 min, 323 Runden, 27,61 USD (rund 22 Runden und 1,85 USD je Material bei im Schnitt
-	 * 175.000 Token Kontext). Je Material neu heißt: Pflichtlektüre jedes Mal (49.000 bis 120.000 Token je Materialart,
-	 * aus den Zeichen gerechnet in 222), dafür kleiner Kontext; geschätzt 30 bis 60 Runden, 2 bis 4 USD und 5 bis 10 min
-	 * je Material. Am ersten echten Lauf zu messen.
+	 * für einen Durchgang des Baus (Freigabe oder „Weiterbauen“) über alle Läufe zusammen. Gemessen am ersten echten
+	 * Lauf mit Prüfschleife (238: 15 Materialien, zwei Durchgänge): Bau im Mittel 4,2 USD (bis 7,1), Prüfung 1,1,
+	 * Korrektur 1,3 (bis 3,7), Bilder 5,8, Schluss 5,0; zusammen nach Freigabe 125 USD, 2740 Runden und 6,3 h. Bis 240
+	 * zählte jede Korrektur die Kosten ihrer ganzen Sitzung mit, der Durchgang brach deshalb bei echten 77 USD ab.
 	 */
 	einheit: {
 		zeitMs: 5 * 60 * 60_000,
@@ -156,7 +155,10 @@ export const KI_GRENZEN = {
 		budgetUsd: 150,
 		budgetGuthabenUsd: 25,
 		dokumente: 24,
-		/** Ein Lauf je Material (220): Lektüre, Bau, Endkontrolle und eine Korrekturrunde haben darin Platz. */
+		/**
+		 * Ein Lauf je Material (220): Lektüre, Bau und Endkontrolle. Eine Korrektur per `--resume` ist ein eigener Lauf
+		 * mit derselben Grenze.
+		 */
 		material: { zeitMs: 30 * 60_000, runden: 200, budgetUsd: 20, budgetGuthabenUsd: 5 },
 		/** Der Schritt „Bilder“: Leitfigur, Posen und die Szenen aller Kapitel, je Bild bis zu drei Versuche. */
 		bilder: { zeitMs: 60 * 60_000, runden: 300, budgetUsd: 25, budgetGuthabenUsd: 5 },
@@ -164,7 +166,7 @@ export const KI_GRENZEN = {
 		korrekturen: 1,
 		/**
 		 * Ein Prüflauf „mit Kinderaugen“ (220, Teil 2): nur Read, Seitenbilder ansehen, jede Aufgabe lösen, beim zweiten
-		 * Blick dazu zwei bis vier Regeldateien. Klein gegenüber dem Bau; geschätzt 10 bis 25 Runden und 0,5 bis 1,5 USD.
+		 * Blick dazu zwei bis vier Regeldateien. Klein gegenüber dem Bau; gemessen 0,7 bis 1,4 USD (238).
 		 */
 		pruefung: { zeitMs: 10 * 60_000, runden: 40, budgetUsd: 3, budgetGuthabenUsd: 1 },
 		/** So oft gehen Befunde des Prüflaufs als Korrekturrunde an den Baulauf zurück; danach prüft er ein letztes Mal. */
@@ -571,6 +573,7 @@ export const kiArgumente = (o: {
 		'dontAsk',
 		'--max-turns',
 		String(o.runden ?? (o.einheit ? KI_GRENZEN.einheit.runden : blattRunden)),
+		// Bei `--resume` zählt die CLI gegen das Budget nur diesen Lauf, nicht die frühere Sitzung (240, CLI 2.1.325).
 		'--max-budget-usd',
 		String(o.budgetUsd ?? (o.einheit ? KI_GRENZEN.einheit.budgetUsd : blattBudget)),
 		'--append-system-prompt-file',
@@ -1278,6 +1281,37 @@ interface GespraechStand {
 
 const zahl = (wert: unknown) => (typeof wert === 'number' ? wert : 0);
 
+/**
+ * Kosten und Token nur dieses Laufs aus dem `result` (240, an den Mitschriften einer Einheit mit Korrekturen geprüft):
+ * `total_cost_usd` und `modelUsage` zählen bei `--resume` die ganze Sitzung (Bau und alle früheren Korrekturen),
+ * `usage` nur diesen Lauf, aber nur das Hauptmodell (ohne Haiku-Nebenaufrufe), `model_usage_since_last_result` diesen
+ * Lauf über alle Modelle. Fehlt das letzte (ältere CLI), bleibt `total_cost_usd`: bei `--resume` zu viel, nie zu wenig.
+ */
+export const laufVerbrauch = (e: Record<string, unknown>) => {
+	const seit = e.model_usage_since_last_result;
+	if (seit !== null && typeof seit === 'object' && Object.keys(seit).length) {
+		const modelle = Object.values(seit as Record<string, unknown>).map((m) =>
+			m !== null && typeof m === 'object' ? (m as Record<string, unknown>) : {},
+		);
+		const summe = (feld: string) => modelle.reduce((n, m) => n + zahl(m[feld]), 0);
+		return {
+			kostenUsd: summe('costUSD'),
+			eingabe: summe('inputTokens'),
+			ausgabe: summe('outputTokens'),
+			cacheLesen: summe('cacheReadInputTokens'),
+			cacheSchreiben: summe('cacheCreationInputTokens'),
+		};
+	}
+	const u = (e.usage ?? {}) as Record<string, unknown>;
+	return {
+		kostenUsd: e.total_cost_usd,
+		eingabe: u.input_tokens,
+		ausgabe: u.output_tokens,
+		cacheLesen: u.cache_read_input_tokens,
+		cacheSchreiben: u.cache_creation_input_tokens,
+	};
+};
+
 /** Wertet ein Ereignis aus `stream-json` aus. Text aus dem Material wandert nie in Schritte oder Log. */
 export const werteAus = (
 	e: Record<string, unknown>,
@@ -1326,18 +1360,14 @@ export const werteAus = (
 		}
 	}
 	if (e.type === 'result') {
-		const u = (e.usage ?? {}) as Record<string, unknown>;
 		stand.ergebnis = {
 			// Ohne Anmeldung meldet `claude` subtype „success“ mit is_error (Issue 056): subtype allein reicht nicht.
 			fehler: e.is_error ? (stand.fehlerCode ?? (typeof e.subtype === 'string' ? e.subtype : 'unbekannt')) : null,
 			antwort: typeof e.result === 'string' ? e.result : '',
 			verbrauch: {
 				runden: e.num_turns,
-				kostenUsd: e.total_cost_usd,
-				eingabe: u.input_tokens,
-				ausgabe: u.output_tokens,
-				cacheLesen: u.cache_read_input_tokens,
-				cacheSchreiben: u.cache_creation_input_tokens,
+				...laufVerbrauch(e),
+				kostenSitzungUsd: e.total_cost_usd,
 				abgelehnt: Array.isArray(e.permission_denials) ? e.permission_denials.length : 0,
 			},
 		};

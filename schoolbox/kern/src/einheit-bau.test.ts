@@ -9,6 +9,7 @@ import { lesePlan } from './einheit';
 import {
 	ABBILDUNGEN_DATEIEN,
 	bauReihenfolge,
+	beendeLaufEintrag,
 	BILDER_SCHRITT,
 	fehlendeAbbildungsTeile,
 	fertigText,
@@ -16,6 +17,7 @@ import {
 	lektuereFehltText,
 	lektuereZeile,
 	leseSteckbrief,
+	neuerLaufEintrag,
 	pflichtFuer,
 	PFLICHTLEKTUERE,
 	READ_ZEILEN,
@@ -255,5 +257,19 @@ describe('Katalog der Abbildungen je Element (226)', () => {
 				'Rufe bauen danach wieder auf.',
 			].join('\n'),
 		);
+	});
+});
+
+describe('Protokoll der Läufe (240)', () => {
+	it('hält die Kosten des Laufs und daneben die der Sitzung fest', () => {
+		const e = neuerLaufEintrag('korrektur', 'kapitel-1', []);
+		beendeLaufEintrag(e, Date.now(), {
+			fehler: null,
+			abgebrochen: false,
+			verbrauch: { runden: 43, kostenUsd: 2.24, kostenSitzungUsd: 9.34 },
+		});
+		assert.equal(e.kostenUsd, 2.24);
+		assert.equal(e.kostenSitzungUsd, 9.34);
+		assert.equal(e.ergebnis, 'fertig');
 	});
 });

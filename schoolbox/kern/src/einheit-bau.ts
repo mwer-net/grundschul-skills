@@ -10,7 +10,10 @@ import type { Fach } from './werte';
 
 /** Der Schritt „Bilder“ in der Reihenfolge des Baus; kein Slug (die beginnen nie mit `_`). */
 export const BILDER_SCHRITT = '_bilder';
-/** Protokoll der Läufe in der Mappe; Dateien mit `_` zeigt die Ablage nicht. */
+/**
+ * Protokoll der Läufe in der Mappe; Dateien mit `_` zeigt die Ablage nicht. Vor 240 sind Korrekturen kumuliert gezählt:
+ * `kostenUsd` einer Korrektur enthielt die Kosten ihrer ganzen Sitzung (Bau und frühere Korrekturen).
+ */
 export const LAUF_DATEI = '_lauf.json';
 /** Was ein Baulauf für die späteren Materialien hinterlässt, im Ordner seines Materials. */
 export const STECKBRIEF_DATEI = 'steckbrief.json';
@@ -485,7 +488,10 @@ export interface LaufEintrag {
 	beginn: string;
 	sekunden: number | null;
 	runden: number | null;
+	/** Kosten nur dieses Laufs, auch bei `--resume`. */
 	kostenUsd: number | null;
+	/** Kosten der ganzen Sitzung (`total_cost_usd`), nur zum Vergleich; seit 240, ältere Protokolle haben es nicht. */
+	kostenSitzungUsd?: number | null;
 	/** `laeuft`, bis der Lauf endet; nach einem Neustart des Servers `abgebrochen`. */
 	ergebnis: 'laeuft' | 'fertig' | 'fehler' | 'abgebrochen';
 	fehler: string | null;
@@ -555,6 +561,7 @@ export const beendeLaufEintrag = (
 	e.sekunden = Math.round((Date.now() - beginn) / 1000);
 	e.runden = typeof o.verbrauch.runden === 'number' ? o.verbrauch.runden : null;
 	e.kostenUsd = typeof o.verbrauch.kostenUsd === 'number' ? o.verbrauch.kostenUsd : null;
+	e.kostenSitzungUsd = typeof o.verbrauch.kostenSitzungUsd === 'number' ? o.verbrauch.kostenSitzungUsd : null;
 	e.ergebnis = laufErgebnis(o);
 	e.fehler = o.fehler;
 };

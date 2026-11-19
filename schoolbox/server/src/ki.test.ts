@@ -23,6 +23,7 @@ import {
 import { erzeugeReferenz } from '@schoolbox/kern/src/referenz';
 
 import { BILDER_AUS } from './bild-zugang';
+import type { LaufStand } from './ki';
 import {
 	BLATT_BILD_RECHTE,
 	KI_GRENZEN,
@@ -30,11 +31,13 @@ import {
 	kiTempWurzel,
 	kiUmgebung,
 	konnektorSperre,
+	laufVerbrauch,
 	liesLimit,
 	limitErreichtText,
 	pruefArgumente,
 	rechercheArgumente,
 	richtePruefOrdnerEin,
+	werteAus,
 	zuGrossText,
 } from './ki';
 import { KI_EINSTELLUNG_STANDARD, waehleLauf } from './ki-einstellung';
@@ -2164,5 +2167,72 @@ describe('Modell und Gründlichkeit im Aufruf (232)', () => {
 		assert.equal(nach(kiArgumente({ ...basis, ...gross, einheit: true }), '--effort'), 'high');
 		assert.equal(nach(rechercheArgumente({ ...basis, ...gross }), '--effort'), 'high');
 		assert.equal(nach(pruefArgumente({ ...basis, ...gross, runden: 5 }), '--effort'), 'high');
+	});
+});
+
+describe('Kosten je Lauf (240)', () => {
+	const opus = (kosten: number, ein: number, aus: number, lesen: number, schreiben: number) => ({
+		inputTokens: ein,
+		outputTokens: aus,
+		cacheReadInputTokens: lesen,
+		cacheCreationInputTokens: schreiben,
+		costUSD: kosten,
+	});
+	// Aufgezeichnet: erste Korrektur eines Kapitels per `--resume` nach dem Bau (7,10 USD), nur die Zahlenfelder.
+	const korrektur = {
+		type: 'result',
+		subtype: 'success',
+		is_error: false,
+		num_turns: 43,
+		session_id: 'sitzung-des-baus',
+		total_cost_usd: 9.335722800000001,
+		usage: {
+			input_tokens: 38,
+			cache_creation_input_tokens: 47584,
+			cache_read_input_tokens: 7752924,
+			output_tokens: 15439,
+		},
+		modelUsage: { 'claude-opus-5-5': opus(9.335722800000001, 108, 124703, 17178754, 425685) },
+		model_usage_since_last_result: { 'claude-opus-5-5': opus(2.2401888, 38, 15439, 7752924, 47584) },
+		permission_denials: [],
+	};
+
+	it('Eine Korrektur mit --resume zählt die Kosten des Laufs, die Sitzung nur fürs Protokoll', () => {
+		const stand: LaufStand = { sitzung: null, fehlerCode: null, ergebnis: {} };
+		werteAus(korrektur, stand, { schritt: () => undefined, limit: () => undefined });
+		assert.deepEqual(stand.ergebnis.verbrauch, {
+			runden: 43,
+			kostenUsd: 2.2401888,
+			eingabe: 38,
+			ausgabe: 15439,
+			cacheLesen: 7752924,
+			cacheSchreiben: 47584,
+			kostenSitzungUsd: 9.335722800000001,
+			abgelehnt: 0,
+		});
+	});
+
+	it('Haiku-Nebenaufrufe zählen mit, die `usage` des Hauptmodells allein nicht', () => {
+		const v = laufVerbrauch({
+			total_cost_usd: 1.9417518,
+			usage: { input_tokens: 38, output_tokens: 28834 },
+			model_usage_since_last_result: {
+				'claude-opus-5-5': opus(1.740313, 38, 28834, 1245685, 114293),
+				'claude-haiku-5-5': opus(0.2014388, 877008, 47476, 0, 0),
+			},
+		});
+		assert.ok(Math.abs(Number(v.kostenUsd) - 1.9417518) < 1e-9);
+		assert.equal(v.eingabe, 877046);
+		assert.equal(v.ausgabe, 76310);
+	});
+
+	it('Ohne die Zahlen seit dem letzten Ergebnis bleiben total_cost_usd und usage', () => {
+		assert.deepEqual(laufVerbrauch({ total_cost_usd: 0.5, usage: { input_tokens: 3, output_tokens: 4 } }), {
+			kostenUsd: 0.5,
+			eingabe: 3,
+			ausgabe: 4,
+			cacheLesen: undefined,
+			cacheSchreiben: undefined,
+		});
 	});
 });
