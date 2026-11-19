@@ -1064,13 +1064,20 @@ export const legeFremdeLoesungenAb = async (
 
 /**
  * Merkt sich einen laufenden Prozess unter mehreren (244: Kinderaugen und Fachblick gleichzeitig) und schreibt alle PIDs
- * in `pidDatei`, eine je Zeile. Endet er, fällt er aus der Menge; die Datei behält zuletzt den letzten, wie vorher.
+ * in `pidDatei`, eine je Zeile. Endet er, fällt er aus Menge und Datei. Ist `abgebrochen` schon gesetzt, endet er
+ * sofort und wird nicht gemerkt; so läuft kein Prozess weiter, der nach `stoppe` gestartet wurde.
  */
 export const merkeKind = (
 	kinder: Set<ChildProcessWithoutNullStreams>,
 	kind: ChildProcessWithoutNullStreams,
 	pidDatei: string,
+	abgebrochen: boolean,
 ) => {
+	// Abgebrochen, während der Lauf noch vorbereitet wurde: `stoppe` fand ihn nicht, er endet hier sofort.
+	if (abgebrochen) {
+		beendeKind(kind);
+		return;
+	}
 	kinder.add(kind);
 	const schreibe = () => {
 		try {
@@ -1090,9 +1097,7 @@ export const merkeKind = (
 	}
 	kind.once('close', () => {
 		kinder.delete(kind);
-		if (kinder.size) {
-			schreibe();
-		}
+		schreibe();
 	});
 };
 
@@ -2041,7 +2046,7 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 			const kind = spawn(bin, argumente, { cwd: arbeit, env: kiUmgebung(bin) });
 			schreibeMitschrift(mitschrift, kind, { argumente, auftrag: text, cwd: arbeit, bilder });
 			if (aktiv) {
-				merkeKind(aktiv.kinder, kind, pidDatei);
+				merkeKind(aktiv.kinder, kind, pidDatei, aktiv.abbruch);
 			}
 			let grund: string | null = null;
 			let bytes = 0;
@@ -2491,7 +2496,7 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 				},
 				gestartet: (kind) => {
 					if (aktiv) {
-						merkeKind(aktiv.kinder, kind, pidDatei);
+						merkeKind(aktiv.kinder, kind, pidDatei, aktiv.abbruch);
 					}
 				},
 				abgebrochen: () => aktiv?.abbruch === true,
@@ -2623,7 +2628,7 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 						},
 						gestartet: (kind) => {
 							if (aktiv) {
-								merkeKind(aktiv.kinder, kind, pidDatei);
+								merkeKind(aktiv.kinder, kind, pidDatei, aktiv.abbruch);
 							}
 						},
 						werkzeug: (name, eingabe) => notiereLektuere(l, name, eingabe),

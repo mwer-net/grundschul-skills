@@ -986,7 +986,7 @@ export const erstelleEinheiten = (
 				bilder: bilder?.stand,
 			});
 			if (aktiv) {
-				merkeKind(aktiv.kinder, kind, path.join(dir(s.id), PID));
+				merkeKind(aktiv.kinder, kind, path.join(dir(s.id), PID), aktiv.abbruch);
 			}
 			let grund: string | null = null;
 			let bytes = 0;
@@ -1073,7 +1073,7 @@ export const erstelleEinheiten = (
 			},
 			gestartet: (kind) => {
 				if (aktiv) {
-					merkeKind(aktiv.kinder, kind, path.join(dir(s.id), PID));
+					merkeKind(aktiv.kinder, kind, path.join(dir(s.id), PID), aktiv.abbruch);
 				}
 			},
 			abgebrochen: () => aktiv?.abbruch === true,
@@ -1462,7 +1462,7 @@ export const erstelleEinheiten = (
 						rolle: pruefRolle,
 						gestartet: (k) => {
 							if (aktiv) {
-								merkeKind(aktiv.kinder, k, path.join(dir(s.id), PID));
+								merkeKind(aktiv.kinder, k, path.join(dir(s.id), PID), aktiv.abbruch);
 							}
 						},
 						werkzeug: (name, eingabe) => notiereGelesen(lauf, name, eingabe),

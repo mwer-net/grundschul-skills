@@ -32,8 +32,10 @@ import {
 	kiUmgebung,
 	konnektorSperre,
 	laufVerbrauch,
+	lesePids,
 	liesLimit,
 	limitErreichtText,
+	merkeKind,
 	pruefArgumente,
 	rechercheArgumente,
 	richtePruefOrdnerEin,
@@ -1778,6 +1780,37 @@ describe('Aufträge an Claude', () => {
 			assert.equal(b?.status, 'fehler');
 			assert.match(b?.fehler ?? '', /Limit des Claude-Kontos/);
 		});
+	});
+});
+
+describe('merkeKind: mehrere Prozesse, Abbruch vor dem Start (244)', () => {
+	it('gemerkt bis zum Ende, danach leere PID-Datei; nach dem Abbruch gestartet: sofort beendet, nicht gemerkt', async () => {
+		const wurzel = await mkdtemp(path.join(tmpdir(), 'schoolbox-merkekind-'));
+		const pidDatei = path.join(wurzel, 'pid');
+		const starte = () => spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)']);
+		const ende = (k: ReturnType<typeof starte>) =>
+			new Promise<void>((r) => (k.exitCode !== null || k.signalCode !== null ? r() : k.once('close', () => r())));
+		try {
+			const kinder = new Set<ReturnType<typeof starte>>();
+			const a = starte();
+			const b = starte();
+			merkeKind(kinder, a, pidDatei, false);
+			merkeKind(kinder, b, pidDatei, false);
+			assert.deepEqual(lesePids(pidDatei), [a.pid, b.pid]);
+			const spaet = starte();
+			merkeKind(kinder, spaet, pidDatei, true);
+			await ende(spaet);
+			assert.equal(spaet.signalCode, 'SIGINT');
+			assert.equal(kinder.size, 2);
+			assert.deepEqual(lesePids(pidDatei), [a.pid, b.pid]);
+			a.kill('SIGTERM');
+			b.kill('SIGTERM');
+			await Promise.all([ende(a), ende(b)]);
+			assert.equal(kinder.size, 0);
+			assert.deepEqual(lesePids(pidDatei), []);
+		} finally {
+			await rm(wurzel, { recursive: true, force: true });
+		}
 	});
 });
 
