@@ -95,6 +95,12 @@ describe('pruefung.js (mit blatt.py)', () => {
 					'zeitziel-fehlt',
 					// Symmetrie (245) prüft „pruefung.js: Symmetrie“.
 					'symmetrie-achse',
+					// Platz und Größe (249) prüft „pruefung.js: Platz und Größe“.
+					'kontrast-sw-schau',
+					'feld-klein',
+					'feld-fuer',
+					'linien-wenig',
+					'antwort-menge',
 				].includes(c),
 		);
 		assert.deepEqual(fehlt, [], 'jede Regel kommt in den Testdaten vor');
@@ -734,5 +740,133 @@ describe('pruefung.js: Symmetrie (245)', { skip: browserSkip() }, () => {
 			[['FEHLER', 'symmetrie-achse']],
 		);
 		assert.deepEqual(await melde(blatt('Ist die Figur symmetrisch zur senkrechten Achse?', gitter)), []);
+	});
+});
+
+describe('pruefung.js: Platz und Größe (249)', { skip: browserSkip() }, () => {
+	interface Bericht {
+		meldungen: Meldung[];
+		felder?: { seite: number; aufgabe: string | null; art: string; anzahl: number; breite: number; hoehe: number }[];
+	}
+	const blatt = (inhalt: string, body = 'kl2 farbe') =>
+		[
+			'<!doctype html><html lang="de"><head><meta charset="utf-8"><title>249</title>',
+			'<link rel="stylesheet" href="blatt.css"></head>',
+			`<body class="${body}" data-satz="2"><section class="seite" data-dicht-ok>${inhalt}</section></body></html>`,
+		].join('\n');
+	const aufgabe = (nr: number, text: string, koerper: string, attr = '') =>
+		`<div class="aufgabe"${attr}><span class="nr">${nr}</span><div class="anw"><span class="text">${text}</span></div><div class="koerper">${koerper}</div></div>`;
+	const pruefeMit = async (html: string, ...zusatz: string[]): Promise<Bericht> => {
+		const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-249-'));
+		try {
+			const datei = path.join(tmp, 'blatt.html');
+			const bericht = path.join(tmp, 'bericht.json');
+			await writeFile(datei, html);
+			try {
+				execFileSync('python3', [BLATT_PY, 'bauen', datei, '--nur-pruefen', '--bericht', bericht, ...zusatz], {
+					stdio: 'ignore',
+				});
+			} catch {
+				// Exit-Code 1 bei FEHLER
+			}
+			return JSON.parse(await readFile(bericht, 'utf8')) as Bericht;
+		} finally {
+			await rm(tmp, { recursive: true, force: true });
+		}
+	};
+	const codes = (b: Bericht, ...nur: string[]) =>
+		b.meldungen.filter((m) => m.code && nur.includes(m.code)).map((m) => [m.stufe, m.code, m.text]);
+
+	it('Klebefeld 26 × 77 mm für einen Faltschnitt 80 × 95 mm: FEHLER; groß genug oder gedreht: still', async () => {
+		const feld = (b: number, h: number, fuer = '80x95') =>
+			aufgabe(3, 'Klebe den Faltschnitt auf.', `<div class="feld-kleben" data-fuer="${fuer}" style="--b:${b}mm;--h:${h}mm"></div>`);
+		const klein = await pruefeMit(blatt(feld(26, 77)));
+		assert.deepEqual(
+			codes(klein, 'feld-klein').map(([stufe, , text]) => [stufe, text?.split(' → ')[0]]),
+			[['FEHLER', 'A3: Klebefeld 26 × 77 mm, hinein soll 80 × 95 mm']],
+		);
+		assert.deepEqual(codes(await pruefeMit(blatt(feld(90, 105))), 'feld-klein', 'feld-fuer'), []);
+		assert.deepEqual(codes(await pruefeMit(blatt(feld(105, 90))), 'feld-klein', 'feld-fuer'), []);
+		assert.deepEqual(
+			codes(await pruefeMit(blatt(feld(90, 105, 'groß'))), 'feld-fuer').map(([stufe]) => stufe),
+			['FEHLER'],
+		);
+	});
+
+	it('Zeichenfeld ohne data-fuer: Maß der Klasse als WARNUNG', async () => {
+		const feld = aufgabe(1, 'Zeichne.', '<div class="feld-zeichnen" style="--b:45mm;--h:45mm"></div>');
+		assert.deepEqual(
+			codes(await pruefeMit(blatt(feld)), 'feld-klein').map(([stufe]) => stufe),
+			['WARNUNG'],
+		);
+		assert.deepEqual(codes(await pruefeMit(blatt(feld, 'kl3 farbe')), 'feld-klein'), []);
+	});
+
+	it('Begründung mit einer Linie in Kl. 2: WARNUNG; mit drei Linien still', async () => {
+		const linien = (n: number) => '<div class="schreiblinie"></div>'.repeat(n);
+		const eine = await pruefeMit(blatt(aufgabe(2, 'Ist das symmetrisch?', linien(1), ' data-antwort="begruendung"')));
+		assert.deepEqual(codes(eine, 'linien-wenig'), [
+			[
+				'WARNUNG',
+				'linien-wenig',
+				'A2: 1 Schreiblinie für eine Begründung, Klasse 2 braucht mindestens 3 → weitere .schreiblinie',
+			],
+		]);
+		const drei = await pruefeMit(blatt(aufgabe(2, 'Ist das symmetrisch?', linien(3), ' data-antwort="begruendung"')));
+		assert.deepEqual(codes(drei, 'linien-wenig', 'antwort-menge'), []);
+	});
+
+	it('„weil“ ohne data-antwort: ein HINWEIS je Seite für alle Aufgaben', async () => {
+		const weil = (nr: number) =>
+			aufgabe(nr, 'Ist das symmetrisch?', '<div class="zeile">Nein, weil</div><div class="schreiblinie"></div>');
+		const bericht = await pruefeMit(blatt(`${weil(1)}${weil(2)}${aufgabe(3, 'Rechne.', '<div class="schreiblinie"></div>')}`));
+		assert.deepEqual(
+			codes(bericht, 'antwort-menge').map(([stufe, , text]) => [stufe, text?.split(':')[0]]),
+			[['HINWEIS', 'A1, A2']],
+		);
+	});
+
+	it('Ausschneidemotiv mit 15 mm in Kl. 2: WARNUNG teil-klein', async () => {
+		const motiv = aufgabe(1, 'Schneide aus.', '<svg data-schnitt width="57" height="57"><circle cx="28" cy="28" r="26" fill="none" stroke="#000" stroke-dasharray="4 3"/></svg>');
+		const text = codes(await pruefeMit(blatt(motiv)), 'teil-klein').map(([stufe, , t]) => [stufe, t?.split(':')[0]]);
+		assert.deepEqual(text, [['WARNUNG', '1 Teil zum Selbstschneiden ist zu klein (15 × 15 mm)']]);
+	});
+
+	it('Messung: leere Felder je Aufgabe zusammen, ohne Kästchen, Schreiblinien und Rahmen um Aufgaben', async () => {
+		const rechteck =
+			'<svg viewBox="0 0 50 100" width="49" height="95"><rect x="2" y="2" width="46" height="96" fill="#fff" stroke="#000" stroke-width="1.5"/><path d="M2 2V98" stroke="#000" stroke-width="3" stroke-dasharray="0.1 6"/></svg>';
+		const voll =
+			'<svg viewBox="0 0 50 100" width="49" height="95"><rect x="2" y="2" width="46" height="96" fill="#fff" stroke="#000"/><circle cx="25" cy="50" r="15"/></svg>';
+		const bericht = await pruefeMit(
+			blatt(
+				[
+					aufgabe(3, 'Male die Fehler.', `<div class="reihe" style="--spalten:3">${`<div class="zelle">${rechteck}</div>`.repeat(3)}</div>`),
+					aufgabe(4, 'Kreuze an.', `<span class="box"></span> ja ${voll}<div class="schreiblinie"></div>`),
+					`<div style="border:2px solid #000;padding:4mm">${aufgabe(5, 'Male.', '<div class="malfeld" style="--h:100px;width:60mm"></div>')}</div>`,
+				].join(''),
+			),
+		);
+		assert.deepEqual(
+			bericht.felder?.map(({ aufgabe: a, anzahl, art, breite, hoehe, seite }) => [seite, a, art, anzahl, breite, hoehe]),
+			[
+				[1, 'A3', 'leer', 3, 12, 24],
+				[1, 'A5', 'leer', 1, 60, 26],
+			],
+		);
+	});
+
+	it('Schauseite in s/w: WARNUNG nur, wenn s/w gedruckt wird (Quelle in s/w oder --sw-druck)', async () => {
+		const fall =
+			'<section class="seite fall"><div class="fall-innen" style="background:#fff"><h1 style="color:#c8c8c8">Schnipsel im Schnee</h1></div></section>';
+		const html = (body: string) =>
+			blatt('', body).replace('<section class="seite" data-dicht-ok></section>', fall);
+		const schau = async (body: string, ...zusatz: string[]) =>
+			codes(await pruefeMit(html(body), ...zusatz), 'kontrast-sw-schau', 'kontrast-sw').map(([stufe, code]) => `${stufe} ${code}`);
+		assert.deepEqual(await schau('kl2 farbe', '--profil', 'sw'), ['HINWEIS kontrast-sw']);
+		assert.deepEqual((await schau('kl2 farbe', '--profil', 'sw', '--sw-druck')).sort(), [
+			'HINWEIS kontrast-sw',
+			'WARNUNG kontrast-sw-schau',
+		]);
+		assert.deepEqual((await schau('kl2 sw')).sort(), ['HINWEIS kontrast-sw', 'WARNUNG kontrast-sw-schau']);
 	});
 });

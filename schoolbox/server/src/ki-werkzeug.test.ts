@@ -59,6 +59,24 @@ describe('ansichtText: Hinweise kommen bei Claude an (225)', () => {
 		assert.doesNotMatch(text, /Hinweis 16/);
 		assert.doesNotMatch(ansichtText(ansicht([])), /Hinweise \(/);
 	});
+
+	it('„data-antwort setzen“ kommt hinter alle anderen Hinweise und verdrängt keinen (249)', () => {
+		const menge = (seite: number): Meldung => ({
+			stufe: 'HINWEIS',
+			seite,
+			code: 'antwort-menge',
+			text: `A2: Begründen auf Seite ${seite}`,
+		});
+		const andere = Array.from({ length: 15 }, (_, i): Meldung => ({
+			stufe: 'HINWEIS',
+			seite: 1,
+			code: 'verdeckt',
+			text: `Hinweis ${i + 1}`,
+		}));
+		const text = ansichtText(ansicht([menge(1), ...andere, menge(2)]));
+		assert.match(text, /Hinweis 15\n… und 2 weitere Hinweise\./);
+		assert.doesNotMatch(text, /Begründen/);
+	});
 });
 
 describe('bauen für Claude: Probeblatt (225, Abnahme)', { skip: browserSkip() }, () => {

@@ -270,7 +270,7 @@ const pruefSchwellen = (wurzel: string) => {
 		'platz-frei': `mehr als ${zahl('FREI_MAX')} px frei unten mit Zeitziel oder auf einer Arbeitsseite mit ${satz} (WARNUNG), sonst ab ${zahl('FREI_HINWEIS')} px (HINWEIS); nicht auf Folien, Karten und Mini-Books`,
 		'inhalt-wenig': `Arbeitsseite mit ${satz}: weniger als ${zahl('AUFGABEN_MIN')} Aufgaben oder ${zahl('TEILE_MIN')} Teilaufgaben, oder mehr als ${zahl('LEER_MAX')} % der Fläche leer; \`data-dicht-ok\` nimmt die Seite aus`,
 		'teile-viele': `${satz}: mehr als ${zahl('TEILE_MAX')} Teile zum Ausschneiden auf einer A4-Seite`,
-		'teil-klein': `${satz}: kurze Kante einer Karte unter ${karte} mm, Dominostein kleiner als ${zahl('STEIN_LANG_MIN')} × ${stein} mm, Teil zum Selbstschneiden unter ${kind} mm`,
+		'teil-klein': `${satz}: kurze Kante einer Karte unter ${karte} mm, Dominostein kleiner als ${zahl('STEIN_LANG_MIN')} × ${stein} mm, Teil zum Selbstschneiden unter ${kind} mm (Schneidebogen, \`.ausschneiden\`, \`data-schnitt\`)`,
 		'motiv-klein': `${satz}: das Motiv füllt weniger als ${prozent(zahl('MOTIV_MIN'))} der Karte innerhalb ihres Rands`,
 		'schnitt-knapp': `${satz}: Text oder Bild näher als ${zahl('SCHNITT_MIN')} mm an der Schnittkante`,
 		'kit-anteil': `nur beim Bauen: weniger als ${zahl('KIT_MINDEST')} % der Elemente mit Klasse nutzen nur Kit-Klassen`,
@@ -283,6 +283,12 @@ const pruefSchwellen = (wurzel: string) => {
 		'loesung-fehlt': `${laufNeu}: je Aufgabe, deren Antwortlinien keine Lösung haben; bei offener Aufgabe reicht ein Satz als \`.nur-loesung\``,
 		'symmetrie-achse':
 			'`x-gitter aufgabe="pruefen"` mit `nur`, und die Anweisung spricht von Symmetrie, nennt die Achse aber nicht',
+		'kontrast-sw-schau': `gedruckt wird s/w (Quelle in s/w oder \`blatt.py --sw-druck\`): Text auf einer Schauseite (Fall-Karte, Deckblatt, A3) mit Kontrast unter ${zahl('KONTRAST_MIN')}:1`,
+		'feld-klein': `\`.feld-kleben\` oder \`.feld-zeichnen\` kleiner als \`data-fuer\` und ${zahl('FELD_RAND')} mm je Seite, auch gedreht (FEHLER); Zeichenfeld ohne \`data-fuer\` unter dem Maß der Klasse (WARNUNG); Maße in „Platz zum Kleben, Zeichnen und Schreiben“`,
+		'feld-fuer': '`data-fuer` ist kein Maß (FEHLER) oder fehlt am Klebefeld (WARNUNG)',
+		'linien-wenig': '`data-antwort="satz"` oder `"begruendung"` mit weniger Schreiblinien als in „Platz zum Kleben, Zeichnen und Schreiben“',
+		'antwort-menge':
+			'eine Aufgabe mit Schreibplatz sagt „weil“, „begründe“ oder „erkläre“ und hat kein `data-antwort` (HINWEIS, einmal je Seite); `data-antwort` mit einem Wert, den es nicht gibt (FEHLER)',
 	};
 	const stufen = meldungStufen(js);
 	for (const code of OHNE_SCHWELLE) {
@@ -306,6 +312,35 @@ const pruefSchwellen = (wurzel: string) => {
 			`${WANN[code]}${(HINWEIS_OHNE as readonly string[]).includes(code) ? '; im Lauf der Schoolbox nicht im Bericht' : ''}`,
 		]);
 	return tabelle(['Code', 'Stufe', 'Wann'], zeilen);
+};
+
+/** Mindestmaße für Felder, Schreiblinien und Teile zum Selbstschneiden je Klasse, aus `pruefung.js` (249). */
+const platzJeKlasse = (wurzel: string) => {
+	const js = readFileSync(path.join(wurzel, PRUEFUNG_JS), 'utf8');
+	const { treffer, zahl } = leser(js);
+	const jeKlasse = (objekt: string) => new Map([...objekt.matchAll(/(\d): (\d+)/g)].map((t) => [t[1] ?? '', t[2] ?? '']));
+	const [zeichnen = ''] = treffer(/const ZEICHENFELD_MIN = (\{[^}]+\})/);
+	const [satz = '', begruendung = ''] = treffer(/const LINIEN_MIN = \{ satz: (\{[^}]+\}), begruendung: (\{[^}]+\}) \}/);
+	const [kind = ''] = treffer(/KANTE_MIN = \{ karte: \d+, stein: \d+, kind: (\d+) \}/);
+	const KLASSEN = ['1', '2', '3', '4'];
+	const zeile = (was: string, werte: Map<string, string>, wert: (w: string) => string) => [
+		was,
+		...KLASSEN.map((k) => wert(werte.get(k) ?? '–')),
+	];
+	const rand = zahl('FELD_RAND');
+	return [
+		tabelle(
+			['Was', ...KLASSEN.map((k) => `Kl. ${k}`)],
+			[
+				zeile('Zeichenfeld ohne `data-fuer` (`.feld-zeichnen`)', jeKlasse(zeichnen), (w) => `${w} × ${w} mm`),
+				zeile('Schreiblinien für einen Satz (`data-antwort="satz"`)', jeKlasse(satz), (w) => w),
+				zeile('Schreiblinien für eine Begründung (`data-antwort="begruendung"`)', jeKlasse(begruendung), (w) => w),
+				zeile('Teil zum Selbstschneiden, kurze Kante', new Map(KLASSEN.map((k) => [k, kind])), (w) => `${w} mm`),
+			],
+		),
+		'',
+		`Feld mit \`data-fuer\`: das Maß aus \`data-fuer\` und ${rand} mm Rand je Seite, in jeder Klasse; gedreht einlegen gilt. Leere Felder misst der Bau ab ${zahl('LEERFELD_MIN')} mm für den Prüflauf.`,
+	].join('\n');
 };
 
 /** Was die Prüfung ohne `data-satz="2"` anders meldet, für `aelterer-satz.md` (228). */
@@ -395,6 +430,7 @@ export const ABSCHNITTE: Abschnitt[] = [
 	{ datei: DRUCK, marke: 'schrift-und-abstand', inhalt: klassenWerte },
 	{ datei: DRUCK, marke: 'luecken-breite', inhalt: lueckenBreite },
 	{ datei: DRUCK, marke: 'pruef-schwellen', inhalt: pruefSchwellen },
+	{ datei: DRUCK, marke: 'platz-je-klasse', inhalt: platzJeKlasse },
 	{ datei: LAYOUT, marke: 'thema-regeln', inhalt: themaRegeln },
 	// Gestaltung (Phase 12): Arten, Figuren, Formen, Farben des Blatts
 	{ datei: GESTALTUNG, marke: 'gestaltung-arten', inhalt: gestaltungArten },

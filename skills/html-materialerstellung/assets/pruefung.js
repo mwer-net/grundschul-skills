@@ -58,6 +58,18 @@
  /* Symmetrie (245): Wörter, an denen eine Anweisung von Symmetrie spricht. */
  const SYMMETRIE_WORT = /symmetr|spiegel|achse|hälfte|faltlinie/i;
 
+ /* Platz und Größe (249). Die Maße sind die Quelle für den erzeugten Abschnitt platz-je-klasse in
+    grundschul-didaktik/references/druck-und-platz.md. */
+ const PX_MM = 96 / 25.4;
+ const ZEICHENFELD_MIN = { 1: 50, 2: 50, 3: 40, 4: 40 }; // mm je Seite, Zeichenfeld ohne data-fuer
+ const FELD_RAND = 5; // mm je Seite um das, was in ein Feld mit data-fuer kommt
+ const LINIEN_MIN = { satz: { 1: 2, 2: 2, 3: 1, 4: 1 }, begruendung: { 1: 3, 2: 3, 3: 2, 4: 2 } };
+ const ANTWORTEN = ["wort", "zahl", "satz", "begruendung"];
+ const LEERFELD_MIN = 10; // mm: kleinere Rahmen sind Kästchen zum Ankreuzen oder für eine Ziffer
+ const BEGRUENDUNG_WORT = /(?<!\p{L})(?:weil|begründ\p{L}*|erklär\p{L}*)(?!\p{L})/iu;
+ const SCHAUSEITE = ".fall,.deckblatt";
+ const FORM = "path,rect,circle,ellipse,polygon,polyline,line,text,image,use";
+
  const pruefe = async ({ warten = true } = {}) => {
  const M = [];
  let ergebnis;
@@ -149,6 +161,7 @@
   }
 
   const seiten = [];
+  const felder = []; // Messung für den Prüflauf (249), Abschnitt 9c
   const feldzahl = document.querySelectorAll(".seite").length;
   if (B.classList.contains("minibuch") && feldzahl !== 8) melde("FEHLER", 0, "minibuch-seiten", `Ein Mini-Book hat genau 8 Seiten, dieses hat ${feldzahl} → --vorlage minibuch als Ausgangspunkt nehmen`);
   // nur äußere Seiten: In „Folien mit Notizen“ stecken die Folien verkleinert in einem Blatt
@@ -282,6 +295,18 @@
       }
       if (schwach.length) melde("HINWEIS", nr, "kontrast-sw", `In s/w kaum lesbar (Kontrast unter ${KONTRAST_MIN}:1): ${schwach.slice(0, 3).map(kurz).join(", ")}`, schwach.slice(0, 3).map(ziel));
       if (worte.size) melde("HINWEIS", nr, "farbwort-sw", `Der Text nennt Farben (${[...worte].slice(0, 4).join(", ")}), in s/w sind sie nicht zu sehen → Merkmal in Worten nennen`, farbworte.slice(0, 3).map(ziel));
+    }
+    // 5b. s/w-Druck (249): Die Quelle ist s/w oder der Auftrag nennt s/w-Druck (data-sw-druck setzt blatt.py nur zur
+    // Prüfung). Dann ist schwacher Text auf einer Schauseite eine WARNUNG; der HINWEIS oben bleibt, wie er war.
+    if (B.classList.contains("sw") && B.hasAttribute("data-sw-druck") && (S.matches(SCHAUSEITE) || B.classList.contains("a3-hoch"))) {
+      const blass = [], leser = document.createTreeWalker(S, NodeFilter.SHOW_TEXT);
+      while (leser.nextNode()) {
+        const t = leser.currentNode, p = t.parentElement;
+        if (!t.textContent.trim() || !p || p.closest("svg,.loesung-marke") || !sichtbar(p) || blass.includes(p)) continue;
+        const k = kontrastZurFlaeche(p);
+        if (k !== null && k < KONTRAST_MIN) blass.push(p);
+      }
+      if (blass.length) melde("WARNUNG", nr, "kontrast-sw-schau", `Schauseite in s/w kaum lesbar (Kontrast unter ${KONTRAST_MIN}:1), gedruckt wird s/w: ${blass.slice(0, 3).map(kurz).join(", ")} → dunklere Schrift oder hellere Fläche`, blass.slice(0, 3).map(ziel));
     }
     alle.filter((e) => e.tagName === "DIV" || e.tagName === "SECTION").forEach((e) => {
       const c = getComputedStyle(e), r = e.getBoundingClientRect();
@@ -445,6 +470,15 @@
         if (knapp.length)
           melde("WARNUNG", nr, "schnitt-knapp", `${anzahl(art, knapp.length)} mit Inhalt nur ${Math.max(0, mm(naechster))} mm an der Schnittkante (mindestens ${SCHNITT_MIN} mm) → Innenabstand aus blatt.css lassen, Text kürzen oder Motiv kleiner`, knapp.slice(0, 3).map(ziel));
       }
+      // 249: Was die Kinder sonst ausschneiden (.ausschneiden, Motiv mit Schnittkontur data-schnitt), gilt wie ein Teil
+      // im Schneidebogen.
+      const ausschnitt = [...S.querySelectorAll(".ausschneiden,[data-schnitt]")].filter((e) => !e.closest(".karte,.schneidebogen") && !e.parentElement.closest(".ausschneiden,[data-schnitt]") && !ausgeblendet(e) && sichtbar(e));
+      const schnittMass = (e) => { const r = e.getBoundingClientRect(); return [r.width / MM, r.height / MM]; };
+      const zuKlein = ausschnitt.filter((e) => Math.min(...schnittMass(e)) < KANTE_MIN.kind - 0.5);
+      if (zuKlein.length) {
+        const [b, h] = schnittMass(zuKlein[0]);
+        melde("WARNUNG", nr, "teil-klein", `${anzahl("kind", zuKlein.length)} ${zuKlein.length === 1 ? "ist" : "sind"} zu klein (${Math.round(b)} × ${Math.round(h)} mm): kurze Kante unter ${KANTE_MIN.kind} mm → Motiv oder Teil größer setzen, weniger Teile je Seite`, zuKlein.slice(0, 3).map(ziel));
+      }
     }
     if (folie && mitNotizen && !S.querySelector(".notiz")) melde("HINWEIS", nr, "notiz-fehlt", "Folie ohne Notiz für die Lehrkraft", [ziel(S)]);
 
@@ -460,6 +494,110 @@
       });
     });
 
+    // 9. Platz und Größe (249). Maße in mm; die Aufgabe heißt wie ihre Nummer („A3“), außerhalb einer Aufgabe null.
+    const mmVon = (e) => { const r = e.getBoundingClientRect(); return [r.width / PX_MM, r.height / PX_MM]; };
+    const aufgabeVon = (e) => { const a = e.closest(".aufgabe"); return a && auf.includes(a) ? `A${a.querySelector(":scope > .nr")?.textContent.trim() || auf.indexOf(a) + 1}` : null; };
+    const vorn = (wo) => (wo ? `${wo}: ` : "");
+    // 9a. Felder mit Zweck: data-fuer="80x95" nennt in mm, was hineinkommt; gedreht einlegen gilt (ein Faltschnitt dreht sich).
+    [...S.querySelectorAll(".feld-kleben,.feld-zeichnen")].filter((e) => !ausgeblendet(e) && sichtbar(e)).forEach((e) => {
+      const kleben = e.classList.contains("feld-kleben"), [b, h] = mmVon(e), fuer = e.getAttribute("data-fuer");
+      const feld = `${vorn(aufgabeVon(e))}${kleben ? "Klebefeld" : "Zeichenfeld"} ${Math.round(b)} × ${Math.round(h)} mm`;
+      if (fuer !== null) {
+        const t = /^\s*(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*$/.exec(fuer);
+        if (!t) return melde("FEHLER", nr, "feld-fuer", `${feld}: data-fuer="${fuer}" ist kein Maß → Breite x Höhe in mm, z. B. data-fuer="80x95"`, [ziel(e)]);
+        const [fb, fh] = [t[1], t[2]].map((w) => parseFloat(w.replace(",", ".")));
+        const passt = (x, y) => b + 0.5 >= x + 2 * FELD_RAND && h + 0.5 >= y + 2 * FELD_RAND;
+        if (!passt(fb, fh) && !passt(fh, fb))
+          melde("FEHLER", nr, "feld-klein", `${feld}, hinein soll ${Math.round(fb)} × ${Math.round(fh)} mm → Feld mindestens ${Math.ceil(fb + 2 * FELD_RAND)} × ${Math.ceil(fh + 2 * FELD_RAND)} mm (${FELD_RAND} mm Rand je Seite): --b und --h am Feld, eine Spalte weniger oder eigene Zeile`, [ziel(e)]);
+        return;
+      }
+      if (kleben) return melde("WARNUNG", nr, "feld-fuer", `${feld} ohne data-fuer → Maß dessen, was hineinkommt, in mm setzen (data-fuer="80x95"), dann prüft blatt.py, ob es passt`, [ziel(e)]);
+      const min = ZEICHENFELD_MIN[kl] || ZEICHENFELD_MIN[2];
+      if (Math.min(b, h) + 0.5 < min) melde("WARNUNG", nr, "feld-klein", `${feld}: Klasse ${kl} braucht zum Zeichnen mindestens ${min} × ${min} mm → --b und --h größer, eine Spalte weniger, oder data-fuer mit dem Maß der Zeichnung`, [ziel(e)]);
+    });
+    // 9b. Schreiblinien nach Antwort: data-antwort an der Aufgabe oder an einer Gruppe von Linien
+    const LINIE = ".schreiblinie,.zeile-frei";
+    const zeigt = (e) => sichtbar(e) && !ausgeblendet(e) && !e.closest(".nur-loesung");
+    [...S.querySelectorAll("[data-antwort]")].filter((e) => !ausgeblendet(e)).forEach((e) => {
+      const art = e.getAttribute("data-antwort"), wo = vorn(aufgabeVon(e));
+      if (!ANTWORTEN.includes(art)) return melde("FEHLER", nr, "antwort-menge", `${wo}data-antwort="${art}" gibt es nicht → ${ANTWORTEN.join(", ")}`, [ziel(e)]);
+      const min = LINIEN_MIN[art]?.[kl] ?? LINIEN_MIN[art]?.[2];
+      const linien = (e.matches(LINIE) ? [e] : [...e.querySelectorAll(LINIE)]).filter((l) => zeigt(l) && l.closest("[data-antwort]") === e);
+      if (!min || (!linien.length && e.querySelector("[data-antwort]"))) return;
+      const name = art === "satz" ? "einen Satz" : "eine Begründung";
+      if (linien.length < min) melde("WARNUNG", nr, "linien-wenig", `${wo}${linien.length} ${linien.length === 1 ? "Schreiblinie" : "Schreiblinien"} für ${name}, Klasse ${kl} braucht mindestens ${min} → weitere .schreiblinie`, [ziel(e)]);
+    });
+    // Begründen ohne Angabe, wie viel: ein HINWEIS je Seite, damit er keine wichtigeren verdrängt
+    const offen = auf.filter((a) => {
+      if (!a.getClientRects().length || a.matches("[data-antwort]") || a.querySelector("[data-antwort]")) return false;
+      if (![...a.querySelectorAll(`${LINIE},.antwort`)].some(zeigt)) return false;
+      const leser = document.createTreeWalker(a, NodeFilter.SHOW_TEXT);
+      while (leser.nextNode()) {
+        const p = leser.currentNode.parentElement;
+        if (p && !p.closest("svg,.tipp,.blase,.nur-loesung") && sichtbar(p) && BEGRUENDUNG_WORT.test(leser.currentNode.textContent)) return true;
+      }
+      return false;
+    });
+    if (offen.length) melde("HINWEIS", nr, "antwort-menge", `${offen.map(aufgabeVon).join(", ")}: Begründen oder Erklären, aber wie viel schreibt das Kind? → data-antwort="satz" oder "begruendung" an die Aufgabe, dann zählt blatt.py die Schreiblinien`, offen.slice(0, 3).map(ziel));
+    // 9c. Messung für den Prüflauf: leere Felder (Rahmen ohne Text und ohne Abbildung, auch als Rechteck in eigenem
+    // SVG) und Teile zum Ausschneiden mit ihrem Motiv. Kästchen unter LEERFELD_MIN, Schreiblinien (nur ein Strich
+    // unten) und Rahmen um ganze Aufgaben (mit Text) fallen von selbst heraus; Abbildungen (x-…) haben eigene Maße.
+    const hell = (farbe) => { const [r, g, b, a = 1] = rgb(farbe); return farbe === "none" || a < 0.05 || (r + g + b) / 3 >= 240; };
+    const duenn = (r) => r.width <= 4 || r.height <= 4; // Falt-, Schnitt- und Hilfslinien
+    const gross = ([b, h]) => b >= LEERFELD_MIN && h >= LEERFELD_MIN;
+    const gerahmt = (e) => { const c = getComputedStyle(e); return ["Top", "Right", "Bottom", "Left"].every((k) => parseFloat(c[`border${k}Width`]) > 0 && c[`border${k}Style`] !== "none"); };
+    // Ein Rahmen ohne Breite (nur seine Striche) zählt mit: Er sieht aus wie eine Linie und ist kein Feld mehr.
+    // Bilder mit Rand sind kein Feld; ein Rahmen um mehr als die halbe Seite ist Schmuck (Seitenrahmen, Deckblatt).
+    const halbeSeite = ((innen.r - innen.l) * (innen.b - innen.t)) / 2;
+    const leerKasten = alle.filter((e) => e !== S && !e.matches("svg,hr,img,canvas,video,iframe,object,embed,input,textarea,select") && !e.closest(GESTALTUNG) && !istInAbbildung(e) && gerahmt(e) && Math.max(...mmVon(e)) >= LEERFELD_MIN && e.getBoundingClientRect().width * e.getBoundingClientRect().height <= halbeSeite && !e.innerText.trim() && ![...e.querySelectorAll("img,svg,canvas,video,input,textarea")].some(sichtbar));
+    const leerRechteck = [...S.querySelectorAll("svg rect")].filter((r) => !istInAbbildung(r) && !r.closest(GESTALTUNG)).filter((r) => {
+      const c = getComputedStyle(r), R = r.getBoundingClientRect();
+      if (c.stroke === "none" || !(parseFloat(c.strokeWidth) > 0) || !hell(c.fill) || !gross(mmVon(r))) return false;
+      return ![...r.ownerSVGElement.querySelectorAll(FORM)].some((x) => {
+        if (x === r) return false;
+        const X = x.getBoundingClientRect();
+        return X.width > 0 && X.height > 0 && !duenn(X) && X.left >= R.left - 2 && X.right <= R.right + 2 && X.top >= R.top - 2 && X.bottom <= R.bottom + 2;
+      });
+    });
+    const motiv = (e) => {
+      const rs = [];
+      e.querySelectorAll("img").forEach((im) => {
+        if (!sichtbar(im) || !im.naturalWidth) return;
+        const r = im.getBoundingClientRect(), s = Math.min(r.width / im.naturalWidth, r.height / im.naturalHeight);
+        rs.push(getComputedStyle(im).objectFit === "contain" ? { width: im.naturalWidth * s, height: im.naturalHeight * s } : r);
+      });
+      e.querySelectorAll("svg,canvas").forEach((g) => {
+        if (g.parentElement.closest("svg") || !sichtbar(g)) return;
+        if (g.tagName === "canvas") return rs.push(g.getBoundingClientRect());
+        const teile = [...g.querySelectorAll(FORM)].map((x) => x.getBoundingClientRect()).filter((X) => X.width > 0 && X.height > 0 && !duenn(X));
+        if (!teile.length) return;
+        rs.push({ width: Math.max(...teile.map((X) => X.right)) - Math.min(...teile.map((X) => X.left)), height: Math.max(...teile.map((X) => X.bottom)) - Math.min(...teile.map((X) => X.top)) });
+      });
+      if (!rs.length) return null;
+      const grosses = rs.reduce((m, r) => (r.width * r.height > m.width * m.height ? r : m));
+      return [Math.round(grosses.width / PX_MM), Math.round(grosses.height / PX_MM)];
+    };
+    const zumSchneiden = [...S.querySelectorAll(".karten > .karte:not(.pass),.domino-stein,.schneidebogen > *,.ausschneiden,[data-schnitt]")].filter((e) => !e.parentElement.closest(".karte,.ausschneiden,[data-schnitt]") && !ausgeblendet(e) && sichtbar(e));
+    const gruppen = new Map();
+    const sammle = (art, e, extra = {}) => {
+      const [b, h] = mmVon(e).map(Math.round), aufgabe = aufgabeVon(e), schluessel = JSON.stringify([art, aufgabe, b, h]);
+      const g = gruppen.get(schluessel) || { seite: nr, aufgabe, art, anzahl: 0, breite: b, hoehe: h };
+      g.anzahl += 1;
+      if (extra.motiv !== undefined) {
+        const m = extra.motiv, f = (x) => (x ? x[0] * x[1] : -1);
+        if (!g.motiv) g.motiv = { klein: m, gross: m };
+        else {
+          if (f(m) < f(g.motiv.klein)) g.motiv.klein = m;
+          if (f(m) > f(g.motiv.gross)) g.motiv.gross = m;
+        }
+      }
+      gruppen.set(schluessel, g);
+    };
+    [...leerKasten.filter((e) => !leerKasten.some((o) => o !== e && o.contains(e))), ...leerRechteck]
+      .sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1)).forEach((e) => sammle("leer", e));
+    zumSchneiden.forEach((e) => sammle("teil", e, { motiv: motiv(e) }));
+    felder.push(...gruppen.values());
+
     seiten.push({ nr, rest, breite: Math.round(P.width), aufgaben: auf.map((a) => rel(a.getBoundingClientRect())), ...(seitenLeer === null ? {} : { leer: seitenLeer }) });
   });
   meldeZeit();
@@ -472,6 +610,7 @@
   }
 
   ergebnis = { klasse: kl, seiten };
+  ergebnis.felder = felder;
  } catch (e) { M.push({ stufe: "FEHLER", seite: 0, code: "pruefskript", text: "Prüfskript: " + e.message, ziele: [] }); }
  return Object.assign({ seiten: [] }, ergebnis, { meldungen: M });
  };

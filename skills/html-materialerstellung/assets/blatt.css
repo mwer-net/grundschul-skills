@@ -999,3 +999,12 @@ body[data-satz="2"] .schneidebogen{--fs:var(--fs-schau,24px);font-size:var(--fs)
 .schneidebogen::before{content:"";position:absolute;left:4mm;top:calc(-3.5mm - .75px);width:7mm;height:7mm;
   background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231D1D1B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='6' cy='6.5' r='3'/%3E%3Ccircle cx='6' cy='17.5' r='3'/%3E%3Cpath d='M8.5 8L21 18M8.5 16L21 6'/%3E%3C/svg%3E") center/6mm no-repeat}
 /* << 214 */
+
+/* 249 Felder mit Zweck: data-fuer nennt in mm, was hineinkommt (Breite x Höhe), pruefung.js misst das Feld daran.
+   Die Größe setzen --b und --h. Neue Klassen, darum ohne data-satz; die Breite ist gesetzt, damit das Feld in einer
+   Zelle nicht zur Linie schrumpft. */
+.feld-kleben,.feld-zeichnen{box-sizing:border-box;width:var(--b,100%);max-width:100%;height:var(--h,50mm);flex:none;
+  border:2px solid var(--linie);border-radius:10px}
+.feld-kleben{border-style:dashed}
+/* Teil, das die Kinder ausschneiden, außerhalb von Schneidebogen und Karten (Kurzkante: teil-klein) */
+.ausschneiden{border:1.5px dashed var(--text)}

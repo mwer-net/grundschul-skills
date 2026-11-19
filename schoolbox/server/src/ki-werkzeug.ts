@@ -11,7 +11,7 @@ import { createServer } from 'node:net';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 
-import type { Ansicht, Meldung } from '@schoolbox/kern';
+import type { Ansicht, Meldung, MeldungCode } from '@schoolbox/kern';
 import { ANSICHT_ORDNER, HINWEIS_OHNE, WURZEL } from '@schoolbox/kern';
 
 import type { BildWerkzeug, WerkzeugAntwort } from './bild-werkzeug';
@@ -31,6 +31,9 @@ const MAX_MELDUNGEN = 60;
 export type Bauen = (dokument: string | undefined) => Promise<WerkzeugAntwort>;
 
 const MAX_HINWEISE = 15;
+/** Hinweise, die hinter alle anderen kommen, damit sie unter den ersten 15 keine wichtigeren verdrängen (249). */
+const HINWEIS_ZULETZT: readonly MeldungCode[] = ['antwort-menge'];
+const zuletzt = (m: Meldung) => (m.code && HINWEIS_ZULETZT.includes(m.code) ? 1 : 0);
 
 const zeile = (m: Meldung) => `${m.stufe}${m.seite > 0 ? ` Seite ${m.seite}` : ''}: ${m.text}`;
 
@@ -41,7 +44,9 @@ const zeile = (m: Meldung) => `${m.stufe}${m.seite > 0 ? ` Seite ${m.seite}` : '
 export const ansichtText = ({ bericht, bilder }: Ansicht, ordner = ANSICHT_ORDNER, zusatz: Meldung[] = []) => {
 	const alle = [...bericht.meldungen, ...zusatz];
 	const meldungen = alle.filter((m) => m.stufe !== 'HINWEIS');
-	const hinweise = alle.filter((m) => m.stufe === 'HINWEIS' && !(m.code && HINWEIS_OHNE.includes(m.code)));
+	const hinweise = alle
+		.filter((m) => m.stufe === 'HINWEIS' && !(m.code && HINWEIS_OHNE.includes(m.code)))
+		.sort((a, b) => zuletzt(a) - zuletzt(b));
 	const fehler = meldungen.filter((m) => m.stufe === 'FEHLER').length;
 	const seiten = bilder.filter((b) => /^seite-\d+\.png$/.test(b));
 	const ausschnitte = bilder.filter((b) => /^seite-\d+-aufgabe-\d+\.png$/.test(b));

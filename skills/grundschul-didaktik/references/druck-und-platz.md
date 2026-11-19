@@ -132,6 +132,21 @@ Lücken müssen breit genug sein, damit Kinder der Klasse darin schreiben könne
 | Bastelwürfel, Kante | 4 cm | 4 cm | 3 cm |
 | Diagramm, Höhe der Skala | 180 px | 160 px | 120 px |
 
+### Platz zum Kleben, Zeichnen und Schreiben
+
+Jedes Feld, in das Kinder etwas kleben oder zeichnen, trägt seinen Zweck und seine Größe: `.feld-kleben` oder `.feld-zeichnen` mit `data-fuer="80x95"` (Breite x Höhe in mm dessen, was hineinkommt: Faltpapier, Bild, Karte), die Größe über `--b` und `--h`. `blatt.py` prüft, ob es mit Rand hineinpasst (`feld-klein`). Ein Zeichenfeld ohne `data-fuer` hält das Maß der Klasse. Wie viel ein Kind schreibt, sagt `data-antwort` (`wort`, `zahl`, `satz`, `begruendung`) an der Aufgabe oder an der Gruppe ihrer Schreiblinien; für Satz und Begründung zählt `blatt.py` die Linien (`linien-wenig`). Teile zum Ausschneiden außerhalb des Schneidebogens tragen `.ausschneiden`, Motive mit gestrichelter Schnittkontur `data-schnitt`; für sie gilt das Maß des Schneidebogens (`teil-klein`).
+
+<!-- erzeugt: platz-je-klasse -->
+| Was | Kl. 1 | Kl. 2 | Kl. 3 | Kl. 4 |
+|---|---|---|---|---|
+| Zeichenfeld ohne `data-fuer` (`.feld-zeichnen`) | 50 × 50 mm | 50 × 50 mm | 40 × 40 mm | 40 × 40 mm |
+| Schreiblinien für einen Satz (`data-antwort="satz"`) | 2 | 2 | 1 | 1 |
+| Schreiblinien für eine Begründung (`data-antwort="begruendung"`) | 3 | 3 | 2 | 2 |
+| Teil zum Selbstschneiden, kurze Kante | 40 mm | 40 mm | 40 mm | 40 mm |
+
+Feld mit `data-fuer`: das Maß aus `data-fuer` und 5 mm Rand je Seite, in jeder Klasse; gedreht einlegen gilt. Leere Felder misst der Bau ab 10 mm für den Prüflauf.
+<!-- /erzeugt: platz-je-klasse -->
+
 ### Menge nach Arbeitszeit
 
 Ein Blatt ist dann richtig gefüllt, wenn ein Kind des Niveaus daran so lange arbeitet, wie die Lehrkraft es braucht. Maß ist das **Zeitziel** in Minuten: Die Lehrkraft nennt es (Start-Abfrage, Assistent der Schoolbox); nennt sie keins, gelten **20 Minuten**. Es ist die reine Arbeitszeit eines Kindes an seinem Niveau, ohne Einführung und Besprechung.
@@ -218,11 +233,15 @@ Mindestmaße, die höchste Zahl je A4 und den Abstand zur Schnittkante prüft `b
 |---|---|---|
 | `aussen` | FEHLER | ein Gestaltungselement liegt zu mehr als der Hälfte außerhalb der Seite |
 | `symmetrie-achse` | FEHLER | `x-gitter aufgabe="pruefen"` mit `nur`, und die Anweisung spricht von Symmetrie, nennt die Achse aber nicht |
+| `feld-fuer` | FEHLER, WARNUNG | `data-fuer` ist kein Maß (FEHLER) oder fehlt am Klebefeld (WARNUNG) |
+| `feld-klein` | FEHLER, WARNUNG | `.feld-kleben` oder `.feld-zeichnen` kleiner als `data-fuer` und 5 mm je Seite, auch gedreht (FEHLER); Zeichenfeld ohne `data-fuer` unter dem Maß der Klasse (WARNUNG); Maße in „Platz zum Kleben, Zeichnen und Schreiben“ |
+| `antwort-menge` | FEHLER, HINWEIS | eine Aufgabe mit Schreibplatz sagt „weil“, „begründe“ oder „erkläre“ und hat kein `data-antwort` (HINWEIS, einmal je Seite); `data-antwort` mit einem Wert, den es nicht gibt (FEHLER) |
 | `zeit-fehlt` | WARNUNG | mit Zeitziel: eine Aufgabe ohne `data-min` |
 | `zeit-knapp` | WARNUNG | mit Zeitziel: das kürzeste Niveau unter 85 % des Ziels |
 | `zeit-viel` | WARNUNG | nur beim Bauen, mit Zeitziel: das längste Niveau über 125 % des Ziels |
 | `druckrand` | WARNUNG | Gestaltung mit Text oder Bild näher als 19 px (5 mm) am Blattrand |
 | `schrift-klein` | WARNUNG | Schrift unter 80 % der Schrift der Klasse, auf Folien der Folienschrift |
+| `kontrast-sw-schau` | WARNUNG | gedruckt wird s/w (Quelle in s/w oder `blatt.py --sw-druck`): Text auf einer Schauseite (Fall-Karte, Deckblatt, A3) mit Kontrast unter 3:1 |
 | `flaeche` | WARNUNG | Fläche hinter Inhalt dunkler als 245 von 255 und größer als 4000 px² |
 | `aufgaben-viele` | WARNUNG | mehr Aufgaben (ohne ★) auf einer Seite als in Kl. 1/2/3/4: 6/8/9/10 mit `data-satz="2"` |
 | `rahmen-gross` | WARNUNG | mit Zeitziel: Kopf höher als 210 px oder Fuß höher als 150 px |
@@ -230,9 +249,10 @@ Mindestmaße, die höchste Zahl je A4 und den Abstand zur Schnittkante prüft `b
 | `platz-frei` | WARNUNG, HINWEIS | mehr als 90 px frei unten mit Zeitziel oder auf einer Arbeitsseite mit `data-satz="2"` (WARNUNG), sonst ab 150 px (HINWEIS); nicht auf Folien, Karten und Mini-Books |
 | `inhalt-wenig` | WARNUNG | Arbeitsseite mit `data-satz="2"`: weniger als 4 Aufgaben oder 12 Teilaufgaben, oder mehr als 35 % der Fläche leer; `data-dicht-ok` nimmt die Seite aus |
 | `teile-viele` | WARNUNG | `data-satz="2"`: mehr als 9 Teile zum Ausschneiden auf einer A4-Seite |
-| `teil-klein` | WARNUNG | `data-satz="2"`: kurze Kante einer Karte unter 50 mm, Dominostein kleiner als 105 × 50 mm, Teil zum Selbstschneiden unter 40 mm |
+| `teil-klein` | WARNUNG | `data-satz="2"`: kurze Kante einer Karte unter 50 mm, Dominostein kleiner als 105 × 50 mm, Teil zum Selbstschneiden unter 40 mm (Schneidebogen, `.ausschneiden`, `data-schnitt`) |
 | `motiv-klein` | WARNUNG | `data-satz="2"`: das Motiv füllt weniger als 50 % der Karte innerhalb ihres Rands |
 | `schnitt-knapp` | WARNUNG | `data-satz="2"`: Text oder Bild näher als 5 mm an der Schnittkante |
+| `linien-wenig` | WARNUNG | `data-antwort="satz"` oder `"begruendung"` mit weniger Schreiblinien als in „Platz zum Kleben, Zeichnen und Schreiben“ |
 | `zeitziel-fehlt` | WARNUNG | nur im Lauf der Schoolbox beim Bau neuen Materials, nicht beim Ändern: Arbeitsblatt, Stationenlernen, Lernzielkontrolle, Klassenarbeit mit `data-satz="2"` und Aufgaben, aber ohne `data-zeit` am `<body>` |
 | `loesung-fehlt` | WARNUNG | nur im Lauf der Schoolbox beim Bau neuen Materials, nicht beim Ändern: je Aufgabe, deren Antwortlinien keine Lösung haben; bei offener Aufgabe reicht ein Satz als `.nur-loesung` |
 | `kit-anteil` | HINWEIS | nur beim Bauen: weniger als 90 % der Elemente mit Klasse nutzen nur Kit-Klassen; im Lauf der Schoolbox nicht im Bericht |
@@ -254,6 +274,7 @@ Mindestmaße, die höchste Zahl je A4 und den Abstand zur Schnittkante prüft `b
 - [ ] Jedes Niveau auf eigener Seite, jede Arbeitsseite gefüllt (kein `inhalt-wenig`), Formate wechseln
 - [ ] Jede Aufgabe auf einen Blick verständlich, Beispiel nicht gequetscht
 - [ ] Mindestgrößen eingehalten, keine ungenutzten Leerstreifen
+- [ ] Felder zum Kleben und Zeichnen mit `data-fuer` oder im Maß der Klasse; Begründungen mit `data-antwort` und genug Schreiblinien
 - [ ] Keine Information nur über Farbe
 
 - [ ] Eine Palette, Farbe nur an Nummern, Überschrift, Linien, Figur, Bildern und Farbcodes

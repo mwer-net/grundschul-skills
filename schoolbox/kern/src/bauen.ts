@@ -35,10 +35,27 @@ const BAU_TIMEOUT_MS = 5 * 60 * 1000;
 /** Erste Seite des Arbeitsblatts in `ausgabe/`, so benannt wie von blatt.py. */
 export const VORSCHAU_DATEI = 'material-s1.png';
 
+/**
+ * Maße aus dem Bau für den Prüflauf (249, `pruefung.js` Abschnitt 9c), in mm: leere Felder (Rahmen ohne Text und
+ * Abbildung) und Teile zum Ausschneiden mit dem größten und kleinsten Motiv (`null`: ohne Motiv). Gleich große einer
+ * Aufgabe stehen zusammen; `aufgabe` ist „A3“, außerhalb einer Aufgabe `null`.
+ */
+export interface FeldMass {
+	seite: number;
+	aufgabe: string | null;
+	art: 'leer' | 'teil';
+	anzahl: number;
+	breite: number;
+	hoehe: number;
+	motiv?: { klein: [number, number] | null; gross: [number, number] | null };
+}
+
 export interface Pruefbericht {
 	seiten: unknown[];
 	meldungen: Meldung[];
 	fehler: number;
+	/** Fehlt bei Berichten von vor 249. */
+	felder?: FeldMass[];
 }
 
 export interface Lauf {
@@ -266,12 +283,14 @@ export interface Ansicht {
 export interface AnsichtOptionen {
 	/** Zweiter Prüfdurchgang in s/w; Standard ja. */
 	sw?: boolean;
+	/** Gedruckt wird s/w, etwa weil der Auftrag es sagt: Kontrast auf Schauseiten wird eine WARNUNG (249). */
+	swDruck?: boolean;
 }
 
 /** Was nur die s/w-Ansicht meldet (`pruefung.js` bei `body.sw`). */
-const SW_CODES: readonly MeldungCode[] = ['kontrast-sw', 'farbwort-sw', 'bild-kontrast-sw'];
+const SW_CODES: readonly MeldungCode[] = ['kontrast-sw', 'farbwort-sw', 'bild-kontrast-sw', 'kontrast-sw-schau'];
 
-const swPruefen = async (konfig: Pick<Konfig, 'pythonBin'>, quelle: string, ordner: string) => {
+const swPruefen = async (konfig: Pick<Konfig, 'pythonBin'>, quelle: string, ordner: string, swDruck = false) => {
 	const berichtDatei = path.join(ordner, 'pruefbericht.json');
 	const lauf = await fuehreAus(konfig.pythonBin, [
 		BLATT_PY,
@@ -284,6 +303,7 @@ const swPruefen = async (konfig: Pick<Konfig, 'pythonBin'>, quelle: string, ordn
 		'sw',
 		'--bericht',
 		berichtDatei,
+		...(swDruck ? ['--sw-druck'] : []),
 	]);
 	if ((lauf.code !== 0 && lauf.code !== 1) || !existsSync(berichtDatei)) {
 		return [];
@@ -296,13 +316,13 @@ const swPruefen = async (konfig: Pick<Konfig, 'pythonBin'>, quelle: string, ordn
  * Die s/w-Meldungen einer Quelle in Farbe: ein zweiter Prüfdurchgang mit `--profil sw`, nur Bericht, keine Bilder
  * (225). Claude hat kein Bash für `blatt.py bauen --profil sw`. Eine Quelle in s/w meldet sie schon im ersten.
  */
-const swMeldungen = async (konfig: Pick<Konfig, 'pythonBin'>, quelle: string): Promise<Meldung[]> => {
+const swMeldungen = async (konfig: Pick<Konfig, 'pythonBin'>, quelle: string, swDruck = false): Promise<Meldung[]> => {
 	if (druckprofilAusHtml(await readFile(quelle, 'utf8')) === 'sw') {
 		return [];
 	}
 	const ordner = await mkdtemp(path.join(tmpdir(), 'schoolbox-sw-'));
 	try {
-		return await swPruefen(konfig, quelle, ordner);
+		return await swPruefen(konfig, quelle, ordner, swDruck);
 	} finally {
 		await rm(ordner, { recursive: true, force: true });
 	}
@@ -317,12 +337,12 @@ export const baueAnsichtAus = async (
 	konfig: Pick<Konfig, 'pythonBin'>,
 	quelle: string,
 	ziel: string,
-	{ sw: mitSw = true }: AnsichtOptionen = {},
+	{ sw: mitSw = true, swDruck = false }: AnsichtOptionen = {},
 ): Promise<Ansicht> => {
 	const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-ansicht-'));
 	const berichtDatei = path.join(tmp, 'pruefbericht.json');
 	// Neben dem Bau: danach kostete der zweite Durchgang rund 7 s je Bau, daneben rund 4–5 s (225).
-	const sw = mitSw ? swMeldungen(konfig, quelle).catch(() => []) : Promise.resolve([]);
+	const sw = mitSw ? swMeldungen(konfig, quelle, swDruck).catch(() => []) : Promise.resolve([]);
 	try {
 		const lauf = await fuehreAus(konfig.pythonBin, [
 			BLATT_PY,

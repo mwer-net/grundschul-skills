@@ -3,7 +3,7 @@
 
 Aufrufe:
     python3 blatt.py bauen blatt.html [-o ausgabe/] [--ohne-loesung] [--nur-pruefen] [--bericht bericht.json]
-                           [--schritte] [--notizen] [--nur-zusatz] [--profil farbe|sw]
+                           [--schritte] [--notizen] [--nur-zusatz] [--profil farbe|sw] [--sw-druck]
     python3 blatt.py uebersicht a.html b.html [c.html] [-o ausgabe/]
     python3 blatt.py viertel bilder/motiv.jpg [-o ordner/] [--platz 794x660] [--blick 50,50]
 
@@ -17,6 +17,9 @@ und gibt den Prüfbericht aus (FEHLER / WARNUNG / HINWEIS). Exit-Code 1 bei FEHL
 --profil sw stellt ein farbiges Blatt in Graustufen dar (assets/graustufen.js), ohne die Quelle zu ändern; ohne Angabe
 gilt die Klasse am <body> der Quelle.
 --bericht schreibt ihn zusätzlich als JSON (seiten, meldungen mit code und ziele, fehler), z. B. für die Schoolbox.
+Dazu felder: die Maße der leeren Felder und der Teile zum Ausschneiden je Seite (pruefung.js, Abschnitt 9c).
+--sw-druck: Gedruckt wird s/w (der Auftrag sagt es). Mit --profil sw ist schwacher Kontrast auf Schauseiten dann eine
+WARNUNG (kontrast-sw-schau); eine Quelle in s/w gilt von selbst so.
 
 Folien (body class folie): NAME.html ist dann die Offline-Präsentation (praesentation.js eingebettet, startet mit
 einem Startbildschirm); das PDF bleibt die normale Seitenfolge, alles aufgedeckt. Zusätzlich auf Wunsch:
@@ -252,13 +255,15 @@ def setze_profil(text, profil):
     return re.sub(r'<body([^>]*)class="([^"]*)"', tausche, text, count=1)
 
 
-def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None, profil=None, cache=None):
+def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None, profil=None, cache=None, sw_druck=False):
     """Eigenständiges HTML: CSS, Schriften, Skripte und Bilder einbetten.
 
     modus (nur Folien): "start" (Offline-Präsentation), "schritte" oder "notizen" bettet praesentation.js ein und
     setzt die Klasse praesentation-<modus> am <body>; "notizen" druckt auf A4 hoch.
     profil: ohne Angabe gilt die Quelle. Bei s/w (auch aus der Quelle) läuft assets/graustufen.js mit und alle Bilder
-    werden Graufassungen (oder name-strich, wenn es das gibt); cache ist der Ordner, in dem die Fassungen bleiben."""
+    werden Graufassungen (oder name-strich, wenn es das gibt); cache ist der Ordner, in dem die Fassungen bleiben.
+    sw_druck (nur mit pruefen): gedruckt wird s/w; setzt data-sw-druck am <body>, ebenso bei einer Quelle in s/w."""
+    quelle_sw = profil_von(quelltext) == "sw"
     grau = Graufassungen(cache) if (profil or profil_von(quelltext)) == "sw" else None
     bild_uri = grau.uri if grau else daten_uri
 
@@ -363,6 +368,8 @@ def einbetten(quelltext, quelle_dir, pruefen=False, loesung=False, modus=None, p
 
     if profil and profil != profil_von(quelltext):
         quelltext = setze_profil(quelltext, profil)
+    if pruefen and profil_von(quelltext) == "sw" and (sw_druck or quelle_sw):
+        quelltext = re.sub(r'<body([^>]*)class="', r'<body\1data-sw-druck class="', quelltext, count=1)
     t = re.sub(r'<link[^>]+href="([^"]+\.css)"[^>]*>', css_ersetzen, quelltext)
     t = re.sub(r'<script[^>]+src="([^"]+\.js)"[^>]*>\s*</script>', js_ersetzen, t)
     t = re.sub(r'(<img[^>]+src=")([^"]+)(")', bild_ersetzen, t)
@@ -558,6 +565,8 @@ def ausgeben(bericht, titel=""):
 def bericht_schreiben(datei, bericht, meldungen, fehler):
     if datei:
         daten = {"seiten": bericht["seiten"], "meldungen": meldungen, "fehler": fehler}
+        if "felder" in bericht:
+            daten["felder"] = bericht["felder"]
         Path(datei).write_text(json.dumps(daten, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
@@ -605,7 +614,7 @@ def folien_ausgaben(text, quelle, aus, tmp, schritte, notizen, still, profil=Non
 
 
 def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=False, bericht_datei=None,
-          schritte=False, notizen=False, nur_zusatz=False, profil=None):
+          schritte=False, notizen=False, nur_zusatz=False, profil=None, sw_druck=False):
     quelle = Path(quelle).resolve()
     aus = Path(ausgabe).resolve() if ausgabe else quelle.parent
     aus.mkdir(parents=True, exist_ok=True)
@@ -621,7 +630,7 @@ def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=Fal
                 print("Erzeugt:\n  " + "\n  ".join(str(p) for p in erzeugt))
             return {"seiten": [], "meldungen": meldungen}, fehler, []
         pruef = Path(tmp) / "pruefen.html"
-        pruef.write_text(einbetten(text, quelle.parent, pruefen=True, profil=profil, cache=cache), encoding="utf-8")
+        pruef.write_text(einbetten(text, quelle.parent, pruefen=True, profil=profil, cache=cache, sw_druck=sw_druck), encoding="utf-8")
         bericht = pruefbericht(pruef)
         fehler = ausgeben(bericht, "" if not still else name)
         meldungen = list(bericht["meldungen"])
@@ -765,6 +774,7 @@ def main():
     b.add_argument("--notizen", action="store_true", help="Folien: NAME-notizen.pdf, Folien mit Notizen auf A4")
     b.add_argument("--nur-zusatz", action="store_true", help="nur --schritte/--notizen bauen")
     b.add_argument("--profil", choices=("farbe", "sw"), help="Darstellung; ohne Angabe gilt die Quelle")
+    b.add_argument("--sw-druck", action="store_true", help="gedruckt wird s/w: Kontrast auf Schauseiten als WARNUNG")
     u = sub.add_parser("uebersicht")
     u.add_argument("quellen", nargs="+")
     u.add_argument("-o", "--ausgabe")
@@ -790,7 +800,8 @@ def main():
         if a.nur_zusatz and not (a.schritte or a.notizen):
             ap.error("--nur-zusatz braucht --schritte oder --notizen")
         _, fehler, _ = bauen(a.quelle, a.ausgabe, a.ohne_loesung, a.nur_pruefen, bericht_datei=a.bericht,
-                             schritte=a.schritte, notizen=a.notizen, nur_zusatz=a.nur_zusatz, profil=a.profil)
+                             schritte=a.schritte, notizen=a.notizen, nur_zusatz=a.nur_zusatz, profil=a.profil,
+                             sw_druck=a.sw_druck)
         sys.exit(1 if fehler else 0)
     uebersicht(a.quellen, a.ausgabe)
 

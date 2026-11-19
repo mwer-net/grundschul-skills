@@ -68,6 +68,16 @@ export const MELDUNG_CODES = [
 	'kit-anteil',
 	/** `x-gitter aufgabe="pruefen"` zählt nur eine Achse, die Anweisung nennt sie nicht (245). */
 	'symmetrie-achse',
+	/** In s/w gedruckt (Quelle s/w oder `--sw-druck`): Text auf einer Schauseite hebt sich kaum ab (249). */
+	'kontrast-sw-schau',
+	/** `.feld-kleben`/`.feld-zeichnen`: kleiner als `data-fuer` und Rand, oder Zeichenfeld unter dem Maß der Klasse (249). */
+	'feld-klein',
+	/** `data-fuer` fehlt am Klebefeld oder ist kein Maß (249). */
+	'feld-fuer',
+	/** `data-antwort="satz|begruendung"`: weniger Schreiblinien als die Klasse braucht (249). */
+	'linien-wenig',
+	/** Begründen ohne `data-antwort` (HINWEIS, einmal je Seite) oder ein Wert, den es nicht gibt (249). */
+	'antwort-menge',
 ] as const;
 
 export type MeldungCode = (typeof MELDUNG_CODES)[number];
@@ -156,6 +166,26 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 	'kontrast-sw': (namen) => ({
 		satz: `${namen.length > 0 ? aufzaehlung(namen) : 'Ein Text'} ist in Schwarz-Weiß kaum zu lesen.`,
 		tipp: 'Eine dunklere Schriftfarbe oder eine hellere Fläche wählen.',
+	}),
+	'kontrast-sw-schau': (namen) => ({
+		satz: `${namen.length > 0 ? aufzaehlung(namen) : 'Ein Text'} ist im Schwarz-Weiß-Druck kaum zu lesen.`,
+		tipp: 'Eine dunklere Schriftfarbe oder eine hellere Fläche wählen.',
+	}),
+	'feld-klein': (_n, text) => ({
+		satz: `${text.replace(/ → .*$/, '').replace(/^A\d+: /, '')}: Das Feld ist zu klein.`,
+		tipp: 'Claude bitten, das Feld größer zu machen oder ihm eine eigene Zeile zu geben.',
+	}),
+	'feld-fuer': () => ({
+		satz: 'Bei einem Feld steht nicht, wie groß das ist, was hineinkommt.',
+		tipp: 'Claude bitten, die Größe des Papiers am Feld anzugeben.',
+	}),
+	'linien-wenig': (_n, text) => ({
+		satz: `${text.replace(/ → .*$/, '').replace(/^A\d+: /, '')}.`,
+		tipp: 'Eine Schreiblinie duplizieren oder Claude um mehr Linien bitten.',
+	}),
+	'antwort-menge': () => ({
+		satz: 'Bei einer Aufgabe mit Begründung ist offen, wie viel die Kinder schreiben sollen.',
+		tipp: 'Prüfen, ob die Schreiblinien für eine Begründung reichen.',
 	}),
 	'farbwort-sw': (_n, text) => ({
 		satz: `Der Text nennt Farben (${/\((.*?)\)/.exec(text)?.[1] ?? ''}), in Schwarz-Weiß sind sie nicht zu sehen.`,
