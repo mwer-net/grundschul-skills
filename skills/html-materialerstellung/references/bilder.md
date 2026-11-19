@@ -68,6 +68,8 @@ Vor dem Erzeugen steht für jedes Bild fest, was darauf sein muss und was nicht.
 ```
 
 - `pflicht`: jedes Ding, von dem Fall-Karte, Vorleseheft oder Aufgabe sprechen und das man sehen soll, höchstens drei, je mit Zahl, Farbe und Lage (Drittel von Breite und Höhe, nie im Rand). Jede Figur der Szene ist ein Pflichtobjekt, mit `handlung` (was sie tut, wie im Text) und `standflaeche` (worauf sie steht, sitzt oder kniet). Schrift im Bild steht mit ihrem Wortlaut da (`"text": "Äpfel 3 €"`), eine Menge mit ihrer Zahl. Was nach Abschnitt 3 nicht ins Bild gehört, steht hier nicht.
+- **Werkzeuge und Fachgegenstände des Themas** sind im Bild fachlich richtig: Der Vertrag sagt, wie das Werkzeug aussieht (sichtbare Merkmale), wo es steht, wie es benutzt wird und was man in oder an ihm sieht, und schließt in `verboten` die Darstellung aus, die das Bildmodell erfahrungsgemäß malt. Beispiel Spiegel: „Taschenspiegel mit rotem Rahmen und Standfuß, undurchsichtig, steht senkrecht an der Spiegelachse; in der Spiegelfläche nur die fehlende Hälfte, seitenverkehrt“, verboten „Glasscheibe, durchsichtiges Glas, die ganze Figur hinter dem Spiegel“. „Rechteckiger Spiegel ohne Rand“ malt das Modell als Glasscheibe.
+- **Kanon der Einheit** (Schoolbox): Nennt der Auftrag Zeilen aus dem Kanon, steht jede, die zum Bild passt, wörtlich als eigener Eintrag in `pflicht` oder `verboten`.
 - `buehne`: Lage von Handlung und Standfläche (oben, „Bühne“).
 - `verboten`: immer Schrift, Buchstaben und Zahlen, die der Vertrag nicht nennt (mit Canva: jede Schrift); Figuren, die der Text dort nicht nennt; alles, was der Text ausschließt.
 - `frei`: nur für einen Zettel als Ebene (Abschnitt 4); dort ist ruhiger Hintergrund. Nie für eine Figur.
@@ -139,11 +141,11 @@ Danach das Motiv aus dem Bildvertrag, nach diesen Regeln:
 
 ### Fehler und Versuche
 
-Höchstens drei Versuche je Bild, das erste Bild eingerechnet; ein Auftrag kann weniger erlauben.
+Neu statt flicken: je Fehler eine Bearbeitung und danach höchstens zwei neue Bilder; ein Auftrag kann weniger erlauben.
 
-1. Fehlt etwas aus dem Vertrag, stimmt eine Anzahl oder Schrift nicht, ist etwas abgeschnitten, schwebt eine Figur, wirkt sie eingeklebt oder hat das Bild einen Fehler nach 2a: das Bild **bearbeiten** nach 2a, Punkt 1. Eine Figur nie verschieben oder mit einer Pose überdecken.
-2. Hilft das nicht: **neu erzeugen**, mit der Prompt-Regel, die den Fehler verhindert, und dem Ding deutlicher in der Mitte.
-3. Bleibt der Fehler nach dem dritten Versuch: **den Text an das Bild anpassen**, so dass er nur nennt, was das Bild zeigt (mit Canva auch: das exakte Ding als Ebene oder daneben, Abschnitt 3). Nie ein Bild ins Material, das dem Text widerspricht.
+1. Fehlt etwas aus dem Vertrag, stimmt eine Anzahl oder Schrift nicht, ist etwas abgeschnitten, schwebt eine Figur, wirkt sie eingeklebt oder hat das Bild einen Fehler nach 2a: das Bild einmal **bearbeiten** nach 2a, Punkt 1. Eine Figur nie verschieben oder mit einer Pose überdecken.
+2. Bleibt der Fehler: **neu erzeugen**, mit einem Prompt, der den Fehler ausdrücklich ausschließt („ohne …“, „kein …“), und dem Ding deutlicher in der Mitte. Nicht ein zweites Mal für denselben Fehler bearbeiten.
+3. Bleibt der Fehler nach dem zweiten neuen Bild: kein weiterer Versuch. **Den Text an das Bild anpassen**, so dass er nur nennt, was das Bild zeigt (mit Canva auch: das exakte Ding als Ebene oder daneben, Abschnitt 3). Geht das nicht, bleibt das Bild mit einem Hinweis an die Lehrkraft (Schoolbox: `"offen"` beim Eintrag, Abschnitt 2b). Nie ein Bild ins Material, das dem Text widerspricht, ohne diesen Hinweis.
 
 Jeder Versuch kommt mit Befund in `pruefung`, mit Canva auch mit Media-ID.
 
@@ -156,7 +158,7 @@ KI-Bilder haben regelmäßig Fehler, die erst in voller Auflösung auffallen: ei
 1. **Bearbeiten statt neu würfeln**, wenn das Bild sonst passt. Mit Canva: `generate-image` mit dem fehlerhaften Bild als **einziger** `imageReferences` und demselben `aspectRatio`. In der Schoolbox: `bild_bearbeiten` mit der Datei; Format und Transparenz bleiben, eine abweichende Figur bekommt ihre Grundpose als Referenz dazu. Prompt: „Ändere nur: …“ mit Fehler, Ort und Sollzustand („Die Lupe hat einen Griff und die Figur hält sie mit der rechten Pfote vor sich, ihr Auge ist frei“), dann „Behalte alles andere genau gleich: Figuren, Farben, Hintergrund, Bildausschnitt.“ Eine Änderung je Runde; driftet das Bild, die wichtigen Bedingungen wiederholen.
 2. **Den Sollzustand beschreiben,** „dunkelbraune Augen ohne Wimpern“ statt „Augen wie bei Wilma“ (Abschnitt 2, „Prompt“), bei einer Anzahl die Zahl mit Anordnung („der linke Würfel zeigt oben genau fünf Augen …“).
 3. **Ergebnis wieder vollständig prüfen** (Schritt 5): Eine Bearbeitung lässt den Fehler oft stehen oder erzeugt einen neuen an anderer Stelle.
-4. **Hilft die Bearbeitung nicht,** neu erzeugen (Abschnitt 2, „Fehler und Versuche“), oder den Blickpunkt so wählen, dass die Stelle im Platz wegfällt. Pixel-Retusche an Figuren (übermalen, weichzeichnen) sieht fast immer schlechter aus als der Fehler.
+4. **Eine Bearbeitung je Fehler.** Bleibt der Fehler, erzeuge das Bild neu mit einem Prompt, der den Fehler ausdrücklich ausschließt (Abschnitt 2, „Fehler und Versuche“), oder wähle den Blickpunkt so, dass die Stelle im Platz wegfällt. Pixel-Retusche an Figuren (übermalen, weichzeichnen) sieht fast immer schlechter aus als der Fehler.
 5. **Kleine Fehler an einer Stelle** (Claude-App mit Bash) nicht mit dem ganzen Bild bearbeiten:
    - Auf ruhigem Untergrund (Busch, Himmel, Wiese, Stoff) die Stelle mit Textur direkt daneben überdecken: dasselbe Bild um einige Pixel verschoben, nur innerhalb einer weichen Maske einsetzen, die vor Konturen endet. Einen Farbstich (grünlich, bläulich) nur in der Maske entfärben.
    - An Figuren den Ausschnitt um die Stelle (etwa 256 px) auf 1024 px vergrößern, hochladen (`create-upload-url`), nach Schritt 1 bearbeiten, wieder verkleinern, per Versatzsuche genau ausrichten und mit weicher Maske einsetzen.
@@ -170,7 +172,9 @@ KI-Bilder haben regelmäßig Fehler, die erst in voller Auflösung auffallen: ei
 Baut die Schoolbox ein neues Blatt, eine Unterrichtseinheit oder ein Bild aus der Schublade „Figuren“ oder „Bilder“, erzeugt der Server die Bilder über die Bild-API. Es gibt kein Bash, kein curl, kein Python und kein Canva. Es gilt Abschnitt 2 ohne die Schritte 1 bis 4 des Ablaufs mit Canva:
 
 - **`bild_erzeugen`:** `datei` (Name in `bilder/`, Kleinbuchstaben, Ziffern, Bindestriche, `.png` oder `.jpg`), `prompt`, `format` (Name aus „Format nach Platz“), `referenzen` (höchstens 4) und `transparent` (nur `.png`, für Figuren und Einzelmotive). Szenen werden `.jpg`. Vorher steht der Eintrag mit `datei` und `motiv` in `bilder.json` (Vertrag, dann erzeugen); sonst lehnt das Werkzeug ab. Eine Strichfassung ist ein neues Bild (`name-strich.png`) mit dem Original als Referenz.
-- **`bild_bearbeiten`:** `datei` (ein Bild in `bilder/`), `prompt` nach 2a, Punkt 1, und `referenzen` (höchstens 3 weitere). Format und Transparenz bleiben die des Bilds.
+- **`bild_bearbeiten`:** `datei` (ein Bild in `bilder/`), `prompt` nach 2a, Punkt 1, `befund` (der Fehler, den die Bearbeitung behebt, ein Satz) und `referenzen` (höchstens 3 weitere). Format und Transparenz bleiben die des Bilds.
+- **Neu statt flicken:** Wer ein vorhandenes Bild neu erzeugt, nennt in `befund` den Fehler, den das neue Bild nicht mehr hat; für denselben Fehler derselbe Wortlaut. Der Server zählt je Datei über alle Läufe: Eine zweite Bearbeitung für denselben Befund lehnt er ab („Neu erzeugen“), nach zwei neuen Bildern für denselben Befund jeden weiteren Versuch. Dann beim Eintrag in `bilder.json` `"offen": "<der Fehler in einem Satz>"` eintragen; die Lehrkraft sieht den Hinweis. Ohne `offen`, sobald der Fehler behoben ist.
+- **Vertrag aus dem Kanon:** In einer Einheit mit Kanon lehnt `bild_erzeugen` einen Vertrag ab, dem eine Zeile aus dem Kanon fehlt, und nennt sie wörtlich; eine Grundpose mit einem Gegenstand der Handlung ebenso.
 - **Referenzen** sind Dateien relativ zum Arbeitsordner, nur unter `bilder/`, `referenzen/` oder `ansicht/bilder/versuche/` (die Vorversionen, etwa „stelle … wie in Bild 2 wieder her“). Die Grundposen der Figuren legt der Server als `referenzen/<figur>.png` ab und nennt sie im Auftrag. Die Media-IDs aus Abschnitt 1 gelten hier nicht.
 - **Danach** liegt das Bild schon in `bilder/<datei>`; eine Vorversion unter `ansicht/bilder/versuche/`. Die Antwort nennt Pixelmaße, Versuchsnummer und die Prüfbilder unter `ansicht/bilder/` (`<name>-v1.png` bis `-v4.png`, mit `platz` auch `<name>-platz.png`, Ausschnitt nach `blickpunkt`). Jedes mit Read ansehen und den Vertrag in `pruefung` abhaken wie in Schritt 5. Fehlen die Prüfbilder, das ganze Bild ansehen und das in `pruefung` vermerken.
 - **`bilder.json`** hat kein `url` und kein `mediaId`. Ein Eintrag ohne Datei in `bilder/` ist ein fehlendes Bild.
@@ -203,7 +207,7 @@ Sachabbildungen (Tiere, Pflanzen, Körper) fachlich prüfen; bei Zweifel ein gep
 Als Ebene über dem Bild liegt Text nach Abschnitt 3, Punkt 3, mit Canva jede Schrift und alles Exakte: Zettel, Schilder und Baupläne mit Text, auch ein Element aus `abbildungen.js` auf einem Zettel. Figuren liegen auf Szenen nie als Ebene. Freigestellte Posen stehen auf Plätzen ohne Szene: Tipp, Pass, Urkunde, Bildkarte, Sprechblase.
 
 **Grundpose und Posen.** Jede Figur entsteht einmal als Grundpose; sie ist die Referenz für jede Szene und jede Pose:
-1. Grundpose erzeugen (`SQUARE_1_1`, Stilblock mit Zusatz „Figur“, Aussehen aus dem Steckbrief), freistellen (Canva `remove-background`, Bild-API `transparent`), nach Schritt 5 prüfen.
+1. Grundpose erzeugen (`SQUARE_1_1`, Stilblock mit Zusatz „Figur“, Aussehen aus dem Steckbrief). Die Grundpose zeigt nur, was die Figur in jeder Szene hat; ein Gegenstand der Handlung (ein Glöckchen, das sie erst verliert) kommt nie hinein. Freistellen (Canva `remove-background`, Bild-API `transparent`), nach Schritt 5 prüfen.
 2. **Abnehmen:** Stimmt sie in Viertel und Ganzem mit dem Steckbrief überein (Farben, Kleidung, Erkennungszeichen, Proportionen)? Erst dann ist sie die Vorlage.
 3. **Figur in der Szene** (Abschnitt 2, „Prompt“). Hält eine Figur einen Text, der Ebene bleibt, ist das Blatt im Bild leer; der Inhalt kommt als Zettel-Ebene (`gehalten`).
 4. Posen für Tipp und Requisiten (`verkauf.md`, Abschnitt 5) nur mit der abgenommenen Grundpose als einziger Referenz, jede freistellen und mit der Grundpose vergleichen (Augen, Kleidung, Größenverhältnisse). Was abweicht, wird bearbeitet wie in 2a.
