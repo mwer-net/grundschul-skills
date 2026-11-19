@@ -7,6 +7,10 @@ import { after, afterEach, before, describe, it } from 'node:test';
 import type { EinheitStand, Pruefbericht } from '@schoolbox/kern';
 import {
 	pruefeRecherche,
+	PRUEFPUNKTE_TITEL,
+	pruefpunkteAus,
+	pruefpunkteBefund,
+	pruefpunkteText,
 	RECHERCHE_ANFANG,
 	rechercheAbschnitt,
 	rechercheBefund,
@@ -34,6 +38,9 @@ const warte = async (bedingung: () => Promise<boolean> | boolean, ms = 20_000) =
 
 const GUT =
 	'# Recherche: Achsensymmetrie, Klasse 2\n\n## Bildungsplan\n- Kl. 1/2, 3.1.2.3: einfache, achsensymmetrische Figuren herstellen (zum Beispiel legen, falten, drucken, schneiden). Quelle: https://www.bildungsplaene-bw.de/,Lde/BP2016BW_ALLG_GS_M.V2_IK_1-2_02_03.\n';
+
+const PUNKTE =
+	'\n## Fachliche Prüfpunkte\n- Wahr: Eine Figur ist symmetrisch, wenn sie irgendeine Achse hat. Falsch wäre: „nicht symmetrisch“ bei nur waagerechter Achse (https://pikas.dzlm.de/)\n- Wahr: Gilt nur eine Achse, sagt die Aufgabe es. Falsch wäre: „senkrecht“ nur in der Lösung\n  (https://www.bildungsplaene-bw.de/)\n\n## Quellen\n- https://pikas.dzlm.de/ Rang 3\n';
 
 describe('Prüfung von recherche.md (219)', () => {
 	it('Reiner Text mit Quellen geht weiter, die Quellen ohne Satzzeichen', () => {
@@ -74,12 +81,12 @@ describe('Prüfung von recherche.md (219)', () => {
 	});
 
 	it('Ziel und Höchstwert (236): genau das Ziel ist in Ordnung, darüber nennt das Werkzeug, um wie viel', () => {
-		const lang = (n: number) => GUT + 'x'.repeat(n - GUT.length);
+		const lang = (n: number) => GUT + PUNKTE + 'x'.repeat(n - GUT.length - PUNKTE.length);
 		const { zeichen: ziel, zeichenMax: max } = KI_GRENZEN.recherche;
 		assert.equal(lang(12_000).trim().length, 12_000);
 		assert.equal(
 			rechercheBefund(lang(ziel), ziel).text,
-			'In Ordnung: 12.000 Zeichen (höchstens 12.000), 1 Quelle.',
+			'In Ordnung: 12.000 Zeichen (höchstens 12.000), 3 Quellen.',
 		);
 		assert.equal(rechercheBefund(lang(ziel), ziel).ok, true);
 		assert.deepEqual(rechercheBefund(lang(12_016), ziel), {
@@ -101,6 +108,47 @@ describe('Prüfung von recherche.md (219)', () => {
 			'recherche.md enthält HTML oder eine verbotene Adresse.',
 		);
 		assert.equal(kuerzenText(16_000).startsWith('recherche.md hat 16.000 Zeichen, höchstens 12.000. Kürze'), true);
+	});
+
+	it('Fachliche Prüfpunkte (243): pruefen meldet den fehlenden Abschnitt und Punkte ohne Quelle, der Server sperrt nicht', () => {
+		const ziel = KI_GRENZEN.recherche.zeichen;
+		assert.deepEqual(rechercheBefund(GUT, ziel), {
+			ok: false,
+			text: 'recherche.md hat keinen Abschnitt „## Fachliche Prüfpunkte“. Ergänze ihn, wie der Aufbau es verlangt.',
+		});
+		assert.equal(pruefeRecherche(GUT, ziel).ok, true);
+		assert.equal(rechercheBefund(GUT + PUNKTE, ziel).ok, true);
+		const ohneQuelle = `${GUT}\n## Fachliche Prüfpunkte\n- Wahr: a (https://a.de)\n- Wahr: b ohne Beleg\n- Wahr: c ohne Beleg\n`;
+		assert.equal(
+			pruefpunkteBefund(ohneQuelle),
+			'Prüfpunkte ohne Quelle (Adresse mit https:// in Klammern): Nr. 2, 3 im Abschnitt „## Fachliche Prüfpunkte“.',
+		);
+		assert.match(pruefpunkteBefund(`${GUT}\n## Fachliche Prüfpunkte\n\n## Quellen\n`) ?? '', /keinen Prüfpunkt/);
+		assert.match(pruefpunkteBefund(`${GUT}\n## Fachliche Prüfpunkte\n- a (https://a.de)\n`) ?? '', /ohne „Wahr: …“: Nr\. 1/);
+		const viele = Array.from({ length: 16 }, (_, i) => `- Wahr: ${i} (https://a.de)`).join('\n');
+		assert.match(pruefpunkteBefund(`${GUT}\n## Fachliche Prüfpunkte\n${viele}\n`) ?? '', /16 Prüfpunkte, höchstens 15/);
+	});
+
+	it('pruefpunkteAus liest den Abschnitt bis zur nächsten Überschrift, Fortsetzungszeilen gehören zum Punkt (243)', () => {
+		assert.deepEqual(pruefpunkteAus(GUT + PUNKTE), [
+			'Wahr: Eine Figur ist symmetrisch, wenn sie irgendeine Achse hat. Falsch wäre: „nicht symmetrisch“ bei nur waagerechter Achse (https://pikas.dzlm.de/)',
+			'Wahr: Gilt nur eine Achse, sagt die Aufgabe es. Falsch wäre: „senkrecht“ nur in der Lösung (https://www.bildungsplaene-bw.de/)',
+		]);
+		assert.deepEqual(pruefpunkteAus(GUT), []);
+		assert.deepEqual(pruefpunkteAus(null), []);
+		const text = pruefpunkteText(GUT + PUNKTE, ['Wahr: B ist symmetrisch.']) ?? '';
+		assert.match(text, /^Fachliche Prüfpunkte aus der Recherche: Jedes Material muss sie erfüllen/);
+		assert.match(text, /\n- Wahr: Gilt nur eine Achse/);
+		assert.match(text, /Berichtigt von der Lehrkraft \(geht der Recherche vor\):\n- Wahr: B ist symmetrisch\./);
+		assert.equal(pruefpunkteText(GUT), null);
+	});
+
+	it('Die Vorlage verlangt die Prüfpunkte und zwei Listen typischer Fehler (243)', async () => {
+		const vorlage = await readFile(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'recherche.md'), 'utf8');
+		assert.ok(vorlage.includes(`\`## ${PRUEFPUNKTE_TITEL}\``));
+		assert.match(vorlage, /„Fehler der Kinder“/);
+		assert.match(vorlage, /„Fehler, die Material leicht macht“/);
+		assert.match(vorlage, /Wahr: … Falsch wäre: …/);
 	});
 
 	it('Der Auftrag nennt das Ziel des Servers und das Werkzeug', async () => {

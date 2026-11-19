@@ -5,6 +5,7 @@ Prüfe in dieser Reihenfolge und lies dafür die Materialien unter `dokumente/<s
 2. Geschichte und Rätselkette über alle Kapitel: Figuren, Namen, offene Enden, Hinweise und Buchstaben der Kette passen von Kapitel zu Kapitel und zur Auflösung.
 3. Zahlen auf Deckblatt, in den Hinweisen und im Angebot: Seiten, Materialien, Aufgaben und Karten stehen dort genau so, wie die Schoolbox sie zählt. Schreibe Zahlen nur aus der Liste der Nachricht ab, nie aus dem Kopf und nie geschätzt. Nennt die Liste Folien, stehen Seiten und Folien getrennt („72 Seiten A4 und 30 Folien“), nie zusammengezählt. Kennt die Schoolbox eine Zahl nicht, nennt das Material sie nicht.
 4. Dopplungen nach der Aufgaben-Übersicht: Kein Format öfter als zweimal in der Reihe, kein zweites Vorkommen ohne höheren Anspruch, keine Abbildung in zwei Materialien.
+5. Fachlich: Jede Aussage, Aufgabe, Lösung, jedes Beispiel und jeder Tipp hält die fachlichen Prüfpunkte der Nachricht ein, in allen Materialien gleich; eine Berichtigung der Lehrkraft geht der Recherche vor. Nennt die Nachricht eine Folgekorrektur, hat eine Korrektur dieselbe Aussage in einem anderen Material schon berichtigt: Bringe das genannte Material in Einklang.
 
 Ändern und neu bauen:
 - Ändere nur, was einer dieser Punkte verlangt, und nur in den betroffenen Materialien. Höchstens so viele Materialien, wie die Nachricht nennt; die wichtigsten zuerst.
@@ -19,7 +20,7 @@ Antworte am Ende mit höchstens fünf Zeilen Text, was du geändert hast, und da
 {"offen": [{"material": "<slug>", "art": "zahlen", "text": "Ein Satz, was noch nicht stimmt."}]}
 ```
 
-`art` ist eine von `auftrag`, `geschichte`, `zahlen`, `dopplung`, `unklar`, `fehlt`, `gestaltung`. Ist alles erledigt: `{"offen": []}`.
+`art` ist eine von `auftrag`, `geschichte`, `zahlen`, `dopplung`, `loesung`, `unklar`, `fehlt`, `gestaltung`; ein fachlicher Fehler ist `loesung`. Ist alles erledigt: `{"offen": []}`.
 
 Regeln:
 - Du hast kein Bash und rufst blatt.py nicht auf; dafür gibt es `bauen`.

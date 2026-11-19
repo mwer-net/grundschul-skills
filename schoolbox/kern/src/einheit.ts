@@ -316,6 +316,11 @@ export interface EinheitPlan {
 	figuren?: PlanFigur[];
 	/** Was jedes Kapitel liefert und was am Ende herauskommt (220). */
 	raetselkette?: string;
+	/**
+	 * Berichtigt die Lehrkraft beim Ändern einen fachlichen Prüfpunkt der Recherche (243), steht er hier in derselben
+	 * Form („Wahr: … Falsch wäre: …“); er geht dem Prüfpunkt der Recherche vor. Fehlt ohne Berichtigung.
+	 */
+	berichtigungen?: string[];
 }
 
 const kurz = (wert: unknown, max: number) => (typeof wert === 'string' ? wert.trim().slice(0, max) : '');
@@ -404,6 +409,7 @@ export const lesePlan = (roh: unknown, max = EINHEIT_MAX_DOKUMENTE): EinheitPlan
 	const stunden = leseStunden(p.stunden, new Set(dokumente.map((d) => d.slug)));
 	const figuren = lesePlanFiguren(p.figuren);
 	const raetselkette = kurz(p.raetselkette, 1200);
+	const berichtigungen = kurzListe(p.berichtigungen, 500, 15);
 	return {
 		titel: kurz(p.titel, EINHEIT_ZEICHEN.titel),
 		annahmen: kurzListe(p.annahmen, 300, 12),
@@ -413,6 +419,7 @@ export const lesePlan = (roh: unknown, max = EINHEIT_MAX_DOKUMENTE): EinheitPlan
 		...(stunden.length ? { stunden } : {}),
 		...(figuren.length ? { figuren } : {}),
 		...(raetselkette ? { raetselkette } : {}),
+		...(berichtigungen.length ? { berichtigungen } : {}),
 	};
 };
 

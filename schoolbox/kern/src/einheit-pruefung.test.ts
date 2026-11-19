@@ -11,6 +11,9 @@ import {
 	blickLektuere,
 	blickRegeln,
 	figurenDopplungen,
+	folgeBefund,
+	istFolgekorrektur,
+	leseFolgen,
 	gepruefteZahl,
 	lesePruefung,
 	pruefKorrektur,
@@ -120,6 +123,39 @@ describe('Antwort des Prüflaufs (220, Teil 2)', () => {
 		assert.match(text, /Eine schwebende oder eingeklebte Figur verschiebst du nicht/);
 		assert.match(text, /Bearbeite das Bild mit der Figur darin/);
 		assert.doesNotMatch(pruefKorrektur([{ seite: 1, aufgabe: '2', art: 'unklar', text: 'x' }], []), /schwebende/);
+	});
+
+	it('ein fachlicher Befund wird an der Sache behoben, andere Materialien kommen unter „folgen“ (243)', () => {
+		const text = pruefKorrektur(
+			[{ seite: 2, aufgabe: '3', art: 'loesung', text: 'B ist symmetrisch (waagerechte Achse).' }],
+			[],
+		);
+		assert.match(text, /Ein fachlicher Befund wird an der Sache behoben: Aufgabe, Lösung, Beispiel und Tipp stimmen/);
+		assert.match(text, /\(Hinweise, Vorleseheft, Lernzielkontrolle\), nenne es in deiner Antwort und in steckbrief\.json/);
+		assert.match(text, /\{"folgen": \[\{"material": "<slug>", "aussage": /);
+		assert.doesNotMatch(pruefKorrektur([{ seite: 1, aufgabe: '', art: 'unklar', text: 'x' }], []), /an der Sache/);
+	});
+
+	it('liest „folgen“ nur für fertige andere Materialien, je Aussage einmal (243)', () => {
+		const roh = {
+			figuren: [],
+			folgen: [
+				{ material: 'dokumente/hinweise', aussage: '  Dort steht B als   nicht symmetrisch. ' },
+				{ material: 'hinweise', aussage: 'Dort steht B als nicht symmetrisch.' },
+				{ material: 'kapitel-5', aussage: 'eigenes Material' },
+				{ material: 'gibt-es-nicht', aussage: 'x' },
+				{ material: 'vorleseheft', aussage: '' },
+				'kaputt',
+			],
+		};
+		assert.deepEqual(leseFolgen(roh, ['hinweise', 'kapitel-5', 'vorleseheft'], 'kapitel-5'), [
+			{ material: 'hinweise', aussage: 'Dort steht B als nicht symmetrisch.' },
+		]);
+		assert.deepEqual(leseFolgen(null, ['hinweise'], 'x'), []);
+		const t = folgeBefund('kapitel-5', 'Buchstaben', 'B steht als nicht symmetrisch.');
+		assert.equal(t, 'Folgekorrektur aus dokumente/kapitel-5 („Buchstaben“): B steht als nicht symmetrisch.');
+		assert.equal(istFolgekorrektur(t), true);
+		assert.equal(istFolgekorrektur('Die Übernahme ist gescheitert.'), false);
 	});
 });
 

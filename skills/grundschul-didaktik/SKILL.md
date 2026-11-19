@@ -108,6 +108,7 @@ Prüfe jedes Material gegen diese Liste und korrigiere, bevor du es der Lehrkraf
 - [ ] Keine rein dekorativen Bilder (Weglass-Test); alle Bilder eindeutig erkennbar
 - [ ] Genug Platz zum Schreiben/Zeichnen
 - [ ] Rechtschreibung, Zeichensetzung, Rechnungen und Lösungen geprüft
+- [ ] Jede Klassifikation (symmetrisch, gerade, Nomen, Säugetier …) an der fachlichen Definition geprüft, nicht an der Übung der Stunde; die fachlichen Prüfpunkte der Recherche gelten in jedem Material
 - [ ] Keine personenbezogenen Daten von Kindern (echte Namen, Fotos, Förderbedarfe einzelner Kinder)
 - [ ] Farbe nur als Akzent; keine Flächen hinter Aufgaben; auch in der s/w-Ansicht lesbar
 - [ ] Übersichtlich: Aufgaben ohne Kasten, Menge trägt das Zeitziel je Niveau, Seiten gefüllt, jede Aufgabe auf einen Blick verständlich, Beispiel nicht gequetscht

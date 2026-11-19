@@ -2,6 +2,7 @@ import type { EinheitPlan } from '@schoolbox/kern/src/einheit';
 import type { PlanStunde } from '@schoolbox/kern/src/einheit-aufgaben';
 import { FORMAT_HOECHSTENS, formatTitel, formatZaehlung } from '@schoolbox/kern/src/einheit-aufgaben';
 import type { RechercheStand } from '@schoolbox/kern/src/recherche';
+import { pruefpunkteAus, quellenAus } from '@schoolbox/kern/src/recherche';
 import type { ReactNode } from 'react';
 
 import { Symbol } from '../bausteine/Symbol';
@@ -138,6 +139,75 @@ export const AufgabenTabelle = ({ plan }: { plan: EinheitPlan }) => {
 };
 
 const kurzeAdresse = (url: string) => url.replace(/^https:\/\/(www\.)?/, '').replace(/\/$/, '');
+const seiteVon = (url: string) => kurzeAdresse(url).split('/')[0] ?? url;
+
+/** „Wahr: … Falsch wäre: … (https://…)“ in Aussage, Gegenbeispiel und Quellen. */
+const pruefpunktTeile = (punkt: string) => {
+	const quellen = quellenAus(punkt);
+	const ohne = punkt
+		.replace(/\(?\s*(?:Quelle:\s*)?https:\/\/[^\s)]+\s*\)?/gi, '')
+		.replace(/\s*(?:Quelle|Quellen):?\s*$/i, '')
+		.replace(/\s+([.,;])/g, '$1')
+		.trim();
+	const [wahr = '', falsch = ''] = ohne.split(/\s*Falsch wäre:\s*/i);
+	return { wahr: wahr.replace(/^Wahr:\s*/i, ''), falsch, quellen };
+};
+
+/**
+ * Was in jedem Material fachlich stimmen muss (243): die Prüfpunkte der Recherche, darüber die Berichtigungen der
+ * Lehrkraft aus dem Plan. Je Punkt eine Zeile, das Gegenbeispiel leise dahinter, die Quelle als kurzer Link.
+ */
+export const FachPruefpunkte = ({
+	recherche,
+	berichtigungen,
+	planOffen,
+}: {
+	recherche: string | null;
+	berichtigungen: string[];
+	planOffen: boolean;
+}) => {
+	const punkte = pruefpunkteAus(recherche);
+	if (punkte.length === 0 && berichtigungen.length === 0) {
+		return null;
+	}
+	const zeile = (punkt: string, berichtigt: boolean) => {
+		const t = pruefpunktTeile(punkt);
+		return (
+			<li key={`${berichtigt ? 'b' : 'r'}-${punkt}`}>
+				{berichtigt && <span className="font-medium">Berichtigt: </span>}
+				{t.wahr}
+				{t.falsch && <span className="text-leise">{` Falsch wäre: ${t.falsch}`}</span>}
+				{t.quellen.map((q) => (
+					<a
+						key={q}
+						href={q}
+						target="_blank"
+						rel="noreferrer"
+						title={q}
+						className="ml-1 text-xs text-brand-700 hover:underline"
+					>
+						{seiteVon(q)}
+					</a>
+				))}
+			</li>
+		);
+	};
+	return (
+		<Aufklapp titel={`Was fachlich stimmen muss (${punkte.length + berichtigungen.length})`}>
+			<div className="flex max-w-[64rem] flex-col gap-1" data-einheit-pruefpunkte>
+				<ul className="list-disc pl-4">
+					{berichtigungen.map((b) => zeile(b, true))}
+					{punkte.map((p) => zeile(p, false))}
+				</ul>
+				<p className="text-leise">
+					{planOffen
+						? 'Jedes Material wird daran gebaut und geprüft. Stimmt etwas nicht, schreib es bei „Ändern …“; die Berichtigung gilt dann für alle Materialien.'
+						: 'Jedes Material wird daran gebaut und geprüft.'}
+				</p>
+			</div>
+		</Aufklapp>
+	);
+};
 
 /** Die Quellen der Recherche als Links. */
 export const RechercheQuellen = ({ quellen }: { quellen: string[] }) => (

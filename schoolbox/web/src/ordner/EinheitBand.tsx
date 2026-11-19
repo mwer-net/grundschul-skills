@@ -15,7 +15,14 @@ import { limitHinweis, useKiZustand } from '../editor/ki';
 import { PlanFreigabe } from '../editor/PlanFreigabe';
 import { ART_NAME } from '../lib/text';
 import { einheitAktion, einheitFreigeben, fertig, fortschritt, geplant } from './einheiten';
-import { AufgabenTabelle, Aufklapp, RechercheKurz, RechercheQuellen, StundenKurz } from './EinheitPlanDetails';
+import {
+	AufgabenTabelle,
+	Aufklapp,
+	FachPruefpunkte,
+	RechercheKurz,
+	RechercheQuellen,
+	StundenKurz,
+} from './EinheitPlanDetails';
 import { PruefungDetails } from './EinheitPruefung';
 import { useAblage } from './kontext';
 
@@ -291,6 +298,11 @@ const BandDetails = ({ s }: { s: EinheitStand }) => {
 					</div>
 				</Aufklapp>
 			)}
+			<FachPruefpunkte
+				recherche={s.recherche?.status === 'fertig' ? s.recherche.text : null}
+				berichtigungen={s.plan?.berichtigungen ?? []}
+				planOffen={s.status === 'plan'}
+			/>
 			{quellen.length > 0 && (
 				<Aufklapp titel={`Quellen der Recherche (${quellen.length})`}>
 					<RechercheQuellen quellen={quellen} />

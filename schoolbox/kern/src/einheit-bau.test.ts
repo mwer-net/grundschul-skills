@@ -273,3 +273,12 @@ describe('Protokoll der Läufe (240)', () => {
 		assert.equal(e.ergebnis, 'fertig');
 	});
 });
+
+describe('Berichtigungen der Lehrkraft im Plan (243)', () => {
+	it('lesePlan nimmt „berichtigungen“ als Liste, ohne Einträge fehlt das Feld', () => {
+		const roh = { titel: 'Spiegel', annahmen: [], dokumente: [] };
+		const mit = lesePlan({ ...roh, berichtigungen: ['  Wahr: B ist symmetrisch. ', '', 3] });
+		assert.deepEqual(mit?.berichtigungen, ['Wahr: B ist symmetrisch.']);
+		assert.equal('berichtigungen' in (lesePlan(roh) ?? {}), false);
+	});
+});

@@ -61,9 +61,12 @@ import {
 	FACH_NAME,
 	fertigText,
 	figurenDopplungen,
+	folgeBefund,
+	FOLGEN_FELD,
 	formatBefund,
 	formateDesMaterials,
 	freierName,
+	istFolgekorrektur,
 	klasseText,
 	LAUF_DATEI,
 	laufMeldungen,
@@ -71,6 +74,7 @@ import {
 	lektuereFehltText,
 	lektuereZeile,
 	leseBibliothek,
+	leseFolgen,
 	leseMeta,
 	lesePlan,
 	lesePruefung,
@@ -87,6 +91,7 @@ import {
 	planBefunde,
 	pruefeEinheitAngaben,
 	pruefKorrektur,
+	pruefpunkteText,
 	pruefTeile,
 	pruefText,
 	pruefWeise,
@@ -281,6 +286,9 @@ const PLAN_ABSCHNITT = (plan: EinheitPlan) => {
 		g?.falscheFaehrte ? `Falsche Fährte: ${g.falscheFaehrte}` : '',
 		g?.aufloesung ? `Auflösung: ${g.aufloesung}` : '',
 		plan.raetselkette ? `Rätselkette: ${plan.raetselkette}` : '',
+		plan.berichtigungen?.length
+			? `Fachliche Prüfpunkte, von der Lehrkraft berichtigt (gehen der Recherche vor): ${plan.berichtigungen.join(' · ')}`
+			: '',
 		...(g?.kapitel ?? []).map(
 			(k) =>
 				`Kapitel ${k.nr}: ${k.titel}${k.offenesEnde ? `. Offenes Ende: ${k.offenesEnde}` : ''}${k.bildfolien.length ? `. Bildfolien: ${k.bildfolien.join(' · ')}` : ''}`,
@@ -1249,19 +1257,24 @@ export const erstelleEinheiten = (
 	};
 
 	/** Was spätere Materialien über dieses wissen müssen: Seiten und Formate vom Server, der Rest aus `steckbrief.json`. */
+	const steckbriefDatei = (s: EinheitStand, slug: string) =>
+		path.join(arbeitDir(s.id), 'dokumente', slug, STECKBRIEF_DATEI);
+
+	const leseSteckbriefRoh = async (s: EinheitStand, slug: string): Promise<unknown> => {
+		const datei = steckbriefDatei(s, slug);
+		try {
+			return (await stat(datei)).size <= MAX_STECKBRIEF_BYTES ? JSON.parse(await readFile(datei, 'utf8')) : null;
+		} catch {
+			// Kein Steckbrief: Seiten und Formate reichen.
+			return null;
+		}
+	};
+
 	const notiereSteckbrief = async (s: EinheitStand, plan: EinheitPlan, d: PlanDokument) => {
 		if (!s.importiert[d.slug]) {
 			return;
 		}
-		const datei = path.join(arbeitDir(s.id), 'dokumente', d.slug, STECKBRIEF_DATEI);
-		let roh: unknown = null;
-		try {
-			if ((await stat(datei)).size <= MAX_STECKBRIEF_BYTES) {
-				roh = JSON.parse(await readFile(datei, 'utf8'));
-			}
-		} catch {
-			// Kein Steckbrief: Seiten und Formate reichen.
-		}
+		const roh = await leseSteckbriefRoh(s, d.slug);
 		const seiten = aktiv?.seiten.get(d.slug) || aktiv?.gebaut.get(d.slug) || 0;
 		const loesungsseiten = aktiv?.loesungen.get(d.slug) ?? s.steckbriefe?.[d.slug]?.loesungsseiten;
 		s.steckbriefe = {
@@ -1273,6 +1286,28 @@ export const erstelleEinheiten = (
 				...leseSteckbrief(roh),
 			},
 		};
+	};
+
+	/**
+	 * Was eine Korrekturrunde unter `folgen` in `steckbrief.json` nennt (243): andere fertige Materialien mit derselben
+	 * Aussage, als offener Befund für den Schlusslauf. Das Feld nimmt der Server danach heraus, damit eine spätere Runde
+	 * es nicht noch einmal meldet.
+	 */
+	const notiereFolgen = async (s: EinheitStand, plan: EinheitPlan, d: PlanDokument) => {
+		const roh = await leseSteckbriefRoh(s, d.slug);
+		if (typeof roh !== 'object' || roh === null || !(FOLGEN_FELD in roh)) {
+			return;
+		}
+		const fertig = plan.dokumente.filter((x) => s.importiert[x.slug]).map((x) => x.slug);
+		for (const f of leseFolgen(roh, fertig, d.slug)) {
+			const alt = s.befunde.find((b) => b.slug === f.material);
+			const text = folgeBefund(d.slug, d.titel, f.aussage);
+			if (!alt?.texte.includes(text)) {
+				befund(s, f.material, alt?.dok ?? s.importiert[f.material]?.dok ?? null, [...(alt?.texte ?? []), text]);
+			}
+		}
+		const rest = Object.fromEntries(Object.entries(roh).filter(([k]) => k !== FOLGEN_FELD));
+		await writeFile(steckbriefDatei(s, d.slug), `${JSON.stringify(rest)}\n`).catch(() => undefined);
 	};
 
 	// ── Prüfen nach dem Bau (220, Teil 2) ──
@@ -1535,6 +1570,7 @@ export const erstelleEinheiten = (
 			await uebernimmThema(s);
 			await uebernimmMaterial(s, d);
 			await notiereSteckbrief(s, plan, d);
+			await notiereFolgen(s, plan, d);
 			const eintrag = aktiv?.protokoll.laeufe.at(-1);
 			if (eintrag?.art === 'korrektur') {
 				eintrag.befunde = [...befunde.map(befundZeile), ...server, ...offen().flatMap((b) => b.texte)];
@@ -1681,14 +1717,18 @@ export const erstelleEinheiten = (
 	const SCHLUSS = (s: EinheitStand, plan: EinheitPlan, dopplung: string[], formate: FormateDerEinheit) => {
 		const offen = plan.dokumente.flatMap((d) => {
 			const p = s.pruefung?.[d.slug];
-			return p
-				? [...p.offen.map((b) => `- ${d.slug}: ${befundZeile(b)}`), ...p.server.map((t) => `- ${d.slug}: ${t}`)]
-				: [];
+			const folgen = (s.befunde.find((b) => b.slug === d.slug)?.texte ?? []).filter(istFolgekorrektur);
+			return [
+				...(p?.offen ?? []).map((b) => `- ${d.slug}: ${befundZeile(b)}`),
+				...(p?.server ?? []).map((t) => `- ${d.slug}: ${t}`),
+				...folgen.map((t) => `- ${d.slug}: ${t}`),
+			];
 		});
 		return [
 			`Schritt 3: der Schlusslauf. Ändere höchstens ${KI_GRENZEN.einheit.schluss.neubau} Materialien und baue jedes geänderte mit bauen neu.`,
 			KOPF(s),
 			PLAN_ABSCHNITT(plan),
+			pruefpunkteText(s.recherche?.text, plan.berichtigungen),
 			aufgabenFuerBau(plan, '').replace(
 				/^.*\n/,
 				'Aufgaben-Übersicht aus dem freigegebenen Plan, alle Stunden:\n',
@@ -1788,6 +1828,10 @@ export const erstelleEinheiten = (
 				}
 				if (gebaut.has(d.slug) && jetzt !== null) {
 					await uebernimmMaterial(s, d);
+					const alt = s.befunde.find((b) => b.slug === d.slug);
+					if (alt?.texte.some(istFolgekorrektur)) {
+						befund(s, d.slug, alt.dok, alt.texte.filter((t) => !istFolgekorrektur(t)));
+					}
 					await notiereSteckbrief(s, plan, d);
 					vorher.set(d.slug, jetzt);
 					if (!stand.neuGebaut.includes(d.slug)) {

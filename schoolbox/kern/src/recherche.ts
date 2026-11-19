@@ -103,12 +103,122 @@ export const pruefeRecherche = (roh: string, maxZeichen: number): RechercheErgeb
 	return { ok: true, text, quellen: quellen.slice(0, MAX_QUELLEN) };
 };
 
+// ——— Fachliche Prüfpunkte (243) ———
+
+/** Was in jedem Material der Einheit fachlich wahr sein muss; der Abschnitt steht so in `vorlagen/ki/recherche.md`. */
+export const PRUEFPUNKTE_TITEL = 'Fachliche Prüfpunkte';
+export const PRUEFPUNKTE_HOECHSTENS = 15;
+const PRUEFPUNKT_ZEICHEN = 500;
+const PUNKT = /^\s*(?:[-*•]|\d+[.)])\s+/;
+const UEBERSCHRIFT = /^#{1,6}\s+(.*?)\s*#*\s*$/;
+const WAHR = /\bwahr\s*:/i;
+
+/** Die Zeilen unter `## <titel>` bis zur nächsten Überschrift; `null`, wenn es den Abschnitt nicht gibt. */
+const abschnittZeilen = (text: string, titel: string) => {
+	const zeilen = text.replace(/\r\n?/g, '\n').split('\n');
+	const anfang = zeilen.findIndex((z) => {
+		const u = UEBERSCHRIFT.exec(z.trim());
+		return u !== null && u[1]?.toLocaleLowerCase('de') === titel.toLocaleLowerCase('de');
+	});
+	if (anfang < 0) {
+		return null;
+	}
+	const rest = zeilen.slice(anfang + 1);
+	const ende = rest.findIndex((z) => UEBERSCHRIFT.test(z.trim()));
+	return ende < 0 ? rest : rest.slice(0, ende);
+};
+
+/** Die Punkte einer Liste; eine Zeile ohne Aufzählungszeichen gehört zum Punkt davor. */
+const listenPunkte = (zeilen: readonly string[]) => {
+	const punkte: string[] = [];
+	for (const zeile of zeilen) {
+		const z = zeile.trim();
+		if (!z) {
+			continue;
+		}
+		if (PUNKT.test(z)) {
+			punkte.push(z.replace(PUNKT, ''));
+		} else if (punkte.length) {
+			punkte[punkte.length - 1] = `${punkte.at(-1) ?? ''} ${z}`;
+		}
+	}
+	return punkte.map((p) => p.replace(/\s+/g, ' ').trim()).filter(Boolean);
+};
+
+/**
+ * Die fachlichen Prüfpunkte aus `recherche.md`, je einer als Zeile wie in der Datei (mit Quelle). Leer, wenn es den
+ * Abschnitt nicht gibt, etwa bei Recherchen vor 243. Bau, Schlusslauf und Fachblick (244) lesen sie hier.
+ */
+export const pruefpunkteAus = (text: string | null | undefined): string[] => {
+	const zeilen = text ? abschnittZeilen(text, PRUEFPUNKTE_TITEL) : null;
+	return zeilen
+		? listenPunkte(zeilen)
+				.map((p) => p.slice(0, PRUEFPUNKT_ZEICHEN))
+				.slice(0, PRUEFPUNKTE_HOECHSTENS)
+		: [];
+};
+
+/** Was das Werkzeug „pruefen“ am Abschnitt bemängelt; `null`, wenn er in Ordnung ist. Der Server sperrt nicht deshalb. */
+export const pruefpunkteBefund = (text: string) => {
+	const zeilen = abschnittZeilen(text, PRUEFPUNKTE_TITEL);
+	const titel = `„## ${PRUEFPUNKTE_TITEL}“`;
+	if (!zeilen) {
+		return `recherche.md hat keinen Abschnitt ${titel}. Ergänze ihn, wie der Aufbau es verlangt.`;
+	}
+	const punkte = listenPunkte(zeilen);
+	if (!punkte.length) {
+		return `Der Abschnitt ${titel} hat keinen Prüfpunkt. Schreibe je Prüfpunkt eine Zeile mit „- “.`;
+	}
+	if (punkte.length > PRUEFPUNKTE_HOECHSTENS) {
+		return `Der Abschnitt ${titel} hat ${punkte.length} Prüfpunkte, höchstens ${PRUEFPUNKTE_HOECHSTENS}. Fasse zusammen.`;
+	}
+	const nummern = (bedingung: (p: string) => boolean) =>
+		punkte.flatMap((p, i) => (bedingung(p) ? [String(i + 1)] : [])).join(', ');
+	const ohneQuelle = nummern((p) => quellenAus(p).length === 0);
+	if (ohneQuelle) {
+		return `Prüfpunkte ohne Quelle (Adresse mit https:// in Klammern): Nr. ${ohneQuelle} im Abschnitt ${titel}.`;
+	}
+	const ohneWahr = nummern((p) => !WAHR.test(p));
+	return ohneWahr ? `Prüfpunkte ohne „Wahr: …“: Nr. ${ohneWahr} im Abschnitt ${titel}.` : null;
+};
+
+/**
+ * Die Prüfpunkte als eigene Liste für einen Auftrag (Schlusslauf, Fachblick). Berichtigungen der Lehrkraft aus dem
+ * Plan stehen dabei und gehen vor. `null`, wenn es keine gibt.
+ */
+export const pruefpunkteText = (recherche: string | null | undefined, berichtigungen: readonly string[] = []) => {
+	const punkte = pruefpunkteAus(recherche);
+	if (!punkte.length && !berichtigungen.length) {
+		return null;
+	}
+	return [
+		punkte.length
+			? [
+					'Fachliche Prüfpunkte aus der Recherche: Jedes Material muss sie erfüllen, in Aufgabe, Lösung, Beispiel, Tipp und Hinweisen.',
+					...punkte.map((p) => `- ${p}`),
+				].join('\n')
+			: '',
+		berichtigungen.length
+			? [
+					'Berichtigt von der Lehrkraft (geht der Recherche vor):',
+					...berichtigungen.map((b) => `- ${b}`),
+				].join('\n')
+			: '',
+	]
+		.filter(Boolean)
+		.join('\n');
+};
+
 /**
  * Die Antwort des Werkzeugs „pruefen“ im Recherche-Lauf (236): dieselbe Prüfung wie danach im Server, nur gegen das
- * Ziel statt gegen den Höchstwert.
+ * Ziel statt gegen den Höchstwert, dazu der Abschnitt der fachlichen Prüfpunkte (243).
  */
 export const rechercheBefund = (roh: string, zielZeichen: number) => {
 	const r = pruefeRecherche(roh, zielZeichen);
+	const punkte = r.ok ? pruefpunkteBefund(r.text) : null;
+	if (punkte) {
+		return { ok: false, text: punkte };
+	}
 	if (r.ok) {
 		return {
 			ok: true,

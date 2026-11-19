@@ -420,6 +420,49 @@ export const befundZeile = (b: PruefBefund) =>
 		.filter(Boolean)
 		.join(', ')}: ${b.text}`;
 
+/** Befunde, die an der Sache behoben werden und Folgekorrekturen in anderen Materialien auslösen (243; 244 nimmt `fach` auf). */
+export const FACHLICHE_ARTEN: readonly PruefArt[] = ['loesung'];
+
+/** Das Feld in `steckbrief.json`, in dem die Korrekturrunde andere Materialien mit derselben Aussage nennt (243). */
+export const FOLGEN_FELD = 'folgen';
+/** Der Anfang des offenen Befunds für den Schlusslauf; der Schlusslauf erledigt ihn, wenn er das Material neu baut. */
+export const FOLGEKORREKTUR = 'Folgekorrektur aus';
+const MAX_FOLGEN = 8;
+
+export interface Folgekorrektur {
+	material: string;
+	aussage: string;
+}
+
+/**
+ * Liest `folgen` aus `steckbrief.json` tolerant: nur Materialien aus `slugs`, nie das eigene, je Material und Aussage
+ * einmal.
+ */
+export const leseFolgen = (roh: unknown, slugs: readonly string[], eigenes: string): Folgekorrektur[] => {
+	const x = (typeof roh === 'object' && roh !== null ? roh : {}) as Record<string, unknown>;
+	const liste = Array.isArray(x[FOLGEN_FELD]) ? (x[FOLGEN_FELD] as unknown[]) : [];
+	const gesehen = new Set<string>();
+	return liste
+		.map((f): Folgekorrektur | null => {
+			const e = (typeof f === 'object' && f !== null ? f : {}) as Record<string, unknown>;
+			const material = typeof e.material === 'string' ? e.material.trim().replace(/^dokumente\//, '') : '';
+			const aussage =
+				typeof e.aussage === 'string' ? e.aussage.replace(/\s+/g, ' ').trim().slice(0, PRUEF_GRENZEN.text) : '';
+			return material && aussage && material !== eigenes && slugs.includes(material) ? { material, aussage } : null;
+		})
+		.filter((f): f is Folgekorrektur => {
+			const k = f ? `${f.material}|${f.aussage}` : '';
+			return f !== null && !gesehen.has(k) && (gesehen.add(k), true);
+		})
+		.slice(0, MAX_FOLGEN);
+};
+
+/** „Folgekorrektur aus dokumente/kapitel-5 („Buchstaben“): …“ als offener Befund am genannten Material. */
+export const folgeBefund = (von: string, titel: string, aussage: string) =>
+	`${FOLGEKORREKTUR} dokumente/${von} („${titel}“): ${aussage}`;
+
+export const istFolgekorrektur = (text: string) => text.startsWith(`${FOLGEKORREKTUR} `);
+
 /** Die Korrekturrunde nach einer Prüfung, im Lauf desselben Materials. */
 export const pruefKorrektur = (befunde: readonly PruefBefund[], server: readonly string[]) =>
 	[
@@ -427,6 +470,9 @@ export const pruefKorrektur = (befunde: readonly PruefBefund[], server: readonly
 		befunde.length ? ['Er meldet:', ...befunde.map((b) => `- ${befundZeile(b)}`)].join('\n') : '',
 		befunde.some((b) => b.art === 'loesung')
 			? `Zu „${PRUEF_ART_NAME.loesung}“: Prüfe, ob die Aufgabe oder die Lösung falsch ist, und ändere das Falsche.`
+			: '',
+		befunde.some((b) => FACHLICHE_ARTEN.includes(b.art))
+			? `Ein fachlicher Befund wird an der Sache behoben: Aufgabe, Lösung, Beispiel und Tipp stimmen danach mit der Definition und den fachlichen Prüfpunkten der Recherche, nicht nur der Satz der Anweisung. Trägt ein anderes Material der Einheit dieselbe Aussage (Hinweise, Vorleseheft, Lernzielkontrolle), nenne es in deiner Antwort und in steckbrief.json unter „${FOLGEN_FELD}“: {"${FOLGEN_FELD}": [{"material": "<slug>", "aussage": "Ein Satz, was dort noch nicht stimmt."}]}. Die anderen Materialien änderst du nicht; der Schlusslauf bringt sie in Einklang.`
 			: '',
 		befunde.some((b) => b.art === 'bild')
 			? `Zu „${PRUEF_ART_NAME.bild}“: Eine schwebende oder eingeklebte Figur verschiebst du nicht und legst keine Pose darüber. Bearbeite das Bild mit der Figur darin (html-materialerstellung, references/bilder.md, Abschnitt 2a) oder erzeuge es neu; erlaubt der Auftrag keine neuen Bilder, nenne den Befund in deiner Antwort.`

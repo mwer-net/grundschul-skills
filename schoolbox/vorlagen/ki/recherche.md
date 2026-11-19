@@ -13,10 +13,11 @@ Aufbau von `recherche.md`, Markdown, höchstens zwei Seiten (12.000 Zeichen):
 - `## Bildungsplan`: jede Teilkompetenz zum Thema wörtlich in „…“, mit Nummer (etwa 3.1.2.3) und Adresse; darunter die der anderen Stufe ebenso und ein Satz, was daraus für diese Klasse folgt: was sie noch nicht können soll oder schon kann.
 - `## Stufenfolge`: die Schritte des Themas in ihrer Reihenfolge, vom Handeln zum Zeichen.
 - `## Handlungsformen und Material`
-- `## Typische Fehler und Fehlvorstellungen`
+- `## Typische Fehler und Fehlvorstellungen` in zwei Listen. „Fehler der Kinder“: was Kinder beim Thema falsch machen, für Tipps und Fehler-finden (beim Zehnerübergang etwa: „zählt vom ersten Summanden aus weiter und landet eins daneben“). „Fehler, die Material leicht macht“: was eine Aufgabe, Lösung oder ein Beispiel fachlich falsch darstellt, für Bau und Prüfung (bei Nomen etwa: „nur Dinge zum Anfassen als Nomen, Gefühle wie Angst fehlen oder gelten als falsch“).
 - `## Bewährte Aufgabenformate`
 - `## Grenzen für die Klassenstufe`
 - `## Fachwörter`: welche die Kinder benutzen, welche nur die Lehrkraft.
+- `## Fachliche Prüfpunkte`: 8 bis 15 Aussagen, die in jedem Material der Einheit wahr sein müssen, je eine Zeile mit `- `, prüfbar an einer Seite, mit Quelle wie die übrigen Abschnitte. Form: „Wahr: … Falsch wäre: …“. Die Prüfpunkte sagen, was fachlich gilt (Definition, Regel, Grenzfall), nicht, in welcher Reihenfolge die Stunde übt: Was die Klasse zuerst oder nur übt, gehört in die Stufenfolge. Soll in einer Aufgabe nur ein Teil gelten, steht ein Prüfpunkt dazu, dass die Aufgabe es ausdrücklich sagt und die Lösung ihr folgt. Etwa zu geraden und ungeraden Zahlen: „- Wahr: 0 ist gerade, auch wenn die Stunde ab 2 zählt. Falsch wäre: 0 fehlt in der Lösung der geraden Zahlen (https://…).“
 - `## Quellen`: je Zeile Adresse, Titel und Rang aus quellen.md.
 
 Regeln:
