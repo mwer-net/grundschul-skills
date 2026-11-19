@@ -7,12 +7,14 @@ import type { EinheitPlan, PlanDokument } from './einheit';
 import type { Steckbrief } from './einheit-bau';
 import {
 	abbildungenIn,
+	befundeDerTeile,
 	blickLektuere,
 	blickRegeln,
 	figurenDopplungen,
 	gepruefteZahl,
 	lesePruefung,
 	pruefKorrektur,
+	pruefTeile,
 	pruefText,
 	pruefWeise,
 	zahlenBefunde,
@@ -20,11 +22,15 @@ import {
 } from './einheit-pruefung';
 import { WURZEL } from './konfig';
 
-const dok = (slug: string, art: PlanDokument['art'] = 'arbeitsblatt'): PlanDokument => ({
+const dok = (
+	slug: string,
+	art: PlanDokument['art'] = 'arbeitsblatt',
+	format: PlanDokument['format'] = 'a4-hoch',
+): PlanDokument => ({
 	slug,
 	titel: slug,
 	art,
-	format: 'a4-hoch',
+	format,
 	zweck: '',
 	fertig: false,
 });
@@ -161,6 +167,88 @@ describe('Nachricht an den Prüflauf (229)', () => {
 		assert.match(teile[4] ?? '', /^Lösung nachrechnen, erst nach Teil 1: .*\n- loesung\/loesung-seite-1\.png$/);
 		assert.match(teile[5] ?? '', /^Teil 2, der zweite Blick/);
 	});
+
+	it('ohne Auftrag, Figuren und Teile bleibt die Nachricht Byte für Byte wie vor 241', () => {
+		assert.equal(pruefText({ ...AUFTRAG, figuren: [] }), TEIL_1.join('\n\n'));
+		assert.deepEqual(pruefTeile(AUFTRAG), [AUFTRAG]);
+	});
+
+	it('nennt den Auftrag der Lehrkraft und die Figuren des Plans vor Teil 1 (241)', () => {
+		const auftrag = 'Erstelle eine Unterrichtseinheit „Spiegeln“.\nLeitfigur: Luna.';
+		const teile = pruefText({ ...AUFTRAG, auftrag, figuren: ['Luna, die Eule', 'Ella'] }).split('\n\n');
+		assert.equal(teile[0], TEIL_1[0]);
+		assert.equal(teile[1], `Auftrag der Lehrkraft (aus dem Assistenten):\n${auftrag}`);
+		assert.equal(teile[2], 'Figuren der Geschichte laut Plan: Luna, die Eule · Ella');
+		assert.deepEqual(teile.slice(3), TEIL_1.slice(1));
+	});
+
+	describe('lange Materialien in getrennten Läufen (241)', () => {
+		const seiten = Array.from({ length: 30 }, (_, i) => `seite-${i + 1}.png`);
+		const ausschnitte = seiten.flatMap((_, i) => [`seite-${i + 1}-aufgabe-1.png`, `seite-${i + 1}-aufgabe-2.png`]);
+		const loesungen = Array.from({ length: 31 }, (_, i) => `loesung/loesung-seite-${i + 1}.png`);
+		const lang = { ...AUFTRAG, seiten, ausschnitte, loesungen, auftrag: 'Leitfigur: Luna.' };
+
+		it('30 Seiten ergeben zwei Läufe mit allen 30 Seiten und dem Satz zum anderen Teil', () => {
+			const teile = pruefTeile(lang);
+			assert.equal(teile.length, 2);
+			assert.deepEqual(
+				teile.flatMap((t) => t.seiten),
+				seiten,
+			);
+			assert.deepEqual(
+				teile.map((t) => t.seiten.length),
+				[16, 14],
+			);
+			const [eins, zwei] = teile.map(pruefText);
+			assert.match(
+				zwei ?? '',
+				/Prüflauf 2 von 2: Das Material hat 30 Seiten, du prüfst die Seiten 17–30\. Die Seiten 1–16 prüft ein anderer Lauf: Melde nichts als fehlend, was dort stehen kann/,
+			);
+			assert.match(eins ?? '', /Prüflauf 1 von 2: .*die Seiten 1–16\. Die Seiten 17–30 prüft ein anderer Lauf/);
+			assert.match(eins ?? '', /- seite-16\.png$/m);
+			assert.doesNotMatch(eins ?? '', /- seite-17\.png/);
+			assert.match(zwei ?? '', /- seite-30\.png$/m);
+			for (const t of [eins, zwei]) {
+				assert.match(t ?? '', /Auftrag der Lehrkraft \(aus dem Assistenten\):\nLeitfigur: Luna\./);
+			}
+		});
+
+		it('Ausschnitte und Lösungsseiten gehen zum Teil ihrer Seite, Ausschnitte gekappt mit Hinweis', () => {
+			const [eins, zwei] = pruefTeile(lang);
+			assert.deepEqual(eins?.loesungen, loesungen.slice(0, 16));
+			assert.deepEqual(zwei?.loesungen, loesungen.slice(16));
+			assert.equal(eins?.ausschnitte.length, 32);
+			assert.ok(zwei?.ausschnitte.every((a) => Number(/seite-(\d+)/.exec(a)?.[1]) >= 17));
+			const text = pruefText({ ...AUFTRAG, ausschnitte });
+			assert.match(text, /seite-20-aufgabe-2\.png; weitere Ausschnitte im Ordner$/m);
+			assert.doesNotMatch(text, /seite-21-aufgabe-1\.png/);
+			assert.doesNotMatch(pruefText(eins ?? AUFTRAG), /weitere Ausschnitte/);
+		});
+
+		it('drei Teile: der mittlere nennt beide anderen Bereiche', () => {
+			const viele = Array.from({ length: 40 }, (_, i) => `seite-${i + 1}.png`);
+			const teile = pruefTeile({ ...AUFTRAG, seiten: viele });
+			assert.equal(teile.length, 3);
+			assert.match(
+				pruefText(teile[1] ?? AUFTRAG),
+				/du prüfst die Seiten 17–32\. Die Seiten 1–16 und 33–40 prüfen andere Läufe/,
+			);
+		});
+
+		it('24 Seiten bleiben ein Lauf, alle Seiten genannt', () => {
+			const vier = Array.from({ length: 24 }, (_, i) => `seite-${i + 1}.png`);
+			const teile = pruefTeile({ ...AUFTRAG, seiten: vier });
+			assert.equal(teile.length, 1);
+			assert.match(pruefText(teile[0] ?? AUFTRAG), /- seite-24\.png/);
+			assert.doesNotMatch(pruefText(teile[0] ?? AUFTRAG), /Prüflauf 1 von/);
+		});
+
+		it('Befunde der Teile zusammen, Doppelte einmal', () => {
+			const b = { seite: null, aufgabe: '', art: 'fehlt' as const, text: 'Ein Spiegel fehlt.' };
+			const c = { seite: 20, aufgabe: '1', art: 'unklar' as const, text: 'x' };
+			assert.deepEqual(befundeDerTeile([[b], [b, c]]), [b, c]);
+		});
+	});
 });
 
 describe('Wer geprüft wird und gegen welche Regeln', () => {
@@ -254,10 +342,48 @@ describe('Zahlen auf Deckblatt und Angebot (220, Punkt 4)', () => {
 		assert.equal(zahlenBefunde(plan, briefe, mit('9 Materialien')).length, 1);
 	});
 
+	it('Folien zählen getrennt: 72 Seiten A4, 30 Folien, 2 Seiten Angebot (241)', () => {
+		const paket: EinheitPlan = {
+			titel: 'Achsensymmetrie',
+			annahmen: [],
+			dokumente: [
+				dok('deckblatt'),
+				dok('auftakt', 'praesentation', 'folie'),
+				dok('ab-1'),
+				dok('ab-2'),
+				dok('eduki-angebot'),
+			],
+		};
+		const zaehlung = {
+			'deckblatt': brief(1),
+			'auftakt': brief(30),
+			'ab-1': brief(40, 4),
+			'ab-2': brief(31, 3),
+			'eduki-angebot': brief(2),
+		};
+		const angebot = (t: string) => (slug: string) => (slug === 'eduki-angebot' ? `<p>${t}</p>` : null);
+		const befunde = (t: string) => zahlenBefunde(paket, zaehlung, angebot(t));
+		assert.deepEqual(befunde('Das steckt drin: 72 Seiten'), []);
+		assert.deepEqual(befunde('30 Folien zum Auftakt'), []);
+		assert.deepEqual(befunde('72 Seiten und 30 Folien'), []);
+		assert.deepEqual(befunde('104 Seiten im PDF'), []);
+		const falsch = befunde('51 Seiten');
+		assert.equal(falsch.length, 1);
+		assert.match(falsch[0] ?? '', /nennt 51 Seiten\. Die Schoolbox zählt 74 Seiten A4 und 30 Folien \(mit Lösungen 81 Seiten A4 und 30 Folien\)/);
+		assert.equal(befunde('31 Folien').length, 1);
+		const umgestellt = zahlenBefunde(paket, zaehlung, angebot('72 Seiten'), { auftakt: 'a4-quer' });
+		assert.equal(umgestellt.length, 1, 'das Format aus meta.json gilt vor dem des Plans');
+		const text = zahlenText(paket, zaehlung);
+		assert.match(text, /- Seiten A4: 74 gesamt, dazu 7 Lösungsseiten; ohne Deckblatt, Quellen, Angebot und Hinweise 71\./);
+		assert.match(text, /- Folien: 30\. Nenne Seiten und Folien getrennt \(„74 Seiten A4 und 30 Folien“\)/);
+		assert.match(text, /„auftakt“ \(dokumente\/auftakt\): 30 Folien/);
+	});
+
 	it('ohne gezählte Seiten keine Seitenbefunde; die Liste für den Schlusslauf nennt die Zahlen', () => {
 		assert.deepEqual(zahlenBefunde(plan, { ...briefe, 'ab-2': brief(0) }, mit('51 Seiten')), []);
 		const text = zahlenText(plan, briefe);
-		assert.match(text, /7/);
+		assert.match(text, /- Seiten: 7 gesamt, dazu 3 Lösungsseiten;/);
+		assert.doesNotMatch(text, /Folien/);
 		assert.match(text, /ab-2/);
 	});
 });

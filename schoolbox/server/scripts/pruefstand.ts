@@ -1,7 +1,8 @@
 /**
  * Der Prüfstand (239): die Prüfläufe einer Einheit gegen eine feste Kopie mit bekannten Fehlern, ohne Server. Jedes
  * Material bekommt seinen Prüflauf so, wie ihn `pruefeMaterial` in `einheit.ts` startet: dieselbe Vorlage, dieselben
- * Grenzen, Modell und Gründlichkeit aus der Einstellung, dieselbe Ansicht und derselbe Prüfordner.
+ * Grenzen, Modell und Gründlichkeit aus der Einstellung, dieselbe Ansicht und derselbe Prüfordner, der Auftrag aus
+ * `auftrag.txt`, die Figuren aus `plan.json` und bei mehr als 24 Seiten dieselben getrennten Läufe (`pruefTeile`, 241).
  *
  *   pnpm --filter @schoolbox/server exec tsx scripts/pruefstand.ts <prüfstand> [--nur a,b] [--teil kind,blick]
  *     [--trocken] [--ja] [--abgleich <ergebnis.json>]
@@ -17,10 +18,11 @@ import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import type { EinheitPlan, Fach, PlanDokument, PruefBefund } from '@schoolbox/kern';
+import type { EinheitPlan, Fach, PlanDokument, PruefAuftrag, PruefBefund, PruefTeil } from '@schoolbox/kern';
 import {
 	ART_NAME,
 	baueAnsichtAus,
+	befundeDerTeile,
 	blickRegeln,
 	EINHEIT_BILDER_SATZ,
 	FACH_NAME,
@@ -28,12 +30,14 @@ import {
 	klasseText,
 	ladeKonfig,
 	lesePlan,
+	pruefTeile,
 	pruefText,
 	pruefWeise,
 	rolleVon,
 	WURZEL,
 } from '@schoolbox/kern';
 
+import type { PruefErgebnis } from '../src/ki';
 import { beendeKind, KI_GRENZEN, kiPfad, legeAblageAn, pruefeLauf, richtePruefOrdnerEin } from '../src/ki';
 import { kiLaufJetzt } from '../src/ki-einstellung';
 import type { KatalogEintrag, MaterialErgebnis, Teil } from './pruefstand-abgleich';
@@ -286,7 +290,7 @@ const fuehreAus = async (o: Optionen) => {
 	const ki = await kiLaufJetzt(ladeKonfig(), 'gross');
 	const n = vorhaben.length;
 	console.log(
-		`\n${n} Prüfläufe, Modell ${ki.modell}, Gründlichkeit ${ki.effort}. Geschätzt rund ${usd(n * KOSTEN_JE_LAUF.mittel)} (${usd(n * KOSTEN_JE_LAUF.min)} bis ${usd(n * KOSTEN_JE_LAUF.max)}).`,
+		`\n${n} Materialien (über 24 Seiten ein Prüflauf je 16 Seiten), Modell ${ki.modell}, Gründlichkeit ${ki.effort}. Geschätzt je Material ein Lauf, rund ${usd(n * KOSTEN_JE_LAUF.mittel)} (${usd(n * KOSTEN_JE_LAUF.min)} bis ${usd(n * KOSTEN_JE_LAUF.max)}).`,
 	);
 	if (!n) {
 		return;
@@ -320,68 +324,91 @@ const fuehreAus = async (o: Optionen) => {
 			const beginn = Date.now();
 			try {
 				const ansicht = await baueAnsichtAus(konfig, v.quelle, ordner, { sw: false });
-				const teile = await richtePruefOrdnerEin(ordner, ansicht.bilder, v.html, p.mappe, v.kind);
-				const text = pruefText({
+				const ein = await richtePruefOrdnerEin(ordner, ansicht.bilder, v.html, p.mappe, v.kind);
+				const teile = pruefTeile({
 					titel: v.d.titel,
 					artName: ART_NAME[v.d.art],
 					klasse: klasseText(p.klasse),
 					fach: FACH_NAME[p.fach],
-					...teile,
+					...ein,
 					...(v.bilder ? {} : { bilder: [] }),
 					formate: formateDavor(p, v.d.slug),
 					kind: v.kind,
 					regeln: v.regeln.map((r) => path.join(ablage, '.claude', 'skills', r)),
+					auftrag: p.auftrag,
+					figuren: p.plan.figuren ?? [],
 				});
 				if (ausgabe) {
-					const datei = path.join(ausgabe, `${v.d.slug}-${teilName}.txt`);
-					await writeFile(datei, `${text}\n`);
-					console.log(
-						`${v.d.slug}: ${teile.seiten.length} Seiten, ${teile.loesungen.length} Lösungsseiten, ${teile.bilder.length} KI-Bilder → ${datei}`,
-					);
+					for (const t of teile) {
+						const datei = path.join(ausgabe, `${v.d.slug}-${teilName}${t.teil ? `-lauf-${t.teil.nr}` : ''}.txt`);
+						await writeFile(datei, `${pruefText(t)}\n`);
+						console.log(
+							`${v.d.slug}${t.teil ? ` (Prüflauf ${t.teil.nr} von ${t.teil.von})` : ''}: ${t.seiten.length} Seiten, ${t.loesungen.length} Lösungsseiten, ${t.ausschnitte.length} Ausschnitte, ${t.bilder.length} KI-Bilder → ${datei}`,
+						);
+					}
 					continue;
 				}
-				console.log(`${v.d.slug}: Prüflauf läuft …`);
-				const gelesen: string[] = [];
-				const e = await pruefeLauf({
-					bin: kiPfad(konfig),
-					...ki,
-					ordner,
-					ablage,
-					text,
-					grenzen: KI_GRENZEN.einheit.pruefung,
-					gestartet: (k) => {
-						laufend = k;
-					},
-					werkzeug: (name, eingabe) => {
-						if (name === 'Read' && typeof eingabe.file_path === 'string') {
-							gelesen.push(
-								path.relative(eingabe.file_path.startsWith(ablage) ? ablage : ordner, eingabe.file_path),
-							);
-						}
-					},
-					mitschrift: {
-						materialDir: p.ordner,
-						mappe: 'pruefstand',
-						dok: v.d.slug,
-						art: `pruefstand-${teilName}`,
-					},
-				});
-				laufend = null;
-				const kosten = zahlAus(e.verbrauch.kostenUsd);
+				const laeufe: (PruefErgebnis & { teil: PruefTeil | null; gelesen: string[] })[] = [];
+				for (const t of teile) {
+					if (abgebrochen) {
+						break;
+					}
+					console.log(`${v.d.slug}: ${t.teil ? `Prüflauf ${t.teil.nr} von ${t.teil.von}` : 'Prüflauf'} läuft …`);
+					const gelesen: string[] = [];
+					const e = await pruefeLauf({
+						bin: kiPfad(konfig),
+						...ki,
+						ordner,
+						ablage,
+						text: pruefText(t),
+						grenzen: KI_GRENZEN.einheit.pruefung,
+						gestartet: (k) => {
+							laufend = k;
+						},
+						werkzeug: (werkzeug, eingabe) => {
+							if (werkzeug === 'Read' && typeof eingabe.file_path === 'string') {
+								gelesen.push(
+									path.relative(eingabe.file_path.startsWith(ablage) ? ablage : ordner, eingabe.file_path),
+								);
+							}
+						},
+						mitschrift: {
+							materialDir: p.ordner,
+							mappe: 'pruefstand',
+							dok: v.d.slug,
+							art: `pruefstand-${teilName}`,
+						},
+					});
+					laufend = null;
+					laeufe.push({ ...e, teil: t.teil ?? null, gelesen });
+					if (e.fehler) {
+						break;
+					}
+				}
+				const kosten = laeufe.reduce((n, e) => n + zahlAus(e.verbrauch.kostenUsd), 0);
+				const fehler =
+					laeufe.find((e) => e.fehler)?.fehler ?? (laeufe.length < teile.length ? 'Abgebrochen.' : null);
+				const befunde = befundeDerTeile(laeufe.map((e) => e.befunde));
 				ergebnisse.push({
 					slug: v.d.slug,
-					geprueft: e.fehler ? [] : v.geprueft,
-					befunde: e.befunde,
-					fehler: e.fehler,
-					lesbar: e.lesbar,
+					geprueft: fehler ? [] : v.geprueft,
+					befunde,
+					fehler,
+					lesbar: laeufe.every((e) => e.lesbar),
 					kostenUsd: kosten,
-					runden: zahlAus(e.verbrauch.runden),
+					runden: laeufe.reduce((n, e) => n + zahlAus(e.verbrauch.runden), 0),
 					sekunden: Math.round((Date.now() - beginn) / 1000),
-					verbrauch: e.verbrauch,
-					gelesen,
+					laeufe: laeufe.map((e) => ({
+						teil: e.teil,
+						befunde: e.befunde.length,
+						fehler: e.fehler,
+						lesbar: e.lesbar,
+						verbrauch: e.verbrauch,
+						gelesen: e.gelesen,
+					})),
 				});
 				console.log(
-					`${v.d.slug}: ${e.fehler ? `gescheitert (${e.fehler})` : `${e.befunde.length} Befunde`}, ${usd(kosten)}`,
+					`${v.d.slug}: ${fehler ? `gescheitert (${fehler})` : `${befunde.length} Befunde`}${laeufe.length > 1 ? ` aus ${laeufe.length} Prüfläufen` : ''}, ${usd(kosten)}`,
 				);
 			} catch (fehler) {
 				console.error(`${v.d.slug}: ${(fehler as Error).message}`);

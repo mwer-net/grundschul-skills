@@ -117,14 +117,14 @@ Ein Dokument nur für die Autorin, als `kit-tabelle` mit den Feldern, die Eduki 
 | Feld | Inhalt |
 |---|---|
 | Titel | 32 bis 42 Zeichen (so zeigt Eduki ihn als „ideal“): Thema und Klasse in den Wörtern der Suche, dann der Name der Reihe: „Sachaufgaben Kl. 3/4: Die Detektiv-Reihe“. Die Zeichen zählen und die Zahl dazuschreiben |
-| Beschreibung | Zuerst zwei, drei Sätze aus der Geschichte, die neugierig machen, ohne die Auflösung. Dann, was die Kinder lernen und wie eine Stunde läuft. Dann „Das steckt drin (N Seiten):“ als Liste mit echten Zahlen. Zuletzt, für welche Klasse es passt und was vorzubereiten ist. Im Ton einer Kollegin, ohne Werbewörter |
+| Beschreibung | Zuerst zwei, drei Sätze aus der Geschichte, die neugierig machen, ohne die Auflösung. Dann, was die Kinder lernen und wie eine Stunde läuft. Dann „Das steckt drin (N Seiten):“ als Liste mit echten Zahlen; gibt es Folien, „(N Seiten A4 und M Folien)“. Zuletzt, für welche Klasse es passt und was vorzubereiten ist. Im Ton einer Kollegin, ohne Werbewörter |
 | Wörter, die Eduki fälschlich als Marke meldet | „Geld“, „Lied“ und „Memo“ in der Beschreibung umschreiben („Euro und Cent“, „Song“, „Paarspiel“) |
 | Schlagwörter | 12 bis 20 für die Suche: Thema, Teilthemen, Methode, Materialart, Zahlenraum |
 | Tags | drei bis vier; sie sind nur Filter auf der Seite der Autorin, z. B. „unterrichtsreihe“ und das Thema |
 | Schulart, Klassenstufe | Grundschule; höchstens zwei Klassenstufen. Passt es für mehr, steht die Spanne im Titel |
 | Materialtyp | höchstens drei, in den Worten von Eduki: Unterrichtseinheit, Arbeitsblätter, Stundenentwürfe, Test, Spiele, Poster, Bildkarten, Aufgabenkarten, Stationenlernen |
 | Fach und Thema | Fach und das Themengebiet, wie es im Baum von Eduki heißen könnte („Mathematik → Größen → Geld“) |
-| Umfang | Seitenzahl aller Dokumente zusammen, A4, Farbe; ob die Arbeitsblätter schwarz-weiß kopierbar sind |
+| Umfang | Seitenzahl aller Dokumente, A4, Farbe, Folien getrennt („72 Seiten A4 und 30 Folien“); ob die Arbeitsblätter schwarz-weiß kopierbar sind |
 | Datei | ein PDF aus allen Dokumenten in dieser Reihenfolge: Deckblatt, Handreichung, Kapitel, Material, Lösungen, Quellen. Eduki nimmt Seite 1 als Cover |
 | Vorschau | welche Seiten offen bleiben (Deckblatt, Inhalt des Pakets, ein Kapitel ganz) und ab welcher Seite unscharf, meist ab Seite 10 oder 11 |
 | Lösungsschlüssel | „an“, wenn Lösungen dabei sind |

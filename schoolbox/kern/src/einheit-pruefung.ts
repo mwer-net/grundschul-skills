@@ -6,6 +6,7 @@
 import type { EinheitPlan, PlanDokument } from './einheit';
 import type { Steckbrief } from './einheit-bau';
 import { rolleVon, SKILL_PRAEFIX } from './einheit-bau';
+import type { Format } from './werte';
 
 export const PRUEF_ARTEN = [
 	'unklar',
@@ -13,9 +14,9 @@ export const PRUEF_ARTEN = [
 	'zu-leicht',
 	'dopplung',
 	'fehlt',
+	'auftrag',
 	'gestaltung',
 	'bild',
-	'auftrag',
 	'geschichte',
 	'zahlen',
 	'loesung',
@@ -28,9 +29,9 @@ export const PRUEF_ART_NAME: Record<PruefArt, string> = {
 	'zu-leicht': 'zu leicht',
 	'dopplung': 'Dopplung',
 	'fehlt': 'fehlendes Material',
+	'auftrag': 'Gegen den Auftrag',
 	'gestaltung': 'Gestaltung',
 	'bild': 'Bild',
-	'auftrag': 'Auftrag',
 	'geschichte': 'Geschichte',
 	'zahlen': 'Zahlen',
 	'loesung': 'Lösung falsch',
@@ -51,6 +52,8 @@ export const PRUEF_GRENZEN = {
 	text: 240,
 	aufgabe: 40,
 	antwortZeichen: 40_000,
+	/** Bis zu so vielen Seiten prüft ein Lauf das ganze Material, darüber getrennte Läufe zu höchstens `seiten` (241). */
+	ungeteilt: 24,
 	seiten: 16,
 	ausschnitte: 40,
 };
@@ -148,6 +151,15 @@ export interface PruefBild {
 	pruefbilder: string[];
 }
 
+/** Ein Prüflauf von mehreren über ein langes Material (241): Seiten `erste` bis `letzte` von `gesamt`. */
+export interface PruefTeil {
+	nr: number;
+	von: number;
+	erste: number;
+	letzte: number;
+	gesamt: number;
+}
+
 export interface PruefAuftrag {
 	titel: string;
 	artName: string;
@@ -164,20 +176,74 @@ export interface PruefAuftrag {
 	/** Regeln des zweiten Blicks als Pfade, die der Lauf mit Read öffnet. */
 	regeln: string[];
 	bilder: PruefBild[];
+	/** Der Auftrag der Lehrkraft (`einheitAuftragAus`, 241); fehlt beim Blatt ohne Einheit. */
+	auftrag?: string;
+	/** Die Figuren der Geschichte, heute aus `plan.figuren`. */
+	figuren?: readonly string[];
+	/** Gesetzt, wenn `pruefTeile` das Material auf mehrere Läufe verteilt hat. */
+	teil?: PruefTeil;
 }
+
+const seiteVon = (datei: string) => Number(/seite-(\d+)/.exec(datei)?.[1] ?? 0);
+
+/**
+ * Verteilt ein langes Material auf getrennte Prüfläufe (241): Bis `PRUEF_GRENZEN.ungeteilt` Seiten bleibt es ein Lauf,
+ * sonst Teile zu höchstens `PRUEF_GRENZEN.seiten` Seiten. Ausschnitte und Lösungsseiten gehen zum Teil ihrer Seite;
+ * was hinter der letzten Seite liegt (eine Lösung ohne eigene Seite), zum letzten Teil. Server und Prüfstand rufen
+ * beide diese Funktion, damit der Prüfstand genau so prüft wie der Server.
+ */
+export const pruefTeile = (o: PruefAuftrag): PruefAuftrag[] => {
+	if (o.seiten.length <= PRUEF_GRENZEN.ungeteilt) {
+		return [o];
+	}
+	const gruppen: string[][] = [];
+	for (let i = 0; i < o.seiten.length; i += PRUEF_GRENZEN.seiten) {
+		gruppen.push(o.seiten.slice(i, i + PRUEF_GRENZEN.seiten));
+	}
+	const anfaenge = gruppen.map((g) => seiteVon(g[0] ?? ''));
+	const teilVon = (datei: string) => {
+		const n = seiteVon(datei);
+		return Math.max(0, anfaenge.findLastIndex((a) => a <= n));
+	};
+	return gruppen.map((seiten, i) => ({
+		...o,
+		seiten,
+		ausschnitte: o.ausschnitte.filter((a) => teilVon(a) === i),
+		loesungen: o.loesungen.filter((l) => teilVon(l) === i),
+		teil: {
+			nr: i + 1,
+			von: gruppen.length,
+			erste: anfaenge[i] ?? 0,
+			letzte: seiteVon(seiten.at(-1) ?? ''),
+			gesamt: o.seiten.length,
+		},
+	}));
+};
+
+const bereich = (von: number, bis: number) => (von === bis ? String(von) : `${von}–${bis}`);
+
+const teilText = (t: PruefTeil) => {
+	const andere = [
+		...(t.erste > 1 ? [bereich(1, t.erste - 1)] : []),
+		...(t.letzte < t.gesamt ? [bereich(t.letzte + 1, t.gesamt)] : []),
+	].join(' und ');
+	return `Prüflauf ${t.nr} von ${t.von}: Das Material hat ${t.gesamt} Seiten, du prüfst die Seiten ${bereich(t.erste, t.letzte)}. Die Seiten ${andere} ${t.von > 2 ? 'prüfen andere Läufe' : 'prüft ein anderer Lauf'}: Melde nichts als fehlend, was dort stehen kann, und prüfe nur die Bilder, die auf deinen Seiten stehen.`;
+};
 
 export const pruefText = (o: PruefAuftrag) =>
 	[
 		`Prüfung von „${o.titel}“ (${o.artName}), ${o.klasse}, ${o.fach}.`,
+		o.teil ? teilText(o.teil) : '',
+		o.auftrag ? `Auftrag der Lehrkraft (aus dem Assistenten):\n${o.auftrag}` : '',
+		o.figuren?.length ? `Figuren der Geschichte laut Plan: ${o.figuren.join(' · ')}` : '',
 		o.kind
 			? 'Teil 1, mit Kinderaugen: Löse jede Aufgabe wirklich, so wie ein Kind dieser Klasse sie liest und löst.'
 			: 'Hier gibt es nichts zu lösen: nur der zweite Blick.',
-		[
-			'Die Seiten liegen in deinem Arbeitsordner. Sieh dir jede mit Read an:',
-			...o.seiten.slice(0, PRUEF_GRENZEN.seiten).map((s) => `- ${s}`),
-		].join('\n'),
+		['Die Seiten liegen in deinem Arbeitsordner. Sieh dir jede mit Read an:', ...o.seiten.map((s) => `- ${s}`)].join(
+			'\n',
+		),
 		o.ausschnitte.length
-			? `Ausschnitte je Aufgabe, wenn du etwas genauer sehen willst: ${o.ausschnitte.slice(0, PRUEF_GRENZEN.ausschnitte).join(', ')}`
+			? `Ausschnitte je Aufgabe, wenn du etwas genauer sehen willst: ${o.ausschnitte.slice(0, PRUEF_GRENZEN.ausschnitte).join(', ')}${o.ausschnitte.length > PRUEF_GRENZEN.ausschnitte ? '; weitere Ausschnitte im Ordner' : ''}`
 			: '',
 		o.kind && o.formate.length
 			? [
@@ -188,7 +254,7 @@ export const pruefText = (o: PruefAuftrag) =>
 		o.kind && o.loesungen.length
 			? [
 					'Lösung nachrechnen, erst nach Teil 1: Schreib deine Ergebnisse je Aufgabe auf. Sieh dir erst dann die Lösungsseiten mit Read an:',
-					...o.loesungen.slice(0, PRUEF_GRENZEN.seiten).map((s) => `- ${s}`),
+					...o.loesungen.map((s) => `- ${s}`),
 				].join('\n')
 			: '',
 		o.regeln.length || o.bilder.length
@@ -285,6 +351,17 @@ const befundAus = (roh: unknown): PruefBefund | null => {
 		...(material ? { material } : {}),
 	};
 };
+
+const ohneDoppelte = (befunde: readonly PruefBefund[]) => {
+	const gesehen = new Set<string>();
+	return befunde.filter((b) => {
+		const k = `${b.material ?? ''}|${b.seite ?? ''}|${b.aufgabe}|${b.art}|${b.text}`;
+		return gesehen.has(k) ? false : (gesehen.add(k), true);
+	});
+};
+
+/** Die Befunde der Teile eines Prüflaufs (241) in einer Liste; die Grenze von 15 galt schon je Teil. */
+export const befundeDerTeile = (teile: readonly (readonly PruefBefund[])[]) => ohneDoppelte(teile.flat());
 
 const JSON_BLOCK = /```(?:json)?\s*([\s\S]*?)```/g;
 
@@ -507,15 +584,21 @@ interface Zaehlung {
 	slug: string;
 	titel: string;
 	rolle: string;
+	/** Folien zählen getrennt von den Seiten zum Drucken (241). */
+	folie: boolean;
 	seiten: number;
 	loesung: number;
 }
 
-const zaehlung = (plan: EinheitPlan, steckbriefe: Record<string, Steckbrief>): Zaehlung[] =>
+/** Das Format je Slug aus `meta.json` der übernommenen Dokumente; ohne Eintrag gilt das Format des Plans. */
+export type FormateDerEinheit = Readonly<Record<string, Format | undefined>>;
+
+const zaehlung = (plan: EinheitPlan, steckbriefe: Record<string, Steckbrief>, formate: FormateDerEinheit): Zaehlung[] =>
 	plan.dokumente.map((d) => ({
 		slug: d.slug,
 		titel: d.titel,
 		rolle: rolleVon(d),
+		folie: (formate[d.slug] ?? d.format) === 'folie',
 		seiten: steckbriefe[d.slug]?.seiten ?? 0,
 		loesung: steckbriefe[d.slug]?.loesungsseiten ?? 0,
 	}));
@@ -524,20 +607,39 @@ const summe = (z: readonly Zaehlung[], wert: (x: Zaehlung) => number) => z.reduc
 
 const plural = (n: number, eins: string, viele: string) => `${n} ${n === 1 ? eins : viele}`;
 
+/** „72 Seiten A4 und 30 Folien“, ohne Folien „72 Seiten“ wie vor 241. */
+const seitenUndFolien = (seiten: number, folien: number) =>
+	folien ? `${seiten} Seiten A4 und ${plural(folien, 'Folie', 'Folien')}` : `${seiten} Seiten`;
+
 /** Die vom Server gezählten Zahlen für den Schlusslauf. Claude schreibt sie ab, nie aus dem Kopf. */
-export const zahlenText = (plan: EinheitPlan, steckbriefe: Record<string, Steckbrief>) => {
-	const z = zaehlung(plan, steckbriefe);
+export const zahlenText = (
+	plan: EinheitPlan,
+	steckbriefe: Record<string, Steckbrief>,
+	formate: FormateDerEinheit = {},
+) => {
+	const z = zaehlung(plan, steckbriefe, formate);
 	const ohne = z.filter((x) => !RAHMEN_ROLLEN.includes(x.rolle));
+	const druck = z.filter((x) => !x.folie);
 	const aufgaben = (plan.stunden ?? []).flatMap((s) => s.aufgaben);
-	const seiten = summe(z, (x) => x.seiten);
-	const loesung = summe(z, (x) => x.loesung);
+	const seiten = summe(druck, (x) => x.seiten);
+	const loesung = summe(druck, (x) => x.loesung);
+	const folien = summe(
+		z.filter((x) => x.folie),
+		(x) => x.seiten,
+	);
 	return [
 		'Zahlen der Schoolbox (gezählt an den gebauten Materialien, nicht geschätzt):',
 		`- Materialien: ${z.length}, davon ${ohne.length} ohne Deckblatt, Quellen, Angebot und Hinweise.`,
-		`- Seiten: ${seiten} gesamt${loesung ? `, dazu ${plural(loesung, 'Lösungsseite', 'Lösungsseiten')}` : ''}; ohne Deckblatt, Quellen, Angebot und Hinweise ${summe(ohne, (x) => x.seiten)}.`,
+		`- Seiten${folien ? ' A4' : ''}: ${seiten} gesamt${loesung ? `, dazu ${plural(loesung, 'Lösungsseite', 'Lösungsseiten')}` : ''}; ohne Deckblatt, Quellen, Angebot und Hinweise ${summe(
+			ohne.filter((x) => !x.folie),
+			(x) => x.seiten,
+		)}.`,
+		folien
+			? `- Folien: ${folien}. Nenne Seiten und Folien getrennt („${seitenUndFolien(seiten, folien)}“) und zähle Folien nie zu den Seiten.`
+			: '',
 		...z.map(
 			(x) =>
-				`- „${x.titel}“ (dokumente/${x.slug}): ${x.seiten ? plural(x.seiten, 'Seite', 'Seiten') : 'Seiten unbekannt'}${x.loesung ? `, ${plural(x.loesung, 'Lösungsseite', 'Lösungsseiten')}` : ''}${aufgaben.some((a) => a.dokument === x.slug) ? `, ${plural(aufgaben.filter((a) => a.dokument === x.slug).length, 'Aufgabe', 'Aufgaben')} laut Übersicht` : ''}`,
+				`- „${x.titel}“ (dokumente/${x.slug}): ${x.seiten ? plural(x.seiten, x.folie ? 'Folie' : 'Seite', x.folie ? 'Folien' : 'Seiten') : 'Seiten unbekannt'}${x.loesung ? `, ${plural(x.loesung, 'Lösungsseite', 'Lösungsseiten')}` : ''}${aufgaben.some((a) => a.dokument === x.slug) ? `, ${plural(aufgaben.filter((a) => a.dokument === x.slug).length, 'Aufgabe', 'Aufgaben')} laut Übersicht` : ''}`,
 		),
 		aufgaben.length ? `- Aufgaben laut Aufgaben-Übersicht: ${aufgaben.length}.` : '',
 	]
@@ -555,31 +657,55 @@ const sichtbarerText = (html: string) =>
 		.replace(/&nbsp;|&#160;|&#x202f;|&#8239;|&thinsp;|&#8201;/gi, ' ')
 		.replace(/[\u00a0\u2009\u202f]/g, ' ');
 
-const ZAHL_SEITEN = /(\d{1,4})\s*(Seiten|Materialien)\b/g;
+const ZAHL_SEITEN = /(\d{1,4})\s*(Seiten|Folien|Materialien)\b/g;
 
 /**
- * Seitenzahlen und Zahl der Materialien auf Deckblatt und Angebot gegen die Zählung des Servers. Geraten wird nicht:
- * Eine Zahl gilt als Zählung des Pakets nur, wenn sie größer ist als jedes einzelne Material, und sie stimmt, wenn
- * irgendeine Zählung (mit oder ohne Deckblatt, Quellen, Angebot, Hinweise, mit oder ohne Lösungen) sie ergibt. Fehlt
- * eine Seitenzahl, prüft der Server keine Seiten.
+ * Seitenzahlen, Folien und Zahl der Materialien auf Deckblatt und Angebot gegen die Zählung des Servers. Geraten wird
+ * nicht: Eine Zahl gilt als Zählung des Pakets nur, wenn sie größer ist als jedes einzelne Material, und sie stimmt,
+ * wenn irgendeine Zählung sie ergibt: mit oder ohne Deckblatt, Quellen, Angebot, Hinweise, mit oder ohne Lösungen, als
+ * Seiten A4, Folien oder beides zusammen (241). Fehlt eine Seitenzahl, prüft der Server keine Seiten.
  */
 export const zahlenBefunde = (
 	plan: EinheitPlan,
 	steckbriefe: Record<string, Steckbrief>,
 	html: (slug: string) => string | null,
+	formate: FormateDerEinheit = {},
 ) => {
-	const z = zaehlung(plan, steckbriefe);
+	const z = zaehlung(plan, steckbriefe, formate);
 	const seitenBekannt = z.every((x) => x.seiten > 0);
 	const da = RAHMEN_ROLLEN.filter((r) => z.some((x) => x.rolle === r));
 	const seiten = new Set<number>();
+	const folien = new Set<number>();
 	const materialien = new Set<number>();
 	for (const weg of teilmengen(da)) {
 		const rest = z.filter((x) => !weg.includes(x.rolle));
-		seiten.add(summe(rest, (x) => x.seiten));
-		seiten.add(summe(rest, (x) => x.seiten + x.loesung));
+		for (const mitLoesung of [false, true]) {
+			const wert = (x: Zaehlung) => x.seiten + (mitLoesung ? x.loesung : 0);
+			const a4 = summe(
+				rest.filter((x) => !x.folie),
+				wert,
+			);
+			const f = summe(
+				rest.filter((x) => x.folie),
+				wert,
+			);
+			seiten.add(a4);
+			seiten.add(a4 + f);
+			folien.add(f);
+		}
 		materialien.add(rest.length);
 	}
 	const groesstes = Math.max(0, ...z.map((x) => x.seiten + x.loesung));
+	const groessteFolien = Math.max(0, ...z.filter((x) => x.folie).map((x) => x.seiten + x.loesung));
+	const a4 = (wert: (x: Zaehlung) => number) =>
+		summe(
+			z.filter((y) => !y.folie),
+			wert,
+		);
+	const folienGesamt = summe(
+		z.filter((y) => y.folie),
+		(y) => y.seiten,
+	);
 	const befunde: string[] = [];
 	for (const x of z.filter((d) => d.rolle === 'deckblatt' || d.rolle === 'angebot')) {
 		const t = html(x.slug);
@@ -597,7 +723,25 @@ export const zahlenBefunde = (
 			genannt.add(schluessel);
 			if (was === 'Seiten' && seitenBekannt && n > groesstes && !seiten.has(n)) {
 				befunde.push(
-					`„${x.titel}“ nennt ${n} Seiten. Die Schoolbox zählt ${summe(z, (y) => y.seiten)} Seiten (mit Lösungen ${summe(z, (y) => y.seiten + y.loesung)}); keine Zählung ergibt ${n}.`,
+					`„${x.titel}“ nennt ${n} Seiten. Die Schoolbox zählt ${seitenUndFolien(
+						a4((y) => y.seiten),
+						folienGesamt,
+					)} (mit Lösungen ${
+						folienGesamt
+							? seitenUndFolien(
+									a4((y) => y.seiten + y.loesung),
+									summe(
+										z.filter((y) => y.folie),
+										(y) => y.seiten + y.loesung,
+									),
+								)
+							: a4((y) => y.seiten + y.loesung)
+					}); keine Zählung ergibt ${n}.`,
+				);
+			}
+			if (was === 'Folien' && seitenBekannt && n > groessteFolien && !folien.has(n)) {
+				befunde.push(
+					`„${x.titel}“ nennt ${n} Folien. Die Schoolbox zählt ${plural(folienGesamt, 'Folie', 'Folien')}; keine Zählung ergibt ${n}.`,
 				);
 			}
 			if (was === 'Materialien' && n > 1 && !materialien.has(n)) {

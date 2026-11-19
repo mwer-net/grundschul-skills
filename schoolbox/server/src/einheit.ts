@@ -24,10 +24,13 @@ import type {
 	EinheitPlan,
 	EinheitStand,
 	Fach,
+	Format,
+	FormateDerEinheit,
 	LaufArt,
 	LaufEintrag,
 	LaufProtokoll,
 	PlanDokument,
+	PruefAuftrag,
 	PruefBefund,
 	Pruefbericht,
 	PruefStand,
@@ -42,6 +45,7 @@ import {
 	bauReihenfolge,
 	bausteinVerstoesse,
 	beendeLaufEintrag,
+	befundeDerTeile,
 	befundZeile,
 	BILDER_SCHRITT,
 	blickLektuere,
@@ -68,6 +72,7 @@ import {
 	lektuereFehltText,
 	lektuereZeile,
 	leseBibliothek,
+	leseMeta,
 	lesePlan,
 	lesePruefung,
 	leseSteckbrief,
@@ -83,6 +88,7 @@ import {
 	planBefunde,
 	pruefeEinheitAngaben,
 	pruefKorrektur,
+	pruefTeile,
 	pruefText,
 	pruefWeise,
 	RECHERCHE_DATEI,
@@ -108,7 +114,7 @@ import type { LaufBilder } from './bild-zugang';
 import { BILDER_AUS, BILDER_GESPERRT, bilderStand, erstelleLaufBilder, grundposeReferenz } from './bild-zugang';
 import { schreibeQuelle } from './dokumente';
 import { HttpFehler } from './fehler';
-import type { Ergebnis, KiPruefer, LaufStand } from './ki';
+import type { Ergebnis, KiPruefer, LaufStand, PruefErgebnis } from './ki';
 import {
 	beendeKind,
 	EINHEIT_PLAN_RECHTE,
@@ -1267,6 +1273,19 @@ export const erstelleEinheiten = (
 		}
 	};
 
+	/** Das Format jedes übernommenen Materials aus seiner `meta.json`, für die Zählung von Seiten und Folien (241). */
+	const formateDerEinheit = async (s: EinheitStand): Promise<FormateDerEinheit> => {
+		const formate: Record<string, Format> = {};
+		for (const [slug, { dok }] of Object.entries(s.importiert)) {
+			try {
+				formate[slug] = (await leseMeta(materialDir, s.mappe, dok)).format;
+			} catch {
+				// Ohne meta.json gilt das Format des Plans.
+			}
+		}
+		return formate;
+	};
+
 	/** Doppelte Abbildungen unter den übernommenen Materialien und `dazu` (Punkt 5). */
 	const dopplungen = async (s: EinheitStand, plan: EinheitPlan, dazu?: string) => {
 		const dokumente = [];
@@ -1300,9 +1319,11 @@ export const erstelleEinheiten = (
 			.map((d) => `„${d.titel}“: ${s.steckbriefe?.[d.slug]?.formate.join('; ') ?? ''}`);
 
 	/**
-	 * Ein Prüflauf für ein Material: neue Sitzung, nur Read, frisch gebaute Seiten in einem eigenen Ordner, mit `kind`
+	 * Der Prüflauf für ein Material: neue Sitzung, nur Read, frisch gebaute Seiten in einem eigenen Ordner, mit `kind`
 	 * die Lösungsseiten unter `loesung/` für den Teil nach dem Lösen. Den Bau, die Quelle und den Plan sieht er nicht;
-	 * Klasse, Fach und die Formate der Reihe nennt der Auftrag.
+	 * Klasse, Fach, den Auftrag der Lehrkraft, die Figuren und die Formate der Reihe nennt die Nachricht. Ein langes
+	 * Material prüfen getrennte Läufe nacheinander (`pruefTeile`, 241), jeder mit eigenem Eintrag im Protokoll und eigener
+	 * Zählung der Kosten; die Befunde kommen zusammen. Scheitert ein Teil, ist die Prüfung gescheitert.
 	 */
 	const pruefeMaterial = async (
 		s: EinheitStand,
@@ -1310,48 +1331,83 @@ export const erstelleEinheiten = (
 		d: PlanDokument,
 		kind: boolean,
 		bilder: boolean,
-	) => {
+	): Promise<{ befunde: PruefBefund[]; lesbar: boolean; fehler: string | null }> => {
 		const ordner = path.join(dir(s.id), 'pruefung');
 		const html = (await materialHtml(s, d.slug)) ?? '';
-		const gescheitert = (grund: string) => ({
-			befunde: [] as PruefBefund[],
-			lesbar: true,
-			fehler: grund,
-			verbrauch: {},
-		});
+		const gescheitert = (grund: string) => ({ befunde: [] as PruefBefund[], lesbar: true, fehler: grund });
 		if (!html || sperreVon(html).length) {
 			return gescheitert('Das Material ließ sich nicht prüfen: Die Sperre des Servers greift.');
 		}
-		const grenzen = grenzenFuer(KI_GRENZEN.einheit.pruefung);
-		const halt = erschoepft(grenzen);
+		const halt = erschoepft(grenzenFuer(KI_GRENZEN.einheit.pruefung));
 		if (!aktiv || aktiv.abbruch || halt) {
 			return gescheitert(fehlerText(halt) ?? 'Abgebrochen.');
 		}
 		await rm(ordner, { recursive: true, force: true });
 		await mkdir(ordner, { recursive: true });
 		const regeln = blickRegeln(rolleVon(d), bilder);
-		const eintrag = neuerEintrag('pruefung', d.slug, blickLektuere(regeln));
-		const lauf = { eintrag, gelesen: new Set<string>() };
-		const beginn = Date.now();
-		aktiv.protokoll.laeufe.push(eintrag);
-		await schreibeProtokoll();
-		let ergebnis;
+		const ablage = ablageDir(s.id);
+		/** Ein Lauf über einen Teil; ohne `auftrag` nur der Eintrag für eine Ansicht, die sich nicht bauen ließ. */
+		const einTeil = async (auftrag: PruefAuftrag | null) => {
+			const eintrag = neuerEintrag('pruefung', d.slug, blickLektuere(regeln));
+			const lauf = { eintrag, gelesen: new Set<string>() };
+			const beginn = Date.now();
+			aktiv?.protokoll.laeufe.push(eintrag);
+			await schreibeProtokoll();
+			const grenzen = grenzenFuer(KI_GRENZEN.einheit.pruefung);
+			const ergebnis: PruefErgebnis = auftrag
+				? await pruefeLauf({
+						bin,
+						...kiJetzt(),
+						ordner,
+						ablage,
+						text: pruefText(auftrag),
+						grenzen,
+						gestartet: (k) => {
+							if (aktiv) {
+								aktiv.kind = k;
+							}
+							if (k.pid) {
+								writeFileSync(path.join(dir(s.id), PID), String(k.pid));
+							}
+						},
+						werkzeug: (name, eingabe) => notiereGelesen(lauf, name, eingabe),
+						mitschrift: mitschrift(s, 'pruefung', d.slug),
+					})
+				: { ...gescheitert('Die Seiten ließen sich für die Prüfung nicht bauen.'), verbrauch: {} };
+			const fehler = aktiv?.abbruch ? 'Abgebrochen.' : fehlerText(ergebnis.fehler);
+			eintrag.befunde = ergebnis.befunde.map(befundZeile);
+			const hinweis = [
+				auftrag?.teil
+					? `Prüflauf ${auftrag.teil.nr} von ${auftrag.teil.von}, Seiten ${auftrag.teil.erste}–${auftrag.teil.letzte} von ${auftrag.teil.gesamt}.`
+					: '',
+				ergebnis.lesbar ? '' : 'Die Antwort hatte keinen lesbaren Block mit Befunden: keine Befunde übernommen.',
+			]
+				.filter(Boolean)
+				.join(' ');
+			if (hinweis) {
+				eintrag.hinweis = hinweis;
+			}
+			beendeEintrag(eintrag, beginn, fehler, ergebnis.verbrauch);
+			await schreibeProtokoll();
+			await notiereVerbrauch(s, fehler ? 'unvollstaendig' : 'fertig', beginn, {
+				...ergebnis.verbrauch,
+				lauf: 'pruefung',
+			});
+			return { ...ergebnis, fehler };
+		};
+		const ergebnisse: { befunde: PruefBefund[]; lesbar: boolean; fehler: string | null }[] = [];
 		try {
-			const ansicht = await baueAnsicht(
-				path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html'),
-				ordner,
-				{
-					sw: false,
-				},
-			);
-			const teile = await richtePruefOrdnerEin(ordner, ansicht.bilder, html, arbeitDir(s.id), kind);
-			const ablage = ablageDir(s.id);
-			ergebnis = await pruefeLauf({
-				bin,
-				...kiJetzt(),
-				ordner,
-				ablage,
-				text: pruefText({
+			let auftraege: PruefAuftrag[] | null = null;
+			try {
+				const ansicht = await baueAnsicht(
+					path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html'),
+					ordner,
+					{
+						sw: false,
+					},
+				);
+				const teile = await richtePruefOrdnerEin(ordner, ansicht.bilder, html, arbeitDir(s.id), kind);
+				auftraege = pruefTeile({
 					titel: d.titel,
 					artName: ART_NAME[d.art],
 					klasse: klasseText(s.rechercheAnfrage?.klasse),
@@ -1360,37 +1416,32 @@ export const erstelleEinheiten = (
 					formate: formateDerReihe(s, plan, d.slug),
 					kind,
 					regeln: regeln.map((r) => path.join(ablage, '.claude', 'skills', r)),
-				}),
-				grenzen,
-				gestartet: (k) => {
-					if (aktiv) {
-						aktiv.kind = k;
-					}
-					if (k.pid) {
-						writeFileSync(path.join(dir(s.id), PID), String(k.pid));
-					}
-				},
-				werkzeug: (name, eingabe) => notiereGelesen(lauf, name, eingabe),
-				mitschrift: mitschrift(s, 'pruefung', d.slug),
-			});
-		} catch (fehler) {
-			console.error('Prüflauf der Einheit:', (fehler as Error).message);
-			ergebnis = gescheitert('Die Seiten ließen sich für die Prüfung nicht bauen.');
+					auftrag: s.auftrag,
+					figuren: plan.figuren ?? [],
+				});
+			} catch (fehler) {
+				console.error('Prüflauf der Einheit:', (fehler as Error).message);
+			}
+			for (const auftrag of auftraege ?? [null]) {
+				const zuEnde = erschoepft(grenzenFuer(KI_GRENZEN.einheit.pruefung));
+				if (!aktiv || aktiv.abbruch || zuEnde) {
+					ergebnisse.push(gescheitert(aktiv?.abbruch ? 'Abgebrochen.' : (fehlerText(zuEnde) ?? 'Abgebrochen.')));
+					break;
+				}
+				const e = await einTeil(auftrag);
+				ergebnisse.push(e);
+				if (e.fehler) {
+					break;
+				}
+			}
 		} finally {
 			await rm(ordner, { recursive: true, force: true });
 		}
-		const fehler = aktiv?.abbruch ? 'Abgebrochen.' : fehlerText(ergebnis.fehler);
-		eintrag.befunde = ergebnis.befunde.map(befundZeile);
-		if (!ergebnis.lesbar) {
-			eintrag.hinweis = 'Die Antwort hatte keinen lesbaren Block mit Befunden: keine Befunde übernommen.';
-		}
-		beendeEintrag(eintrag, beginn, fehler, ergebnis.verbrauch);
-		await schreibeProtokoll();
-		await notiereVerbrauch(s, fehler ? 'unvollstaendig' : 'fertig', beginn, {
-			...ergebnis.verbrauch,
-			lauf: 'pruefung',
-		});
-		return { ...ergebnis, fehler };
+		return {
+			befunde: befundeDerTeile(ergebnisse.map((e) => e.befunde)),
+			lesbar: ergebnisse.every((e) => e.lesbar),
+			fehler: ergebnisse.find((e) => e.fehler)?.fehler ?? null,
+		};
 	};
 
 	/**
@@ -1607,7 +1658,7 @@ export const erstelleEinheiten = (
 		}
 	};
 
-	const SCHLUSS = (s: EinheitStand, plan: EinheitPlan, dopplung: string[]) => {
+	const SCHLUSS = (s: EinheitStand, plan: EinheitPlan, dopplung: string[], formate: FormateDerEinheit) => {
 		const offen = plan.dokumente.flatMap((d) => {
 			const p = s.pruefung?.[d.slug];
 			return p
@@ -1623,7 +1674,7 @@ export const erstelleEinheiten = (
 				'Aufgaben-Übersicht aus dem freigegebenen Plan, alle Stunden:\n',
 			),
 			fertigText(plan, fertigeMaterialien(s), s.steckbriefe ?? {}),
-			`Die Zahlen der Schoolbox (nur diese schreibst du ab):\n${zahlenText(plan, s.steckbriefe ?? {})}`,
+			`Die Zahlen der Schoolbox (nur diese schreibst du ab):\n${zahlenText(plan, s.steckbriefe ?? {}, formate)}`,
 			dopplung.length
 				? ['Doppelte Abbildungen, die der Server gefunden hat:', ...dopplung.map((t) => `- ${t}`)].join('\n')
 				: 'Doppelte Abbildungen: Der Server hat keine gefunden.',
@@ -1698,7 +1749,16 @@ export const erstelleEinheiten = (
 		const halt = erschoepft(grenzenFuer(KI_GRENZEN.einheit.schluss));
 		let ergebnis = halt
 			? null
-			: await lauf('schluss', SCHLUSS(s, plan, dopplungUebersicht(await dopplungen(s, plan), titelVon(s))), null);
+			: await lauf(
+					'schluss',
+					SCHLUSS(
+						s,
+						plan,
+						dopplungUebersicht(await dopplungen(s, plan), titelVon(s)),
+						await formateDerEinheit(s),
+					),
+					null,
+				);
 		const zurueck: string[] = [];
 		const uebernimm = async () => {
 			for (const d of plan.dokumente) {
@@ -1744,7 +1804,12 @@ export const erstelleEinheiten = (
 		}
 		stand.server = [
 			...dopplungUebersicht(await dopplungen(s, plan), titelVon(s)),
-			...zahlenBefunde(plan, s.steckbriefe ?? {}, (slug) => nachher.get(slug) ?? null),
+			...zahlenBefunde(
+				plan,
+				s.steckbriefe ?? {},
+				(slug) => nachher.get(slug) ?? null,
+				await formateDerEinheit(s),
+			),
 		];
 		if (eintrag) {
 			await notiereSchluss(eintrag, stand, ergebnis !== null && !gelesen.lesbar, zurueck);

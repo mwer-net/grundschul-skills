@@ -233,6 +233,8 @@ describe('Lauf einer Einheit (139)', () => {
 	let bin: string;
 	const altHome = process.env.HOME;
 	let pruefbericht: Pruefbericht = { seiten: [], meldungen: [], fehler: 0 };
+	/** So viele Seitenbilder baut die Ersatz-Ansicht; über 24 prüfen getrennte Läufe (241). */
+	let ansichtSeiten = 1;
 	const fall = (name: string) => writeFile(path.join(path.dirname(bin), 'fall.txt'), name);
 	const api = (pfad: string, init: { method?: string; body?: string } = {}) =>
 		server.holen(`${server.url}/api${pfad}`, {
@@ -280,8 +282,11 @@ describe('Lauf einer Einheit (139)', () => {
 			einheitAnsicht: async (quelle, ziel) => {
 				await mkdir(ziel, { recursive: true });
 				// Die Quelle als „Seitenbild“: So sieht der Prüflauf der Attrappe, was auf der Seite steht.
-				await writeFile(path.join(ziel, 'seite-1.png'), await readFile(quelle));
-				return { bericht: pruefbericht, bilder: ['seite-1.png'] };
+				const bilder = Array.from({ length: ansichtSeiten }, (_, i) => `seite-${i + 1}.png`);
+				for (const b of bilder) {
+					await writeFile(path.join(ziel, b), await readFile(quelle));
+				}
+				return { bericht: pruefbericht, bilder };
 			},
 		});
 	});
@@ -293,6 +298,7 @@ describe('Lauf einer Einheit (139)', () => {
 
 	afterEach(async () => {
 		pruefbericht = { seiten: [], meldungen: [], fehler: 0 };
+		ansichtSeiten = 1;
 		await fall('einheit');
 	});
 
@@ -743,7 +749,7 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.match(runde[0] ?? '', /- Seite 1, Aufgabe 1, [^:]+: Was mit den Uhren zu tun ist, steht nicht da\./);
 			const laeufe = (await jsonl<{ erste: string; resume: boolean }>('laeufe.jsonl')).slice(laeufeVorher);
 			assert.equal(laeufe.find((l) => l.erste.startsWith('Korrekturrunde nach der Prüfung.'))?.resume, true);
-			// Der Prüflauf sieht weder Lösung noch Bau: nur die Seiten, Klasse und Fach.
+			// Der Prüflauf sieht weder Lösung noch Bau: nur die Seiten, Klasse, Fach und den Auftrag (241).
 			const pruefungen = (
 				await jsonl<{ titel: string; loesung: boolean; kind: boolean }>('pruefungen.jsonl')
 			).slice(pruefVorher);
@@ -757,10 +763,32 @@ describe('Lauf einer Einheit (139)', () => {
 			);
 			const pruefPrompt = neu.find((x) => x.startsWith('Prüfung von „Fall 1“')) ?? '';
 			assert.match(pruefPrompt, /Klasse 2, Mathematik/);
-			assert.doesNotMatch(pruefPrompt, /Auftrag der Lehrkraft|Rätselkette|Schritt 2/);
+			assert.match(pruefPrompt, /Auftrag der Lehrkraft \(aus dem Assistenten\):\nErstelle eine Unterrichtseinheit/);
+			assert.doesNotMatch(pruefPrompt, /Rätselkette|Schritt 2|Prüflauf 1 von/);
 			assert.doesNotMatch(await quelle(s, mappe, 'fall-1'), /Mach was mit den Uhren/);
 			const e = (await protokoll(mappe)).laeufe.find((x) => x.art === 'pruefung');
 			assert.match(e?.befunde[0] ?? '', /Was mit den Uhren/);
+		});
+
+		it('Ein Material über 24 Seiten prüfen zwei Läufe nacheinander, je mit Eintrag im Protokoll (241)', async () => {
+			ansichtSeiten = 30;
+			const vorher = (await prompts()).length;
+			const { id, mappe } = await starte();
+			const s = await bis(id, 'fertig');
+			assert.equal(s.pruefung?.['fall-1']?.status, 'fertig');
+			assert.equal(s.pruefung?.['fall-1']?.runden, 1);
+			const neu = (await prompts()).slice(vorher).filter((x) => x.startsWith('Prüfung von „Fall 1“'));
+			assert.equal(neu.length, 2);
+			assert.match(neu[0] ?? '', /Prüflauf 1 von 2: Das Material hat 30 Seiten, du prüfst die Seiten 1–16\./);
+			assert.match(neu[1] ?? '', /Prüflauf 2 von 2: .*Seiten 17–30\. Die Seiten 1–16 prüft ein anderer Lauf/);
+			assert.match(neu[1] ?? '', /- seite-30\.png/);
+			assert.doesNotMatch(neu[1] ?? '', /- seite-16\.png/);
+			const e = (await protokoll(mappe)).laeufe.filter((x) => x.art === 'pruefung' && x.material === 'fall-1');
+			assert.deepEqual(
+				e.map((x) => x.hinweis),
+				['Prüflauf 1 von 2, Seiten 1–16 von 30.', 'Prüflauf 2 von 2, Seiten 17–30 von 30.'],
+			);
+			assert.ok(e.every((x) => x.ergebnis === 'fertig' && x.kostenUsd !== null));
 		});
 
 		it('Stur: nach zwei Korrekturrunden bleibt der Befund offen, die Einheit ist trotzdem fertig', async () => {
