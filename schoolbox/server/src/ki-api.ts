@@ -9,6 +9,7 @@ import {
 	schritteFuer,
 	titelVorschlag,
 } from '@schoolbox/kern';
+import { leitfigurIds } from '@schoolbox/kern/src/einheit-figuren';
 import type { Router as RouterTyp } from 'express';
 
 import { bilderStand } from './bild-zugang';
@@ -88,6 +89,7 @@ const eingabeVon = (body: Record<string, unknown>, dokument: Pick<Antworten, 'ar
 		text: `Antworten der Lehrkraft aus dem Assistenten (sie ersetzen die Start-Abfrage):\n${auftragAus(antworten)}`,
 		bausteine,
 		recherche,
+		leitfigur: leitfigurIds(antworten.leitfigur),
 	};
 };
 
@@ -149,6 +151,7 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 						phase: 'plan' as const,
 						eingabe: eingabe.text,
 						bausteine: eingabe.bausteine,
+						leitfigur: eingabe.leitfigur,
 						...(eingabe.recherche ? { rechercheAnfrage: eingabe.recherche } : {}),
 					}
 				: {}),

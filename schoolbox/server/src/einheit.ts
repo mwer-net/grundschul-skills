@@ -155,6 +155,7 @@ import {
 } from '@schoolbox/kern/src/einheit-kanon';
 import {
 	artAus,
+	bibliotheksGrund,
 	bibliotheksName,
 	bildFigur,
 	GRUNDPOSE,
@@ -1019,26 +1020,13 @@ export const erstelleEinheiten = (
 		...(s.bibliothekNeu ?? []).filter((n) => n.id === f.id).map((n) => n.plan),
 	];
 
-	/**
-	 * 253: Für eine Figur der Bibliothek entsteht keine neue Grundpose und keine Pose, die sie schon hat. Der Grund
-	 * nennt, was der Lauf stattdessen nimmt; `null`, wenn das Bild keine solche Figur zeigt.
-	 */
-	const bibliotheksGrund = (s: EinheitStand, figuren: readonly BibliotheksFigur[], v: BildVertrag) => {
-		const namen = [...(s.plan?.figuren ?? []).map((p) => p.name), ...figuren.flatMap((f) => namenDer(s, f))];
-		const bf = bildFigur(v, namen.filter(Boolean));
-		const gleich = (a: string) => a.toLocaleLowerCase('de') === bf?.figur.toLocaleLowerCase('de');
-		const f = bf?.figur ? figuren.find((x) => namenDer(s, x).some(gleich)) : undefined;
-		if (!bf || !f) {
-			return null;
-		}
-		if (bf.pose === GRUNDPOSE) {
-			return `${f.name} ist eine Figur der Figurenbibliothek: Ihre Grundpose liegt schon in ${REFERENZ_ORDNER}/. Erzeuge keine neue Grundpose; nimm sie als Referenz für Posen und Szenen.`;
-		}
-		const da = posenFuerLauf(f).find((p) => p.id === `${f.id}-${bf.pose}`);
-		return da
-			? `Die Pose „${bf.pose}“ von ${f.name} gibt es schon in der Bibliothek: ../../bilder/${posenDatei(da)}. Binde sie ein, statt sie neu zu erzeugen.`
-			: null;
-	};
+	const bibliotheksGrundIn = (s: EinheitStand, figuren: readonly BibliotheksFigur[], v: BildVertrag) =>
+		bibliotheksGrund(
+			figuren.map((figur) => ({ figur, namen: namenDer(s, figur) })),
+			v,
+			REFERENZ_ORDNER,
+			(s.plan?.figuren ?? []).map((p) => p.name),
+		);
 
 	/**
 	 * 253: Legt die Posen der Figuren aus der Bibliothek in `bilder/` des Arbeitsordners (was dort liegt, bleibt) und
@@ -1230,7 +1218,7 @@ export const erstelleEinheiten = (
 				api: kontext.bildApi,
 				figuren: figuren.map(({ datei, name }) => ({ name, datei })),
 				pruefeVertrag: (v: BildVertrag) =>
-					bibliotheksGrund(s, imLauf, v) ?? (s.plan?.kanon ? pruefeBildVertrag(s.plan, v) : null),
+					bibliotheksGrundIn(s, imLauf, v) ?? (s.plan?.kanon ? pruefeBildVertrag(s.plan, v) : null),
 			});
 			if (bilder) {
 				referenzNamen.set(bilder, new Map(figuren.map((f) => [f.pfad, f.figur])));

@@ -11,7 +11,7 @@ import { useFiguren, vorschauVon } from '../editor/gestaltung/figuren-quelle';
 /**
  * Die Leitfigur (242): Kacheln mit der Grundpose jeder Figur der Bibliothek, Willi und Wilma auch als Paar, dazu
  * „Eigene Figur“ mit Name und Aussehen und „Keine“. Ein Klick wählt. Der Assistent der Einheit nutzt sie, „Neues
- * Material“ später auch (253, dort ohne Paar).
+ * Material“ auch (253, dort ohne Paar und ohne eigene Figur).
  */
 
 const KACHEL =
@@ -61,6 +61,7 @@ const gleich = (wert: EinheitLeitfigur, ids: readonly string[]) =>
 	wert.art === 'bibliothek' && wert.figuren.map((f) => f.id).join('|') === ids.join('|');
 
 export const LeitfigurWahl = ({
+	eigene: mitEigener = true,
 	keine = true,
 	paar = true,
 	setze,
@@ -71,6 +72,8 @@ export const LeitfigurWahl = ({
 	/** Willi und Wilma zusammen als eine Kachel. */
 	paar?: boolean;
 	keine?: boolean;
+	/** Die Kachel „Eigene Figur“ mit Name und Aussehen. */
+	eigene?: boolean;
 }) => {
 	const figuren = useFiguren().filter((f) => f.posen.length > 0);
 	const [eigene, setEigene] = useState(() =>
@@ -103,9 +106,11 @@ export const LeitfigurWahl = ({
 						<Grundpose figur={f} />
 					</Kachel>
 				))}
-				<Kachel titel="Eigene Figur" aktiv={wert.art === 'neu'} waehle={() => setze({ art: 'neu', ...eigene })}>
-					<Symbol name="plus" className="size-6" />
-				</Kachel>
+				{mitEigener && (
+					<Kachel titel="Eigene Figur" aktiv={wert.art === 'neu'} waehle={() => setze({ art: 'neu', ...eigene })}>
+						<Symbol name="plus" className="size-6" />
+					</Kachel>
+				)}
 				{keine && (
 					<Kachel titel="Keine" aktiv={wert.art === 'keine'} waehle={() => setze({ art: 'keine' })}>
 						<Symbol name="schliessen" className="size-6" />

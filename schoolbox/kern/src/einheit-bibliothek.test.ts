@@ -3,6 +3,8 @@ import { describe, it } from 'node:test';
 
 import {
 	artAus,
+	bibliothekNeuSatz,
+	bibliotheksGrund,
 	bibliotheksName,
 	bildFigur,
 	gegenstaendeInGrundpose,
@@ -100,5 +102,41 @@ describe('einheit-bibliothek (253)', () => {
 		const z = leseHerkunft(tsv);
 		assert.deepEqual(z.get('a.png'), { datei: 'a.png', quelle: 'openai', motiv: 'Pose Luna zeigt', art: 'offen' });
 		assert.equal(z.get('b.jpg')?.art, '');
+	});
+
+	it('bibliothekNeuSatz: neue Figuren mit Posen, dann neue Posen vorhandener Figuren', () => {
+		assert.equal(
+			bibliothekNeuSatz([
+				{ id: 'luna', name: 'Luna', plan: 'Luna', figur: true, posen: ['faltet'] },
+				{ id: 'fridolin2', name: 'Fridolin (Fuchs)', plan: 'Fridolin', figur: true, posen: [] },
+				{ id: 'willi', name: 'Willi', plan: 'Willi', figur: false, posen: ['winkt'] },
+			]),
+			'Neu in der Figurenbibliothek: Luna (faltet), Fridolin (Fuchs). Neue Posen für Willi: winkt.',
+		);
+		assert.equal(bibliothekNeuSatz([]), '');
+	});
+
+	it('bibliotheksGrund: keine neue Grundpose und keine vorhandene Pose einer Figur der Bibliothek', () => {
+		const luna = {
+			figur: {
+				id: 'luna',
+				name: 'Luna',
+				posen: [
+					{ id: 'luna', schluessel: '_figuren/luna.png', strich: false },
+					{ id: 'luna-zeigt', schluessel: '_figuren/luna-zeigt.png', strich: false },
+				],
+			},
+			namen: ['Luna'],
+		};
+		assert.match(
+			bibliotheksGrund([luna], { datei: 'luna.png', motiv: 'Luna', figur: 'Luna', pose: 'grund' }, 'referenzen') ?? '',
+			/Figurenbibliothek.*referenzen\//,
+		);
+		assert.match(
+			bibliotheksGrund([luna], { datei: 'luna-zeigt.png', motiv: 'Pose Luna zeigt' }, 'referenzen') ?? '',
+			/\.\.\/\.\.\/bilder\/luna-zeigt\.png/,
+		);
+		assert.equal(bibliotheksGrund([luna], { datei: 'luna-winkt.png', motiv: 'Pose Luna winkt' }, 'referenzen'), null);
+		assert.equal(bibliotheksGrund([luna], { datei: 'ella.png', motiv: 'Grundpose Ella' }, 'referenzen'), null);
 	});
 });

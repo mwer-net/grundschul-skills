@@ -2,7 +2,7 @@ import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { cp, mkdir, mkdtemp, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, cp, mkdir, mkdtemp, readdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
@@ -81,12 +81,24 @@ import {
 	WURZEL,
 	zerlege,
 } from '@schoolbox/kern';
+import { sammleRequisiten } from '@schoolbox/kern/src/bilder';
+import {
+	bibliotheksGrund,
+	posenDatei,
+	posenFuerLauf,
+	posenText,
+	requisitenFuer,
+	requisitenText,
+} from '@schoolbox/kern/src/einheit-bibliothek';
+import type { BibliotheksFigur, Pose } from '@schoolbox/kern/src/figuren';
+import { leseBibliothek } from '@schoolbox/kern/src/figurenbibliothek';
 import { liesReferenzen, loeseReferenz, pfadText } from '@schoolbox/kern/src/referenz';
 
 import { ANSICHT_BILDER, BILDER_LISTE } from './bild-datei';
 import { BILD_GRENZEN } from './bild-grenzen';
 import type { BildApi, BildKonfig } from './bild-zugang';
-import { erstelleLaufBilder } from './bild-zugang';
+import { REFERENZ_ORDNER } from './bild-werkzeug';
+import { erstelleLaufBilder, posenPfad } from './bild-zugang';
 import type { BlattBilder } from './blatt-bilder';
 import { erstelleBlattBilder } from './blatt-bilder';
 import { leseQuelle } from './dokumente';
@@ -383,6 +395,8 @@ export interface KiWunsch {
 	rechercheAnfrage?: RechercheAnfrage;
 	/** Ihr Ergebnis; Plan ändern, Freigabe und „Nochmal“ übernehmen es, statt neu zu suchen. */
 	recherche?: RechercheErgebnis;
+	/** 253: Neues Blatt: die Kennungen der Leitfigur aus der Bibliothek; ihre Posen liegen im Bau in `bilder/`. */
+	leitfigur?: string[];
 }
 
 export type KiPruefer = (dokDir: string, html: string) => Promise<Pruefbericht>;
@@ -2353,19 +2367,71 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 		};
 
 	/**
+	 * 253: Die Leitfigur eines neuen Blatts aus der Bibliothek: ihre Posen in `bilder/` des Arbeitsordners, dazu die
+	 * Zeilen, mit denen das Blatt sie einbindet, und passende Requisiten früherer Einheiten. Willi und Wilma bringen
+	 * ihre Dateien schon mit.
+	 */
+	const blattFiguren = async (w: KiWunsch, arbeit: string) => {
+		const ids = w.leitfigur ?? [];
+		const bibliothek = ids.length ? await leseBibliothek(konfig, konfig.materialDir).catch(() => []) : [];
+		const ziel = path.join(arbeit, 'bilder');
+		const figuren: BibliotheksFigur[] = [];
+		for (const f of bibliothek.filter((x) => ids.includes(x.id))) {
+			const posen: Pose[] = [];
+			for (const p of posenFuerLauf(f)) {
+				const datei = path.join(ziel, posenDatei(p));
+				await mkdir(ziel, { recursive: true });
+				const kopiere = () =>
+					copyFile(posenPfad(konfig.materialDir, p.schluessel), datei).then(
+						() => true,
+						() => false,
+					);
+				if (existsSync(datei) || (await kopiere())) {
+					posen.push(p);
+				}
+			}
+			figuren.push({ ...f, posen });
+		}
+		const auftrag = `${w.eingabe ?? ''} ${w.anhang ?? ''}`;
+		const alle = await sammleRequisiten(konfig, konfig.materialDir, w.mappe).catch(() => []);
+		const requisiten = [];
+		for (const r of requisitenFuer(alle, auftrag)) {
+			const datei = path.join(ziel, r.datei);
+			await mkdir(ziel, { recursive: true });
+			if (!existsSync(datei) && (await copyFile(r.pfad, datei).then(() => true, () => false))) {
+				requisiten.push(r);
+			}
+		}
+		const text = [posenText(figuren, '../../bilder/'), requisitenText(requisiten, '../../bilder/')]
+			.filter(Boolean)
+			.join('\n\n');
+		return { figuren, text };
+	};
+
+	/**
 	 * Neue Bilder gibt es nur beim Bau eines neuen Blatts: Der freigegebene Plan nennt sie. Ohne Schlüssel (237) baut
 	 * das Blatt ohne neue Bilder, wie ohne Bilder im Plan.
 	 */
 	const bilderFuer = async (w: KiWunsch, arbeit: string) => {
 		if (w.neuesBlatt !== true || w.phase === 'plan') {
-			return { blatt: null, werkzeug: null };
+			return { blatt: null, werkzeug: null, text: '' };
 		}
-		const werkzeug = await erstelleLaufBilder({ arbeit, art: 'blatt', konfig, api: bildApi }).catch(
-			(fehler: unknown) => {
-				console.error('Bildwerkzeug für Claude:', fehler);
-				return null;
-			},
-		);
+		const { figuren, text } = await blattFiguren(w, arbeit);
+		const werkzeug = await erstelleLaufBilder({
+			arbeit,
+			art: 'blatt',
+			konfig,
+			api: bildApi,
+			pruefeVertrag: (v) =>
+				bibliotheksGrund(
+					figuren.map((figur) => ({ figur, namen: [figur.name] })),
+					v,
+					REFERENZ_ORDNER,
+				),
+		}).catch((fehler: unknown) => {
+			console.error('Bildwerkzeug für Claude:', fehler);
+			return null;
+		});
 		if (werkzeug) {
 			// Vor dem Lauf leer angelegt: Der Lauf trägt seine Bildverträge mit Edit ein (`BLATT_BILD_RECHTE`).
 			const liste = path.join(arbeit, BILDER_LISTE);
@@ -2373,7 +2439,7 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 				await writeFile(liste, '[]\n');
 			}
 		}
-		return { blatt: erstelleBlattBilder(arbeit, mappenDir(konfig.materialDir, w.mappe)), werkzeug };
+		return { blatt: erstelleBlattBilder(arbeit, mappenDir(konfig.materialDir, w.mappe)), werkzeug, text };
 	};
 
 	/** Ein Gespräch behält seinen Ordner, denn die Sitzungsablage von `claude` hängt am `cwd` (Entscheidung 37). */
@@ -2421,7 +2487,7 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 		const platz = w.gespraechId ? await gespraechPlatz(w.gespraechId, w) : await einmalPlatz();
 		const { ablage, arbeit } = platz;
 		const gross = w.neuesBlatt === true;
-		const { blatt: blattBilder, werkzeug: bildWerkzeug } = await bilderFuer(w, arbeit);
+		const { blatt: blattBilder, werkzeug: bildWerkzeug, text: figurenText } = await bilderFuer(w, arbeit);
 		const mitBildern = async (html: string) => blattBilder?.einsetzen(html) ?? html;
 		// Neues Material (220, Teil 2): Laufprotokoll im Dokument; im Bau Pflichtlektüre vor bauen und ein Prüflauf danach.
 		const mitProtokoll = w.neuesBlatt === true && (w.phase === 'plan' || w.phase === 'bauen');
@@ -2559,9 +2625,11 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 					? ''
 					: ' Es steht im älteren Satz (kein data-satz="2" am <body>): lies dazu Skill html-materialerstellung, references/aelterer-satz.md.'
 			}`;
-			const lektuere = imBau
-				? `\n\n${pflichtAbschnitt(pflicht, 'vor dem ersten Aufruf von bauen; bauen nimmt das Blatt sonst nicht an')}`
-				: '';
+			const lektuere = `${
+				imBau
+					? `\n\n${pflichtAbschnitt(pflicht, 'vor dem ersten Aufruf von bauen; bauen nimmt das Blatt sonst nicht an')}`
+					: ''
+			}${figurenText ? `\n\n${figurenText}` : ''}`;
 			const text = (fortsetzung: boolean) =>
 				prompt(w, ausschnitt, kopf, { aufVorschlag: Boolean(auf), fortsetzung }) + lektuere;
 			let erst = await laufe(laufArt(), text(Boolean(platz.sitzung)), platz.sitzung);

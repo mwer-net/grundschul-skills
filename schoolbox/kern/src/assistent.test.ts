@@ -9,6 +9,7 @@ import {
 	auftragAus,
 	auftragSaetze,
 	bausteinSchalter,
+	blattLeitfigurStandard,
 	einheitAngabenAus,
 	einheitBestandteile,
 	formatOptionen,
@@ -288,7 +289,8 @@ describe('Assistent: Auftrag (131)', () => {
 			Object.entries(FREITEXT).map(([feld, { zeichen }]) => [feld, 'x'.repeat(zeichen)]),
 		) as Partial<Antworten>;
 		for (const art of ARTEN) {
-			const a = mit({ ...voll, art, lerngruppe: LERNGRUPPE.map((l) => l.wert), umfang: '30' });
+			const leitfigur = { art: 'bibliothek' as const, figuren: [{ id: 'luna', name: 'L'.repeat(60) }] };
+			const a = mit({ ...voll, art, lerngruppe: LERNGRUPPE.map((l) => l.wert), umfang: '30', leitfigur });
 			assert.ok(auftragAus(a).length <= AUFTRAG_ZEICHEN, art);
 			assert.deepEqual(pruefeAntworten(a, a), a);
 		}
@@ -296,6 +298,29 @@ describe('Assistent: Auftrag (131)', () => {
 			() => pruefeAntworten({ sonst: 'x'.repeat(FREITEXT.sonst.zeichen + 1) }, mit({})),
 			/höchstens 1000 Zeichen/,
 		);
+	});
+});
+
+describe('Assistent: Leitfigur eines einzelnen Materials (253)', () => {
+	it('Willi ist die Vorgabe und steht nicht im Auftrag; eine Figur der Bibliothek oder keine schon', () => {
+		const ohne = auftragAus(mit({ thema: 'Uhrzeit' }));
+		assert.equal(auftragAus(mit({ thema: 'Uhrzeit', leitfigur: blattLeitfigurStandard() })), ohne);
+		assert.doesNotMatch(ohne, /Leitfigur/);
+		const luna = { art: 'bibliothek' as const, figuren: [{ id: 'luna', name: 'Luna' }] };
+		assert.match(auftragAus(mit({ thema: 'Uhrzeit', leitfigur: luna })), /^Leitfigur: Luna aus der Bibliothek\.$/m);
+		assert.match(auftragAus(mit({ thema: 'Uhrzeit', leitfigur: { art: 'keine' } })), /^Ohne Leitfigur\.$/m);
+	});
+
+	it('der Server nimmt eine Figur oder keine, nie eine eigene oder ein Paar', () => {
+		const vorbelegt = { fach: 'mathematik' as const, klasse: 2 as const };
+		assert.deepEqual(pruefeAntworten({}, vorbelegt).leitfigur, blattLeitfigurStandard());
+		assert.deepEqual(pruefeAntworten({ leitfigur: { art: 'keine' } }, vorbelegt).leitfigur, { art: 'keine' });
+		for (const falsch of [
+			{ art: 'neu', name: 'Luna' },
+			{ art: 'bibliothek', figuren: [{ id: 'willi', name: 'Willi' }, { id: 'wilma', name: 'Wilma' }] },
+		]) {
+			assert.throws(() => pruefeAntworten({ leitfigur: falsch }, vorbelegt), SchoolboxFehler);
+		}
 	});
 });
 
@@ -328,6 +353,7 @@ describe('Assistent: jede Einstellung steht im Auftrag (210)', () => {
 			umfangText: [{ umfangText: '' }, { umfangText: 'zwei Schulstunden' }],
 			lerngruppe: [{ lerngruppe: [] }, { lerngruppe: ['daz'] }],
 			sonst: [{ sonst: '' }, { sonst: 'Keine Digitaluhren.' }],
+			leitfigur: [{ leitfigur: blattLeitfigurStandard() }, { leitfigur: { art: 'keine' } }],
 		};
 		for (const [feld, paar] of Object.entries(paare)) {
 			if (paar) {

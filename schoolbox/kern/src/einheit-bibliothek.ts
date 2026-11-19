@@ -288,3 +288,36 @@ export const bibliothekNeuSatz = (liste: readonly BibliothekNeu[]) => {
 		.filter(Boolean)
 		.join(' ');
 };
+
+/** Eine Figur der Bibliothek mit den Namen, unter denen ein Plan oder Bildvertrag sie nennt. */
+export interface GenannteFigur {
+	figur: Pick<BibliotheksFigur, 'id' | 'name' | 'posen'>;
+	namen: readonly string[];
+}
+
+/**
+ * Für eine Figur der Bibliothek entsteht keine neue Grundpose und keine Pose, die sie schon hat. Der Grund nennt,
+ * was der Lauf stattdessen nimmt; `null`, wenn das Bild keine solche Figur zeigt. `weitere`: Namen anderer Figuren
+ * (des Plans), damit ein Dateiname wie `ella.png` erkannt wird.
+ */
+export const bibliotheksGrund = (
+	figuren: readonly GenannteFigur[],
+	v: BildAngabe,
+	referenzen: string,
+	weitere: readonly string[] = [],
+) => {
+	const namen = [...weitere, ...figuren.flatMap((g) => g.namen)].filter(Boolean);
+	const bf = bildFigur(v, namen);
+	const g = bf?.figur ? figuren.find((x) => x.namen.some((n) => gleicherName(n, bf.figur))) : undefined;
+	if (!bf || !g) {
+		return null;
+	}
+	const { figur } = g;
+	if (bf.pose === GRUNDPOSE) {
+		return `${figur.name} ist eine Figur der Figurenbibliothek: Ihre Grundpose liegt schon in ${referenzen}/. Erzeuge keine neue Grundpose; nimm sie als Referenz für Posen und Szenen.`;
+	}
+	const da = posenFuerLauf(figur).find((p) => p.id === `${figur.id}-${bf.pose}`);
+	return da
+		? `Die Pose „${bf.pose}“ von ${figur.name} gibt es schon in der Bibliothek: ../../bilder/${posenDatei(da)}. Binde sie ein, statt sie neu zu erzeugen.`
+		: null;
+};

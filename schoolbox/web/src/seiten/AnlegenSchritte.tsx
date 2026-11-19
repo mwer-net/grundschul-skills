@@ -30,6 +30,7 @@ import { Symbol } from '../bausteine/Symbol';
 import type { limitHinweis } from '../editor/ki';
 import { LimitZeile } from '../editor/LimitZeile';
 import type { Ordnerangabe } from './anlegen-hilfe';
+import { LeitfigurWahl } from './LeitfigurWahl';
 
 /** Die Schritte des Assistenten „Material anlegen“ (132, Entwurf A1 S. 2–9). Fragen und Antworten aus `assistent.ts`. */
 
@@ -651,6 +652,16 @@ export const SchrittThema = ({
 					/>
 				</div>
 			)}
+			{/* 253: eine Figur der Bibliothek oder keine; Willi ist die Vorgabe. */}
+			<div className="mt-4" data-blatt-leitfigur>
+				<Etikett>Leitfigur</Etikett>
+				<LeitfigurWahl
+					wert={a.leitfigur}
+					setze={(leitfigur) => setze({ leitfigur })}
+					paar={false}
+					eigene={false}
+				/>
+			</div>
 		</>
 	);
 };

@@ -7,7 +7,7 @@
 import type { EinheitAngaben } from './einheit';
 import { EINHEIT_AUSSEHEN, EINHEIT_BESTANDTEILE, EINHEIT_DAUER, EINHEIT_ZEICHEN } from './einheit';
 import type { EinheitLeitfigur } from './einheit-figuren';
-import { FIGUR_ZEICHEN, leitfigurKurz, leitfigurStandard } from './einheit-figuren';
+import { FIGUR_ZEICHEN, leitfigurKurz, leitfigurSatz, leitfigurStandard, leseLeitfigur } from './einheit-figuren';
 import { SchoolboxFehler } from './fehler';
 import { ART_NAME, FACH_NAME } from './namen';
 import type { Art, Fach, Format, Klasse } from './werte';
@@ -253,7 +253,30 @@ export interface Antworten {
 	/** Materialart „Unterrichtseinheit“ (140): ein Ordner statt eines Blatts, nur mit Claude. */
 	einheit: boolean;
 	eh: EinheitWahl;
+	/** 253: die Leitfigur eines einzelnen Materials, eine Figur der Bibliothek oder keine; Vorgabe Willi. */
+	leitfigur: EinheitLeitfigur;
 }
+
+/** 253: Die Vorgabe in „Neues Material“; mit ihr bleibt der Auftrag wie vor 253. */
+export const blattLeitfigurStandard = (): EinheitLeitfigur => ({
+	art: 'bibliothek',
+	figuren: [{ id: 'willi', name: 'Willi' }],
+});
+
+const istBlattStandard = (l: EinheitLeitfigur) =>
+	l.art === 'bibliothek' && l.figuren.length === 1 && l.figuren[0]?.id === 'willi';
+
+/** Prüft die Leitfigur eines einzelnen Materials: höchstens eine Figur der Bibliothek, keine eigene. */
+const pruefeBlattLeitfigur = (roh: unknown): EinheitLeitfigur => {
+	if (roh === undefined) {
+		return blattLeitfigurStandard();
+	}
+	const l = leseLeitfigur(roh);
+	if (l.art === 'neu' || (l.art === 'bibliothek' && l.figuren.length !== 1)) {
+		throw new SchoolboxFehler('Die Leitfigur ist ungültig.');
+	}
+	return l;
+};
 
 export const leereAntworten = (vorbelegt: { fach: Fach; klasse: Klasse }): Antworten => ({
 	weg: 'claude',
@@ -275,6 +298,7 @@ export const leereAntworten = (vorbelegt: { fach: Fach; klasse: Klasse }): Antwo
 	titel: '',
 	einheit: false,
 	eh: leereEinheit(),
+	leitfigur: blattLeitfigurStandard(),
 });
 
 const voll = (text: string) => text.trim() !== '';
@@ -512,7 +536,11 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 		wege: ['claude'],
 		einheit: 'ohne',
 		antwort: (a) =>
-			voll(a.thema) ? [a.thema.trim(), funktionName(a), umfangName(a)].filter(voll).join(' · ') : '',
+			voll(a.thema)
+				? [a.thema.trim(), funktionName(a), umfangName(a), istBlattStandard(a.leitfigur) ? '' : leitfigurKurz(a.leitfigur)]
+						.filter(voll)
+						.join(' · ')
+				: '',
 		fehlt: themaFehlt,
 	},
 	{
@@ -700,6 +728,8 @@ export const auftragSaetze = (a: Antworten): Teil[][] => {
 	const saetze: Teil[][] = [
 		ersterSatz(a),
 		themaSatz(a),
+		// 253: Mit der Vorgabe Willi bleibt der Auftrag wie vorher.
+		istBlattStandard(a.leitfigur) ? [] : [fest(leitfigurSatz(a.leitfigur))],
 		...bausteinSaetze(a),
 		[
 			fest('Lerngruppe: '),
@@ -869,5 +899,6 @@ export const pruefeAntworten = (roh: unknown, vorbelegt: { fach: Fach; klasse: K
 		// Eine Einheit geht an `/api/einheiten`; ein einzelnes Blatt nimmt sie nicht mit.
 		einheit: false,
 		eh: leereEinheit(),
+		leitfigur: pruefeBlattLeitfigur(r.leitfigur),
 	};
 };
