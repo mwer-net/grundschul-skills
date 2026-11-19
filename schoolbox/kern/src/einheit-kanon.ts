@@ -161,12 +161,21 @@ export const leseKanon = (roh: unknown): EinheitKanon | undefined => {
 
 // ── Wo ein Material in der Geschichte steht ──
 
+/** Rollen über die ganze Reihe: Sie haben kein Kapitel, auch wenn eine Stunde sie nennt. */
+const GANZE_REIHE = new Set(['vorleseheft', 'hinweise', 'deckblatt', 'quellen', 'angebot']);
+
 /**
- * Das Kapitel eines Materials: die Stunde, in der die Aufgaben-Übersicht es zuerst nennt (Stunde und Kapitel haben
- * dieselbe Nummer). `null` für Materialien über die ganze Reihe (Vorleseheft, Hinweise, Auftakt).
+ * Das Kapitel eines Materials: die eine Stunde, die es in der Aufgaben-Übersicht nennt (Stunde und Kapitel haben dieselbe
+ * Nummer). `null` für Rollen über die ganze Reihe, für den Auftakt und für ein Material, das mehrere Stunden nennen.
  */
-export const kapitelVon = (plan: Pick<EinheitPlan, 'stunden'>, slug: string) =>
-	(plan.stunden ?? []).find((s) => s.aufgaben.some((a) => a.dokument === slug))?.nr ?? null;
+export const kapitelVon = (plan: Pick<EinheitPlan, 'stunden'> & { dokumente?: readonly PlanDokument[] }, slug: string) => {
+	const d = plan.dokumente?.find((x) => x.slug === slug);
+	if (GANZE_REIHE.has(rolleVon(d ?? { slug, art: 'arbeitsblatt' }))) {
+		return null;
+	}
+	const stunden = (plan.stunden ?? []).filter((s) => s.aufgaben.some((a) => a.dokument === slug));
+	return stunden.length === 1 ? (stunden[0]?.nr ?? null) : null;
+};
 
 /** Der Zustand eines Gegenstands in einem Kapitel: der Eintrag dieses Kapitels oder des letzten davor. */
 export const zustandIn = (ding: KanonDing, kapitel: number) => {
@@ -181,6 +190,10 @@ export const zustandIn = (ding: KanonDing, kapitel: number) => {
 const nochGeheim = (g: KanonGeheim, kapitel: number | null) => kapitel === null || g.bis === null || kapitel < g.bis;
 
 const geheimBis = (g: KanonGeheim) => (g.bis === null ? 'bleibt in der ganzen Reihe geheim' : `erst ab Kapitel ${g.bis}`);
+
+/** Wann ein Geheimnis verraten ist: für Bau, Kinderaugen, Fachblick und Schlusslauf gleich. */
+const VERRAT =
+	'Verraten ist ein Geheimnis erst, wenn ein Kind es vor seinem Kapitel eindeutig erkennen kann: wer es war, die Lösung, der gesuchte Gegenstand im Bild. Spuren und Andeutungen, die Plan, Rätselkette oder falsche Fährte vorsehen, gehören dazu und sind kein Verrat.';
 
 const ohnePunkt = (text: string) => text.replace(/[.!?…]+$/, '');
 
@@ -205,7 +218,7 @@ const kapitelBlock = (k: EinheitKanon, kapitel: number) => {
 	});
 	const geheim = k.geheim
 		.filter((g) => nochGeheim(g, kapitel))
-		.map((g) => `- Noch geheim, weder zeigen noch sagen: ${ohnePunkt(g.was)} (${geheimBis(g)}).`);
+		.map((g) => `- Noch geheim, nicht erkennbar verraten: ${ohnePunkt(g.was)} (${geheimBis(g)}).`);
 	const spaeter = k.begriffe.filter((b) => b.ab !== null && b.ab > kapitel);
 	const zeilen = [
 		...zustaende,
@@ -243,7 +256,7 @@ export const kanonText = (
 		k.figuren.length ? ['Figuren, in jedem Material gleich:', ...k.figuren.map(figurZeile)].join('\n') : '',
 		k.dinge.length ? ['Gegenstände der Handlung, Zustand ab Kapitel:', ...k.dinge.map(dingZeile)].join('\n') : '',
 		k.geheim.length
-			? ['Geheimnisse:', ...k.geheim.map((g) => `- ${ohnePunkt(g.was)}: ${geheimBis(g)}.`)].join('\n')
+			? [`Geheimnisse. ${VERRAT}`, ...k.geheim.map((g) => `- ${ohnePunkt(g.was)}: ${geheimBis(g)}.`)].join('\n')
 			: '',
 		k.regeln.length ? ['Regeln der Welt:', ...k.regeln.map((r) => `- ${r}`)].join('\n') : '',
 		k.begriffe.length
@@ -269,9 +282,10 @@ export const geheimText = (kanon: EinheitKanon | undefined, kapitel: number | nu
 	}
 	return [
 		kapitel === null
-			? 'Was die Geschichte nicht zu früh verraten darf (aus dem Plan; eine Bildfolie „3.1“ gehört zu Kapitel 3). Zeigt oder sagt eine Seite oder ein Bild es vor seinem Kapitel, melde es als „kanon“:'
-			: `Was die Geschichte in Kapitel ${kapitel} noch nicht verraten darf (aus dem Plan). Zeigt oder sagt eine Seite oder ein Bild es doch, melde es als „kanon“:`,
+			? 'Was die Geschichte nicht zu früh verraten darf (aus dem Plan; eine Bildfolie „3.1“ gehört zu Kapitel 3). Kann ein Kind es auf einer Seite oder einem Bild vor seinem Kapitel eindeutig erkennen, melde es als „kanon“:'
+			: `Was die Geschichte in Kapitel ${kapitel} noch nicht verraten darf (aus dem Plan). Kann ein Kind es auf einer Seite oder einem Bild eindeutig erkennen, melde es als „kanon“:`,
 		...geheim.map((g) => `- ${ohnePunkt(g.was)} (${geheimBis(g)})`),
+		'Spuren und Andeutungen, die Plan, Rätselkette oder falsche Fährte vorsehen, sind kein Befund.',
 	].join('\n');
 };
 
@@ -311,7 +325,7 @@ export const bilderKanonText = (kanon: EinheitKanon | undefined, kapitel: readon
 		kanon.regeln.length ? ['Regeln der Welt:', ...kanon.regeln.map((r) => `- ${r}`)].join('\n') : '',
 		je.length
 			? [
-					'Je Kapitel der Zustand im Bild; was nicht zu sehen sein darf, gehört in „verboten“ des Bildvertrags:',
+					'Je Kapitel der Zustand im Bild; was nicht zu sehen sein darf, gehört in „verboten“ des Bildvertrags. Eine Spur im Bild ist erlaubt, die erkennbare Auflösung nicht:',
 					...je,
 				].join('\n')
 			: '',
@@ -328,14 +342,14 @@ const KANON_ZUERST = new Set(['vorleseheft', 'hinweise']);
  * `geheim`, der Fachblick den ganzen Kanon. Ohne Kanon leere Objekte: Die Aufträge bleiben wie vor 246.
  */
 export const pruefKanon = (
-	plan: Pick<EinheitPlan, 'kanon' | 'stunden'>,
+	plan: Pick<EinheitPlan, 'kanon' | 'stunden'> & { dokumente?: readonly PlanDokument[] },
 	d: Pick<PlanDokument, 'slug' | 'art'>,
 	nachtrag: readonly KanonNachtrag[] = [],
 ): { kind: { geheim?: string }; fach: { kanon?: string; kanonZuerst?: boolean } } => {
 	if (!plan.kanon) {
 		return { kind: {}, fach: {} };
 	}
-	const kapitel = kapitelVon(plan, d.slug);
+	const kapitel = GANZE_REIHE.has(rolleVon(d)) ? null : kapitelVon(plan, d.slug);
 	const geheim = geheimText(plan.kanon, kapitel);
 	return {
 		kind: geheim ? { geheim } : {},

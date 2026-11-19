@@ -151,7 +151,7 @@ describe('Kanon der Einheit (246)', () => {
 		assert.equal(zeilen[1], 'In Kapitel 5 gilt, für dieses Material zuerst:');
 		assert.equal(zeilen[2], '- das Glöckchen: Hanne findet es im Schnee.');
 		assert.equal(zeilen[3], '- der Spiegel: Hanne leiht ihn aus (seit Kapitel 4).');
-		assert.equal(zeilen[4], '- Noch geheim, weder zeigen noch sagen: Ella ist die Täterin (erst ab Kapitel 6).');
+		assert.equal(zeilen[4], '- Noch geheim, nicht erkennbar verraten: Ella ist die Täterin (erst ab Kapitel 6).');
 		assert.match(text, /- Ella: ein buschiger Schwanz; zwei Ohren mit Pinseln\. Nie: trägt das Glöckchen\./);
 		assert.match(text, /Kap\. 0 hängt am Fenster · Kap\. 3 halb, bei Fridolin · Kap\. 5 Hanne/);
 		assert.match(text, /- symmetrisch: .* \(ab Stunde 2\)\./);
@@ -160,6 +160,24 @@ describe('Kanon der Einheit (246)', () => {
 		assert.match(zwei, /- das Glöckchen: hängt am Fenster \(seit Kapitel 0\)\./);
 		assert.doesNotMatch(kanonText(KANON, { kapitel: 6 }), /Noch geheim/);
 		assert.doesNotMatch(kanonText(KANON), /In Kapitel/);
+		assert.match(text, /Geheimnisse\. Verraten ist ein Geheimnis erst, wenn ein Kind es vor seinem Kapitel eindeutig erkennen kann.*sind kein Verrat\.\n- Ella/);
+	});
+
+	it('kapitelVon: nur ein Material genau einer Stunde hat ein Kapitel', () => {
+		const dok = (slug: string, art: 'arbeitsblatt' | 'lesetext' | 'lernspiel') => ({ slug, titel: slug, art, format: 'a4-hoch' as const, zweck: '', fertig: false });
+		const aufgabe = (dokument: string) => ({ dokument, format: 'sortieren', inhalt: 'x', bereich: null, zweitesMal: false });
+		const stunde = (nr: number, ...slugs: string[]) => ({ nr, handlung: '', begriffe: [], kontrolle: false, aufgaben: slugs.map(aufgabe) });
+		const plan = {
+			dokumente: [dok('vorleseheft', 'lesetext'), dok('spiel', 'lernspiel'), dok('blatt-4', 'arbeitsblatt')],
+			stunden: [stunde(1, 'vorleseheft'), stunde(3, 'spiel'), stunde(4, 'blatt-4'), stunde(5, 'spiel')],
+		};
+		assert.equal(kapitelVon(plan, 'vorleseheft'), null);
+		assert.equal(kapitelVon(plan, 'spiel'), null);
+		assert.equal(kapitelVon(plan, 'blatt-4'), 4);
+		assert.equal(kapitelVon(plan, 'auftakt'), null);
+		const mitKanon = { ...plan, kanon: KANON };
+		assert.match(pruefKanon(mitKanon, dok('vorleseheft', 'lesetext')).kind.geheim ?? '', /^Was die Geschichte nicht zu früh verraten darf/);
+		assert.doesNotMatch(pruefKanon(mitKanon, dok('vorleseheft', 'lesetext')).fach.kanon ?? '', /In Kapitel 1 gilt/);
 	});
 
 	it('Zustand gilt bis zum nächsten Eintrag; vor dem ersten gibt es keinen', () => {
@@ -170,7 +188,7 @@ describe('Kanon der Einheit (246)', () => {
 	});
 
 	it('geheimText: im Kapitel nur, was dort noch geheim ist; ohne Kapitel jedes mit seinem Kapitel', () => {
-		assert.match(geheimText(KANON, 5), /^Was die Geschichte in Kapitel 5 noch nicht verraten darf.*„kanon“:\n- Ella ist die Täterin \(erst ab Kapitel 6\)$/);
+		assert.match(geheimText(KANON, 5), /^Was die Geschichte in Kapitel 5 noch nicht verraten darf.*„kanon“:\n- Ella ist die Täterin \(erst ab Kapitel 6\)\nSpuren und Andeutungen, die .* sind kein Befund\.$/);
 		assert.equal(geheimText(KANON, 6), '');
 		assert.match(geheimText(KANON, null), /Bildfolie „3\.1“ gehört zu Kapitel 3/);
 	});
@@ -186,6 +204,7 @@ describe('Kanon der Einheit (246)', () => {
 		assert.match(text, /- Kapitel 1: das Glöckchen: hängt am Fenster; der Spiegel: Luna bekommt ihn\.\n {2}Darf nicht zu sehen sein: Ella ist die Täterin\./);
 		assert.match(text, /- Kapitel 6: das Glöckchen: zurück an Luna; der Spiegel: Hanne leiht ihn aus\.(\n|$)/);
 		assert.match(text, /Lunas Spiegel ist ein Taschenspiegel/);
+		assert.match(text, /Eine Spur im Bild ist erlaubt, die erkennbare Auflösung nicht:/);
 	});
 
 	it('Prüfläufe: Kinderaugen nur geheim, Fachblick den ganzen Kanon, bei Hinweisen als Hauptauftrag', () => {
@@ -283,6 +302,10 @@ describe('Kanon der Einheit (246)', () => {
 		assert.match(vorlage('einheit-material.md'), /"kanon": \{"neu": \[\{"name": "…", "was": "…"\}\], "widerspruch": \["…"\]\}/);
 		for (const name of ['einheit-fachblick.md', 'einheit-pruefung.md', 'einheit-schluss.md']) {
 			assert.match(vorlage(name), /`kanon`/, name);
+		}
+		for (const name of ['einheit.md', 'einheit-material.md', 'einheit-fachblick.md', 'einheit-pruefung.md']) {
+			assert.match(vorlage(name), /eindeutig erkennen/, name);
+			assert.match(vorlage(name), /Spuren und Andeutungen/, name);
 		}
 		for (const name of ['einheit.md', 'einheit-material.md', 'einheit-fachblick.md', 'einheit-pruefung.md', 'einheit-schluss.md']) {
 			assert.doesNotMatch(vorlage(name), /Glöckchen|Ella|Hanne|Fridolin|Achsensymmetrie/, name);

@@ -212,7 +212,7 @@ export const FachPruefpunkte = ({
 };
 
 /**
- * Was in allen Materialien gleich bleibt (246): der Kanon des Plans, dicht als Liste je Abschnitt. Ändern geht wie beim
+ * Was für alle Materialien gilt (246): der Kanon des Plans, dicht als Liste je Abschnitt. Ändern geht wie beim
  * übrigen Plan über „Ändern …“; nach der Freigabe gilt er für jeden Lauf.
  */
 export const KanonDetails = ({ abschnitte, planOffen }: { abschnitte: KanonAbschnitt[]; planOffen: boolean }) => {
@@ -220,7 +220,7 @@ export const KanonDetails = ({ abschnitte, planOffen }: { abschnitte: KanonAbsch
 		return null;
 	}
 	return (
-		<Aufklapp titel={`Was in allen Materialien gleich bleibt (${kanonZahl(abschnitte)})`}>
+		<Aufklapp titel={`Was für alle Materialien gilt (${kanonZahl(abschnitte)})`}>
 			<div className="flex max-w-[64rem] flex-col gap-1" data-einheit-kanon>
 				<dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5">
 					{abschnitte.map((a) => (
