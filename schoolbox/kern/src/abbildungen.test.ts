@@ -1210,10 +1210,10 @@ describe('Ebene Geometrie (025)', () => {
 
 	it('Symmetrie (245): Dreieck nur waagerecht, Quadrat vier Achsen, L keine', () => {
 		const { symmetrieAchsen, symmetrieGruppe, trenneRaster } = rechenkerne();
-		const arten = (form: Form) => [...symmetrieAchsen(form)].map((a) => a.art);
+		const achsenArten = (form: Form) => [...symmetrieAchsen(form)].map((a) => a.art);
 		const zellen = (raster: string) =>
 			trenneRaster(raster).flatMap((reihe, y) => reihe.flatMap((z, x) => (z === '1' ? [[x, y]] : [])));
-		const dreieck = arten({
+		const dreieck = achsenArten({
 			zellen: [],
 			polys: [
 				[
@@ -1225,11 +1225,11 @@ describe('Ebene Geometrie (025)', () => {
 		});
 		assert.deepEqual(dreieck, ['waagerecht']);
 		assert.equal(symmetrieGruppe(dreieck), 'waagerecht');
-		const quadrat = arten({ zellen: zellen('1 1 / 1 1'), polys: leer });
+		const quadrat = achsenArten({ zellen: zellen('1 1 / 1 1'), polys: leer });
 		assert.deepEqual([...quadrat].sort(), ['fallend', 'senkrecht', 'steigend', 'waagerecht']);
-		assert.deepEqual(arten({ zellen: zellen('1 0 / 1 0 / 1 1'), polys: leer }), []);
+		assert.deepEqual(achsenArten({ zellen: zellen('1 0 / 1 0 / 1 1'), polys: leer }), []);
 		assert.equal(symmetrieGruppe([]), 'keine');
-		assert.deepEqual(arten({ zellen: zellen('0 1 0 / 1 1 1'), polys: leer }), ['senkrecht']);
+		assert.deepEqual(achsenArten({ zellen: zellen('0 1 0 / 1 1 1'), polys: leer }), ['senkrecht']);
 	});
 
 	it('Symmetrie (245): schräge Achsen auf dem Geobrett', () => {
