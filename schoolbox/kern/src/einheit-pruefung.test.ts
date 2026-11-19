@@ -586,8 +586,14 @@ describe('Fachblick (244)', () => {
 			liste.map((l) => l.datei),
 			['a1', 'b1', 'c1', 'a2'],
 		);
-		assert.equal(fremdeGrenze({ seiten: Array(6).fill('s'), loesungen: [] }), 24);
-		assert.equal(fremdeGrenze({ seiten: Array(16).fill('s'), loesungen: Array(16).fill('l') }), 16);
+		assert.equal(fremdeGrenze({ seiten: Array.from({ length: 6 }, () => 's'), loesungen: [] }), 24);
+		assert.equal(
+			fremdeGrenze({
+				seiten: Array.from({ length: 16 }, () => 's'),
+				loesungen: Array.from({ length: 16 }, () => 'l'),
+			}),
+			16,
+		);
 		const andere = verteileLoesungen([
 			{ slug: 'k1', titel: 'K1', dateien: Array.from({ length: 30 }, (_, i) => `l${i}`) },
 		]);

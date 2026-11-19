@@ -40,10 +40,9 @@ import {
 	blickRegeln,
 	dokumentDir,
 	FACH_NAME,
-	fachblickStunden,
 	fachblickText,
 	FACHLICH_PRUEFEN,
-	fachSkillVon,
+	fachSkillDatei,
 	formatBefund,
 	hatSatz,
 	ID_MUSTER,
@@ -1062,6 +1061,25 @@ export const legeFremdeLoesungenAb = async (
 	return liste.map((l) => ({ ...l, datei: `${ANDERE_ORDNER}/${l.slug}/${l.datei}` }));
 };
 
+/** Der Schritt, den das Blatt während seiner Prüfläufe zeigt (244). */
+const pruefSchritt = (mitKind: boolean, fachlich: boolean) => {
+	if (!mitKind) {
+		return 'Prüft fachlich';
+	}
+	return fachlich ? 'Prüft mit Kinderaugen und fachlich' : 'Prüft mit Kinderaugen';
+};
+
+/** Erst freundlich, dann hart: `claude` räumt bei SIGINT seine Sitzung auf. */
+export const beendeKind = (kind: ChildProcessWithoutNullStreams) => {
+	kind.kill('SIGINT');
+	const hart = setTimeout(() => kind.kill('SIGTERM'), BEENDEN_MS);
+	const ganzHart = setTimeout(() => kind.kill('SIGKILL'), BEENDEN_MS * 2);
+	kind.once('close', () => {
+		clearTimeout(hart);
+		clearTimeout(ganzHart);
+	});
+};
+
 /**
  * Merkt sich einen laufenden Prozess unter mehreren (244: Kinderaugen und Fachblick gleichzeitig) und schreibt alle PIDs
  * in `pidDatei`, eine je Zeile. Endet er, fällt er aus Menge und Datei. Ist `abgebrochen` schon gesetzt, endet er
@@ -1192,17 +1210,6 @@ export const pruefeLauf = (o: {
 			resolve({ ...gelesen, fehler, verbrauch: stand.ergebnis.verbrauch ?? {} });
 		});
 	});
-
-/** Erst freundlich, dann hart: `claude` räumt bei SIGINT seine Sitzung auf. */
-export const beendeKind = (kind: ChildProcessWithoutNullStreams) => {
-	kind.kill('SIGINT');
-	const hart = setTimeout(() => kind.kill('SIGTERM'), BEENDEN_MS);
-	const ganzHart = setTimeout(() => kind.kill('SIGKILL'), BEENDEN_MS * 2);
-	kind.once('close', () => {
-		clearTimeout(hart);
-		clearTimeout(ganzHart);
-	});
-};
 
 export const kiPfad = (konfig: Pick<Konfig, 'claudeBin'>) => {
 	if (konfig.claudeBin) {
@@ -2603,12 +2610,12 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 			const fachOrdner = `${ordner}-fach`;
 			const g = KI_GRENZEN.einheit.pruefung;
 			const einLauf = async (
-				rolle: PruefRolle,
+				laufRolle: PruefRolle,
 				text: string,
-				pflicht: string[],
-				auftragDatei: string,
+				laufPflicht: string[],
+				auftragVorlage: string,
 			): Promise<PruefErgebnis> => {
-				const eintrag: LaufEintrag = { ...neuerLaufEintrag('pruefung', null, pflicht), rolle };
+				const eintrag: LaufEintrag = { ...neuerLaufEintrag('pruefung', null, laufPflicht), rolle: laufRolle };
 				const l = { eintrag, gelesen: new Set<string>() };
 				const beginn = Date.now();
 				protokoll.push(eintrag);
@@ -2618,11 +2625,11 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 						bin,
 						modell: ki.modell,
 						effort: ki.effort,
-						ordner: rolle === 'fach' ? fachOrdner : ordner,
+						ordner: laufRolle === 'fach' ? fachOrdner : ordner,
 						ablage,
 						text,
-						auftragDatei,
-						rolle,
+						auftragDatei: auftragVorlage,
+						rolle: laufRolle,
 						grenzen: {
 							zeitMs: g.zeitMs,
 							runden: g.runden,
@@ -2634,7 +2641,7 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 							}
 						},
 						werkzeug: (name, eingabe) => notiereLektuere(l, name, eingabe),
-						mitschrift: mitschrift(rolle === 'fach' ? 'fachblick' : 'pruefung'),
+						mitschrift: mitschrift(laufRolle === 'fach' ? 'fachblick' : 'pruefung'),
 					});
 					eintrag.befunde = ergebnis.befunde.map(befundZeile);
 					if (!ergebnis.lesbar) {
@@ -2651,7 +2658,7 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 					await notiereVerbrauch(a, ergebnis.fehler ? 'fehler' : 'fertig', 'pruefung', beginn, {
 						...ergebnis.verbrauch,
 						...ki,
-						rolle,
+						rolle: laufRolle,
 					});
 				}
 			};
@@ -2677,16 +2684,9 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 					await trennePruefOrdner(ordner, fachOrdner, weise.kind);
 				}
 				const regeln = blickRegeln(rolle, teile.bilder.length > 0);
-				const skill = fachSkillVon(fach);
 				const pruefpunkte = pruefpunkteText(w.recherche?.ok ? w.recherche.text : null);
-				const fachSkill = pruefpunkte || !skill ? null : `${skill}/SKILL.md`;
-				a.schritte.push(
-					mitKind && weise.fach
-						? 'Prüft mit Kinderaugen und fachlich'
-						: mitKind
-							? 'Prüft mit Kinderaugen'
-							: 'Prüft fachlich',
-				);
+				const fachSkill = fachSkillDatei(fach, pruefpunkte);
+				a.schritte.push(pruefSchritt(mitKind, weise.fach));
 				melde(a);
 				const kopf = {
 					titel: meta.titel,

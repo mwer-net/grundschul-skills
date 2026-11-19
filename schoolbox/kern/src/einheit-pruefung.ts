@@ -385,32 +385,6 @@ const FRAGE_ATTRIBUTE = ['aufgabe', 'frage', 'nur', 'achse', 'art', 'typ', 'spal
 const MAX_BERECHNET = 20;
 
 /**
- * Die Elemente der Schoolbox im Material, die ihre Lösung selbst berechnen (245), mit dem, was sie fragen, und wie oft
- * sie vorkommen: `<x-gitter aufgabe="pruefen" frage="ja-nein"> (3-mal)`. Der Fachblick sieht nur Bilder und erfährt so,
- * welche Lösungen nicht von Hand stammen.
- */
-export const berechneteElemente = (html: string) => {
-	const zahl = new Map<string, number>();
-	for (const t of ohneSkripte(html).matchAll(TAG)) {
-		const name = (t[2] ?? '').toLowerCase();
-		if (t[1] || !name.startsWith('x-') || OHNE_LOESUNG.has(name)) {
-			continue;
-		}
-		const attrs = new Map<string, string>();
-		for (const a of (t[3] ?? '').matchAll(ATTR)) {
-			attrs.set(
-				(a[1] ?? '').toLowerCase(),
-				(a[2] ?? a[3] ?? a[4] ?? '').replace(/\s+/g, ' ').trim().slice(0, 40),
-			);
-		}
-		const frage = FRAGE_ATTRIBUTE.filter((k) => attrs.get(k)).map((k) => ` ${k}="${attrs.get(k) ?? ''}"`);
-		const schluessel = `<${name}${frage.join('')}>`;
-		zahl.set(schluessel, (zahl.get(schluessel) ?? 0) + 1);
-	}
-	return [...zahl].map(([e, n]) => (n > 1 ? `${e} (${n}-mal)` : e)).slice(0, MAX_BERECHNET);
-};
-
-/**
  * Die Stunden der Aufgaben-Übersicht für den Fachblick: Steht das Material in der Übersicht, seine Stunden mit seinen
  * Aufgaben und dem Anforderungsbereich; sonst (Hinweise, Vorleseheft, Auftakt) jede Stunde in einer Zeile. `null`
  * ohne Übersicht.
@@ -461,7 +435,7 @@ export const fachblickText = (o: FachblickAuftrag) => {
 			: 'Ich-kann-Ziele: Die Lehrkraft hat keine genannt. Nimm das Ich-kann-Ziel auf den Seiten und die Handlung der Stunde.',
 		o.stunden ?? '',
 		o.pruefpunkte ??
-		(o.fachSkill
+			(o.fachSkill
 				? `Es gibt keine fachlichen Prüfpunkte aus einer Recherche. Lies zuerst den Fach-Skill ganz mit Read und prüfe gegen seine Fachdidaktik:\n- ${o.fachSkill}`
 				: 'Es gibt keine fachlichen Prüfpunkte und keinen Fach-Skill: Prüfe gegen die fachliche Definition.'),
 		[
@@ -804,6 +778,32 @@ const ohneSkripte = (html: string) =>
 		.replace(/<!--[\s\S]*?-->/g, '')
 		.replace(/<script\b[\s\S]*?<\/script>/gi, '')
 		.replace(/<style\b[\s\S]*?<\/style>/gi, '');
+
+/**
+ * Die Elemente der Schoolbox im Material, die ihre Lösung selbst berechnen (245), mit dem, was sie fragen, und wie oft
+ * sie vorkommen: `<x-gitter aufgabe="pruefen" frage="ja-nein"> (3-mal)`. Der Fachblick sieht nur Bilder und erfährt so,
+ * welche Lösungen nicht von Hand stammen.
+ */
+export const berechneteElemente = (html: string) => {
+	const zahl = new Map<string, number>();
+	for (const t of ohneSkripte(html).matchAll(TAG)) {
+		const name = (t[2] ?? '').toLowerCase();
+		if (t[1] || !name.startsWith('x-') || OHNE_LOESUNG.has(name)) {
+			continue;
+		}
+		const attrs = new Map<string, string>();
+		for (const a of (t[3] ?? '').matchAll(ATTR)) {
+			attrs.set(
+				(a[1] ?? '').toLowerCase(),
+				(a[2] ?? a[3] ?? a[4] ?? '').replace(/\s+/g, ' ').trim().slice(0, 40),
+			);
+		}
+		const frage = FRAGE_ATTRIBUTE.filter((k) => attrs.get(k)).map((k) => ` ${k}="${attrs.get(k) ?? ''}"`);
+		const schluessel = `<${name}${frage.join('')}>`;
+		zahl.set(schluessel, (zahl.get(schluessel) ?? 0) + 1);
+	}
+	return [...zahl].map(([e, n]) => (n > 1 ? `${e} (${n}-mal)` : e)).slice(0, MAX_BERECHNET);
+};
 
 /** Die Abbildungen eines Dokuments als Schlüssel; nichts in `nur-loesung`, nichts Triviales. */
 export const abbildungenIn = (html: string) => {

@@ -64,7 +64,7 @@ import {
 	FACH_NAME,
 	fachblickStunden,
 	fachblickText,
-	fachSkillVon,
+	fachSkillDatei,
 	fertigText,
 	figurenDopplungen,
 	folgeBefund,
@@ -1386,6 +1386,91 @@ export const erstelleEinheiten = (
 	/** Fertige Materialien, deren Lösungsseiten der Fachblick der Hinweise bekommt: ohne Rahmen und ohne die Hinweise. */
 	const OHNE_FREMDE_LOESUNG = new Set(['deckblatt', 'quellen', 'angebot', 'hinweise', 'bilder']);
 
+	/** Die Lektüre eines Prüflaufs: beim Fachblick der Fach-Skill, wenn er ihn liest, sonst die Regeln des Blicks. */
+	const pruefPflicht = (pruefRolle: PruefRolle, fachSkill: string | null, regeln: readonly string[]) => {
+		if (pruefRolle === 'kind') {
+			return blickLektuere(regeln);
+		}
+		return fachSkill ? blickLektuere([fachSkill]) : [];
+	};
+
+	/** Die Lösungsseiten der anderen fertigen Materialien für den Fachblick der Hinweise (244). */
+	const fremdeLoesungen = (s: EinheitStand, plan: EinheitPlan, d: PlanDokument, fachOrdner: string) =>
+		legeFremdeLoesungenAb(
+			fachOrdner,
+			plan.dokumente
+				.filter((x) => x.slug !== d.slug && s.importiert[x.slug] && !OHNE_FREMDE_LOESUNG.has(rolleVon(x)))
+				.map((x) => ({
+					slug: x.slug,
+					titel: x.titel,
+					quelle: path.join(arbeitDir(s.id), ANSICHT_ORDNER, x.slug),
+				})),
+		);
+
+	interface PruefAuftraege {
+		kind: { text: string; teil?: PruefTeil }[];
+		fach: { text: string; teil?: PruefTeil }[];
+	}
+
+	/**
+	 * Baut die Seiten in den Prüfordner, trennt den Ordner des Fachblicks ab und schreibt die Aufträge beider Rollen,
+	 * je Teil einen (241). Wirft, wenn sich die Seiten nicht bauen ließen.
+	 */
+	const pruefAuftraege = async (
+		s: EinheitStand,
+		plan: EinheitPlan,
+		d: PlanDokument,
+		o: { mitKind: boolean; kind: boolean; bilder: boolean; fach: boolean },
+		html: string,
+		ordner: string,
+	): Promise<PruefAuftraege> => {
+		const fachOrdner = `${ordner}-fach`;
+		const ablage = ablageDir(s.id);
+		const pruefpunkte = pruefpunkteText(s.recherche?.text, plan.berichtigungen);
+		const fachSkill = fachSkillDatei(fach(s), pruefpunkte);
+		const ansicht = await baueAnsicht(path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html'), ordner, {
+			sw: false,
+		});
+		const teile = await richtePruefOrdnerEin(ordner, ansicht.bilder, html, arbeitDir(s.id), o.kind || o.fach);
+		const kopf = {
+			titel: d.titel,
+			artName: ART_NAME[d.art],
+			klasse: klasseText(s.rechercheAnfrage?.klasse),
+			fach: FACH_NAME[fach(s)],
+		};
+		const kind = o.mitKind
+			? pruefTeile<PruefAuftrag>({
+					...kopf,
+					...teile,
+					loesungen: o.kind ? teile.loesungen : [],
+					formate: formateDerReihe(s, plan, d.slug),
+					kind: o.kind,
+					regeln: blickRegeln(rolleVon(d), o.bilder).map((r) => path.join(ablage, '.claude', 'skills', r)),
+					auftrag: s.auftrag,
+					figuren: plan.figuren ?? [],
+				}).map((a) => ({ text: pruefText(a), teil: a.teil }))
+			: [];
+		if (!o.fach) {
+			return { kind, fach: [] };
+		}
+		await trennePruefOrdner(ordner, fachOrdner, o.kind);
+		const andere = rolleVon(d) === 'hinweise' ? await fremdeLoesungen(s, plan, d, fachOrdner) : [];
+		const fachLaeufe = pruefTeile<FachblickAuftrag>({
+			...kopf,
+			seiten: teile.seiten,
+			ausschnitte: teile.ausschnitte,
+			loesungen: teile.loesungen,
+			auftrag: s.auftrag,
+			pruefpunkte,
+			fachSkill: fachSkill ? path.join(ablage, '.claude', 'skills', fachSkill) : null,
+			ziele: s.rechercheAnfrage?.ziele ?? [],
+			stunden: fachblickStunden(plan, d.slug),
+			berechnet: berechneteElemente(html),
+			andere,
+		}).map((a) => ({ text: fachblickText(a), teil: a.teil }));
+		return { kind, fach: fachLaeufe };
+	};
+
 	/**
 	 * Die Prüfläufe für ein Material: neue Sitzungen, nur Read, frisch gebaute Seiten in einem eigenen Ordner. Der Lauf
 	 * mit Kinderaugen (mit dem zweiten Blick, `mitKind`) und der Fachblick (`fach`, 244) laufen gleichzeitig, der
@@ -1422,16 +1507,12 @@ export const erstelleEinheiten = (
 		}
 		await rm(ordner, { recursive: true, force: true });
 		await mkdir(ordner, { recursive: true });
-		const rolle = rolleVon(d);
-		const regeln = blickRegeln(rolle, o.bilder);
+		const regeln = blickRegeln(rolleVon(d), o.bilder);
 		const ablage = ablageDir(s.id);
-		const skill = fachSkillVon(fach(s));
-		const pruefpunkte = pruefpunkteText(s.recherche?.text, plan.berichtigungen);
-		const fachSkill = pruefpunkte || !skill ? null : `${skill}/SKILL.md`;
+		const fachSkill = fachSkillDatei(fach(s), pruefpunkteText(s.recherche?.text, plan.berichtigungen));
 		/** Ein Lauf über einen Teil; ohne `text` nur der Eintrag für eine Ansicht, die sich nicht bauen ließ. */
 		const einTeil = async (pruefRolle: PruefRolle, text: string | null, teil: PruefTeil | undefined) => {
-			const pflicht =
-				pruefRolle === 'fach' ? (fachSkill ? blickLektuere([fachSkill]) : []) : blickLektuere(regeln);
+			const pflicht = pruefPflicht(pruefRolle, fachSkill, regeln);
 			const eintrag: LaufEintrag = { ...neuerEintrag('pruefung', d.slug, pflicht), rolle: pruefRolle };
 			const lauf = { eintrag, gelesen: new Set<string>() };
 			const beginn = Date.now();
@@ -1525,84 +1606,15 @@ export const erstelleEinheiten = (
 		};
 		let beide: { befunde: PruefBefund[]; lesbar: boolean; fehler: string | null }[][] = [[], []];
 		try {
-			let kindLaeufe: { text: string; teil?: PruefTeil }[] | null = null;
-			let fachLaeufe: { text: string; teil?: PruefTeil }[] | null = null;
+			let auftraege: PruefAuftraege | null = null;
 			try {
-				const ansicht = await baueAnsicht(
-					path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html'),
-					ordner,
-					{
-						sw: false,
-					},
-				);
-				const teile = await richtePruefOrdnerEin(
-					ordner,
-					ansicht.bilder,
-					html,
-					arbeitDir(s.id),
-					o.kind || o.fach,
-				);
-				if (o.fach) {
-					await trennePruefOrdner(ordner, fachOrdner, o.kind);
-				}
-				const kopf = {
-					titel: d.titel,
-					artName: ART_NAME[d.art],
-					klasse: klasseText(s.rechercheAnfrage?.klasse),
-					fach: FACH_NAME[fach(s)],
-				};
-				kindLaeufe = o.mitKind
-					? pruefTeile<PruefAuftrag>({
-							...kopf,
-							...teile,
-							loesungen: o.kind ? teile.loesungen : [],
-							formate: formateDerReihe(s, plan, d.slug),
-							kind: o.kind,
-							regeln: regeln.map((r) => path.join(ablage, '.claude', 'skills', r)),
-							auftrag: s.auftrag,
-							figuren: plan.figuren ?? [],
-						}).map((a) => ({ text: pruefText(a), teil: a.teil }))
-					: [];
-				const andere =
-					o.fach && rolle === 'hinweise'
-						? await legeFremdeLoesungenAb(
-								fachOrdner,
-								plan.dokumente
-									.filter(
-										(x) =>
-											x.slug !== d.slug &&
-											s.importiert[x.slug] &&
-											!OHNE_FREMDE_LOESUNG.has(rolleVon(x)),
-									)
-									.map((x) => ({
-										slug: x.slug,
-										titel: x.titel,
-										quelle: path.join(arbeitDir(s.id), ANSICHT_ORDNER, x.slug),
-									})),
-							)
-						: [];
-				fachLaeufe = o.fach
-					? pruefTeile<FachblickAuftrag>({
-							...kopf,
-							seiten: teile.seiten,
-							ausschnitte: teile.ausschnitte,
-							loesungen: teile.loesungen,
-							auftrag: s.auftrag,
-							pruefpunkte,
-							fachSkill: fachSkill ? path.join(ablage, '.claude', 'skills', fachSkill) : null,
-							ziele: s.rechercheAnfrage?.ziele ?? [],
-							stunden: fachblickStunden(plan, d.slug),
-							berechnet: berechneteElemente(html),
-							andere,
-						}).map((a) => ({ text: fachblickText(a), teil: a.teil }))
-					: [];
+				auftraege = await pruefAuftraege(s, plan, d, o, html, ordner);
 			} catch (fehler) {
 				console.error('Prüflauf der Einheit:', (fehler as Error).message);
 			}
-			const gebaut = kindLaeufe !== null;
 			beide = await Promise.all([
-				o.mitKind ? strecke('kind', gebaut ? kindLaeufe : null) : [],
-				o.fach ? strecke('fach', gebaut ? fachLaeufe : null) : [],
+				o.mitKind ? strecke('kind', auftraege?.kind ?? null) : [],
+				o.fach ? strecke('fach', auftraege?.fach ?? null) : [],
 			]);
 		} finally {
 			await rm(ordner, { recursive: true, force: true });

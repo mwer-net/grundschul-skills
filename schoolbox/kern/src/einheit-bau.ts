@@ -196,6 +196,12 @@ const FACH_SKILL: Partial<Record<Fach, string>> = {
 /** Der Fach-Skill eines Fachs; der Fachblick (244) liest ihn, wenn es keine Prüfpunkte gibt. */
 export const fachSkillVon = (fach: Fach) => FACH_SKILL[fach] ?? null;
 
+/** Der Fach-Skill, den der Fachblick liest, wenn es keine Prüfpunkte gibt (244); relativ zum Ordner der Skills. */
+export const fachSkillDatei = (fach: Fach, pruefpunkte: string | null) => {
+	const skill = fachSkillVon(fach);
+	return pruefpunkte || !skill ? null : `${skill}/SKILL.md`;
+};
+
 /** Die Zeile der Pflichtlektüre für ein Material der Einheit. Feste Slugs aus dem Plan-Auftrag gehen vor der Art. */
 export const rolleVon = (d: Pick<PlanDokument, 'slug' | 'art'>): string => {
 	const fest: Record<string, string> = {
