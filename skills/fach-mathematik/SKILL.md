@@ -48,6 +48,7 @@ Prozessbezogene Kompetenzen in jedes Material einbauen: Problemlösen, Kommunizi
 5. **Natürliche Differenzierung durch offene Aufgaben:** "Finde viele Aufgaben mit Ergebnis 10."
 6. **Sachaufgaben:** Lebensweltlich, kurz, mit Bild; Fragestellung fett; Rechnung – Antwortsatz-Schema. Ab Kl. 2 auch Aufgaben mit überflüssigen Angaben oder ohne Frage ("Erfinde eine Frage").
 7. **Fachsprache korrekt:** Summand, Summe, Minuend, Differenz (ab Kl. 2/3 je nach Lehrwerk), "Ergebnis", "gleich". Gleichheitszeichen als Beziehung, nicht als "ergibt" (Aufgaben wie 5 + 3 = __ + 4 einstreuen).
+8. **Was die Stunde (zuerst) übt, ändert nie, was wahr ist:** 0 ist gerade, auch wenn die Stunde ab 2 zählt; ein Quadrat ist auch ein Rechteck; eine Figur mit waagerechter Achse ist symmetrisch, auch wenn die Stunde senkrecht übt. Gilt nur ein Teil, sagt die Anweisung es; Lösung, Beispiel, Tipp und Hinweise folgen ihr.
 
 Substanzielle Aufgabenformate (Wittmann) tragen Übung und Entdecken zugleich: `x-zahlenmauer`, `x-rechendreieck`, `x-zahlenhaus`, `x-zahlenkette`, `x-zauberdreieck`, `x-rechenrad`. Forscherfragen für Sternchenaufgaben: „Was passiert mit dem Deckstein, wenn eine Basiszahl um 1 größer wird?“, „Welche Summen sind im Zauberdreieck möglich?“, „Wie viele Zerlegungen hat das Haus?“
 
@@ -92,9 +93,9 @@ Was die Klassenstufe können soll, steht im Bildungsplan und wird vor dem Plan n
 | 4 Beschreiben und begründen | „Die Figur ist symmetrisch, weil …“ | im Anfangsunterricht mündlich oder ein Satz mit Satzanfang |
 
 - **Vom Leichten zum Schweren:** eine Achse vor mehreren, senkrecht und waagerecht vor schräg, Kästchen vor Linien, Figur an der Achse vor Figur mit Abstand, einmal falten vor zweimal falten, kleine Figuren (je Hälfte höchstens etwa 5 × 6 Kästchen) vor großen. Wie weit die Klasse auf dieser Leiter geht, bestimmen Bildungsplan und Lehrwerk; im Zweifel eine Sprosse tiefer.
-- **Die Leiter ordnet, was die Kinder tun; sie ändert nie, was wahr ist.** Eine Figur ist symmetrisch, wenn sie irgendeine Spiegelachse hat. Eine Figur mit waagerechter Achse ist symmetrisch, auch wenn die Stunde nur senkrecht übt. Gilt nur eine Achse, steht sie in der Anweisung („symmetrisch zur senkrechten Achse“), in der Lösung und in den Hinweisen.
+- **Prinzip 8:** Symmetrisch ist eine Figur mit irgendeiner Achse. Gilt nur eine, steht sie in Anweisung, Lösung und Hinweisen.
 - **Typische Fehler der Kinder** (für Tipps und „Die Leitfigur hat sich vertan“): Die Hälfte wird verschoben statt gespiegelt, vor allem wenn die Figur die Achse nicht berührt. Der Abstand zur Achse stimmt nicht (ein Kästchen zu nah oder zu weit). Bei waagerechter Achse wird trotzdem nach rechts gespiegelt. Eine Faltlinie, die keine Spiegelachse ist (Diagonale im Rechteck), wird für eine gehalten.
-- **Fehler, die Material leicht macht** (für Bau und Prüfung): Buchstaben mit nur waagerechter Achse (B, C, D, E, K) gelten als nicht symmetrisch, weil die Stunde senkrecht übt. Ein gleichschenkliges Dreieck mit waagerechter Achse steht in der Lösung als nicht symmetrisch. Die Anweisung sagt „symmetrisch“, die Lösung meint „symmetrisch zur senkrechten Achse“. Eine Korrektur behebt so einen Fehler an Aufgabe, Lösung, Beispiel, Tipp und Hinweisen, nicht nur am Satz der Anweisung.
+- **Fehler, die Material leicht macht:** B, C, D, E, K oder ein gleichschenkliges Dreieck mit waagerechter Achse stehen als „nicht symmetrisch“ da, weil die Stunde senkrecht übt.
 - **Wörter:** Faltlinie, dann Spiegelachse (oder Symmetrieachse, wie im Lehrwerk der Klasse), symmetrisch, Spiegelbild. Das Fachwort steht ab dem ersten Blatt im Wortspeicher und in jeder Anweisung gleich. Wörter aus der Geschichte („echt“, „nachgemacht“, „Zwilling“) dürfen dazukommen, ersetzen es aber nie.
 - **Elemente:** `x-gitter aufgabe="spiegeln"` (Kästchen, Linien oder Punkte; die Achse liegt auf einer Gitterlinie, die Lösung wird berechnet), Faltvorlagen und Legekarten als Ausschneidematerial. Ein gedrucktes Punktefeld heißt Punktefeld, nicht Geobrett. Jede Form (Gitterfigur, Faltvorlage) kommt in einer Reihe nur einmal vor.
 - **Urteilen über Symmetrie** (Stufe 2) mit `x-gitter aufgabe="pruefen"` (ja oder nein, Achsen einzeichnen; `nur` zählt eine Achse) oder `x-symmetrie-sortieren` (Buchstaben, Ziffern, Gitterfiguren nach Achsen). Achsen und Lösung rechnet das Element aus. Freie Motive sind zum Gestalten und Herstellen da. Urteilen die Kinder doch über ein freies Motiv, bekommt jedes ein eigenes `svg` mit `data-frei-titel`; `blatt.py bauen` misst die Deckung und warnt, wenn die Lösung ein deckungsgleiches Motiv „nicht symmetrisch“ nennt.
@@ -102,6 +103,8 @@ Was die Klassenstufe können soll, steht im Bildungsplan und wird vor dem Plan n
 Andere Geometrie-Themen folgen demselben Muster (Körper: bauen und kneten vor dem Benennen; Würfelgebäude: bauen vor dem Bauplan; Muster: legen vor dem Zeichnen). Die Stufen dazu im Plan nennen.
 
 ## Typische Fehlvorstellungen (für Aufgaben und Tipps)
+
+Unten stehen Fehler der Kinder. Fehler, die Material leicht macht, sind Grenzen der Übung als Wahrheit (Prinzip 8); je Thema nennt sie die Recherche unter „Fachliche Prüfpunkte“.
 
 - Zählendes Rechnen (Ergebnis ±1 daneben)
 - Zahlendreher (43 statt 34) bei Zehner/Einer
