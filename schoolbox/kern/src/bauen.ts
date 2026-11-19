@@ -290,6 +290,15 @@ export interface AnsichtOptionen {
 /** Was nur die s/w-Ansicht meldet (`pruefung.js` bei `body.sw`). */
 const SW_CODES: readonly MeldungCode[] = ['kontrast-sw', 'farbwort-sw', 'bild-kontrast-sw', 'kontrast-sw-schau'];
 
+/**
+ * Ohne den HINWEIS `kontrast-sw` einer Seite, die schon `kontrast-sw-schau` meldet: Beide nennen denselben Text, die
+ * WARNUNG genügt (249).
+ */
+export const ohneDoppelKontrast = (meldungen: Meldung[]): Meldung[] => {
+	const schau = new Set(meldungen.filter((m) => m.code === 'kontrast-sw-schau').map((m) => m.seite));
+	return meldungen.filter((m) => m.code !== 'kontrast-sw' || !schau.has(m.seite));
+};
+
 const swPruefen = async (konfig: Pick<Konfig, 'pythonBin'>, quelle: string, ordner: string, swDruck = false) => {
 	const berichtDatei = path.join(ordner, 'pruefbericht.json');
 	const lauf = await fuehreAus(konfig.pythonBin, [
@@ -382,7 +391,7 @@ export const baueAnsichtAus = async (
 			bilder.push(neu);
 		}
 		const bericht = JSON.parse(await readFile(berichtDatei, 'utf8')) as Pruefbericht;
-		bericht.meldungen.push(...(await sw));
+		bericht.meldungen = ohneDoppelKontrast([...bericht.meldungen, ...(await sw)]);
 		return { bericht, bilder };
 	} finally {
 		await sw;

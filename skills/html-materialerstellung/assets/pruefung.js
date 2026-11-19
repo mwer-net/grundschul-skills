@@ -151,6 +151,35 @@
     const flaechen = verlauf.length ? verlauf.map((f) => auf(f, grund)) : [grund];
     return Math.min(...flaechen.map((f) => { const t = auf([tr, tg, tb, ta], f); return kontrast(leuchtdichte(...t), leuchtdichte(...f)); }));
   };
+  // 249: wie kontrastZurFlaeche, liest aber auch color(srgb …), das color-mix ergibt (etwa .seite.fall). Eine Farbe in
+  // einer anderen Form (lab, oklch …) gibt null: lieber keine Meldung als eine falsche.
+  const farbeLesen = (c) => {
+    const m = /^color\(srgb ([\d.e+-]+) ([\d.e+-]+) ([\d.e+-]+)(?: \/ ([\d.e+-]+))?\)$/.exec(c);
+    if (m) return [m[1] * 255, m[2] * 255, m[3] * 255, m[4] === undefined ? 1 : Number(m[4])];
+    return /^rgba?\(/.test(c) ? rgb(c) : null;
+  };
+  const kontrastSchau = (el) => {
+    const text = farbeLesen(getComputedStyle(el).color);
+    if (!text || (text[3] ?? 1) < 0.05) return null;
+    const schichten = [];
+    let verlauf = [];
+    for (let e = el; e; e = e.parentElement) {
+      const c = getComputedStyle(e);
+      if (/url\(/.test(c.backgroundImage)) return null;
+      if (/gradient/.test(c.backgroundImage) && !verlauf.length) {
+        verlauf = (c.backgroundImage.match(/(?:rgba?|color)\([^)]*\)/g) || []).map(farbeLesen);
+        if (verlauf.includes(null)) return null;
+      }
+      const f = farbeLesen(c.backgroundColor);
+      if (!f) return null;
+      if ((f[3] ?? 1) > 0) schichten.push(f);
+      if ((f[3] ?? 1) === 1) break;
+    }
+    const auf = (f, g) => { const a = f[3] ?? 1; return [0, 1, 2].map((i) => f[i] * a + g[i] * (1 - a)); };
+    const grund = schichten.reduceRight((unten, f) => auf(f, unten), [255, 255, 255]);
+    const flaechen = verlauf.length ? verlauf.map((f) => auf(f, grund)) : [grund];
+    return Math.min(...flaechen.map((f) => { const t = auf(text, f); return kontrast(leuchtdichte(...t), leuchtdichte(...f)); }));
+  };
 
   await Promise.all(["16px Andika", "700 16px Andika", "600 16px Fredoka"].map((f) => document.fonts.load(f).catch(() => 0)));
   if (!document.fonts.check("16px Andika")) melde("FEHLER", 0, "schrift-fehlt", "Schrift Andika nicht geladen (fonts/ fehlt?)");
@@ -303,7 +332,7 @@
       while (leser.nextNode()) {
         const t = leser.currentNode, p = t.parentElement;
         if (!t.textContent.trim() || !p || p.closest("svg,.loesung-marke") || !sichtbar(p) || blass.includes(p)) continue;
-        const k = kontrastZurFlaeche(p);
+        const k = kontrastSchau(p);
         if (k !== null && k < KONTRAST_MIN) blass.push(p);
       }
       if (blass.length) melde("WARNUNG", nr, "kontrast-sw-schau", `Schauseite in s/w kaum lesbar (Kontrast unter ${KONTRAST_MIN}:1), gedruckt wird s/w: ${blass.slice(0, 3).map(kurz).join(", ")} → dunklere Schrift oder hellere Fläche`, blass.slice(0, 3).map(ziel));

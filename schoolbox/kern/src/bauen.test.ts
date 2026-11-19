@@ -6,9 +6,10 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 
 import { dokumentDir, leseMeta, neueMappe, neuesDokument, registriereEntwuerfe, waehleEntwurf } from './ablage';
-import { baueEntwurfsVorschauen, KI_PRUEFDATEI, pruefeFassung } from './bauen';
+import { baueEntwurfsVorschauen, KI_PRUEFDATEI, ohneDoppelKontrast, pruefeFassung } from './bauen';
 import { BROWSER_HINWEIS, browserFehlt } from './browsertest';
 import { ASSETS } from './konfig';
+import type { Meldung } from './meldungen';
 
 const entwurf = (vorlage: string, titel: string, aufgabenMal = 1) => {
 	const start = vorlage.indexOf('<div class="aufgabe">');
@@ -97,4 +98,25 @@ describe('pruefeFassung (mit blatt.py)', () => {
 			assert.equal(existsSync(path.join(dir, KI_PRUEFDATEI)), false);
 		},
 	);
+});
+
+describe('ohneDoppelKontrast (249)', () => {
+	it('lässt den HINWEIS kontrast-sw nur auf Seiten mit kontrast-sw-schau weg', () => {
+		const m = (stufe: Meldung['stufe'], seite: number, code: Meldung['code']): Meldung => ({
+			stufe,
+			seite,
+			text: `${code ?? ''} S. ${seite}`,
+			code,
+		});
+		const meldungen = [
+			m('HINWEIS', 1, 'kontrast-sw'),
+			m('WARNUNG', 1, 'kontrast-sw-schau'),
+			m('HINWEIS', 1, 'farbwort-sw'),
+			m('HINWEIS', 2, 'kontrast-sw'),
+		];
+		assert.deepEqual(
+			ohneDoppelKontrast(meldungen).map((x) => x.text),
+			['kontrast-sw-schau S. 1', 'farbwort-sw S. 1', 'kontrast-sw S. 2'],
+		);
+	});
 });

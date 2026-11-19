@@ -869,4 +869,18 @@ describe('pruefung.js: Platz und Größe (249)', { skip: browserSkip() }, () => 
 		]);
 		assert.deepEqual((await schau('kl2 sw')).sort(), ['HINWEIS kontrast-sw', 'WARNUNG kontrast-sw-schau']);
 	});
+
+	it('Schauseite in s/w liest color(srgb …) aus color-mix: dunkler Titel still, heller Titel WARNUNG', async () => {
+		// .seite.fall hat eine Fläche aus color-mix, berechnet als color(srgb 0.92 0.92 0.92); als 0–255 gelesen wäre
+		// sie fast schwarz und der dunkle Titel kaum lesbar.
+		const seite = (farbe: string) =>
+			blatt('', 'kl2 sw').replace(
+				'<section class="seite" data-dicht-ok></section>',
+				`<section class="seite fall"><div class="fall-innen" style="background:color-mix(in srgb,#fff 85%,#000)"><h1 style="color:${farbe}">Schnipsel im Schnee</h1></div></section>`,
+			);
+		const schau = async (farbe: string) =>
+			codes(await pruefeMit(seite(farbe)), 'kontrast-sw-schau').map(([stufe, code]) => `${stufe} ${code}`);
+		assert.deepEqual(await schau('#1d1d1d'), []);
+		assert.deepEqual(await schau('#c8c8c8'), ['WARNUNG kontrast-sw-schau']);
+	});
 });
