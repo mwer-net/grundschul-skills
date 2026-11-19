@@ -435,7 +435,7 @@ export const fachblickText = (o: FachblickAuftrag) => {
 			: 'Ich-kann-Ziele: Die Lehrkraft hat keine genannt. Nimm das Ich-kann-Ziel auf den Seiten und die Handlung der Stunde.',
 		o.stunden ?? '',
 		o.pruefpunkte ??
-			(o.fachSkill
+		(o.fachSkill
 				? `Es gibt keine fachlichen Prüfpunkte aus einer Recherche. Lies zuerst den Fach-Skill ganz mit Read und prüfe gegen seine Fachdidaktik:\n- ${o.fachSkill}`
 				: 'Es gibt keine fachlichen Prüfpunkte und keinen Fach-Skill: Prüfe gegen die fachliche Definition.'),
 		[
