@@ -6,6 +6,8 @@ import { pruefpunkteAus, quellenAus } from '@schoolbox/kern/src/recherche';
 import type { ReactNode } from 'react';
 
 import { Symbol } from '../bausteine/Symbol';
+import type { KanonAbschnitt } from './einheit-kanon-text';
+import { kanonZahl } from './einheit-kanon-text';
 
 /**
  * Der Plan einer Einheit für die Lehrkraft (221): kurz, was die Kinder je Stunde tun und was die Recherche ergab;
@@ -202,6 +204,41 @@ export const FachPruefpunkte = ({
 				<p className="text-leise">
 					{planOffen
 						? 'Jedes Material wird daran gebaut und geprüft. Stimmt etwas nicht, schreib es bei „Ändern …“; die Berichtigung gilt dann für alle Materialien.'
+						: 'Jedes Material wird daran gebaut und geprüft.'}
+				</p>
+			</div>
+		</Aufklapp>
+	);
+};
+
+/**
+ * Was in allen Materialien gleich bleibt (246): der Kanon des Plans, dicht als Liste je Abschnitt. Ändern geht wie beim
+ * übrigen Plan über „Ändern …“; nach der Freigabe gilt er für jeden Lauf.
+ */
+export const KanonDetails = ({ abschnitte, planOffen }: { abschnitte: KanonAbschnitt[]; planOffen: boolean }) => {
+	if (abschnitte.length === 0) {
+		return null;
+	}
+	return (
+		<Aufklapp titel={`Was in allen Materialien gleich bleibt (${kanonZahl(abschnitte)})`}>
+			<div className="flex max-w-[64rem] flex-col gap-1" data-einheit-kanon>
+				<dl className="grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5">
+					{abschnitte.map((a) => (
+						<div key={a.titel} className="contents">
+							<dt className="text-leise">{a.titel}</dt>
+							<dd>
+								<ul>
+									{a.zeilen.map((z) => (
+										<li key={z}>{z}</li>
+									))}
+								</ul>
+							</dd>
+						</div>
+					))}
+				</dl>
+				<p className="text-leise">
+					{planOffen
+						? 'Jedes Material wird daran gebaut und geprüft. Stimmt etwas nicht, schreib es bei „Ändern …“.'
 						: 'Jedes Material wird daran gebaut und geprüft.'}
 				</p>
 			</div>

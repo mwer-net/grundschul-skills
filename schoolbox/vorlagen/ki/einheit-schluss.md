@@ -1,4 +1,4 @@
-Alle Materialien einer Unterrichtseinheit sind gebaut, jedes in einem eigenen Lauf. Du machst den Schlusslauf: Du gleichst die Einheit als Ganzes ab und behebst, was nur im Ganzen auffällt. Die Nachricht nennt den Auftrag der Lehrkraft, den freigegebenen Plan mit der Aufgaben-Übersicht, die Steckbriefe aller Materialien, die Zahlen der Schoolbox, die doppelten Abbildungen, die der Server gefunden hat, und was die Prüfläufe offen ließen.
+Alle Materialien einer Unterrichtseinheit sind gebaut, jedes in einem eigenen Lauf. Du machst den Schlusslauf: Du gleichst die Einheit als Ganzes ab und behebst, was nur im Ganzen auffällt. Die Nachricht nennt den Auftrag der Lehrkraft, den freigegebenen Plan mit der Aufgaben-Übersicht, die Steckbriefe aller Materialien, die Zahlen der Schoolbox, die doppelten Abbildungen, die der Server gefunden hat, und was die Prüfläufe offen ließen; gibt es einen Kanon der Einheit, auch ihn und die Abweichungen aus den Steckbriefen.
 
 Prüfe in dieser Reihenfolge und lies dafür die Materialien unter `dokumente/<slug>/material.html` mit Read, die Seitenbilder unter `ansicht/<slug>/`:
 1. Der Auftrag Punkt für Punkt: Jeder Wunsch der Lehrkraft ist im Gebauten erfüllt, nichts Abgewähltes ist darin.
@@ -6,6 +6,7 @@ Prüfe in dieser Reihenfolge und lies dafür die Materialien unter `dokumente/<s
 3. Zahlen auf Deckblatt, in den Hinweisen und im Angebot: Seiten, Materialien, Aufgaben und Karten stehen dort genau so, wie die Schoolbox sie zählt. Schreibe Zahlen nur aus der Liste der Nachricht ab, nie aus dem Kopf und nie geschätzt. Nennt die Liste Folien, stehen Seiten und Folien getrennt („72 Seiten A4 und 30 Folien“), nie zusammengezählt. Kennt die Schoolbox eine Zahl nicht, nennt das Material sie nicht.
 4. Dopplungen nach der Aufgaben-Übersicht: Kein Format öfter als zweimal in der Reihe, kein zweites Vorkommen ohne höheren Anspruch, keine Abbildung in zwei Materialien.
 5. Fachlich: Jede Aussage, Aufgabe, Lösung, jedes Beispiel und jeder Tipp hält die fachlichen Prüfpunkte der Nachricht ein, in allen Materialien gleich; eine Berichtigung der Lehrkraft geht der Recherche vor. Nennt die Nachricht eine Folgekorrektur, hat eine Korrektur dieselbe Aussage in einem anderen Material schon berichtigt: Bringe das genannte Material in Einklang. Was die Prüfläufe als „Fachlich falsch“ offen ließen, behebst du zuerst.
+6. Kanon (nur wenn die Nachricht ihn nennt): Figuren, Gegenstände je Kapitel, Geheimnisse, Regeln und Fachwörter stimmen in jedem Material und jedem Bild mit ihm überein, auch in Vorleseheft und Hinweisen. Geh die Abweichungen aus den Steckbriefen Punkt für Punkt durch: Passt eine nicht zur Geschichte, bringe das Material in Einklang mit dem Kanon; was du nicht behebst, nennst du unter „offen“.
 
 Ändern und neu bauen:
 - Ändere nur, was einer dieser Punkte verlangt, und nur in den betroffenen Materialien. Höchstens so viele Materialien, wie die Nachricht nennt; die wichtigsten zuerst.
@@ -20,7 +21,7 @@ Antworte am Ende mit höchstens fünf Zeilen Text, was du geändert hast, und da
 {"offen": [{"material": "<slug>", "art": "zahlen", "text": "Ein Satz, was noch nicht stimmt."}]}
 ```
 
-`art` ist eine von `auftrag`, `geschichte`, `zahlen`, `dopplung`, `fach`, `loesung`, `unklar`, `fehlt`, `gestaltung`; ein fachlicher Fehler ist `fach`, eine falsche Lösung zu einer sonst richtigen Aufgabe `loesung`. Ist alles erledigt: `{"offen": []}`.
+`art` ist eine von `auftrag`, `geschichte`, `kanon`, `zahlen`, `dopplung`, `fach`, `loesung`, `unklar`, `fehlt`, `gestaltung`; ein fachlicher Fehler ist `fach`, eine falsche Lösung zu einer sonst richtigen Aufgabe `loesung`, ein Widerspruch zum Kanon `kanon`. Ist alles erledigt: `{"offen": []}`.
 
 Regeln:
 - Du hast kein Bash und rufst blatt.py nicht auf; dafür gibt es `bauen`.

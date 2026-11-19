@@ -124,6 +124,14 @@ import {
 	planFigurText,
 	referenzFiguren,
 } from '@schoolbox/kern/src/einheit-figuren';
+import {
+	bilderKanonText,
+	fuehreKanonNach,
+	kanonText,
+	kapitelVon,
+	pruefKanon,
+	widerspruchText,
+} from '@schoolbox/kern/src/einheit-kanon';
 import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
 import type { Router as RouterTyp } from 'express';
 
@@ -1205,6 +1213,9 @@ export const erstelleEinheiten = (
 		const vorschau = rolle === 'deckblatt' ? [...da].filter((n) => n.startsWith('v-')).sort() : [];
 		return [
 			bilderAbsatz(zeilen, s.bilder),
+			rolle === 'bilder'
+				? bilderKanonText(s.plan?.kanon, (s.plan?.geschichte?.kapitel ?? []).map((k) => k.nr))
+				: '',
 			vorschau.length
 				? `Seitenbilder der fertigen Materialien für die Vorschau: ${vorschau.map((n) => `../../bilder/${n}`).join(', ')}`
 				: '',
@@ -1229,6 +1240,7 @@ export const erstelleEinheiten = (
 			pflichtAbschnitt(pflicht, 'vor dem ersten Aufruf von bauen; bauen nimmt das Material sonst nicht an'),
 			KOPF(s),
 			PLAN_ABSCHNITT(plan),
+			kanonText(plan.kanon, { kapitel: kapitelVon(plan, d.slug), nachtrag: s.kanonNachtrag }),
 			aufgabenFuerBau(plan, d.slug),
 			fertigText(plan, fertigeMaterialien(s), s.steckbriefe ?? {}),
 			await bilderText(s, rolleVon(d)),
@@ -1291,6 +1303,11 @@ export const erstelleEinheiten = (
 		const roh = await leseSteckbriefRoh(s, d.slug);
 		const seiten = aktiv?.seiten.get(d.slug) || aktiv?.gebaut.get(d.slug) || 0;
 		const loesungsseiten = aktiv?.loesungen.get(d.slug) ?? s.steckbriefe?.[d.slug]?.loesungsseiten;
+		// 246: nur Ergänzungen in den Kanon des Stands; ein Material baut nach dem anderen, `merke` schreibt den Stand.
+		const kanon = fuehreKanonNach(plan, s.kanonNachtrag ?? [], d.slug, roh);
+		if (plan.kanon) {
+			s.kanonNachtrag = kanon.nachtrag;
+		}
 		s.steckbriefe = {
 			...s.steckbriefe,
 			[d.slug]: {
@@ -1298,6 +1315,7 @@ export const erstelleEinheiten = (
 				...(loesungsseiten === undefined ? {} : { loesungsseiten }),
 				formate: formateDesMaterials(plan, d.slug),
 				...leseSteckbrief(roh),
+				...(kanon.widerspruch.length ? { widerspruch: kanon.widerspruch } : {}),
 			},
 		};
 	};
@@ -1428,6 +1446,7 @@ export const erstelleEinheiten = (
 		const ablage = ablageDir(s.id);
 		const pruefpunkte = pruefpunkteText(s.recherche?.text, plan.berichtigungen);
 		const fachSkill = fachSkillDatei(fach(s), pruefpunkte);
+		const kanon = pruefKanon(plan, d, s.kanonNachtrag);
 		const ansicht = await baueAnsicht(path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html'), ordner, {
 			sw: false,
 		});
@@ -1448,6 +1467,7 @@ export const erstelleEinheiten = (
 					regeln: blickRegeln(rolleVon(d), o.bilder).map((r) => path.join(ablage, '.claude', 'skills', r)),
 					auftrag: s.auftrag,
 					figuren: plan.figuren ?? [],
+					...kanon.kind,
 				}).map((a) => ({ text: pruefText(a), teil: a.teil }))
 			: [];
 		if (!o.fach) {
@@ -1467,6 +1487,7 @@ export const erstelleEinheiten = (
 			stunden: fachblickStunden(plan, d.slug),
 			berechnet: berechneteElemente(html),
 			andere,
+			...kanon.fach,
 		}).map((a) => ({ text: fachblickText(a), teil: a.teil }));
 		return { kind, fach: fachLaeufe };
 	};
@@ -1863,6 +1884,8 @@ export const erstelleEinheiten = (
 			KOPF(s),
 			PLAN_ABSCHNITT(plan),
 			pruefpunkteText(s.recherche?.text, plan.berichtigungen),
+			kanonText(plan.kanon, { nachtrag: s.kanonNachtrag }),
+			widerspruchText(plan, (slug) => s.steckbriefe?.[slug]?.widerspruch),
 			aufgabenFuerBau(plan, '').replace(
 				/^.*\n/,
 				'Aufgaben-Übersicht aus dem freigegebenen Plan, alle Stunden:\n',

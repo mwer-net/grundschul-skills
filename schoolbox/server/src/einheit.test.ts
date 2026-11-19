@@ -666,6 +666,11 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.match(neu[0] ?? '', /Lege zuerst thema\.css an/);
 			assert.doesNotMatch(neu[1] ?? '', /Lege zuerst thema\.css an/);
 			assert.deepEqual(s.steckbriefe?.['fall-2']?.figuren, ['Willi mit Uhr']);
+			// 246: Ein Plan ohne Kanon (Einheiten davor) bekommt keinen und führt nichts nach.
+			assert.equal(s.plan.kanon, undefined);
+			assert.ok(neu.every((p) => !p.includes('Kanon')));
+			assert.equal(s.kanonNachtrag, undefined);
+			assert.equal(s.steckbriefe?.['fall-2']?.widerspruch, undefined);
 		});
 
 		it('_lauf.json: je Lauf Skills und gelesene Dateien, alle Pflichtdateien gelesen, keine Prompts', async () => {

@@ -23,6 +23,7 @@ export const PRUEF_ARTEN = [
 	'zahlen',
 	'fach',
 	'loesung',
+	'kanon',
 ] as const;
 export type PruefArt = (typeof PRUEF_ARTEN)[number];
 
@@ -39,6 +40,7 @@ export const PRUEF_ART_NAME: Record<PruefArt, string> = {
 	'zahlen': 'Zahlen',
 	'fach': 'Fachlich falsch',
 	'loesung': 'Lösung falsch',
+	'kanon': 'Widerspricht der Geschichte',
 };
 
 /** Ein Befund eines Prüf- oder Schlusslaufs. `material` nur im Schlusslauf. Keine Namen, keine Prompts. */
@@ -193,6 +195,8 @@ export interface PruefAuftrag {
 	figuren?: readonly PlanFigur[];
 	/** Gesetzt, wenn `pruefTeile` das Material auf mehrere Läufe verteilt hat. */
 	teil?: PruefTeil;
+	/** 246: Was im Kapitel des Materials noch geheim ist (`pruefKanon`); fehlt ohne Kanon. */
+	geheim?: string;
 }
 
 const seiteVon = (datei: string) => Number(/seite-(\d+)/.exec(datei)?.[1] ?? 0);
@@ -258,6 +262,7 @@ export const pruefText = (o: PruefAuftrag) =>
 		o.teil ? teilText(o.teil) : '',
 		o.auftrag ? `Auftrag der Lehrkraft (aus dem Assistenten):\n${o.auftrag}` : '',
 		o.figuren?.length ? `Figuren der Geschichte laut Plan: ${o.figuren.map(planFigurText).join(' · ')}` : '',
+		o.geheim ?? '',
 		o.kind
 			? 'Teil 1, mit Kinderaugen: Löse jede Aufgabe wirklich, so wie ein Kind dieser Klasse sie liest und löst.'
 			: 'Hier gibt es nichts zu lösen: nur der zweite Blick.',
@@ -331,6 +336,9 @@ export interface FachblickAuftrag {
 	/** Nur bei Hinweisen: Lösungsseiten der fertigen Materialien, in der Reihenfolge von `verteileLoesungen`. */
 	andere: FremdeLoesung[];
 	teil?: PruefTeil;
+	/** 246: Der ganze Kanon (`pruefKanon`); `kanonZuerst` bei Vorleseheft und Hinweisen. Fehlt ohne Kanon. */
+	kanon?: string;
+	kanonZuerst?: boolean;
 }
 
 /** Der Auftrag des Fachblicks beginnt so; daran erkennt man ihn auch in Mitschrift und Tests. */
@@ -430,6 +438,15 @@ const ohnePruefpunkte = (fachSkill: string | null) =>
 		? `Es gibt keine fachlichen Prüfpunkte aus einer Recherche. Lies zuerst den Fach-Skill ganz mit Read und prüfe gegen seine Fachdidaktik:\n- ${fachSkill}`
 		: 'Es gibt keine fachlichen Prüfpunkte und keinen Fach-Skill: Prüfe gegen die fachliche Definition.';
 
+/** Der Kanon im Fachblick; bei Vorleseheft und Hinweisen ist er der Hauptauftrag (246). */
+const kanonAbsatz = (kanon: string, zuerst: boolean) =>
+	[
+		zuerst
+			? `Hauptauftrag: Prüfe jede Stelle gegen den Kanon (Figuren, Gegenstände je Kapitel, Geheimnisse, Regeln, Fachwörter). Jeder Widerspruch ist „${PRUEF_ART_NAME.kanon}“ (\`kanon\`).`
+			: `Prüfe auch gegen den Kanon; ein Widerspruch ist „${PRUEF_ART_NAME.kanon}“ (\`kanon\`).`,
+		kanon,
+	].join('\n');
+
 export const fachblickText = (o: FachblickAuftrag) => {
 	const andere = o.andere.slice(0, fremdeGrenze(o));
 	return [
@@ -439,8 +456,10 @@ export const fachblickText = (o: FachblickAuftrag) => {
 		o.ziele.length
 			? `Ich-kann-Ziele der Lehrkraft: ${o.ziele.map((z) => `„${z}“`).join(' · ')}`
 			: 'Ich-kann-Ziele: Die Lehrkraft hat keine genannt. Nimm das Ich-kann-Ziel auf den Seiten und die Handlung der Stunde.',
+		o.kanon && o.kanonZuerst ? kanonAbsatz(o.kanon, true) : '',
 		o.stunden ?? '',
 		o.pruefpunkte ?? ohnePruefpunkte(o.fachSkill),
+		o.kanon && !o.kanonZuerst ? kanonAbsatz(o.kanon, false) : '',
 		[
 			'Die Seiten liegen in deinem Arbeitsordner. Sieh dir jede mit Read an:',
 			...o.seiten.map((s) => `- ${s}`),
@@ -498,6 +517,9 @@ const SYNONYME: Record<string, PruefArt> = {
 	'loesung': 'loesung',
 	'loesung-falsch': 'loesung',
 	'loesung-fehlt': 'loesung',
+	'kanon': 'kanon',
+	'widerspricht-der-geschichte': 'kanon',
+	'verrat': 'kanon',
 };
 
 const schluesselVon = (wert: string) =>
@@ -706,6 +728,9 @@ export const pruefKorrektur = (befunde: readonly PruefBefund[], server: readonly
 			: '',
 		befunde.some((b) => FACHLICHE_ARTEN.includes(b.art))
 			? `Ein fachlicher Befund wird an der Sache behoben: Aufgabe, Lösung, Beispiel und Tipp stimmen danach mit der Definition und den fachlichen Prüfpunkten der Recherche, nicht nur der Satz der Anweisung. Trägt ein anderes Material der Einheit dieselbe Aussage (Hinweise, Vorleseheft, Lernzielkontrolle), nenne es in deiner Antwort und in steckbrief.json unter „${FOLGEN_FELD}“: {"${FOLGEN_FELD}": [{"material": "<slug>", "aussage": "Ein Satz, was dort noch nicht stimmt."}]}. Die anderen Materialien änderst du nicht; der Schlusslauf bringt sie in Einklang.`
+			: '',
+		befunde.some((b) => b.art === 'kanon')
+			? `Zu „${PRUEF_ART_NAME.kanon}“: Es gilt der Kanon aus deinem Auftrag; bringe das Material mit ihm in Einklang. Weichst du bewusst ab, schreibe es in steckbrief.json unter „kanon“ als „widerspruch“.`
 			: '',
 		befunde.some((b) => b.art === 'bild')
 			? `Zu „${PRUEF_ART_NAME.bild}“: Eine schwebende oder eingeklebte Figur verschiebst du nicht und legst keine Pose darüber. Bearbeite das Bild mit der Figur darin (html-materialerstellung, references/bilder.md, Abschnitt 2a) oder erzeuge es neu; erlaubt der Auftrag keine neuen Bilder, nenne den Befund in deiner Antwort.`

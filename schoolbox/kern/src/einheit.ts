@@ -7,6 +7,8 @@ import { leseStunden } from './einheit-aufgaben';
 import type { Steckbrief } from './einheit-bau';
 import type { EinheitLeitfigur, PlanFigur } from './einheit-figuren';
 import { leitfigurSatz, leseLeitfigur, lesePlanFiguren } from './einheit-figuren';
+import type { EinheitKanon, KanonNachtrag } from './einheit-kanon';
+import { leseKanon } from './einheit-kanon';
 import type { PruefStand, SchlussStand } from './einheit-pruefung';
 import { SchoolboxFehler } from './fehler';
 import { hatSatz } from './html';
@@ -321,6 +323,8 @@ export interface EinheitPlan {
 	 * Form („Wahr: … Falsch wäre: …“); er geht dem Prüfpunkt der Recherche vor. Fehlt ohne Berichtigung.
 	 */
 	berichtigungen?: string[];
+	/** Was in Geschichte und Fach für alle Materialien gilt (246, `einheit-kanon.ts`); fehlt bei Plänen davor. */
+	kanon?: EinheitKanon;
 }
 
 const kurz = (wert: unknown, max: number) => (typeof wert === 'string' ? wert.trim().slice(0, max) : '');
@@ -410,6 +414,7 @@ export const lesePlan = (roh: unknown, max = EINHEIT_MAX_DOKUMENTE): EinheitPlan
 	const figuren = lesePlanFiguren(p.figuren);
 	const raetselkette = kurz(p.raetselkette, 1200);
 	const berichtigungen = kurzListe(p.berichtigungen, 500, 15);
+	const kanon = leseKanon(p.kanon);
 	return {
 		titel: kurz(p.titel, EINHEIT_ZEICHEN.titel),
 		annahmen: kurzListe(p.annahmen, 300, 12),
@@ -420,6 +425,7 @@ export const lesePlan = (roh: unknown, max = EINHEIT_MAX_DOKUMENTE): EinheitPlan
 		...(figuren.length ? { figuren } : {}),
 		...(raetselkette ? { raetselkette } : {}),
 		...(berichtigungen.length ? { berichtigungen } : {}),
+		...(kanon ? { kanon } : {}),
 	};
 };
 
@@ -591,6 +597,8 @@ export interface EinheitStand {
 	reihenfolge?: string[];
 	/** Je fertigem Material, was spätere wissen müssen (`einheit-bau.ts`). */
 	steckbriefe?: Record<string, Steckbrief>;
+	/** Was fertige Materialien zum Kanon des Plans ergänzt haben (246, `fuehreKanonNach`); nur mit Kanon im Plan. */
+	kanonNachtrag?: KanonNachtrag[];
 	/** Der Schritt „Bilder“ ist durch; „Weiterbauen“ überspringt ihn. */
 	bilderFertig?: boolean;
 	/** Die Lehrkraft will ein eigenes Thema (`thema.css`); fehlt bei Einheiten vor 220. */

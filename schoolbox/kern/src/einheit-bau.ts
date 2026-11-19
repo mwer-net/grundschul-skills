@@ -423,6 +423,8 @@ export interface Steckbrief {
 	figuren: string[];
 	loesung: string;
 	merken: string;
+	/** 246: Wo das Material vom Kanon abweicht oder ihn ändern wollte, für den Schlusslauf; nur mit Kanon im Plan. */
+	widerspruch?: string[];
 }
 
 const kurz = (wert: unknown, max: number) =>

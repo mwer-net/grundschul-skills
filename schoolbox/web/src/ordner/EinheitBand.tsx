@@ -14,11 +14,13 @@ import { laufzeit, useJetzt } from '../editor/entwurf';
 import { limitHinweis, useKiZustand } from '../editor/ki';
 import { PlanFreigabe } from '../editor/PlanFreigabe';
 import { ART_NAME } from '../lib/text';
+import { kanonAbschnitte } from './einheit-kanon-text';
 import { einheitAktion, einheitFreigeben, fertig, fortschritt, geplant } from './einheiten';
 import {
 	AufgabenTabelle,
 	Aufklapp,
 	FachPruefpunkte,
+	KanonDetails,
 	RechercheKurz,
 	RechercheQuellen,
 	StundenKurz,
@@ -313,6 +315,14 @@ const BandDetails = ({ s }: { s: EinheitStand }) => {
 					<GeschichteDetails g={s.plan.geschichte} />
 				</Aufklapp>
 			)}
+			<KanonDetails
+				abschnitte={kanonAbschnitte(
+					s.plan?.kanon,
+					s.kanonNachtrag,
+					(slug) => s.plan?.dokumente.find((d) => d.slug === slug)?.titel ?? slug,
+				)}
+				planOffen={s.status === 'plan'}
+			/>
 			{(s.plan?.annahmen.length ?? 0) > 0 && (
 				<Aufklapp titel="Annahmen">
 					<ul className="list-disc pl-4">

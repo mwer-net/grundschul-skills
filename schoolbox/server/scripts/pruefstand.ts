@@ -2,11 +2,12 @@
  * Der Prüfstand (239): die Prüfläufe einer Einheit gegen eine feste Kopie mit bekannten Fehlern, ohne Server. Jedes
  * Material bekommt seinen Prüflauf so, wie ihn `pruefeMaterial` in `einheit.ts` startet: dieselbe Vorlage, dieselben
  * Grenzen, Modell und Gründlichkeit aus der Einstellung, dieselbe Ansicht und derselbe Prüfordner, der Auftrag aus
- * `auftrag.txt`, die Figuren aus `plan.json` und bei mehr als 24 Seiten dieselben getrennten Läufe (`pruefTeile`, 241).
- * Teil `fach` (244) ist der Fachblick wie im Server: eigene Vorlage, Lösungsseiten von Anfang an, die Prüfpunkte aus
- * der Recherche (`--recherche <datei>`, sonst `<prüfstand>/recherche.md`, wenn es sie gibt), die Stunden des Plans, die
- * berechneten Elemente und bei den Hinweisen die Lösungsseiten der Materialien davor. Mit `kind` und `fach` zusammen laufen
- * die Läufe eines Materials nacheinander (der Server startet sie gleichzeitig); gemessen werden Befunde, nicht Zeit.
+ * `auftrag.txt`, die Figuren und der Kanon (246) aus `plan.json` und bei mehr als 24 Seiten dieselben getrennten
+ * Läufe (`pruefTeile`, 241). Teil `fach` (244) ist der Fachblick wie im Server: eigene Vorlage, Lösungsseiten von
+ * Anfang an, die Prüfpunkte aus der Recherche (`--recherche <datei>`, sonst `<prüfstand>/recherche.md`, wenn es sie
+ * gibt), die Stunden des Plans, die berechneten Elemente und bei den Hinweisen die Lösungsseiten der Materialien
+ * davor. Mit `kind` und `fach` zusammen laufen die Läufe eines Materials nacheinander (der Server startet sie
+ * gleichzeitig); gemessen werden Befunde, nicht Zeit.
  *
  *   pnpm --filter @schoolbox/server exec tsx scripts/pruefstand.ts <prüfstand> [--nur a,b] [--teil kind,blick,fach]
  *     [--recherche <datei>] [--trocken] [--ja] [--abgleich <ergebnis.json>]
@@ -55,6 +56,7 @@ import {
 	rolleVon,
 	WURZEL,
 } from '@schoolbox/kern';
+import { pruefKanon } from '@schoolbox/kern/src/einheit-kanon';
 
 import type { PruefErgebnis } from '../src/ki';
 import {
@@ -436,6 +438,8 @@ const teileFuer = async (k: Kontext, v: Vorhaben, ordner: string): Promise<Auftr
 		klasse: klasseText(k.p.klasse),
 		fach: FACH_NAME[k.p.fach],
 	};
+	// Wie der Server: Kinderaugen nur `geheim`, der Fachblick den ganzen Kanon (246); ohne Kanon in plan.json nichts.
+	const kanon = pruefKanon(k.p.plan, v.d);
 	if (v.rolle === 'fach') {
 		const pruefpunkte = pruefpunkteText(k.p.recherche?.text, k.p.plan.berichtigungen);
 		const skill = fachSkillVon(k.p.fach);
@@ -453,6 +457,7 @@ const teileFuer = async (k: Kontext, v: Vorhaben, ordner: string): Promise<Auftr
 			stunden: fachblickStunden(k.p.plan, v.d.slug),
 			berechnet: berechneteElemente(v.html),
 			andere,
+			...kanon.fach,
 		}).map((t) => ({
 			text: fachblickText(t),
 			teil: t.teil,
@@ -472,6 +477,7 @@ const teileFuer = async (k: Kontext, v: Vorhaben, ordner: string): Promise<Auftr
 		regeln: v.regeln.map((r) => path.join(k.ablage, '.claude', 'skills', r)),
 		auftrag: k.p.auftrag,
 		figuren: k.p.plan.figuren ?? [],
+		...kanon.kind,
 	}).map((t) => ({ text: pruefText(t), teil: t.teil, zahlen: zahlenText(t, `${t.bilder.length} KI-Bilder`) }));
 };
 
