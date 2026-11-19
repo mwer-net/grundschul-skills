@@ -21,7 +21,7 @@ import {
 	leseFolgen,
 	gepruefteZahl,
 	lesePruefung,
-	messungAus,
+	PRUEF_VORGABE_ART,
 	pruefKorrektur,
 	pruefTeile,
 	pruefText,
@@ -497,7 +497,6 @@ describe('Fachblick (244)', () => {
 		stunden: null,
 		berechnet: [],
 		andere: [],
-		messung: [],
 	};
 
 	it('nennt Auftrag, Ich-kann-Ziele, Prüfpunkte, Seiten und Lösungsseiten von Anfang an', () => {
@@ -583,19 +582,20 @@ describe('Fachblick (244)', () => {
 		assert.doesNotMatch(text, /andere\/k1\/l16/);
 	});
 
-	it('Messung des Baus (245) als Daten, je Teil nur seine Seiten; berechnete Elemente mit ihrer Frage', () => {
-		const messung = messungAus([
-			{ stufe: 'WARNUNG', seite: 4, code: 'symmetrie', text: 'S. 4, A2: Dreieck deckungsgleich an der waagerechten Mitte (100 %).' },
-			{ stufe: 'HINWEIS', seite: 20, code: 'symmetrie-motive', text: 'S. 20: mehrere Motive.' },
-			{ stufe: 'FEHLER', seite: 1, code: 'zahlenraum', text: 'ragt' },
-		]);
+	it('Befund ohne oder mit unbekannter Art: im Fachblick fach, mit Kinderaugen unklar, im Schlusslauf verworfen', () => {
+		const antwort = '{"befunde": [{"seite": 3, "aufgabe": "Differenzierung", "text": "Die Lösung nennt 0 als ungerade."}]}';
 		assert.deepEqual(
-			messung.map((m) => m.seite),
-			[4, 20],
+			lesePruefung(antwort, PRUEF_VORGABE_ART.fach).befunde.map((b) => [b.seite, b.aufgabe, b.art]),
+			[[3, 'Differenzierung', 'fach']],
 		);
-		const text = fachblickText({ ...FACH, messung, teil: { nr: 1, von: 2, erste: 1, letzte: 16, gesamt: 30 } });
-		assert.match(text, /Messung des Baus[^\n]*Daten, kein Urteil[^\n]*\n- Seite 4: S\. 4, A2: Dreieck/);
-		assert.doesNotMatch(text, /Seite 20/);
+		assert.equal(lesePruefung(antwort, PRUEF_VORGABE_ART.kind).befunde[0]?.art, 'unklar');
+		assert.deepEqual(lesePruefung(antwort).befunde, []);
+		const unbekannt = '{"befunde": [{"seite": 1, "art": "sonstwas", "text": "x"}]}';
+		assert.equal(lesePruefung(unbekannt, PRUEF_VORGABE_ART.fach).befunde[0]?.art, 'fach');
+	});
+
+	it('Berechnete Elemente mit ihrer Frage, ohne Rahmen und Schreibplatz', () => {
+		assert.doesNotMatch(fachblickText(FACH), /Messung/);
 		assert.deepEqual(
 			berechneteElemente(
 				'<x-gitter aufgabe="pruefen" frage="ja-nein" figur="1,1"></x-gitter><x-gitter aufgabe="pruefen" frage="ja-nein" figur="2,2"></x-gitter><x-symmetrie-sortieren zeichen="B D"></x-symmetrie-sortieren><x-lineatur></x-lineatur>',

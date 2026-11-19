@@ -11,6 +11,7 @@ import {
 	aufgabenFuerBau,
 	bausteinVerstoesse,
 	einheitAuftragAus,
+	fachlichOffen,
 	LAUF_DATEI,
 	laufMeldungen,
 	lektuereZeile,
@@ -1022,6 +1023,20 @@ describe('Lauf einer Einheit (139)', () => {
 			const e = (await protokoll(mappe)).laeufe.filter((x) => x.art === 'pruefung' && x.material === 'fall-1');
 			assert.ok(e.some((x) => x.rolle === 'fach' && x.ergebnis !== 'fertig'));
 			assert.ok(e.some((x) => x.rolle === 'kind' && x.ergebnis === 'fertig'));
+		});
+
+		it('Befund des Fachblicks ohne art zählt als fachlich und bleibt als „fachlich prüfen“ offen (244)', async () => {
+			await fall('einheit-fachfehler');
+			const vorher = (await prompts()).length;
+			const { id } = await starte();
+			const s = await bis(id, 'fertig');
+			const p = s.pruefung?.['fall-1'];
+			assert.deepEqual(
+				p?.gefunden.map((b) => [b.aufgabe, b.art]),
+				[['Differenzierung', 'fach']],
+			);
+			assert.match(nachPruefung((await prompts()).slice(vorher))[0] ?? '', /Fachlich falsch: Die Uhr zeigt nicht/);
+			assert.ok(p && fachlichOffen(p).length === 1);
 		});
 
 		it('Reicht das Budget nur für einen Prüflauf, startet der zweite nicht und nur er scheitert (244)', async () => {

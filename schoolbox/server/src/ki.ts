@@ -56,12 +56,12 @@ import {
 	leseMeta,
 	lesePruefung,
 	mappenDir,
-	messungAus,
 	neueFunde,
 	neuerLaufEintrag,
 	notiereLektuere,
 	pflichtAbschnitt,
 	pflichtFuer,
+	PRUEF_VORGABE_ART,
 	pruefeRecherche,
 	pruefKorrektur,
 	pruefpunkteText,
@@ -1127,6 +1127,8 @@ export const pruefeLauf = (o: {
 	mitschrift?: MitschriftZiel;
 	/** Ohne: der Prüflauf mit Kinderaugen; der Fachblick nimmt `FACHBLICK_AUFTRAG` (244). */
 	auftragDatei?: string;
+	/** Die Rolle des Laufs: Ein Befund ohne bekannte Art bekommt ihre Vorgabe (`PRUEF_VORGABE_ART`). */
+	rolle: PruefRolle;
 }) =>
 	new Promise<PruefErgebnis>((resolve) => {
 		const stand: LaufStand = { sitzung: null, fehlerCode: null, ergebnis: {} };
@@ -1179,7 +1181,7 @@ export const pruefeLauf = (o: {
 		kind.on('close', (code) => {
 			clearTimeout(frist);
 			const fehler = grund ?? stand.ergebnis.fehler ?? (code === 0 ? null : (stand.fehlerCode ?? 'unbekannt'));
-			const gelesen = fehler ? { befunde: [], lesbar: true } : lesePruefung(stand.ergebnis.antwort ?? '');
+			const gelesen = fehler ? { befunde: [], lesbar: true } : lesePruefung(stand.ergebnis.antwort ?? '', PRUEF_VORGABE_ART[o.rolle]);
 			resolve({ ...gelesen, fehler, verbrauch: stand.ergebnis.verbrauch ?? {} });
 		});
 	});
@@ -2613,6 +2615,7 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 						ablage,
 						text,
 						auftragDatei,
+						rolle,
 						grenzen: {
 							zeitMs: g.zeitMs,
 							runden: g.runden,
@@ -2709,7 +2712,6 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 									stunden: null,
 									berechnet: berechneteElemente(ganz),
 									andere: [],
-									messung: messungAus(gebaut.bericht.meldungen),
 								}),
 								fachSkill ? blickLektuere([fachSkill]) : [],
 								FACHBLICK_AUFTRAG,

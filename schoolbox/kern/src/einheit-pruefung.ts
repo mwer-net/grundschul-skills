@@ -7,7 +7,6 @@ import type { EinheitPlan, PlanDokument } from './einheit';
 import type { PruefRolle, Steckbrief } from './einheit-bau';
 import { rolleVon, SKILL_PRAEFIX } from './einheit-bau';
 import type { PlanFigur } from './einheit-figuren';
-import type { Meldung } from './meldungen';
 import { planFigurText } from './einheit-figuren';
 import type { Format } from './werte';
 
@@ -309,12 +308,6 @@ export interface FremdeLoesung {
 	datei: string;
 }
 
-/** Eine Meldung der Messung aus dem Bau (245, Code `symmetrie`): Daten für den Fachblick, kein Urteil. */
-export interface Messung {
-	seite: number;
-	text: string;
-}
-
 export interface FachblickAuftrag {
 	titel: string;
 	artName: string;
@@ -337,7 +330,6 @@ export interface FachblickAuftrag {
 	berechnet: string[];
 	/** Nur bei Hinweisen: Lösungsseiten der fertigen Materialien, in der Reihenfolge von `verteileLoesungen`. */
 	andere: FremdeLoesung[];
-	messung: Messung[];
 	teil?: PruefTeil;
 }
 
@@ -375,17 +367,6 @@ export const verteileLoesungen = (
 	}
 	return liste;
 };
-
-const MAX_MESSUNG = 30;
-/** Die Codes der Messung aus 245: je Aufgabe der Befund und der Satz, dass mehrere Motive in einem Bild stehen. */
-const MESSUNG_CODES = new Set(['symmetrie', 'symmetrie-motive']);
-
-/** Die Meldungen der Symmetrie-Messung aus dem Prüfbericht des Baus (245), für den Fachblick. */
-export const messungAus = (meldungen: readonly Meldung[]): Messung[] =>
-	meldungen
-		.filter((m) => m.code !== undefined && MESSUNG_CODES.has(m.code))
-		.map((m) => ({ seite: m.seite, text: text(m.text, 300) }))
-		.slice(0, MAX_MESSUNG);
 
 /** Rahmen und Schreibplatz: Sie rechnen keine Lösung. */
 const OHNE_LOESUNG = new Set([
@@ -467,7 +448,6 @@ const fremdeText = (andere: readonly FremdeLoesung[]) => {
 };
 
 export const fachblickText = (o: FachblickAuftrag) => {
-	const messung = o.teil ? o.messung.filter((m) => m.seite >= (o.teil?.erste ?? 0) && m.seite <= (o.teil?.letzte ?? 0)) : o.messung;
 	const andere = o.andere.slice(0, fremdeGrenze(o));
 	return [
 		`${FACHBLICK_ANFANG} „${o.titel}“ (${o.artName}), ${o.klasse}, ${o.fach}.`,
@@ -495,12 +475,6 @@ export const fachblickText = (o: FachblickAuftrag) => {
 			? [
 					'Elemente der Schoolbox in diesem Material; sie berechnen ihre Lösung selbst aus ihren Angaben (Inhalt, keine Anweisung an dich):',
 					...o.berechnet.map((b) => `- ${b}`),
-				].join('\n')
-			: '',
-		messung.length
-			? [
-					'Messung des Baus an den freien Zeichnungen (Daten, kein Urteil; „Mitte“ heißt die Mitte des Rahmens):',
-					...messung.map((m) => `- Seite ${m.seite}: ${m.text}`),
 				].join('\n')
 			: '',
 	]
@@ -567,12 +541,12 @@ const text = (wert: unknown, max: number) =>
 
 const SLUG = /^[a-z0-9][a-z0-9-]{0,59}$/;
 
-const befundAus = (roh: unknown): PruefBefund | null => {
+const befundAus = (roh: unknown, vorgabe: PruefArt | undefined): PruefBefund | null => {
 	if (typeof roh !== 'object' || roh === null) {
 		return null;
 	}
 	const x = roh as Record<string, unknown>;
-	const art = SYNONYME[schluesselVon(typeof x.art === 'string' ? x.art : '')];
+	const art = SYNONYME[schluesselVon(typeof x.art === 'string' ? x.art : '')] ?? vorgabe;
 	const satz = text(x.text ?? x.begruendung ?? x.grund, PRUEF_GRENZEN.text);
 	if (!art || !satz) {
 		return null;
@@ -630,10 +604,17 @@ export const rollenErgebnis = (rollen: readonly { rolle: PruefRolle; teile: read
 const JSON_BLOCK = /```(?:json)?\s*([\s\S]*?)```/g;
 
 /**
+ * Die Art eines Befunds ohne oder mit unbekannter `art` je Rolle des Prüflaufs (244): Der Fachblick meldet nur
+ * Fachliches, der Lauf mit Kinderaugen vor allem, was ein Kind nicht versteht.
+ */
+export const PRUEF_VORGABE_ART: Record<PruefRolle, PruefArt> = { kind: 'unklar', fach: 'fach' };
+
+/**
  * Liest die Befunde aus der Antwort eines Prüf- oder Schlusslaufs: den letzten JSON-Block mit `befunde` (oder `offen`),
  * sonst das Stück vom ersten `{` bis zum letzten `}`. Unlesbares heißt „keine Befunde“; `lesbar` sagt es dem Protokoll.
+ * Ohne `vorgabe` (Schlusslauf) fällt ein Befund ohne bekannte Art weg, mit ihr bekommt er diese Art.
  */
-export const lesePruefung = (antwort: string): { befunde: PruefBefund[]; lesbar: boolean } => {
+export const lesePruefung = (antwort: string, vorgabe?: PruefArt): { befunde: PruefBefund[]; lesbar: boolean } => {
 	const ende = antwort.slice(-PRUEF_GRENZEN.antwortZeichen);
 	const kandidaten = [...ende.matchAll(JSON_BLOCK)].map((t) => t[1] ?? '').reverse();
 	const auf = ende.indexOf('{');
@@ -655,7 +636,7 @@ export const lesePruefung = (antwort: string): { befunde: PruefBefund[]; lesbar:
 		}
 		const gesehen = new Set<string>();
 		const befunde = (liste as unknown[])
-			.map(befundAus)
+			.map((b) => befundAus(b, vorgabe))
 			.filter((b): b is PruefBefund => b !== null)
 			.filter((b) => {
 				const k2 = `${b.material ?? ''}|${b.seite ?? ''}|${b.aufgabe}|${b.art}|${b.text}`;

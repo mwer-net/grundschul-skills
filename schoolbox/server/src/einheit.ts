@@ -86,7 +86,6 @@ import {
 	lesePruefung,
 	leseSteckbrief,
 	mappenDir,
-	messungAus,
 	namenIn,
 	neueFunde,
 	neueMappe,
@@ -1393,7 +1392,7 @@ export const erstelleEinheiten = (
 	 * Fachblick in einer Kopie des Ordners (`pruefung-fach`, `trennePruefOrdner`) mit den Lösungsseiten unter `loesung/`.
 	 * Im Ordner mit Kinderaugen liegen sie nur bei Rollen mit Kind, das sie erst nach dem Lösen ansieht. Den Bau,
 	 * die Quelle und den Plan sehen sie nicht; Klasse, Fach, den Auftrag der Lehrkraft, die Figuren, die Formate der Reihe
-	 * und dem Fachblick die Prüfpunkte, die Stunden und die Messung des Baus nennt die Nachricht. Ein langes Material
+	 * und dem Fachblick die Prüfpunkte, die Stunden und die berechneten Elemente nennt die Nachricht. Ein langes Material
 	 * prüfen je Rolle getrennte Läufe nacheinander (`pruefTeile`, 241), jeder mit eigenem Eintrag im Protokoll und eigener
 	 * Zählung der Kosten; die Befunde kommen zusammen. Jede Rolle zählt für sich (`rollenErgebnis`): Gescheitert ist die
 	 * Prüfung nur, wenn alle Rollen scheitern; scheitert eine, steht es in `luecke`. Die Ordner löscht der Server erst,
@@ -1460,6 +1459,7 @@ export const erstelleEinheiten = (
 						text,
 						grenzen,
 						auftragDatei: pruefRolle === 'fach' ? FACHBLICK_AUFTRAG : PRUEF_AUFTRAG,
+						rolle: pruefRolle,
 						gestartet: (k) => {
 							if (aktiv) {
 								merkeKind(aktiv.kinder, k, path.join(dir(s.id), PID));
@@ -1588,7 +1588,6 @@ export const erstelleEinheiten = (
 							stunden: fachblickStunden(plan, d.slug),
 							berechnet: berechneteElemente(html),
 							andere,
-							messung: messungAus(ansicht.bericht.meldungen),
 						}).map((a) => ({ text: fachblickText(a), teil: a.teil }))
 					: [];
 			} catch (fehler) {
