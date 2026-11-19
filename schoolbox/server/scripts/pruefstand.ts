@@ -10,9 +10,14 @@
  * gleichzeitig); gemessen werden Befunde, nicht Zeit. Teil `plan` (247) ist die Plan-Prüfung wie im Server: erst die
  * Rechnung (`rechnePlan`), dann der Prüflauf mit Plan, Recherche, Auftrag und Skills; Rechnung und Befunde zusammen
  * gehen in den Abgleich. `--plan <datei>` prüft statt `plan.json` einen anderen Plan (Gegenprobe mit behobenem Plan).
+ * `--vertraege <datei>` (sonst `<prüfstand>/bildvertraege.json`, wenn es sie gibt) ersetzt den Vertrag einzelner Bilder
+ * aus `mappe/bilder.json`, etwa von Hand aus dem Kanon geschrieben (248): Der zweite Blick sieht ihn, wie der Server
+ * ihn aus `bilder.json` des Arbeitsordners nimmt; fehlt ihm eine Zeile, die `bild_erzeugen` verlangen würde, sagt das
+ * Skript es vor dem Lauf.
  *
  *   pnpm --filter @schoolbox/server exec tsx scripts/pruefstand.ts <prüfstand> [--nur a,b]
- *     [--teil kind,blick,fach,plan] [--plan <datei>] [--recherche <datei>] [--trocken] [--ja] [--abgleich <ergebnis.json>]
+ *     [--teil kind,blick,fach,plan] [--plan <datei>] [--recherche <datei>] [--vertraege <datei>] [--trocken] [--ja]
+ *     [--abgleich <ergebnis.json>]
  *
  * Der Ordner `<prüfstand>` hält `mappe/` (Kopie der Mappe mit `bilder.json` und den Prüfbildern unter
  * `ansicht/bilder/`), `plan.json` (wie `einheit.json`), `zuordnung.json` (Slug des Plans → Dokument der Mappe),
@@ -21,7 +26,7 @@
  */
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -65,7 +70,7 @@ import {
 	rolleVon,
 	WURZEL,
 } from '@schoolbox/kern';
-import { pruefKanon } from '@schoolbox/kern/src/einheit-kanon';
+import { pruefeBildVertrag, pruefKanon } from '@schoolbox/kern/src/einheit-kanon';
 
 import type { PruefErgebnis } from '../src/ki';
 import {
@@ -103,6 +108,8 @@ interface Optionen {
 	recherche: string | null;
 	/** `--plan`: statt `plan.json` dieser Plan (Gegenprobe). */
 	plan: string | null;
+	/** `--vertraege`: Bildverträge statt der aus `mappe/bilder.json` (248). */
+	vertraege: string | null;
 }
 
 const leseOptionen = (argv: string[]): Optionen => {
@@ -115,6 +122,7 @@ const leseOptionen = (argv: string[]): Optionen => {
 		abgleich: null,
 		recherche: null,
 		plan: null,
+		vertraege: null,
 	};
 	const wert = (i: number, name: string) => {
 		const w = argv[i + 1];
@@ -149,6 +157,9 @@ const leseOptionen = (argv: string[]): Optionen => {
 			i++;
 		} else if (a === '--plan') {
 			o.plan = path.resolve(wert(i, a));
+			i++;
+		} else if (a === '--vertraege') {
+			o.vertraege = path.resolve(wert(i, a));
 			i++;
 		} else if (a === '--trocken') {
 			o.trocken = true;
@@ -425,6 +436,8 @@ interface Kontext {
 	/** Die Ansichten der Materialien vor den Hinweisen, einmal gebaut, für die Lösungsseiten des Fachblicks. */
 	ansichten: { ordner: string; fertig: Map<string, string> };
 	zustand: { abgebrochen: boolean; laufend: ChildProcessWithoutNullStreams | null };
+	/** Wo der Prüfordner `bilder.json` und die Prüfbilder liest: die Mappe, mit `--vertraege` eine Kopie der Liste. */
+	bildArbeit: string;
 }
 
 /** Ein Lauf eines Vorhabens: sein Auftrag und, bei langen Materialien, sein Teil; dazu die Zahlen für den Trockenlauf. */
@@ -461,7 +474,7 @@ const fremdeLoesungen = async (k: Kontext, v: Vorhaben, ordner: string) => {
 
 const teileFuer = async (k: Kontext, v: Vorhaben, ordner: string): Promise<Auftrag[]> => {
 	const ansicht = await baueAnsichtAus(k.konfig, v.quelle, ordner, { sw: false });
-	const ein = await richtePruefOrdnerEin(ordner, ansicht.bilder, v.html, k.p.mappe, v.kind || v.rolle === 'fach');
+	const ein = await richtePruefOrdnerEin(ordner, ansicht.bilder, v.html, k.bildArbeit, v.kind || v.rolle === 'fach');
 	const kopf = {
 		titel: v.d.titel,
 		artName: ART_NAME[v.d.art],
@@ -784,6 +797,41 @@ const schreibeErgebnis = async (p: Pruefstand, o: Optionen, ki: KiLauf, ergebnis
 	console.log(`\n${tabelle}\n\nKosten ${usd(summe)}. Geschrieben: ${name}.json und ${name}.md`);
 };
 
+/**
+ * Die Bildverträge aus `--vertraege` (248): eine Liste von Einträgen mit `datei` und `vertrag`, wahlweise `motiv`. Sie
+ * ersetzen die Einträge in einer Kopie von `bilder.json`; `bilder/` und `ansicht/` der Mappe sind verlinkt.
+ */
+const legeVertraegeAn = async (p: Pruefstand, datei: string, ziel: string) => {
+	const roh = await leseJson(datei);
+	const neu = (Array.isArray(roh) ? roh : []) as { datei?: unknown; motiv?: unknown; vertrag?: unknown }[];
+	const liste = (await leseJson(path.join(p.mappe, 'bilder.json'))) as Record<string, unknown>[];
+	if (!Array.isArray(liste)) {
+		throw new Abbruch('mappe/bilder.json ist keine Liste.');
+	}
+	const fremd = neu.filter((e) => typeof e.datei !== 'string' || !p.bilderListe.has(e.datei));
+	if (fremd.length || !neu.length) {
+		throw new Abbruch(
+			`${path.basename(datei)}: ${neu.length ? `nicht in mappe/bilder.json: ${fremd.map((e) => String(e.datei)).join(', ')}` : 'keine Einträge'}.`,
+		);
+	}
+	const ersetzt = liste.map((e) => {
+		const n = neu.find((x) => x.datei === e.datei);
+		return n ? { ...e, ...(typeof n.motiv === 'string' ? { motiv: n.motiv } : {}), vertrag: n.vertrag } : e;
+	});
+	await writeFile(path.join(ziel, 'bilder.json'), JSON.stringify(ersetzt, null, '\t'));
+	await symlink(path.join(p.mappe, 'bilder'), path.join(ziel, 'bilder'));
+	await symlink(path.join(p.mappe, 'ansicht'), path.join(ziel, 'ansicht'));
+	console.log(`Bildverträge: ${neu.length} aus ${datei}.`);
+	for (const e of ersetzt.filter((x) => neu.some((n) => n.datei === x.datei))) {
+		const grund = pruefeBildVertrag(p.plan, {
+			datei: String(e.datei),
+			motiv: typeof e.motiv === 'string' ? e.motiv : '',
+			vertrag: e.vertrag,
+		});
+		console.log(grund ? `  ${String(e.datei)}: ${grund.replace(/\n/g, '\n    ')}` : `  ${String(e.datei)}: passt zum Kanon.`);
+	}
+};
+
 const fuehreAus = async (o: Optionen) => {
 	pruefeGebaut(o.teile);
 	const p = await ladePruefstand(o.ordner, o.recherche, o.plan);
@@ -824,7 +872,12 @@ const fuehreAus = async (o: Optionen) => {
 		ausgabe: o.trocken ? path.join(tmpdir(), `pruefstand-trocken-${zeitstempel()}`) : null,
 		ansichten: { ordner: await mkdtemp(path.join(tmpdir(), 'schoolbox-pruefstand-ansichten-')), fertig: new Map() },
 		zustand: { abgebrochen: false, laufend: null },
+		bildArbeit: p.mappe,
 	};
+	const vertraege = o.vertraege ?? path.join(p.ordner, 'bildvertraege.json');
+	if (o.vertraege || existsSync(vertraege)) {
+		k.bildArbeit = await mkdtemp(path.join(tmpdir(), 'schoolbox-pruefstand-vertraege-'));
+	}
 	process.on('SIGINT', () => {
 		k.zustand.abgebrochen = true;
 		if (k.zustand.laufend) {
@@ -833,6 +886,9 @@ const fuehreAus = async (o: Optionen) => {
 	});
 	const ergebnisse: Ergebnis[] = [];
 	try {
+		if (k.bildArbeit !== p.mappe) {
+			await legeVertraegeAn(p, vertraege, k.bildArbeit);
+		}
 		await legeAblageAn(k.ablage, path.join(WURZEL, 'skills'));
 		const plan = mitPlan ? await pruefePlan(k, rechnung) : null;
 		if (plan) {
@@ -856,6 +912,9 @@ const fuehreAus = async (o: Optionen) => {
 	} finally {
 		await rm(k.ablage, { recursive: true, force: true });
 		await rm(k.ansichten.ordner, { recursive: true, force: true });
+		if (k.bildArbeit !== p.mappe) {
+			await rm(k.bildArbeit, { recursive: true, force: true });
+		}
 	}
 	if (k.ausgabe) {
 		console.log(`\nTrockenlauf: Ordner und Aufträge unter ${k.ausgabe}. Kein Claude gestartet.`);
