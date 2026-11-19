@@ -87,7 +87,7 @@ Was die Klassenstufe können soll, steht im Bildungsplan und wird vor dem Plan n
 | Stufe | Handlungsform und Material | Auf dem Blatt |
 |---|---|---|
 | 1 Herstellen | Faltschnitt (Papier, Schere), Klecksbild (Farbe), Legen an einer Achse (Plättchen, Steckwürfel, Muggelsteine), Spannen auf dem Geobrett, Drucken | festhalten: aufkleben, abzeichnen, „Das habe ich gefaltet“ |
-| 2 Erkennen und prüfen | Spiegel an die Figur stellen, Figur ausschneiden und falten; Dinge aus der Umwelt (Schmetterling, Blatt, Buchstaben, Verkehrszeichen) | symmetrisch oder nicht, Achse zeigen oder einzeichnen |
+| 2 Erkennen und prüfen | Spiegel an die Figur stellen, Figur ausschneiden und falten; Dinge aus der Umwelt (Schmetterling, Blatt, Buchstaben, Verkehrszeichen) | symmetrisch oder nicht, Achse zeigen oder einzeichnen: `x-gitter aufgabe="pruefen"`, `x-symmetrie-sortieren` |
 | 3 Ergänzen | erst legen (ein Kind legt, das andere ergänzt, Kontrolle mit dem Spiegel), dann Kästchen ausmalen, dann Linien zeichnen | `x-gitter aufgabe="spiegeln"`; zuerst berührt die Figur die Achse, später hat sie Abstand |
 | 4 Beschreiben und begründen | „Die Figur ist symmetrisch, weil …“ | im Anfangsunterricht mündlich oder ein Satz mit Satzanfang |
 
@@ -97,6 +97,7 @@ Was die Klassenstufe können soll, steht im Bildungsplan und wird vor dem Plan n
 - **Fehler, die Material leicht macht** (für Bau und Prüfung): Buchstaben mit nur waagerechter Achse (B, C, D, E, K) gelten als nicht symmetrisch, weil die Stunde senkrecht übt. Ein gleichschenkliges Dreieck mit waagerechter Achse steht in der Lösung als nicht symmetrisch. Die Anweisung sagt „symmetrisch“, die Lösung meint „symmetrisch zur senkrechten Achse“. Eine Korrektur behebt so einen Fehler an Aufgabe, Lösung, Beispiel, Tipp und Hinweisen, nicht nur am Satz der Anweisung.
 - **Wörter:** Faltlinie, dann Spiegelachse (oder Symmetrieachse, wie im Lehrwerk der Klasse), symmetrisch, Spiegelbild. Das Fachwort steht ab dem ersten Blatt im Wortspeicher und in jeder Anweisung gleich. Wörter aus der Geschichte („echt“, „nachgemacht“, „Zwilling“) dürfen dazukommen, ersetzen es aber nie.
 - **Elemente:** `x-gitter aufgabe="spiegeln"` (Kästchen, Linien oder Punkte; die Achse liegt auf einer Gitterlinie, die Lösung wird berechnet), Faltvorlagen und Legekarten als Ausschneidematerial. Ein gedrucktes Punktefeld heißt Punktefeld, nicht Geobrett. Jede Form (Gitterfigur, Faltvorlage) kommt in einer Reihe nur einmal vor.
+- **Urteilen über Symmetrie** (Stufe 2) mit `x-gitter aufgabe="pruefen"` (ja oder nein, Achsen einzeichnen; `nur` zählt eine Achse) oder `x-symmetrie-sortieren` (Buchstaben, Ziffern, Gitterfiguren nach Achsen). Achsen und Lösung rechnet das Element aus. Freie Motive sind zum Gestalten und Herstellen da. Urteilen die Kinder doch über ein freies Motiv, bekommt jedes ein eigenes `svg` mit `data-frei-titel`; `blatt.py bauen` misst die Deckung und warnt, wenn die Lösung ein deckungsgleiches Motiv „nicht symmetrisch“ nennt.
 
 Andere Geometrie-Themen folgen demselben Muster (Körper: bauen und kneten vor dem Benennen; Würfelgebäude: bauen vor dem Bauplan; Muster: legen vor dem Zeichnen). Die Stufen dazu im Plan nennen.
 
@@ -171,7 +172,8 @@ Exakte Darstellungen kommen als Elemente aus `html-materialerstellung/assets/abb
 | `x-urne` | Kugeln im Säckchen oder Glas | `mathe-groessen-daten.md` |
 | `x-wahrscheinlichkeit` | Skala unmöglich, möglich, sicher | `mathe-groessen-daten.md` |
 | `x-kombinatorik` | Möglichkeiten als Baum, Tabelle, Liste | `mathe-groessen-daten.md` |
-| `x-gitter` | Spiegeln (erst Kästchen, dann Linien), Fortsetzen, Vergrößern, Weg, Fläche und Umfang im Gitter | `mathe-geometrie.md` |
+| `x-gitter` | Spiegeln (erst Kästchen, dann Linien), Symmetrie prüfen, Fortsetzen, Vergrößern, Weg, Fläche und Umfang im Gitter | `mathe-geometrie.md` |
+| `x-symmetrie-sortieren` | Buchstaben, Ziffern und Gitterfiguren nach Spiegelachsen sortieren | `mathe-geometrie.md` |
 | `x-figur` | Ebene Figur mit Normsymbolen | `mathe-geometrie.md` |
 | `x-tangram` | Tangram mit Umriss, Bogen zum Ausschneiden | `mathe-geometrie.md` |
 | `x-wuerfelbau` | Würfelgebäude: Schrägbild, Bauplan, Ansichten | `mathe-geometrie.md` |
