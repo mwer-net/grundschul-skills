@@ -369,7 +369,9 @@ const regelImBild = (regel: string, woerter: ReadonlySet<string>, figuren: reado
 	nomenDerRegel(regel, figuren).some((n) => [...woerter].some((w) => trifft(n, w)));
 
 const figurPflicht = (f: KanonFigur) => `${f.name}: ${f.fest.map(ohnePunkt).join('; ')}`;
-const figurNie = (f: KanonFigur) => `${f.name}, nie: ${f.nie.map(ohnePunkt).join('; ')}`;
+/** Ohne doppelte Verneinung: „nie: keine Brille“ wird „nie: Brille“. */
+const ohneKein = (text: string) => ohnePunkt(text).replace(/^(?:kein|keine|keinen|keinem|keiner|nie)\s+/i, '');
+const figurNie = (f: KanonFigur) => `${f.name}, nie: ${f.nie.map(ohneKein).join('; ')}`;
 const dingZustand = (d: KanonDing, zustand: string) => `${d.name}: ${ohnePunkt(zustand)}`;
 const geheimZeile = (g: KanonGeheim) =>
 	`erkennbar${g.bis === null ? '' : ` vor Kapitel ${g.bis}`}: ${ohnePunkt(g.was)}`;

@@ -328,6 +328,8 @@ describe('Kanon der Einheit (246)', () => {
 				verboten: ['erkennbar vor Kapitel 6: Ella ist die Täterin', 'das Glöckchen bei Luna'],
 			});
 			assert.deepEqual(bildVorschlag(KANON, null, 'Deckblatt: Ella und Luna').verboten, ['Ella, nie: trägt das Glöckchen']);
+			const ohneBrille = leseKanon({ ...ROH, figuren: [{ name: 'Luna', fest: ['zwei Flügel'], nie: ['keine Brille', 'kein Hut'] }] });
+			assert.deepEqual(ohneBrille && bildVorschlag(ohneBrille, null, 'Luna').verboten, ['Luna, nie: Brille; Hut']);
 		});
 
 		it('Szene vor Kapitel 6 ohne „erkennbar vor Kapitel 6: …“: abgelehnt, mit jeder fehlenden Zeile wörtlich', () => {

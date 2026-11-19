@@ -960,7 +960,8 @@ export const FACHBLICK_AUFTRAG = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki'
 /** Im Prüfordner des Fachblicks der Hinweise: die Lösungsseiten der anderen Materialien, je Material ein Ordner. */
 export const ANDERE_ORDNER = 'andere';
 const BILD_IM_MATERIAL = /\.\.\/\.\.\/bilder\/([a-z0-9][a-z0-9-]{0,59}\.(?:png|jpg))/g;
-const MAX_VERTRAG = 1500;
+/** Mit den Zeilen aus dem Kanon (248) wird ein Vertrag länger; abgeschnitten fiele `verboten` am Ende weg. */
+const MAX_VERTRAG = 3000;
 const LOESUNGSSEITE = /^loesung-seite-\d+\.png$/;
 const LOESUNG_ORDNER = 'loesung';
 
