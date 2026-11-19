@@ -7,9 +7,11 @@
  * der Recherche (`--recherche <datei>`, sonst `<prüfstand>/recherche.md`, wenn es sie gibt), die Stunden des Plans, die
  * Messung des Baus und bei den Hinweisen die Lösungsseiten der Materialien davor. Mit `kind` und `fach` zusammen laufen
  * die Läufe eines Materials nacheinander (der Server startet sie gleichzeitig); gemessen werden Befunde, nicht Zeit.
+ * `--ohne-messung` lässt die Messung des Baus aus dem Auftrag des Fachblicks weg: die Gegenprobe zu 245, ob der Fachblick
+ * einen Fehler auch ohne sie findet. Das Ergebnis vermerkt es (`ohneMessung: true`).
  *
  *   pnpm --filter @schoolbox/server exec tsx scripts/pruefstand.ts <prüfstand> [--nur a,b] [--teil kind,blick,fach]
- *     [--recherche <datei>] [--trocken] [--ja] [--abgleich <ergebnis.json>]
+ *     [--recherche <datei>] [--ohne-messung] [--trocken] [--ja] [--abgleich <ergebnis.json>]
  *
  * Der Ordner `<prüfstand>` hält `mappe/` (Kopie der Mappe mit `bilder.json` und den Prüfbildern unter
  * `ansicht/bilder/`), `plan.json` (wie `einheit.json`), `zuordnung.json` (Slug des Plans → Dokument der Mappe),
@@ -89,6 +91,7 @@ interface Optionen {
 	ja: boolean;
 	abgleich: string | null;
 	recherche: string | null;
+	ohneMessung: boolean;
 }
 
 const leseOptionen = (argv: string[]): Optionen => {
@@ -100,6 +103,7 @@ const leseOptionen = (argv: string[]): Optionen => {
 		ja: false,
 		abgleich: null,
 		recherche: null,
+		ohneMessung: false,
 	};
 	const wert = (i: number, name: string) => {
 		const w = argv[i + 1];
@@ -132,6 +136,8 @@ const leseOptionen = (argv: string[]): Optionen => {
 		} else if (a === '--recherche') {
 			o.recherche = path.resolve(wert(i, a));
 			i++;
+		} else if (a === '--ohne-messung') {
+			o.ohneMessung = true;
 		} else if (a === '--trocken') {
 			o.trocken = true;
 		} else if (a === '--ja') {
@@ -391,6 +397,7 @@ interface Kontext {
 	ki: KiLauf;
 	ablage: string;
 	ausgabe: string | null;
+	ohneMessung: boolean;
 	/** Die Ansichten der Materialien vor den Hinweisen, einmal gebaut, für die Lösungsseiten des Fachblicks. */
 	ansichten: { ordner: string; fertig: Map<string, string> };
 	zustand: { abgebrochen: boolean; laufend: ChildProcessWithoutNullStreams | null };
@@ -454,7 +461,7 @@ const teileFuer = async (k: Kontext, v: Vorhaben, ordner: string): Promise<Auftr
 			stunden: fachblickStunden(k.p.plan, v.d.slug),
 			berechnet: berechneteElemente(v.html),
 			andere,
-			messung: messungAus(ansicht.bericht.meldungen),
+			messung: k.ohneMessung ? [] : messungAus(ansicht.bericht.meldungen),
 		}).map((t) => ({
 			text: fachblickText(t),
 			teil: t.teil,
@@ -622,7 +629,7 @@ const schreibeErgebnis = async (p: Pruefstand, o: Optionen, ki: KiLauf, ergebnis
 	const name = `ergebnis-${zeitstempel()}-${o.teile.join('-')}`;
 	await writeFile(
 		path.join(p.ordner, `${name}.json`),
-		`${JSON.stringify({ datum: new Date().toISOString(), teile: o.teile, ki, kostenUsd: summe, materialien: ergebnisse, abgleich }, null, '\t')}\n`,
+		`${JSON.stringify({ datum: new Date().toISOString(), teile: o.teile, ...(o.ohneMessung ? { ohneMessung: true } : {}), ki, kostenUsd: summe, materialien: ergebnisse, abgleich }, null, '\t')}\n`,
 	);
 	await writeFile(path.join(p.ordner, `${name}.md`), `# Prüfstand ${name}\n\nKosten ${usd(summe)}.\n\n${tabelle}\n`);
 	console.log(`\n${tabelle}\n\nKosten ${usd(summe)}. Geschrieben: ${name}.json und ${name}.md`);
@@ -638,6 +645,9 @@ const fuehreAus = async (o: Optionen) => {
 				? `Recherche: ${p.recherche.datei}, ${punkte} Prüfpunkte${punkte ? '' : ' (der Fachblick liest dann den Fach-Skill)'}.`
 				: 'Keine Recherche: Der Fachblick liest den Fach-Skill.',
 		);
+		if (o.ohneMessung) {
+			console.log('Ohne Messung des Baus (Gegenprobe zu 245).');
+		}
 	}
 	if (o.abgleich) {
 		const alt = (await leseJson(path.resolve(o.abgleich))) as { materialien?: MaterialErgebnis[] };
@@ -663,6 +673,7 @@ const fuehreAus = async (o: Optionen) => {
 		ki,
 		ablage: await mkdtemp(path.join(tmpdir(), 'schoolbox-pruefstand-ablage-')),
 		ausgabe: o.trocken ? path.join(tmpdir(), `pruefstand-trocken-${zeitstempel()}`) : null,
+		ohneMessung: o.ohneMessung,
 		ansichten: { ordner: await mkdtemp(path.join(tmpdir(), 'schoolbox-pruefstand-ansichten-')), fertig: new Map() },
 		zustand: { abgebrochen: false, laufend: null },
 	};
