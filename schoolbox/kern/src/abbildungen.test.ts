@@ -62,6 +62,7 @@ import { ABSCHNITT_TITEL } from './abschnitte';
 import { ASSETS, BLATT_PY } from './konfig';
 import { hatLoesung, MIT_LOESUNG, OHNE_LOESUNGSANGABE } from './loesungen';
 import { zerlege } from './quelltext';
+import { SYMMETRIE_SPALTEN, SYMMETRIE_ZEICHEN, zeichenGruppe } from './symmetrie';
 
 const JS = readFileSync(path.join(ASSETS, 'abbildungen.js'), 'utf8');
 
@@ -901,6 +902,10 @@ const rechenkerne = () => {
 		skaliere: (form: Form, faktor: number) => Form;
 		gehWeg: (start: number[], schritte: string[], spalten: number, zeilen: number) => number[][];
 		flaecheUmfang: (form: Form) => { flaeche: number; umfang: number | null };
+		symmetrieAchsen: (form: Form) => { art: string; mitte: number[] }[];
+		symmetrieGruppe: (arten: string[]) => string;
+		SYMMETRIE_ZEICHEN: Record<string, string>;
+		zeichenGruppe: (z: string) => string | null;
 		TANGRAM_TEILE: Record<string, number[][]>;
 		TANGRAM_UMRISSE: Record<string, Record<string, number[][]>>;
 		ansichtenVon: (plan: number[][]) => { vorne: number[]; rechts: number[]; links: number[]; oben: number[][] };
@@ -1201,6 +1206,42 @@ describe('Ebene Geometrie (025)', () => {
 		});
 		assert.equal(schraeg.flaeche, 4);
 		assert.equal(schraeg.umfang, null);
+	});
+
+	it('Symmetrie (245): Dreieck nur waagerecht, Quadrat vier Achsen, L keine', () => {
+		const { symmetrieAchsen, symmetrieGruppe, trenneRaster } = rechenkerne();
+		const arten = (form: Form) => [...symmetrieAchsen(form)].map((a) => a.art);
+		const zellen = (raster: string) =>
+			trenneRaster(raster).flatMap((reihe, y) => reihe.flatMap((z, x) => (z === '1' ? [[x, y]] : [])));
+		const dreieck = arten({
+			zellen: [],
+			polys: [
+				[
+					[0, 0],
+					[4, 2],
+					[0, 4],
+				],
+			],
+		});
+		assert.deepEqual(dreieck, ['waagerecht']);
+		assert.equal(symmetrieGruppe(dreieck), 'waagerecht');
+		const quadrat = arten({ zellen: zellen('1 1 / 1 1'), polys: leer });
+		assert.deepEqual([...quadrat].sort(), ['fallend', 'senkrecht', 'steigend', 'waagerecht']);
+		assert.deepEqual(arten({ zellen: zellen('1 0 / 1 0 / 1 1'), polys: leer }), []);
+		assert.equal(symmetrieGruppe([]), 'keine');
+		assert.deepEqual(arten({ zellen: zellen('0 1 0 / 1 1 1'), polys: leer }), ['senkrecht']);
+	});
+
+	it('Symmetrie (245): Die Tabelle der Zeichen ist dieselbe wie im Kern, B gehört zu waagerecht', () => {
+		const k = rechenkerne();
+		assert.deepEqual({ ...k.SYMMETRIE_ZEICHEN }, SYMMETRIE_ZEICHEN);
+		for (const z of [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 'ä', 'a', '?']) {
+			assert.equal(k.zeichenGruppe(z), zeichenGruppe(z), z);
+		}
+		assert.equal(zeichenGruppe('B'), 'waagerecht');
+		assert.equal(zeichenGruppe('L'), 'keine');
+		const spalten = /const SORTIER_SPALTEN = (\{[^}]+\});/.exec(JS)?.[1] ?? '';
+		assert.deepEqual(JSON.parse(spalten.replace(/(\w+):/g, '"$1":')), SYMMETRIE_SPALTEN);
 	});
 
 	it('Tangram: Die sieben Teile ergeben das Quadrat, jeder Umriss ist eine gültige Lage', () => {

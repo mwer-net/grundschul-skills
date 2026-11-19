@@ -55,6 +55,83 @@
  };
  const istInAbbildung = (e) => { for (let p = e.parentElement; p; p = p.parentElement) if (p.localName.startsWith("x-")) return true; return e.localName.startsWith("x-"); };
 
+ /* Symmetrie (245): freie Motive in Aufgaben über Symmetrie. pruefung.js sucht sie und legt jedes einzeln als SVG ab;
+    blatt.py rastert sie, spiegelt sie an den Mitten ihres Rands und misst die Deckung. SYMMETRIE_DECKUNG ist die Schwelle
+    für „deckungsgleich“, am Prüfstand festgelegt (Ticket 245). */
+ const SYMMETRIE_DECKUNG = 0.99;
+ const SYMMETRIE_WORT = /symmetr|spiegel|achse|hälfte|faltlinie/i;
+ const SYMMETRIE_NEIN = /nicht symmetr|keine (?:faltlinie|spiegelachse|achse)|nicht deckungsgleich/i;
+ const MOTIV_PX = 240;
+ const NICHT_GEZEICHNET = "defs,symbol,clipPath,mask,pattern,marker,.nur-loesung,text";
+ /** Teilbilder eines SVG: äußere use und g mit transform. Eine Vorlage, die an vielen Stellen steht, ist Hintergrund. */
+ const teileVon = (svg) => {
+  let kand = [...svg.querySelectorAll("use, g[transform]")].filter((e) => !e.parentElement.closest(NICHT_GEZEICHNET) && e.getBoundingClientRect().width > 0);
+  kand = kand.filter((e) => !kand.some((o) => o !== e && o.contains(e)));
+  const ziel = (e) => (e.localName === "use" ? e.getAttribute("href") || e.getAttribute("xlink:href") : null);
+  const zahl = new Map();
+  kand.forEach((e) => { const z = ziel(e); if (z) zahl.set(z, (zahl.get(z) || 0) + 1); });
+  return kand.filter((e) => { const n = zahl.get(ziel(e)) || 0; return !(n >= 3 && n >= kand.length * 0.4); });
+ };
+ /** Rechteck eines Elements in den Koordinaten des SVG (viewBox). */
+ const imSvg = (svg, e) => {
+  const m = svg.getScreenCTM(), r = e.getBoundingClientRect();
+  if (!m) return null;
+  const inv = m.inverse(), a = new DOMPoint(r.left, r.top).matrixTransform(inv), b = new DOMPoint(r.right, r.bottom).matrixTransform(inv);
+  return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
+ };
+ /** Das SVG nur mit den Teilen `behalten` (alle, wenn null), ohne `weg`, mit den Vorlagen, auf die es zeigt. */
+ const einzelSvg = (svg, behalten, weg, box) => {
+  const kopie = svg.cloneNode(true), alt = [...svg.querySelectorAll("*")], neu = [...kopie.querySelectorAll("*")];
+  const halte = (e) => !!e.closest("defs,symbol,style") || !behalten || behalten.some((b) => b === e || b.contains(e) || e.contains(b));
+  alt.forEach((e, i) => { if (!halte(e) || weg.includes(e) || e.closest(".nur-loesung")) neu[i].remove(); });
+  const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs"), da = new Set();
+  for (let runde = 0; runde < 5; runde++) {
+   const html = kopie.outerHTML + defs.outerHTML, ids = [...html.matchAll(/(?:href="#|url\(#)([^")]+)/g)].map((t) => t[1]);
+   const fehlen = ids.filter((id) => !da.has(id) && !kopie.querySelector(`[id="${CSS.escape(id)}"]`));
+   if (!fehlen.length) break;
+   for (const id of fehlen) { da.add(id); const q = document.getElementById(id); if (q) defs.appendChild(q.cloneNode(true)); }
+  }
+  if (defs.childNodes.length) kopie.insertBefore(defs, kopie.firstChild);
+  const vb = svg.viewBox.baseVal, rahmen = box || (vb && vb.width ? { x: vb.x, y: vb.y, w: vb.width, h: vb.height } : { x: 0, y: 0, w: svg.getBoundingClientRect().width, h: svg.getBoundingClientRect().height });
+  const s = MOTIV_PX / Math.max(rahmen.w, rahmen.h, 1), b = Math.round(rahmen.w * s), h = Math.round(rahmen.h * s);
+  kopie.setAttribute("viewBox", `${rahmen.x} ${rahmen.y} ${rahmen.w} ${rahmen.h}`);
+  kopie.setAttribute("width", b); kopie.setAttribute("height", h);
+  kopie.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  kopie.style.width = `${b}px`; kopie.style.height = `${h}px`; kopie.style.maxWidth = "none"; kopie.style.display = "block"; kopie.style.margin = "0";
+  return { html: kopie.outerHTML, b, h };
+ };
+ /** Was die Lösung neben einem Motiv sagt: true markiert, false nicht markiert, null unbekannt. */
+ const markeBei = (box, motiv) => {
+  if (motiv.querySelector(".nur-loesung")) return true;
+  const werte = [...box.querySelectorAll("[data-l]")].map((e) => e.getAttribute("data-l").trim()).filter(Boolean);
+  if (werte.some((w) => /^(?:✓|✔|x|ja|richtig|r|symmetrisch)$/i.test(w))) return true;
+  if (werte.some((w) => /^(?:nein|falsch|f|nicht symmetrisch)$/i.test(w))) return false;
+  if (werte.length) return null;
+  if ([...box.querySelectorAll(".nur-loesung")].some((e) => !motiv.contains(e))) return true;
+  return box.querySelector(".antwort") ? false : null;
+ };
+ /** Felder eines Bildpuzzles: gleich große Flächen in der Lösung (Felder ausmalen); null, wenn es keine gibt. */
+ const felderVon = (svg) => {
+  const alle = [...svg.querySelectorAll("rect")].filter((r) => !r.closest("defs,symbol,pattern,clipPath,mask,g[transform]") && !r.hasAttribute("transform"));
+  const mass = (r) => [r.x.baseVal.value, r.y.baseVal.value, r.width.baseVal.value, r.height.baseVal.value];
+  const gefuellt = (r) => !/^(?:none|transparent|#fff|#ffffff|white)$/i.test((r.getAttribute("fill") || "#000").trim());
+  const groessen = new Map();
+  alle.filter((r) => r.closest(".nur-loesung") && gefuellt(r)).forEach((r) => { const [, , w, h] = mass(r); const k = `${w}x${h}`; groessen.set(k, (groessen.get(k) || 0) + 1); });
+  const [beste] = [...groessen].sort((a, b) => b[1] - a[1]);
+  if (!beste || beste[1] < 2) return null;
+  const [w, h] = beste[0].split("x").map(Number);
+  const marken = alle.filter((r) => gefuellt(r) && mass(r)[2] === w && mass(r)[3] === h);
+  const vb = svg.viewBox.baseVal;
+  if (!vb || !vb.width) return null;
+  const x0 = Math.min(...marken.map((r) => mass(r)[0])), y0 = Math.min(...marken.map((r) => mass(r)[1]));
+  const felder = [];
+  const ab = (start, o, g) => start - Math.floor((start - o + 1) / g) * g;
+  for (let y = ab(y0, vb.y, h), zeile = 1; y + h <= vb.y + vb.height + 1; y += h, zeile++)
+   for (let x = ab(x0, vb.x, w), spalte = 1; x + w <= vb.x + vb.width + 1; x += w, spalte++)
+    felder.push({ x, y, w, h, zeile, spalte, markiert: marken.some((r) => Math.abs(mass(r)[0] - x) < 1 && Math.abs(mass(r)[1] - y) < 1) });
+  return { felder, marken };
+ };
+
  const pruefe = async ({ warten = true } = {}) => {
  const M = [];
  let ergebnis;
@@ -146,6 +223,7 @@
   }
 
   const seiten = [];
+  const symmetrieMotive = [];
   const feldzahl = document.querySelectorAll(".seite").length;
   if (B.classList.contains("minibuch") && feldzahl !== 8) melde("FEHLER", 0, "minibuch-seiten", `Ein Mini-Book hat genau 8 Seiten, dieses hat ${feldzahl} → --vorlage minibuch als Ausgangspunkt nehmen`);
   // nur äußere Seiten: In „Folien mit Notizen“ stecken die Folien verkleinert in einem Blatt
@@ -447,6 +525,64 @@
 
     const ph = [...S.querySelectorAll(".platzhalter")].filter((e) => !ausgeblendet(e));
     if (ph.length) melde("HINWEIS", nr, "platzhalter", `${ph.length} Platzhalter (Entwurf)`, ph.map(ziel));
+    // 8. Symmetrie (245): Fragt ein Gitter nur nach einer Achse, nennt die Anweisung sie. Freie Motive misst blatt.py.
+    auf.forEach((a, ai) => {
+      const anw = (a.querySelector(":scope > .anw")?.textContent || "").replace(/\s+/g, " ").trim(), nrText = `A${a.querySelector(":scope > .nr")?.textContent.trim() || ai + 1}`;
+      a.querySelectorAll('x-gitter[aufgabe="pruefen"][nur]').forEach((g) => {
+        const wort = g.getAttribute("nur");
+        if (["senkrecht", "waagerecht"].includes(wort) && SYMMETRIE_WORT.test(anw) && !anw.toLowerCase().includes(wort))
+          melde("FEHLER", nr, "symmetrie-achse", `${nrText}: Das Gitter zählt nur die ${wort}e Achse, die Anweisung nennt sie nicht → „${wort}“ in die Anweisung schreiben`, [ziel(g)]);
+      });
+      if (!warten || loesungsblatt || ausgeblendet(a) || !SYMMETRIE_WORT.test(a.textContent)) return;
+      const nein = SYMMETRIE_NEIN.test(anw), s = /senkrecht/i.test(anw), w = /waagerecht/i.test(anw);
+      const achsen = s && !w ? ["senkrecht"] : w && !s ? ["waagerecht"] : ["senkrecht", "waagerecht"];
+      const frei = [...a.querySelectorAll("[data-frei]")].filter((e) => !e.parentElement.closest("[data-frei]") && !ausgeblendet(e));
+      const motive = frei.flatMap((f) => (f.matches("svg, img") ? [f] : [...f.querySelectorAll("svg, img")].filter((e) => !e.parentElement.closest("svg")))
+        .filter((e) => { const r = e.getBoundingClientRect(); return r.width >= 12 && r.height >= 12; }).map((e) => ({ e, f })));
+      const gezaehlt = new Map();
+      motive.forEach(({ f }) => gezaehlt.set(f, (gezaehlt.get(f) || 0) + 1));
+      for (const { e, f } of motive) {
+          const titel = f.getAttribute("data-frei-titel") || e.getAttribute("alt") || "ohne Titel";
+          const eintrag = { seite: nr, aufgabe: nrText, titel, nein, achsen, ziel: ziel(e) };
+          const zelle = e.closest(".zelle");
+          const allein = zelle && a.contains(zelle) && [...zelle.querySelectorAll("[data-frei]")].length === 1;
+          if (e.localName === "img") {
+            const r = e.getBoundingClientRect(), k = MOTIV_PX / Math.max(r.width, r.height);
+            symmetrieMotive.push({ ...eintrag, art: "einzel", markiert: allein ? markeBei(zelle, e) : null, html: `<img src="${e.currentSrc || e.src}" style="display:block;width:${Math.round(r.width * k)}px;height:${Math.round(r.height * k)}px;object-fit:${getComputedStyle(e).objectFit}">`, b: Math.round(r.width * k), h: Math.round(r.height * k) });
+            continue;
+          }
+          const teile = teileVon(e), titelZahl = [f, ...f.querySelectorAll("[data-frei-titel]")].filter((x) => x.hasAttribute("data-frei-titel")).length;
+          const mehrere = teile.length >= 2 || gezaehlt.get(f) > 1 || titelZahl > 1;
+          if (mehrere) melde("HINWEIS", nr, "symmetrie-motive", `${nrText}: „${titel}“ zeigt mehrere Motive (${Math.max(teile.length, gezaehlt.get(f), titelZahl)}) in einem Bild; die Messung nimmt sie einzeln, ohne Namen → wird über ein Motiv geurteilt, jedes in ein eigenes svg mit data-frei-titel`, [ziel(e)]);
+          if (teile.length < 2) {
+            symmetrieMotive.push({ ...eintrag, art: "einzel", markiert: allein ? markeBei(zelle, e) : null, ...einzelSvg(e, null, [], null) });
+            continue;
+          }
+          // Die Formen der Lösung haben erst auf dem Lösungsblatt ein Maß; die Lage im SVG hängt nicht am Blatt.
+          B.classList.add("loesung");
+          const loesung = [...e.querySelectorAll(".nur-loesung")].flatMap((x) => (x.children.length ? [...x.querySelectorAll("*")].filter((y) => !y.children.length) : [x])).map((x) => imSvg(e, x)).filter(Boolean);
+          B.classList.remove("loesung");
+          const puzzle = felderVon(e);
+          const raender = teile.map((t) => imSvg(e, t));
+          if (puzzle) {
+            for (const fd of puzzle.felder) {
+              const drin = teile.filter((t, i) => { const r = raender[i]; return r && r.x + r.w / 2 > fd.x && r.x + r.w / 2 < fd.x + fd.w && r.y + r.h / 2 > fd.y && r.y + r.h / 2 < fd.y + fd.h; });
+              if (!drin.length) continue;
+              symmetrieMotive.push({ ...eintrag, art: "feld", name: `Feld Reihe ${fd.zeile}, Spalte ${fd.spalte}`, markiert: fd.markiert, ...einzelSvg(e, drin, puzzle.marken, fd) });
+            }
+            continue;
+          }
+          teile.forEach((t, i) => {
+            const r = raender[i];
+            if (!r) return;
+            const kern = { x: r.x + r.w / 4, y: r.y + r.h / 4, w: r.w / 2, h: r.h / 2 };
+            const trifft = loesung.some((l) => l.x <= kern.x + kern.w && l.x + l.w >= kern.x && l.y <= kern.y + kern.h && l.y + l.h >= kern.y);
+            const rand = Math.max(r.w, r.h) * 0.04 + 2;
+            symmetrieMotive.push({ ...eintrag, art: "teil", name: `Teilbild ${i + 1}`, markiert: loesung.length ? trifft : null, ...einzelSvg(e, [t], [], { x: r.x - rand, y: r.y - rand, w: r.w + 2 * rand, h: r.h + 2 * rand }) });
+          });
+      }
+    });
+
     seiten.push({ nr, rest, breite: Math.round(P.width), aufgaben: auf.map((a) => rel(a.getBoundingClientRect())), ...(seitenLeer === null ? {} : { leer: seitenLeer }) });
   });
   meldeZeit();
@@ -458,7 +594,7 @@
     melde("HINWEIS", 0, "ausgeblendet", `${aus.length} ${eins ? "Element ist" : "Elemente sind"} ausgeblendet und ${eins ? "wird" : "werden"} nicht gedruckt → in den Ebenen wieder einblenden`, [{ sb: m ? +m.getAttribute("data-sb") : null, name: kurz(erstes), rechteck: [0, 0, 0, 0] }]);
   }
 
-  ergebnis = { klasse: kl, seiten };
+  ergebnis = { klasse: kl, seiten, ...(symmetrieMotive.length ? { symmetrie: { schwelle: SYMMETRIE_DECKUNG, motive: symmetrieMotive } } : {}) };
  } catch (e) { M.push({ stufe: "FEHLER", seite: 0, code: "pruefskript", text: "Prüfskript: " + e.message, ziele: [] }); }
  return Object.assign({ seiten: [] }, ergebnis, { meldungen: M });
  };

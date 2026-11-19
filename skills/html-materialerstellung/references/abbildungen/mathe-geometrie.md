@@ -16,6 +16,8 @@ Muster: `assets/muster/ebene-geometrie.html`. Gitter und Figuren mit `masse` sin
 <x-gitter spalten="10" zeilen="8" aufgabe="vergroessern" faktor="2" figur="1 1 / 1 0"></x-gitter>
 <x-gitter spalten="10" zeilen="6" aufgabe="weg" start="1,4" weg="3→ 2↑ 1←"></x-gitter>
 <x-gitter spalten="10" zeilen="4" zaehlen="flaeche umfang" figur="1 1 / 1 0"></x-gitter>
+<x-gitter art="geobrett" spalten="4" zeilen="4" aufgabe="pruefen" linien="0,0 4,2 0,4"></x-gitter>
+<x-gitter spalten="6" zeilen="6" aufgabe="pruefen" frage="achsen" achsen-hinweis="2" figur="0 0 0 0 / 0 1 1 0 / 1 1 1 1 / 0 1 1 0"></x-gitter>
 ```
 
 | Attribut | Bedeutung |
@@ -25,14 +27,44 @@ Muster: `assets/muster/ebene-geometrie.html`. Gitter und Figuren mit `masse` sin
 | `kaestchen` | Kantenlänge in cm; ohne Angabe wie im Rechenheft: 0,7 cm in Kl. 1, 0,5 cm ab Kl. 2 |
 | `figur` | gefüllte Kästchen zeilenweise, `0` leer, `1` voll |
 | `linien` | stattdessen Vielecke über Gitterpunkte, `0,0 3,0 3,2`, mehrere mit `;` |
-| `aufgabe` | `spiegeln`, `fortsetzen`, `vergroessern`, `weg`, ohne Angabe keine |
+| `aufgabe` | `spiegeln`, `fortsetzen`, `vergroessern`, `weg`, `pruefen`, ohne Angabe keine |
 | `achse`, `achse-bei` | `senkrecht` oder `waagerecht`, nach so vielen Kästchen; liegt immer auf einer Gitterlinie |
 | `rapport`, `rapporte`, `rapportart` | Breite eines Musters, wie viele vorgegeben sind (2), `schieben`, `spiegeln` oder `drehen` im Wechsel. Die Lösung zeigt zwei weitere |
 | `faktor` | `2` oder `0.5`; das Zielgitter steht rechts daneben |
 | `weg`, `start`, `wegart` | Schritte wie `3→ 2↑`, Startkästchen `Spalte,Zeile` ab `0,0`, `gehen` oder `beschreiben` (Weg steht da, die Pfeile sind die Antwort) |
 | `zaehlen` | `flaeche`, `umfang`: Antwortfelder unter dem Gitter |
+| `frage` | nur bei `pruefen`: `ja-nein` (Standard, „Symmetrisch? ja / nein“ zum Ankreuzen) oder `achsen` (die Kinder zeichnen jede Achse ein) |
+| `nur` | nur bei `pruefen`: `senkrecht` oder `waagerecht`; es zählt nur diese Achse, und sie steht unter dem Gitter in der Frage. Ohne `nur` zählen alle Achsen, auch die schrägen |
+| `achsen-hinweis` | nur bei `frage="achsen"` ohne `nur`: die Zahl der Achsen, dann steht „Zeichne beide Achsen ein.“ unter dem Gitter; sie muss zur Figur passen |
+
+Bei `pruefen` sucht das Element alle Achsen der Figur selbst: senkrecht und waagerecht durch die Mitte ihres Rands, dazu beide Diagonalen. Die Lösung kreuzt ja oder nein an und zeichnet die Achsen. Fehler: `frage="achsen"` bei einer Figur ohne Achse, `achsen-hinweis` passt nicht zur Figur, `achse` beim Prüfen; im Prüfbericht ein FEHLER, wenn das Gitter `nur` hat und die Anweisung von Symmetrie spricht, die Achse aber nicht nennt.
 
 Die Lösung wird berechnet, nie angegeben. Fehler: Figur kreuzt die Achse, Spiegelbild oder vergrößerte Figur passt nicht, Weg verlässt das Gitter, Umfang bei schrägen Linien, Halbieren ohne volle 2×2-Felder.
+
+### `x-symmetrie-sortieren`: Nach Achsen sortieren
+
+```html
+<x-symmetrie-sortieren zeichen="A B E H M O 3 8"></x-symmetrie-sortieren>
+<x-symmetrie-sortieren zeichen="A T C F" gruppen="senkrecht waagerecht keine"></x-symmetrie-sortieren>
+<x-symmetrie-sortieren gruppen="senkrecht keine" figuren="0 1 0 / 1 1 1; 1 1 / 1 0"></x-symmetrie-sortieren>
+```
+
+| Attribut | Bedeutung |
+|---|---|
+| `zeichen` | Großbuchstaben und Ziffern, mit Leerzeichen getrennt; gesetzt in der Leseschrift |
+| `figuren` | Gitterfiguren wie `figur` bei `x-gitter`, mehrere mit `;`; sie stehen nummeriert da, die Kinder schreiben die Nummer in die Spalte |
+| `gruppen` | die Spalten, zwei bis vier aus `senkrecht` (nur senkrecht), `waagerecht` (nur waagerecht), `beide`, `keine`; Standard `senkrecht waagerecht beide` |
+
+Die Lösung kommt aus der Tabelle unten, bei Figuren aus der Berechnung wie bei `x-gitter aufgabe="pruefen"`, nie von Hand. Fehler: ein Zeichen, das nicht in der Tabelle steht; ein Eintrag, für den die Spalte fehlt (H braucht `beide`); eine Figur mit nur schrägen Achsen.
+
+<!-- erzeugt: symmetrie-zeichen -->
+| Spalte | Buchstaben | Ziffern |
+|---|---|---|
+| nur senkrecht (`senkrecht`) | A M T U V W Y | – |
+| nur waagerecht (`waagerecht`) | B C D E K | 3 |
+| beide Achsen (`beide`) | H I O X | 0 8 |
+| keine Achse (`keine`) | F G J L N P Q R S Z | 1 2 4 5 6 7 9 |
+<!-- /erzeugt: symmetrie-zeichen -->
 
 ### `x-figur`: Ebene Figur
 

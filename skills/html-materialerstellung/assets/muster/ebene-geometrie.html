@@ -62,5 +62,24 @@
     <div class="koerper"><x-tangram bogen="ja"></x-tangram></div>
   </div>
 </section>
+<section class="seite">
+  <div class="kopf"><div class="titel"><h1>Symmetrie</h1></div></div>
+  <div class="aufgabe">
+    <span class="nr">9</span><div class="anw"><span class="text">Ist die Figur symmetrisch? Kreuze an.</span></div>
+    <div class="koerper"><div class="reihe" style="--spalten:3">
+      <div class="zelle"><x-gitter spalten="6" zeilen="6" aufgabe="pruefen" figur="0 1 1 0 / 1 1 1 1 / 0 1 1 0"></x-gitter></div>
+      <div class="zelle"><x-gitter spalten="6" zeilen="6" aufgabe="pruefen" figur="1 0 / 1 0 / 1 1"></x-gitter></div>
+      <div class="zelle"><x-gitter spalten="6" zeilen="6" art="punkte" aufgabe="pruefen" linien="0,0 4,2 0,4"></x-gitter></div>
+    </div></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">10</span><div class="anw"><span class="text">Zeichne alle Achsen ein.</span></div>
+    <div class="koerper"><x-gitter spalten="6" zeilen="6" aufgabe="pruefen" frage="achsen" achsen-hinweis="4" figur="1 1 1 1 / 1 1 1 1 / 1 1 1 1 / 1 1 1 1"></x-gitter></div>
+  </div>
+  <div class="aufgabe">
+    <span class="nr">11</span><div class="anw"><span class="text">Sortiere nach den Achsen.</span></div>
+    <div class="koerper"><x-symmetrie-sortieren data-katalog="x-symmetrie-sortieren" zeichen="A B H E T X" gruppen="senkrecht waagerecht beide"></x-symmetrie-sortieren></div>
+  </div>
+</section>
 </body>
 </html>

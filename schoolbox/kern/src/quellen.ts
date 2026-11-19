@@ -21,6 +21,7 @@ import { figurenListe } from './figuren';
 import { formenTabelle } from './formen';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
 import { HINWEIS_OHNE } from './meldungen';
+import { symmetrieTabelle } from './symmetrie';
 import type { ArtAngaben } from './werte';
 import { ART_ANGABEN, ARTEN, VORLAGE_FORMAT } from './werte';
 
@@ -29,6 +30,7 @@ const RUECKFRAGEN = 'skills/grundschul-didaktik/references/rueckfragen.md';
 const DRUCK = 'skills/grundschul-didaktik/references/druck-und-platz.md';
 const BLATT_CSS = 'skills/html-materialerstellung/assets/blatt.css';
 const PRUEFUNG_JS = 'skills/html-materialerstellung/assets/pruefung.js';
+const BLATT_PY = 'skills/html-materialerstellung/scripts/blatt.py';
 const LAYOUT = 'skills/html-materialerstellung/references/layout.md';
 const GESTALTUNG = 'skills/html-materialerstellung/references/gestaltung.md';
 const ARBEITSBLATT = 'skills/arbeitsblatt/SKILL.md';
@@ -36,6 +38,7 @@ const EINHEIT_AUFTRAG = 'schoolbox/vorlagen/ki/einheit.md';
 const PFLICHTLEKTUERE_MD = 'skills/html-materialerstellung/references/pflichtlektuere.md';
 const AELTERER_SATZ = 'skills/html-materialerstellung/references/aelterer-satz.md';
 const ABBILDUNGEN = 'skills/html-materialerstellung/references/abbildungen.md';
+const GEOMETRIE = 'skills/html-materialerstellung/references/abbildungen/mathe-geometrie.md';
 
 const tabelle = (kopf: string[], zeilen: string[][]) =>
 	[
@@ -223,8 +226,8 @@ const satzSchwellen = (js: string) => {
 	};
 };
 
-/** Je Code die Stufen, mit denen `pruefung.js` und der Lauf der Schoolbox ihn melden. */
-const meldungStufen = (js: string) => {
+/** Je Code die Stufen, mit denen `pruefung.js`, `blatt.py` und der Lauf der Schoolbox ihn melden. */
+const meldungStufen = (js: string, py = '') => {
 	const stufen = new Map<string, Set<string>>();
 	const neben = (code: string, stufe: string) => stufen.set(code, (stufen.get(code) ?? new Set()).add(stufe));
 	for (const t of js.matchAll(/melde\("([A-Z]+)", [^,]+, ([^,]+),/g)) {
@@ -232,6 +235,9 @@ const meldungStufen = (js: string) => {
 		neben(codes.join(', '), t[1] ?? '');
 	}
 	for (const t of js.matchAll(/stufe: "([A-Z]+)", seite: \d+, code: "([a-z-]+)"/g)) {
+		neben(t[2] ?? '', t[1] ?? '');
+	}
+	for (const t of py.matchAll(/"stufe": "([A-Z]+)", "seite": [^,]+, "code": "([a-z-]+)"/g)) {
 		neben(t[2] ?? '', t[1] ?? '');
 	}
 	for (const [code, stufe] of Object.entries(LAUF_MELDUNGEN)) {
@@ -279,8 +285,11 @@ const pruefSchwellen = (wurzel: string) => {
 		'ausgeblendet': 'einmal je Material: Elemente mit `data-aus` werden nicht gedruckt',
 		'zeitziel-fehlt': `${laufNeu}: ${MIT_ZEITZIEL.map((a) => ART_ANGABEN[a].name).join(', ')} mit ${satz} und Aufgaben, aber ohne \`data-zeit\` am \`<body>\``,
 		'loesung-fehlt': `${laufNeu}: je Aufgabe, deren Antwortlinien keine Lösung haben; bei offener Aufgabe reicht ein Satz als \`.nur-loesung\``,
+		'symmetrie-achse': '`x-gitter aufgabe="pruefen"` mit `nur`, und die Anweisung spricht von Symmetrie, nennt die Achse aber nicht',
+		'symmetrie-motive': `nur beim Bauen: ein freies Bild in einer Aufgabe über Symmetrie zeigt mehrere Motive (Teilbilder oder Titel)`,
+		'symmetrie': `nur beim Bauen, aus \`blatt.py\`: je Aufgabe über Symmetrie die Deckung der freien Motive (HINWEIS); WARNUNG, wo die Lösung „nicht symmetrisch“ sagt und ein Motiv an einer gefragten Mitte zu mindestens ${prozent(zahl('SYMMETRIE_DECKUNG'))} deckt`,
 	};
-	const stufen = meldungStufen(js);
+	const stufen = meldungStufen(js, readFileSync(path.join(wurzel, BLATT_PY), 'utf8'));
 	for (const code of OHNE_SCHWELLE) {
 		stufen.delete(code);
 	}
@@ -407,6 +416,8 @@ export const ABSCHNITTE: Abschnitt[] = [
 	{ datei: AELTERER_SATZ, marke: 'aelterer-satz-schwellen', inhalt: aeltereSchwellen },
 	// Katalog der Abbildungen (226): Index aus den Überschriften der Teil-Dateien
 	{ datei: ABBILDUNGEN, marke: 'abbildungen-index', inhalt: abbildungenIndex },
+	// Symmetrie (245): Achsen der Buchstaben und Ziffern für x-symmetrie-sortieren
+	{ datei: GEOMETRIE, marke: 'symmetrie-zeichen', inhalt: symmetrieTabelle },
 ];
 
 /** Setzt den Inhalt zwischen `<!-- erzeugt: marke -->` und `<!-- /erzeugt: marke -->`. */

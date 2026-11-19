@@ -17,6 +17,7 @@ import {
 	zerlege,
 } from './quelltext';
 import type { StrukturErgebnis } from './struktur';
+import { SYMMETRIE_GRUPPEN, SYMMETRIE_SPALTEN, zeichenGruppe } from './symmetrie';
 import { uebertrageAuszeichnung } from './textstuecke';
 import type { Art, Fach, Klasse } from './werte';
 
@@ -1825,8 +1826,9 @@ const gitterFuerAufgabe = (w: Werte): Werte => {
 			return gitterFuerFortsetzen(w);
 		case 'vergroessern':
 			return gitterFuerVergroessern(w);
-		// S-05 (UX 186): Der Weg hat keine Achse; eine vorhandene fällt mit der Wahl weg.
+		// S-05 (UX 186): Weg und Prüfen (245) haben keine vorgegebene Achse; eine vorhandene fällt mit der Wahl weg.
 		case 'weg':
+		case 'pruefen':
 			return w.achse ? { 'achse': null, 'achse-bei': null } : {};
 		default:
 			return {};
@@ -2870,6 +2872,47 @@ export const ABBILDUNG_SCHEMA = {
 					{ wert: 'fortsetzen', name: 'Fortsetzen' },
 					{ wert: 'vergroessern', name: 'Vergrößern' },
 					{ wert: 'weg', name: 'Weg' },
+					{ wert: 'pruefen', name: 'Symmetrie prüfen' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'frage',
+				nurWenn: wenn('aufgabe', 'keine', 'pruefen'),
+				name: 'Frage',
+				standard: 'ja-nein',
+				gruppe: 'Was die Kinder tun',
+				optionen: [
+					{ wert: 'ja-nein', name: 'Symmetrisch? ja oder nein' },
+					{ wert: 'achsen', name: 'Achsen einzeichnen' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'nur',
+				nurWenn: wenn('aufgabe', 'keine', 'pruefen'),
+				name: 'Welche Achsen zählen',
+				hilfe: 'Zählt nur eine Achse, steht sie unter dem Gitter in der Frage.',
+				gruppe: 'Was die Kinder tun',
+				optionen: [
+					{ wert: null, name: 'Alle Achsen' },
+					{ wert: 'senkrecht', name: 'Nur die senkrechte' },
+					{ wert: 'waagerecht', name: 'Nur die waagerechte' },
+				],
+			},
+			{
+				art: 'auswahl',
+				attribut: 'achsen-hinweis',
+				nurWenn: (w) => w.aufgabe === 'pruefen' && w.frage === 'achsen' && !w.nur,
+				name: 'Anzahl der Achsen nennen',
+				hilfe: 'Unter dem Gitter steht dann „Zeichne beide Achsen ein.“; die Zahl muss zur Figur passen.',
+				gruppe: 'Was die Kinder tun',
+				optionen: [
+					{ wert: null, name: 'Nicht nennen' },
+					{ wert: '1', name: '1' },
+					{ wert: '2', name: '2' },
+					{ wert: '3', name: '3' },
+					{ wert: '4', name: '4' },
 				],
 			},
 			{
@@ -2878,17 +2921,18 @@ export const ABBILDUNG_SCHEMA = {
 				// S-05 (UX 186): Beim Weg gibt es keine Achse. Ist dort eine gespeichert, bleibt das Feld da, bis sie
 				// auf „Keine“ steht; eine neue lässt sich dort nicht wählen.
 				nurWenn: (w) =>
-					wennNicht('aufgabe', 'keine', 'fortsetzen', 'weg')(w) || (w.aufgabe === 'weg' && !!w.achse),
+					wennNicht('aufgabe', 'keine', 'fortsetzen', 'weg', 'pruefen')(w) ||
+					(['weg', 'pruefen'].includes(w.aufgabe ?? '') && !!w.achse),
 				name: 'Achse',
 				gruppe: 'Was die Kinder tun',
 				// 197-07: Spiegeln braucht eine Achse; eine neue Achse steht in der Mitte des Gitters.
 				// Beim Spiegeln nur eine Achse, die die Figur nicht schneidet; sie steht ab der Mitte (197-07).
 				angeboten: (wert, w) =>
-					w.aufgabe === 'weg'
+					w.aufgabe === 'weg' || w.aufgabe === 'pruefen'
 						? wert === null || wert === w.achse
 						: w.aufgabe !== 'spiegeln' || (wert !== null && achseFuer(w, wert) !== null),
 				mitnehmen: (w, alt): Werte => {
-					if (!w.achse && w.aufgabe === 'weg') {
+					if (!w.achse && (w.aufgabe === 'weg' || w.aufgabe === 'pruefen')) {
 						return { 'achse-bei': null };
 					}
 					if (!w.achse || w.achse === alt.achse) {
@@ -2908,7 +2952,7 @@ export const ABBILDUNG_SCHEMA = {
 			{
 				art: 'zahl',
 				attribut: 'achse-bei',
-				nurWenn: (w) => !!w.achse && !['fortsetzen', 'weg'].includes(w.aufgabe ?? 'keine'),
+				nurWenn: (w) => !!w.achse && !['fortsetzen', 'weg', 'pruefen'].includes(w.aufgabe ?? 'keine'),
 				name: 'Achse nach',
 				hilfe: 'So viele Kästchen von links, bei waagerechter Achse von oben.',
 				min: 1,
@@ -3025,6 +3069,61 @@ export const ABBILDUNG_SCHEMA = {
 				],
 			},
 		],
+	},
+	'x-symmetrie-sortieren': {
+		name: 'Symmetrie sortieren',
+		katalog: {
+			kategorie: 'Geometrie',
+			suchbegriffe: ['Symmetrie', 'Achsensymmetrie', 'Spiegelachse', 'Buchstaben', 'Ziffern', 'sortieren'],
+			ort: 'aufgabe',
+			faecher: ['mathematik'],
+		},
+		felder: [
+			{
+				art: 'text',
+				attribut: 'zeichen',
+				name: 'Buchstaben und Ziffern',
+				beispiel: 'A B E H 3 8',
+				muster: '[A-Z0-9 ]*',
+				musterHilfe: 'Großbuchstaben und Ziffern, mit Leerzeichen getrennt.',
+				hilfe: 'Die Lösung kommt aus der Tabelle der Druckschrift.',
+			},
+			{
+				art: 'text',
+				attribut: 'figuren',
+				name: 'Gitterfiguren',
+				// Nur Claude füllt es; leer gehört es nicht ins Panel.
+				nurWenn: (w) => Boolean(w.figuren?.trim()),
+				muster: '[01 /;]*',
+				musterHilfe: 'Kästchen zeilenweise wie 1 1 / 1 0, mehrere Figuren mit ; trennen.',
+				hilfe: 'Diese Figuren lassen sich nur über Claude ändern.',
+			},
+			{
+				art: 'mehrfach',
+				attribut: 'gruppen',
+				name: 'Spalten',
+				standard: ['senkrecht', 'waagerecht', 'beide'],
+				mindestens: 2,
+				optionen: SYMMETRIE_GRUPPEN.map((wert) => ({ wert, name: SYMMETRIE_SPALTEN[wert] })),
+			},
+		],
+		regeln: (w): Fehler => {
+			const zeichen = w.liste('zeichen');
+			if (zeichen.length === 0 && !w.text('figuren')?.trim()) {
+				return { zeichen: 'Schreibe mindestens einen Buchstaben oder eine Ziffer hinein.' };
+			}
+			const unbekannt = zeichen.find((z) => zeichenGruppe(z) === null);
+			if (unbekannt) {
+				return { zeichen: `„${unbekannt}“ kenne ich nicht. Nimm einzelne Großbuchstaben oder Ziffern.` };
+			}
+			const gruppen = w.liste('gruppen');
+			const spalten = gruppen.length > 0 ? gruppen : ['senkrecht', 'waagerecht', 'beide'];
+			const fehlt = zeichen.find((z) => !spalten.includes(zeichenGruppe(z) ?? ''));
+			const gruppe = fehlt ? zeichenGruppe(fehlt) : null;
+			return gruppe
+				? { gruppen: `„${fehlt}“ gehört zu „${SYMMETRIE_SPALTEN[gruppe]}“. Wähle diese Spalte dazu.` }
+				: {};
+		},
 	},
 	'x-figur': {
 		name: 'Figur',

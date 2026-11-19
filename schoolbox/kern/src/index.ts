@@ -43,6 +43,7 @@ export * from './recherche';
 export * from './schema';
 export * from './slug';
 export * from './struktur';
+export * from './symmetrie';
 export * from './tabelle';
 export * from './versionen';
 export * from './vorschaubilder';

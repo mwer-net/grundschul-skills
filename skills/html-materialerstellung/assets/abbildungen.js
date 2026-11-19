@@ -105,6 +105,7 @@
     "x-gluecksrad": "Glücksrad", "x-wuerfel": "Würfel", "x-strichliste": "Strichliste", "x-diagramm": "Diagramm",
     "x-urne": "Kugeln im Säckchen", "x-wahrscheinlichkeit": "Wahrscheinlichkeit", "x-kombinatorik": "Möglichkeiten",
     "x-gitter": "Gitter", "x-figur": "Ebene Figur", "x-tangram": "Tangram",
+    "x-symmetrie-sortieren": "Symmetrie sortieren",
     "x-hunderterfeld": "Hunderterfeld", "x-hundertertafel": "Hundertertafel", "x-rechenrahmen": "Rechenrahmen", "x-rechenstrich": "Rechenstrich",
     "x-lueckentext": "Lückentext", "x-wortspeicher": "Wortspeicher", "x-ankreuzen": "Ankreuzen", "x-richtigfalsch": "Richtig oder falsch",
     "x-lineatur": "Lineatur", "x-silben": "Silben", "x-wortarten": "Wortarten", "x-satzglieder": "Satzglieder", "x-wortbausteine": "Wortbausteine", "x-zeitleiste": "Zeitleiste", "x-jahreskreis": "Jahreskreis", "x-windrose": "Windrose", "x-plan": "Lageplan", "x-schaltplan": "Stromkreis", "x-kreislauf": "Kreislauf", "x-verkehrszeichen": "Verkehrszeichen", "x-wetter": "Wettersymbol", "x-rhythmus": "Rhythmus", "x-noten": "Noten",
@@ -1061,6 +1062,176 @@
     return { flaeche, umfang: schraeg ? null : umfang };
   };
 
+  /* Symmetrie (245): Achsen einer Gitterfigur, berechnet aus Kästchen und Linien. */
+  const ACHSEN_ARTEN = ["senkrecht", "waagerecht", "fallend", "steigend"];
+  /** Ein Vieleck ohne doppelte und ohne Punkte mitten auf einer Kante, als Text unabhängig von Anfang und Umlaufsinn. */
+  const vieleckSchluessel = (p) => {
+    let q = p.filter(([x, y], i) => { const [a, b] = p[(i + p.length - 1) % p.length]; return a !== x || b !== y; });
+    q = q.filter(([x, y], i) => {
+      const [a, b] = q[(i + q.length - 1) % q.length], [c, d] = q[(i + 1) % q.length];
+      return (x - a) * (d - b) - (y - b) * (c - a) !== 0;
+    });
+    const texte = q.map(([x, y]) => `${x},${y}`), n = texte.length, kandidaten = [];
+    for (const folge of [texte, [...texte].reverse()]) for (let i = 0; i < n; i++) kandidaten.push([...folge.slice(i), ...folge.slice(0, i)].join(" "));
+    return kandidaten.sort()[0] ?? "";
+  };
+  const formSchluessel = (form) =>
+    `${form.zellen.map(([x, y]) => `${x},${y}`).sort().join(" ")}|${form.polys.map(vieleckSchluessel).sort().join(";")}`;
+  /** Alle Spiegelachsen der Figur: senkrecht und waagerecht durch die Mitte ihres Rands, dazu beide Diagonalen. */
+  const symmetrieAchsen = (form) => {
+    const xs = [...form.zellen.flatMap((z) => [z[0], z[0] + 1]), ...form.polys.flat().map((p) => p[0])];
+    const ys = [...form.zellen.flatMap((z) => [z[1], z[1] + 1]), ...form.polys.flat().map((p) => p[1])];
+    if (xs.length === 0) return [];
+    const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+    const T = {
+      senkrecht: (x, y) => [2 * cx - x, y],
+      waagerecht: (x, y) => [x, 2 * cy - y],
+      fallend: (x, y) => [cx + y - cy, cy + x - cx],
+      steigend: (x, y) => [cx - y + cy, cy - x + cx],
+    };
+    const selbst = formSchluessel(form);
+    return ACHSEN_ARTEN.filter((art) => formSchluessel(bildVon(form, T[art])) === selbst).map((art) => ({ art, mitte: [cx, cy] }));
+  };
+  /** Spalte beim Sortieren: nur senkrecht, nur waagerecht, beide oder keine; schräge Achsen zählen hier nicht. */
+  const symmetrieGruppe = (arten) => {
+    const s = arten.includes("senkrecht"), w = arten.includes("waagerecht");
+    return s && w ? "beide" : s ? "senkrecht" : w ? "waagerecht" : "keine";
+  };
+  /** Grundschul-Druckschrift, Großbuchstaben und Ziffern; Quelle ist SYMMETRIE_ZEICHEN in kern/src/symmetrie.ts, ein Test hält beide gleich. */
+  const SYMMETRIE_ZEICHEN = { senkrecht: "AMTUVWY", waagerecht: "BCDEK3", beide: "HIOX08" };
+  const zeichenGruppe = (z) => {
+    if (!/^[A-Z0-9]$/.test(z)) return null;
+    return Object.keys(SYMMETRIE_ZEICHEN).find((g) => SYMMETRIE_ZEICHEN[g].includes(z)) ?? "keine";
+  };
+
+  const ACHSE_IM_SATZ = { senkrecht: "senkrechten", waagerecht: "waagerechten" };
+  /** Gitterfigur in Linien und Kästchen, wie x-gitter sie zeichnet. */
+  const gitterBild = (form, { art, spalten, zeilen, k }, grund) => {
+    let s = form.zellen.map(([x, y]) => `<rect class="kaestchen" x="${r1(x * k)}" y="${r1(y * k)}" width="${r1(k)}" height="${r1(k)}" fill="${grund}" stroke="${SCHWARZ}" stroke-width="1.5"/>`).join("");
+    s += form.polys.map((p) => `<path class="kaestchen" d="M${p.map(([x, y]) => `${r1(x * k)} ${r1(y * k)}`).join(" L")} Z" fill="${grund}" stroke="${SCHWARZ}" stroke-width="2"/>`).join("");
+    if (art === "karo") {
+      for (let x = 0; x <= spalten; x++) s += `<line x1="${r1(x * k)}" y1="0" x2="${r1(x * k)}" y2="${r1(zeilen * k)}" stroke="${GRAU}" stroke-width="1"/>`;
+      for (let y = 0; y <= zeilen; y++) s += `<line x1="0" y1="${r1(y * k)}" x2="${r1(spalten * k)}" y2="${r1(y * k)}" stroke="${GRAU}" stroke-width="1"/>`;
+    } else {
+      const rPunkt = art === "geobrett" ? 3 : 1.6;
+      for (let x = 0; x <= spalten; x++) for (let y = 0; y <= zeilen; y++) s += `<circle cx="${r1(x * k)}" cy="${r1(y * k)}" r="${rPunkt}" fill="${SCHWARZ}" stroke="none"/>`;
+    }
+    return s;
+  };
+  /** Rand der Figur in Gitterkoordinaten, ein halbes Kästchen weiter, im Gitter gehalten. */
+  const formRand = (form, spalten, zeilen) => {
+    const punkte = [...form.zellen.flatMap(([x, y]) => [[x, y], [x + 1, y + 1]]), ...form.polys.flat()];
+    const xs = punkte.map((p) => p[0]), ys = punkte.map((p) => p[1]);
+    return [Math.max(0, Math.min(...xs) - 0.5), Math.max(0, Math.min(...ys) - 0.5), Math.min(spalten, Math.max(...xs) + 0.5), Math.min(zeilen, Math.max(...ys) + 0.5)];
+  };
+  /** Eine Spiegelachse als gestrichelte Linie über die Figur, ein halbes Kästchen über ihren Rand hinaus. */
+  const achsenLinie = ({ art, mitte: [cx, cy] }, [x0, y0, x1, y1], k) => {
+    const [a, b] = art === "senkrecht" ? [[cx, y0], [cx, y1]] : art === "waagerecht" ? [[x0, cy], [x1, cy]]
+      : art === "fallend" ? [[cx - Math.min(cx - x0, cy - y0), cy - Math.min(cx - x0, cy - y0)], [cx + Math.min(x1 - cx, y1 - cy), cy + Math.min(x1 - cx, y1 - cy)]]
+        : [[cx - Math.min(cx - x0, y1 - cy), cy + Math.min(cx - x0, y1 - cy)], [cx + Math.min(x1 - cx, cy - y0), cy - Math.min(x1 - cx, cy - y0)]];
+    return `<line class="achse-loesung" data-achse="${art}" x1="${r1(a[0] * k)}" y1="${r1(a[1] * k)}" x2="${r1(b[0] * k)}" y2="${r1(b[1] * k)}" stroke="${SCHWARZ}" stroke-width="2.5" stroke-dasharray="8 5"/>`;
+  };
+  /** x-gitter aufgabe="pruefen" (245): Ist die Figur symmetrisch, welche Achsen hat sie? Die Lösung ist berechnet. */
+  const gitterPruefen = (el, form, { art, spalten, zeilen, k, achse, frage, nur, anzahl }) => {
+    if (achse) abbruch("Beim Prüfen gibt es keine vorgegebene Achse. Soll nur eine Achse zählen, nimm „Nur diese Achse“.");
+    if (form.zellen.length === 0 && form.polys.length === 0) abbruch("Die Figur ist noch leer.");
+    if (!["ja-nein", "achsen"].includes(frage)) abbruch(`Die Frage „${frage}“ gibt es nicht. Nimm ja-nein oder achsen.`);
+    if (nur && !ACHSE_IM_SATZ[nur]) abbruch(`„${nur}“ gibt es nicht. Nimm senkrecht oder waagerecht.`);
+    const achsen = symmetrieAchsen(form).filter((a) => !nur || a.art === nur);
+    el.setAttribute("data-achsen", achsen.map((a) => a.art).join(" ") || "keine");
+    let satz = "";
+    if (frage === "achsen") {
+      if (achsen.length === 0) abbruch(nur ? `Die Figur ist nicht symmetrisch zur ${ACHSE_IM_SATZ[nur]} Achse. Zum Einzeichnen braucht sie diese Achse; frag sonst „ja-nein“.` : "Die Figur hat keine Spiegelachse. Zum Einzeichnen braucht sie eine; frag sonst „ja-nein“.");
+      if (anzahl && Number(anzahl) !== achsen.length) abbruch(`Die Figur hat ${achsen.length === 1 ? "eine Achse" : `${achsen.length} Achsen`}, nicht ${anzahl}.`);
+      if (nur) satz = `Zeichne die ${ACHSE_IM_SATZ[nur].slice(0, -1)} Achse ein.`;
+      else if (anzahl) satz = achsen.length === 1 ? "Zeichne die Achse ein." : achsen.length === 2 ? "Zeichne beide Achsen ein." : `Zeichne alle ${achsen.length} Achsen ein.`;
+    } else satz = nur ? `Symmetrisch zur ${ACHSE_IM_SATZ[nur]} Achse?` : "Symmetrisch?";
+    const f = fuellung(), zeigeLoesung = loesungSichtbar(el), b = spalten * k, h = zeilen * k;
+    if (b > SATZSPIEGEL) abbruch("So viele Spalten passen nicht aufs Blatt. Nimm weniger Spalten oder kleinere Kästchen.");
+    let s = gitterBild(form, { art, spalten, zeilen, k }, HELL_ODER_MUSTER(f));
+    const rand = formRand(form, spalten, zeilen);
+    if (zeigeLoesung) s += achsen.map((a) => achsenLinie(a, rand, k)).join("");
+    let breite = b, unten = h + 4;
+    if (satz) {
+      let y = h + 22;
+      const gross = 16;
+      s += text(0, y, satz, { groesse: gross, anker: "start" });
+      let x = textBreite(satz, gross) + 12;
+      const kaestchenBreite = 2 * 42 + textBreite("ja", gross) + textBreite("nein", gross);
+      if (frage === "ja-nein" && x + kaestchenBreite > b) [x, y] = [0, y + 30];
+      if (frage === "ja-nein") {
+        for (const [wort, richtig] of [["ja", achsen.length > 0], ["nein", achsen.length === 0]]) {
+          s += `<rect class="ankreuzfeld" x="${r1(x)}" y="${r1(y - 10)}" width="20" height="20" rx="2" stroke-width="1.6" fill="#fff"/>`;
+          if (zeigeLoesung && richtig) s += `<path class="kreuz-loesung" d="M${r1(x + 4)} ${r1(y - 6)} L${r1(x + 16)} ${r1(y + 6)} M${r1(x + 16)} ${r1(y - 6)} L${r1(x + 4)} ${r1(y + 6)}" stroke="${SCHWARZ}" stroke-width="2.5"/>`;
+          s += text(x + 26, y, wort, { groesse: gross, anker: "start" });
+          x += 26 + textBreite(wort, gross) + 16;
+        }
+      }
+      breite = Math.max(breite, x);
+      unten = y + 14;
+    }
+    masstab(el);
+    el.innerHTML = svg(r1(breite + 2), r1(unten + 2), `${f.defs()}<g transform="translate(1 1)">${s}</g>`);
+  };
+
+  /** x-symmetrie-sortieren (245): Buchstaben, Ziffern und Gitterfiguren nach ihren Achsen in Spalten. */
+  const SORTIER_SPALTEN = { senkrecht: "nur senkrecht", waagerecht: "nur waagerecht", beide: "beide Achsen", keine: "keine Achse" };
+  function symmetrieSortieren(el) {
+    const zeichen = liste(el, "zeichen");
+    const figuren = attr(el, "figuren", "").split(";").map((t) => trenneRaster(t)).filter((r) => r.length > 0);
+    const gruppen = liste(el, "gruppen");
+    if (gruppen.length === 0) gruppen.push("senkrecht", "waagerecht", "beide");
+    if (gruppen.some((g) => !SORTIER_SPALTEN[g])) abbruch(`Die Spalte „${gruppen.find((g) => !SORTIER_SPALTEN[g])}“ gibt es nicht. Nimm senkrecht, waagerecht, beide oder keine.`);
+    if (gruppen.length < 2) abbruch("Zum Sortieren braucht es mindestens zwei Spalten.");
+    if (zeichen.length + figuren.length === 0) abbruch("Es gibt noch nichts zu sortieren. Schreibe Buchstaben oder Ziffern hinein.");
+    const k = 14, eintraege = [];
+    for (const z of zeichen) {
+      const g = zeichenGruppe(z);
+      if (!g) abbruch(`„${z}“ kenne ich nicht. Nimm einzelne Großbuchstaben oder Ziffern.`);
+      eintraege.push({ text: z, gruppe: g });
+    }
+    figuren.forEach((r, i) => {
+      const form = { zellen: [], polys: [] };
+      r.forEach((zeile, y) => zeile.forEach((z, x) => { if (z !== "0") form.zellen.push([x, y]); }));
+      if (form.zellen.length === 0) abbruch(`Figur ${i + 1} ist noch leer.`);
+      const arten = symmetrieAchsen(form).map((a) => a.art);
+      if (arten.length > 0 && !arten.includes("senkrecht") && !arten.includes("waagerecht")) abbruch(`Figur ${i + 1} hat nur schräge Achsen. Zum Sortieren nach senkrecht und waagerecht passt sie nicht.`);
+      eintraege.push({ text: String(i + 1), gruppe: symmetrieGruppe(arten), form, spalten: Math.max(...r.map((z) => z.length)), zeilen: r.length });
+    });
+    const fehlt = eintraege.find((e) => !gruppen.includes(e.gruppe));
+    if (fehlt) abbruch(`${fehlt.form ? `Figur ${fehlt.text}` : `„${fehlt.text}“`} gehört zu „${SORTIER_SPALTEN[fehlt.gruppe]}“. Diese Spalte fehlt.`);
+    el.setAttribute("data-gruppen", eintraege.map((e) => `${e.text}:${e.gruppe}`).join(" "));
+
+    const breite = SATZSPIEGEL, gross = 34, lueckeX = 14, f = fuellung(), grund = HELL_ODER_MUSTER(f);
+    let s = "", x = 0, y = 0, zeileH = 0;
+    for (const e of eintraege) {
+      const b = e.form ? e.spalten * k : textBreite(e.text, gross) + 8, h = e.form ? e.zeilen * k + 20 : gross + 8;
+      if (x > 0 && x + b > breite) { x = 0; y += zeileH + 10; zeileH = 0; }
+      if (e.form) {
+        s += `<g transform="translate(${r1(x)} ${r1(y)})">${gitterBild(e.form, { art: "karo", spalten: e.spalten, zeilen: e.zeilen, k }, grund)}</g>`;
+        s += text(x + b / 2, y + e.zeilen * k + 11, e.text, { groesse: 14, fett: true });
+      } else s += text(x + b / 2, y + h / 2, e.text, { groesse: gross });
+      x += b + lueckeX;
+      zeileH = Math.max(zeileH, h);
+    }
+    const oben = y + zeileH + 16, n = gruppen.length, spalteB = (breite - (n - 1) * 8) / n, kopfH = 30, platz = 40;
+    const jeZeile = Math.max(1, Math.floor((spalteB - 8) / platz)), zeilenZahl = Math.max(2, Math.ceil(eintraege.length / jeZeile));
+    const koerperH = zeilenZahl * platz + 8, zeigeLoesung = loesungSichtbar(el);
+    gruppen.forEach((g, i) => {
+      const sx = i * (spalteB + 8), mx = sx + 14;
+      s += `<rect x="${r1(sx)}" y="${r1(oben)}" width="${r1(spalteB)}" height="${r1(kopfH + koerperH)}" rx="4" stroke-width="1.6" fill="#fff"/>`;
+      s += `<line x1="${r1(sx)}" y1="${r1(oben + kopfH)}" x2="${r1(sx + spalteB)}" y2="${r1(oben + kopfH)}" stroke-width="1.6"/>`;
+      const strich = (x1, y1, x2, y2) => `<line x1="${r1(x1)}" y1="${r1(y1)}" x2="${r1(x2)}" y2="${r1(y2)}" stroke="${SCHWARZ}" stroke-width="2" stroke-dasharray="4 3"/>`;
+      if (g === "senkrecht" || g === "beide") s += strich(mx, oben + 6, mx, oben + kopfH - 6);
+      if (g === "waagerecht" || g === "beide") s += strich(mx - 9, oben + kopfH / 2, mx + 9, oben + kopfH / 2);
+      s += text(sx + 30, oben + kopfH / 2, SORTIER_SPALTEN[g], { groesse: 15, anker: "start" });
+      if (zeigeLoesung) eintraege.filter((e) => e.gruppe === g).forEach((e, j) => {
+        s += text(sx + 8 + (j % jeZeile) * platz + platz / 2, oben + kopfH + 4 + Math.floor(j / jeZeile) * platz + platz / 2, e.text, { groesse: 24, fett: true });
+      });
+    });
+    el.innerHTML = svg(r1(breite + 2), r1(oben + kopfH + koerperH + 2), `${f.defs()}<g transform="translate(1 1)">${s}</g>`);
+  }
+
   function gitter(el) {
     const art = attr(el, "art", "karo");
     const spalten = num(el, "spalten", 10), zeilen = num(el, "zeilen", 8);
@@ -1089,6 +1260,7 @@
     if (!passtInsGitter(form, spalten, zeilen)) abbruch(`Die Figur passt nicht ins Gitter. ${gitterBraucht(form)}`);
     const istLeer = form.zellen.length === 0 && form.polys.length === 0;
     if (["spiegeln", "fortsetzen", "vergroessern"].includes(aufgabe) && istLeer) abbruch("Die Figur ist noch leer.");
+    if (aufgabe === "pruefen") return gitterPruefen(el, form, { art, spalten, zeilen, k, achse, frage: attr(el, "frage", "ja-nein"), nur: attr(el, "nur", ""), anzahl: attr(el, "achsen-hinweis", "") });
     const f = fuellung(), grund = HELL_ODER_MUSTER(f);
 
     let oben = 0, loesung = { zellen: [], polys: [] }, zielGitter = false, achseLinie = "", wegBild = "";
@@ -5774,6 +5946,7 @@
     "x-probe": probe, "x-gluecksrad": gluecksrad, "x-wuerfel": wuerfel, "x-strichliste": strichliste, "x-diagramm": diagramm,
     "x-urne": urne, "x-wahrscheinlichkeit": wahrscheinlichkeit, "x-kombinatorik": kombinatorik,
     "x-gitter": gitter, "x-figur": figur, "x-tangram": tangram,
+    "x-symmetrie-sortieren": symmetrieSortieren,
     "x-hunderterfeld": hunderterfeld, "x-hundertertafel": hundertertafel, "x-rechenrahmen": rechenrahmen, "x-rechenstrich": rechenstrich,
     "x-zahlenmauer": zahlenmauer, "x-rechendreieck": rechendreieck, "x-zahlenhaus": zahlenhaus, "x-zahlenkette": zahlenkette, "x-zauberdreieck": zauberdreieck, "x-rechenrad": rechenrad,
     "x-lueckentext": lueckentext, "x-wortspeicher": wortspeicher, "x-ankreuzen": ankreuzen, "x-richtigfalsch": richtigfalsch,
@@ -5820,6 +5993,7 @@
     suchselBau, suchselZaehle, suchselStandard, raetselWort, kreuzBau, kreuzGueltig, loesungswortFehler,
     bingoKarten, dominoSteine, dominoFehler, spielplanWeg, spielplanRaster, teilePaar,
     ARTEN, zahl, cm, zufall, gemischt, trenneListe, trenneRaster, bildVon, spiegelung, skaliere, gehWeg, flaecheUmfang, TANGRAM_TEILE, TANGRAM_UMRISSE,
+    symmetrieAchsen, symmetrieGruppe, SYMMETRIE_ZEICHEN, zeichenGruppe,
     ansichtenVon, wuerfelVon, verdeckteWuerfel, WUERFELNETZE, NICHT_NETZE, netzZellen, falteNetz, istWuerfelnetz, netzLaschen, netzLage, AUGEN_DER_SEITE, vielflach, KOERPER_ZAHLEN,
     tafelOrt, ausschnittZahlen, rechenstrichWerte, leseSprung,
     mauerWerte, mauerEindeutig, istEindeutig, RECHENDREIECK_GLEICHUNGEN, zauberLoesungen, ketteWerte, leseOperator,

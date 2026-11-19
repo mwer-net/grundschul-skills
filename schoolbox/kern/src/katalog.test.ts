@@ -262,8 +262,8 @@ describe('Suche', () => {
 describe('Angebot (203)', () => {
 	const ids = (liste: readonly { id: string }[]) => liste.map((e) => e.id);
 
-	it('102 Bausteine in 13 Kategorien, jede mit mindestens drei', () => {
-		assert.equal(ANGEBOT.length, 102);
+	it('103 Bausteine in 13 Kategorien, jede mit mindestens drei', () => {
+		assert.equal(ANGEBOT.length, 103);
 		assert.equal(KATALOG_KATEGORIEN.length, 13);
 		for (const k of KATALOG_KATEGORIEN) {
 			const zahl = ANGEBOT.filter((e) => e.kategorie === k).length;

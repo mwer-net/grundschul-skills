@@ -50,6 +50,7 @@ Die Elemente stehen nach Bereich in eigenen Dateien. Lies vor dem Einsatz eines 
 | `x-malkreuz` | Malkreuz | `references/abbildungen/mathe-zahlen.md` |
 | `x-schriftlich` | Schriftliche Rechnung | `references/abbildungen/mathe-zahlen.md` |
 | `x-gitter` | Karo-, Punkt- und Geobrett-Gitter | `references/abbildungen/mathe-geometrie.md` |
+| `x-symmetrie-sortieren` | Nach Achsen sortieren | `references/abbildungen/mathe-geometrie.md` |
 | `x-figur` | Ebene Figur | `references/abbildungen/mathe-geometrie.md` |
 | `x-tangram` | Tangram | `references/abbildungen/mathe-geometrie.md` |
 | `x-wuerfelbau` | Würfelgebäude | `references/abbildungen/mathe-geometrie.md` |

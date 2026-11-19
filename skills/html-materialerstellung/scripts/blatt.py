@@ -604,6 +604,123 @@ def folien_ausgaben(text, quelle, aus, tmp, schritte, notizen, still, profil=Non
     return erzeugt, meldungen, fehler
 
 
+# Symmetrie freier Motive (245): pruefung.js legt jedes Motiv einer Symmetrie-Aufgabe einzeln als SVG ab, hier wird es
+# gerastert, an der senkrechten und der waagerechten Mitte seines Rands gespiegelt und die Deckung gemessen.
+MOTIV_ZELLE = 260
+MOTIVE_JE_ZEILE = 6
+MOTIVE_JE_BILD = 48
+DECKUNG_SPIELRAUM = 5  # px Toleranz beim Vergleich (MaxFilter), etwa 1 % der Motivgröße
+
+
+def deckung(bild):
+    """Anteil der Zeichnung, der gespiegelt wieder auf Zeichnung fällt: (senkrecht, waagerecht) oder None ohne Zeichnung."""
+    from PIL import ImageChops, ImageFilter, ImageOps
+    rgb = bild.convert("RGB")
+    r, g, b = rgb.split()
+    stich = ImageChops.lighter(ImageChops.lighter(ImageChops.difference(r, g), ImageChops.difference(g, b)), ImageChops.difference(r, b))
+    tinte = ImageChops.lighter(rgb.convert("L").point(lambda v: 255 if v < 235 else 0), stich.point(lambda v: 255 if v > 30 else 0))
+    rahmen = tinte.getbbox()
+    if not rahmen:
+        return None
+    a = tinte.crop(rahmen)
+    breit = a.filter(ImageFilter.MaxFilter(DECKUNG_SPIELRAUM))
+    menge = a.histogram()[255]
+
+    def gegen(m):
+        treffer = ImageChops.darker(a, m.filter(ImageFilter.MaxFilter(DECKUNG_SPIELRAUM))).histogram()[255]
+        treffer += ImageChops.darker(m, breit).histogram()[255]
+        return treffer / (2 * menge) if menge else 0.0
+    return gegen(ImageOps.mirror(a)), gegen(ImageOps.flip(a))
+
+
+def symmetrie_raster(motive, text, quelle_dir, tmp):
+    """Rastert die Motive in Chromium (Bildschirmfoto, je bis zu MOTIVE_JE_BILD) und gibt je Motiv ein PIL-Bild zurück."""
+    from PIL import Image
+    kopf = re.search(r"<head[^>]*>.*?</head>", text, re.S | re.I)
+    body = re.search(r"<body[^>]*>", text, re.I)
+    bilder = []
+    for start in range(0, len(motive), MOTIVE_JE_BILD):
+        teil = motive[start:start + MOTIVE_JE_BILD]
+        zeilen = (len(teil) + MOTIVE_JE_ZEILE - 1) // MOTIVE_JE_ZEILE
+        felder = "".join(
+            f'<div style="position:absolute;left:{(i % MOTIVE_JE_ZEILE) * MOTIV_ZELLE}px;top:{(i // MOTIVE_JE_ZEILE) * MOTIV_ZELLE}px;'
+            f'width:{MOTIV_ZELLE}px;height:{MOTIV_ZELLE}px;background:#fff;display:flex;align-items:center;justify-content:center">{m["html"]}</div>'
+            for i, m in enumerate(teil))
+        seite = (f'<!doctype html><html lang="de">{kopf.group(0) if kopf else "<head></head>"}'
+                 f'{body.group(0) if body else "<body>"}<div style="position:fixed;left:0;top:0;width:{MOTIVE_JE_ZEILE * MOTIV_ZELLE}px;'
+                 f'height:{zeilen * MOTIV_ZELLE}px;background:#fff;z-index:9">{felder}</div></body></html>')
+        html_pfad = Path(tmp) / f"symmetrie-{start}.html"
+        html_pfad.write_text(einbetten(seite, quelle_dir, profil="farbe"), encoding="utf-8")
+        png = Path(tmp) / f"symmetrie-{start}.png"
+        chromium([f"--screenshot={png}", f"--window-size={MOTIVE_JE_ZEILE * MOTIV_ZELLE},{zeilen * MOTIV_ZELLE}",
+                  "--force-device-scale-factor=1"], html_pfad.resolve().as_uri())
+        if not png.exists():
+            return None
+        with Image.open(png) as foto:
+            foto.load()
+            for i, m in enumerate(teil):
+                x, y = (i % MOTIVE_JE_ZEILE) * MOTIV_ZELLE, (i // MOTIVE_JE_ZEILE) * MOTIV_ZELLE
+                bilder.append(foto.crop((x, y, x + MOTIV_ZELLE, y + MOTIV_ZELLE)).copy())
+    return bilder
+
+
+def prozent(wert):
+    return f"{round(wert * 100)} %"
+
+
+def symmetrie_satz(name, werte, schwelle):
+    s, w = werte
+    if s >= schwelle and w >= schwelle:
+        return f"„{name}“: deckungsgleich an beiden Mitten (senkrecht {prozent(s)}, waagerecht {prozent(w)})"
+    if s >= schwelle or w >= schwelle:
+        ja, nein = ("senkrechten", "waagerechten") if s >= schwelle else ("waagerechten", "senkrechten")
+        return f"„{name}“: deckungsgleich an der {ja} Mitte ({prozent(max(s, w))}), an der {nein} nicht ({prozent(min(s, w))})"
+    return f"„{name}“: an keiner Mitte deckungsgleich (senkrecht {prozent(s)}, waagerecht {prozent(w)})"
+
+
+def symmetrie_messen(bericht, text, quelle_dir, tmp):
+    """Meldungen zur Deckung: je Aufgabe ein HINWEIS mit den Werten, eine WARNUNG, wo die Lösung „nicht symmetrisch“
+    sagt und die Messung an einer gefragten Achse deckungsgleich ist. Teilbilder und Felder erscheinen nur in Warnungen,
+    sobald es mehr als acht sind."""
+    daten = bericht.pop("symmetrie", None)
+    if not daten or not daten.get("motive"):
+        return []
+    try:
+        bilder = symmetrie_raster(daten["motive"], text, quelle_dir, tmp)
+    except (ImportError, subprocess.SubprocessError, OSError):
+        bilder = None
+    if not bilder:
+        return []
+    schwelle = daten["schwelle"]
+    meldungen, je_aufgabe = [], {}
+    for m, bild in zip(daten["motive"], bilder):
+        werte = deckung(bild)
+        if werte is None:
+            continue
+        m["deckung"] = werte
+        je_aufgabe.setdefault((m["seite"], m["aufgabe"]), []).append(m)
+        if m["markiert"] is None:
+            continue
+        symmetrisch_laut_loesung = m["markiert"] != m["nein"]
+        gefragt = [werte[0] if a == "senkrecht" else werte[1] for a in m["achsen"]]
+        if not symmetrisch_laut_loesung and max(gefragt) >= schwelle:
+            name = m.get("name") or m["titel"]
+            wo = f"{m['titel']}, {name}" if m.get("name") else name
+            meldungen.append({"stufe": "WARNUNG", "seite": m["seite"], "code": "symmetrie", "ziele": [m["ziel"]],
+                              "text": f"{m['aufgabe']}: Die Lösung zählt „{wo}“ als nicht symmetrisch, es ist aber "
+                                      f"{symmetrie_satz(name, werte, schwelle).split('“: ', 1)[1]} → Lösung oder Zeichnung prüfen"})
+    for (seite, aufgabe), liste in je_aufgabe.items():
+        zeigen = [m for m in liste if m["art"] == "einzel"]
+        teile = [m for m in liste if m["art"] != "einzel"]
+        if len(teile) <= 8:
+            zeigen += teile
+        if zeigen:
+            saetze = "; ".join(symmetrie_satz(f"{m['titel']}, {m['name']}" if m.get("name") else m["titel"], m["deckung"], schwelle) for m in zeigen)
+            meldungen.append({"stufe": "HINWEIS", "seite": seite, "code": "symmetrie", "ziele": [m["ziel"] for m in zeigen],
+                              "text": f"{aufgabe}, gemessen an den Mitten des Rands (deckungsgleich ab {prozent(schwelle)}): {saetze}"})
+    return meldungen
+
+
 def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=False, bericht_datei=None,
           schritte=False, notizen=False, nur_zusatz=False, profil=None):
     quelle = Path(quelle).resolve()
@@ -623,6 +740,7 @@ def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=Fal
         pruef = Path(tmp) / "pruefen.html"
         pruef.write_text(einbetten(text, quelle.parent, pruefen=True, profil=profil, cache=cache), encoding="utf-8")
         bericht = pruefbericht(pruef)
+        bericht["meldungen"] += symmetrie_messen(bericht, text, quelle.parent, tmp)
         fehler = ausgeben(bericht, "" if not still else name)
         meldungen = list(bericht["meldungen"])
         if nur_pruefen:

@@ -203,6 +203,7 @@ describe('Erzeugte Abschnitte', () => {
 			...ABBILDUNGEN_DATEIEN.map((d) => `skills/${d}`),
 			'skills/html-materialerstellung/assets/blatt.css',
 			'skills/html-materialerstellung/assets/pruefung.js',
+			'skills/html-materialerstellung/scripts/blatt.py',
 		]) {
 			mkdirSync(path.dirname(path.join(ziel, datei)), { recursive: true });
 			cpSync(path.join(WURZEL, datei), path.join(ziel, datei));

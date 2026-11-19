@@ -255,6 +255,7 @@ x-bingo,x-domino,x-spielplan{display:block}
 
 /* Abbildungen (abbildungen.js) */
 x-rhythmus,x-noten,x-schaltplan,x-verkehrszeichen,x-wetter,x-uhr,x-menge,x-dienes,x-strichpunkt,x-stellentafel,x-zwanzigerfeld,x-zahlenstrahl,x-probe,x-gluecksrad,x-wuerfel,x-strichliste,x-diagramm,x-urne,x-wahrscheinlichkeit,x-kombinatorik,x-gitter,x-figur,x-tangram,x-wuerfelbau,x-wuerfelnetz,x-koerper,x-hunderterfeld,x-hundertertafel,x-rechenrahmen,x-rechenstrich,x-zahlenmauer,x-rechendreieck,x-zahlenhaus,x-zahlenkette,x-zauberdreieck,x-rechenrad,x-punktfeld,x-malkreuz,x-schriftlich,x-lineatur,x-wortarten,x-satzglieder,x-wortbausteine,x-zeitleiste,x-jahreskreis,x-windrose,x-plan,x-geld,x-skala,x-strecke,x-kalender,x-zeitspanne{display:inline-block;line-height:0}
+x-symmetrie-sortieren{display:inline-block;line-height:0}
 x-timer{display:inline-flex;flex-direction:column;align-items:center;gap:12px}
 .timer-text{font-weight:700;line-height:1.2}
 x-stellentafel{line-height:1.2}

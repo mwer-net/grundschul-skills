@@ -142,7 +142,7 @@ export const REIHENFOLGE: readonly string[] = [
 	...['x-zauberdreieck', 'x-rechenrad', 'x-punktfeld', 'x-malkreuz', 'x-schriftlich'],
 	...['paket-sachaufgabe', 'paket-rechenuebersicht', 'paket-wertetabelle'],
 	// Geometrie
-	...['x-figur', 'x-gitter', 'x-tangram', 'x-koerper', 'x-wuerfelbau', 'x-wuerfelnetz'],
+	...['x-figur', 'x-gitter', 'x-symmetrie-sortieren', 'x-tangram', 'x-koerper', 'x-wuerfelbau', 'x-wuerfelnetz'],
 	// Größen
 	...['x-uhr', 'paket-uhr', 'x-zeitspanne', 'x-kalender', 'x-geld', 'x-skala', 'x-strecke'],
 	// Daten und Zufall
