@@ -46,6 +46,10 @@ export interface BibliotheksFigur {
 	steckbrief?: string;
 	canva?: string;
 	suchwoerter: readonly string[];
+	/** 253: Titel der Einheit, aus der die Figur in die Bibliothek kam. */
+	aus?: string;
+	/** 253: Was die Lehrkraft an der Figur prüfen soll, etwa ein Gegenstand der Handlung in der Grundpose. */
+	vermerk?: string;
 	/** Mindestens eine; die erste ist die Grundpose. */
 	posen: readonly Pose[];
 }

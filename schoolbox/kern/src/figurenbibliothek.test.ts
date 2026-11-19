@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, mkdtemp, readdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { copyFile, cp, mkdir, mkdtemp, readdir, readFile, stat, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
@@ -207,7 +207,7 @@ describe('Figurenbibliothek: einmalige Übernahme (177)', () => {
 			(await leseBibliothek(KONFIG, materialDir)).map((f) => f.id),
 			['willi', 'wilma'],
 		);
-		assert.deepEqual(await leseJson(materialDir), { version: 1, figuren: [] });
+		assert.deepEqual(await leseJson(materialDir), { version: 1, figuren: [], einheitenUebernommen: true });
 	});
 
 	it('kaputt: liefert Willi und Wilma, die Datei bleibt byte-gleich, und Aufnehmen scheitert', async () => {
@@ -222,6 +222,108 @@ describe('Figurenbibliothek: einmalige Übernahme (177)', () => {
 		const neu = { datei: quelle, figur: 'eule', name: 'Eule' };
 		await assert.rejects(nimmPoseAuf(KONFIG, materialDir, neu), SchoolboxFehler);
 		assert.equal(await readFile(json(materialDir), 'utf8'), '{"version":1,"figuren":[');
+	});
+});
+
+describe('Figurenbibliothek: Figuren aus Einheiten, einmal (253)', () => {
+	const KOPF = 'datei\tquelle\tmodell\tdatum\tmotiv\tart\tbefund\tinhalt';
+	const zeile = (datei: string, motiv: string, art = 'freigestellt') =>
+		[datei, 'openai', 'gpt-image', '2026-11-18', motiv, art, '', ''].join('\t');
+
+	/** Eine Einheit wie die zur Achsensymmetrie: Luna ohne Grundpose, Varianten von „faltet“, Ella mit Glöckchen. */
+	const einheit = async () => {
+		const materialDir = await mkdtemp(path.join(tmpdir(), 'schoolbox-figuren-'));
+		await mkdir(figurenDir(materialDir));
+		await png(figurenDir(materialDir), 'fridolin.png', 40, 40, 0.5, '#904010');
+		const alt = { id: 'fridolin', name: 'Fridolin', posen: [{ datei: 'fridolin.png', herkunft: 'canva' }] };
+		await writeFile(json(materialDir), JSON.stringify({ version: 1, figuren: [alt] }));
+		const { mappe: m } = await neueMappe(materialDir, { titel: 'Spiegelwerkstatt', fach: 'mathematik', klasse: 2 }, JETZT);
+		const bilder = path.join(mappenDir(materialDir, m.id), 'bilder');
+		const farben: Record<string, string> = {
+			'luna-zeigt.png': '#305080',
+			'luna-jubelt.png': '#305081',
+			'luna-faltet.png': '#305082',
+			'luna-faltet-2.png': '#305083',
+			'luna-faltet-3.png': '#305084',
+			'ella.png': '#a06020',
+			'fridolin.png': '#c05010',
+			'hanne.png': '#e0e0f0',
+		};
+		for (const [datei, farbe] of Object.entries(farben)) {
+			await png(bilder, datei, 40, 40, 0.5, farbe);
+		}
+		await png(bilder, 'folie-1.jpg', 40, 30, -1, '#ffffff');
+		const tsv = [
+			KOPF,
+			zeile('luna-zeigt.png', 'Pose Luna zeigt zur Seite'),
+			zeile('luna-jubelt.png', 'Pose Luna jubelt'),
+			zeile('luna-faltet.png', 'Pose Luna faltet ein Papier'),
+			zeile('luna-faltet-2.png', 'Pose Luna faltet ein Papier'),
+			zeile('luna-faltet-3.png', 'Pose Luna faltet ein Papier'),
+			zeile('ella.png', 'Grundpose Ella: Eichhörnchen mit buschigem Schwanz und goldenem Glöckchen (Referenz)'),
+			zeile('fridolin.png', 'Grundpose Fridolin: Fuchs mit blauer Postmütze'),
+			zeile('hanne.png', 'Grundpose Hanne: Schneehase mit Pudelmütze'),
+			zeile('hanne.png', 'Grundpose Hanne: Schneehase mit Pudelmütze', 'offen'),
+			zeile('folie-1.jpg', 'Bildfolie 1: Hanne hält das goldene Glöckchen, Luna staunt'),
+		];
+		await writeFile(path.join(bilder, 'bilder-herkunft.tsv'), `${tsv.join('\n')}\n`);
+		const blatt = async (titel: string, namen: string[], zeit: number) => {
+			const dok = await neuesDokument(
+				materialDir,
+				m.id,
+				{ titel, art: 'arbeitsblatt', format: 'a4-hoch', druckprofil: 'farbe', druckhinweise: [] },
+				JETZT,
+			);
+			const datei = path.join(dokumentDir(materialDir, m.id, dok.id), 'material.html');
+			await writeFile(datei, namen.map((n) => `<img src="../../bilder/${n}">`).join('\n'));
+			await utimes(datei, zeit, zeit);
+		};
+		await blatt('Eins', ['luna-zeigt.png', 'luna-faltet-2.png', 'folie-1.jpg'], 1_000_000);
+		await blatt('Zwei', ['luna-zeigt.png', 'luna-jubelt.png', 'luna-faltet-3.png', 'ella.png'], 2_000_000);
+		return { materialDir, bilder };
+	};
+
+	it('übernimmt Grundposen und eingebundene Posen, mit Name, Herkunft, Steckbrief und Vermerk', async () => {
+		const { materialDir, bilder } = await einheit();
+		const vorher = await hashListe(bilder);
+		const figuren = await leseBibliothek(KONFIG, materialDir);
+		assert.deepEqual(kurz(figuren).slice(2), [
+			{ id: 'ella', posen: ['ella'] },
+			{ id: 'fridolin', posen: ['fridolin'] },
+			{ id: 'fridolin2', posen: ['fridolin2'] },
+			{ id: 'luna', posen: ['luna', 'luna-jubelt', 'luna-faltet'] },
+		]);
+		const je = Object.fromEntries(figuren.map((f) => [f.id, f]));
+		assert.equal(je.fridolin2?.name, 'Fridolin (Fuchs)');
+		assert.equal(je.fridolin?.name, 'Fridolin');
+		assert.equal(je.luna?.aus, 'Spiegelwerkstatt');
+		assert.equal(je.ella?.vermerk, 'Grundpose trägt einen Gegenstand der Handlung, prüfen.');
+		assert.equal(je.ella?.steckbrief, 'Eichhörnchen mit buschigem Schwanz');
+		assert.equal(je.fridolin2?.vermerk, undefined);
+		assert.ok(!je.hanne, 'Hanne ist offen');
+
+		const gleich = async (bibliothek: string, quelle: string) =>
+			assert.ok((await readFile(path.join(figurenDir(materialDir), bibliothek))).equals(await readFile(quelle)));
+		await gleich('luna.png', path.join(bilder, 'luna-zeigt.png'));
+		await gleich('luna-faltet.png', path.join(bilder, 'luna-faltet-3.png'));
+		const gespeichert = await leseJson(materialDir);
+		assert.equal((gespeichert as Gespeichert & { einheitenUebernommen?: boolean }).einheitenUebernommen, true);
+		const luna = gespeichert.figuren.find((f) => f.id === 'luna');
+		assert.match(String(luna?.posen[0]?.herkunft), /\/bilder\/luna-zeigt\.png$/);
+		assert.deepEqual(await hashListe(bilder), vorher, 'nur Kopien');
+	});
+
+	it('ein zweiter Start übernimmt nichts doppelt', async () => {
+		const { materialDir } = await einheit();
+		await leseBibliothek(KONFIG, materialDir);
+		const inhalt = await readFile(json(materialDir));
+		const dateien = await readdir(figurenDir(materialDir));
+		// Ein neuer Prozess sieht nur den Merker: hier ein neuer Pfad für denselben Ordner.
+		const kopie = `${materialDir}-neu`;
+		await cp(materialDir, kopie, { recursive: true });
+		await leseBibliothek(KONFIG, kopie);
+		assert.ok((await readFile(json(kopie))).equals(inhalt));
+		assert.deepEqual((await readdir(figurenDir(kopie))).sort(), dateien.sort());
 	});
 });
 
