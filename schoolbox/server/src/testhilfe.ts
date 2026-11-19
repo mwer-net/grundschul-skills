@@ -204,7 +204,7 @@ process.stdin.on('end', () => {
 		const zweitesDok = mitDeckblatt ? { slug: 'deckblatt', titel: 'Deckblatt', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Titel', fertig: false } : { slug: 'fall-2', titel: 'Fall 2', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Üben', fertig: false };
 		const titelVon = (slug) => ({ 'fall-1': 'Fall 1', 'fall-2': 'Fall 2', deckblatt: 'Deckblatt' })[slug] ?? slug;
 		// 253: „einheit-figur“ plant Luna neu und Kiki aus der Bibliothek.
-		const figuren = fall === 'einheit-figur' ? { figuren: [{ name: 'Luna', rolle: 'Leitfigur', aussehen: 'Eule mit roter Brille', herkunft: 'neu' }, { name: 'Kiki', rolle: 'Freundin', aussehen: '', herkunft: 'bibliothek:kiki' }] } : {};
+		const figuren = fall === 'einheit-figur' ? { figuren: [{ name: 'Luna', rolle: 'Leitfigur', aussehen: 'Eule mit roter Brille und Laterne', herkunft: 'neu' }, { name: 'Kiki', rolle: 'Freundin', aussehen: '', herkunft: 'bibliothek:kiki' }] } : {};
 		const plan = () => fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Uhrzeit', annahmen: ['Klasse 2'], ...uebersicht, ...figuren, dokumente: [{ slug: 'fall-1', titel: 'Fall 1', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Einstieg', fertig: false }, zweitesDok] }));
 		// „einheit-unklar“ und „einheit-stur“: fall-1 mit einer unklaren Anweisung, „-stur“ behebt sie nie. „einheit-dopplung“:
 		// dieselbe Abbildung in beiden Materialien.
@@ -313,10 +313,12 @@ process.stdin.on('end', () => {
 				if (fall === 'einheit-figur') {
 					const ok = [{ ok: ['passt'] }];
 					const liste = [
-						{ datei: 'luna.png', motiv: 'Grundpose Luna', figur: 'Luna', pose: 'grund', pruefung: ok },
+						{ datei: 'luna.png', motiv: 'Grundpose Luna: Eule mit roter Brille und Laterne', figur: 'Luna', pose: 'grund', pruefung: ok },
 						{ datei: 'luna-faltet.png', motiv: 'Pose Luna faltet', figur: 'Luna', pose: 'faltet', pruefung: ok },
 						{ datei: 'luna-faltet-2.png', motiv: 'Pose Luna faltet', figur: 'Luna', pose: 'faltet', pruefung: ok },
 						{ datei: 'kiki.png', motiv: 'Grundpose Kiki', figur: 'Kiki', pose: 'grund' },
+						// Ohne Kanon: Kiki trägt die Laterne aus Lunas Grundpose, also ein Gegenstand der Handlung.
+						{ datei: 'markt.png', motiv: 'Kiki trägt die Laterne über den Markt', pruefung: ok },
 					];
 					fs.writeFileSync('bilder.json', JSON.stringify(liste));
 					for (const { datei } of liste) {

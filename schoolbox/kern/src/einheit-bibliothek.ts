@@ -173,6 +173,23 @@ export const bibliotheksName = (
 	}
 };
 
+/** Das Aussehen aus dem Motiv einer Grundpose: „Grundpose Ella: Eichhörnchen mit … (Referenz …)“ → „Eichhörnchen mit …“. */
+export const aussehenAus = (motiv: string) =>
+	motiv
+		.replace(/^grundpose\s+[^:]*:?\s*/i, '')
+		.replace(/\([^)]*\)/g, ' ')
+		.replace(/\s+/g, ' ')
+		.replace(/[\s,;.]+$/, '')
+		.trim()
+		.slice(0, 300);
+
+/** Der Steckbrief ohne die Teile, die einen Gegenstand der Handlung nennen: Er geht in jeden späteren Bild-Prompt. */
+export const ohneGegenstaende = (aussehen: string, gegenstaende: readonly string[]) =>
+	aussehen
+		.split(/,\s*|\s+und\s+/)
+		.filter((teil) => !gegenstaende.some((g) => teil.includes(g)))
+		.join(', ');
+
 /** Steckbrief einer neuen Figur: aus dem Kanon (`fest`, `nie`, 246), sonst ihr Aussehen aus dem Plan. */
 export const steckbriefAus = (kanon: { fest: readonly string[]; nie: readonly string[] } | undefined, aussehen: string) => {
 	if (kanon?.fest.length) {

@@ -22,6 +22,7 @@ import {
 	pruefeEinheitAngaben,
 	referenzFiguren,
 	themaBefund,
+	VERMERK_GEGENSTAND,
 } from '@schoolbox/kern';
 import type { BibliotheksFigur } from '@schoolbox/kern/src/figuren';
 import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
@@ -1361,6 +1362,7 @@ describe('Lauf einer Einheit (139)', () => {
 			await legeTestfigurenAn(server.materialDir);
 			await fall('einheit-figur');
 			const vorher = (await bildAufrufe()).length;
+			const promptsVorher = (await prompts()).length;
 			const { id, mappe } = await starte(MIT_BILDERN);
 			const s = await bis(id, 'fertig');
 			const aufrufe = (await bildAufrufe()).slice(vorher) as { argumente: { datei: string }; fehler?: boolean; text?: string }[];
@@ -1368,7 +1370,8 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.equal(kiki?.fehler, true);
 			assert.match(JSON.stringify(kiki), /Figurenbibliothek/);
 			assert.ok(aufrufe.filter((a) => a.argumente.datei !== 'kiki.png').every((a) => a.fehler !== true));
-			const bilderLauf = (await prompts()).find((p) => p.includes('die Bilder der Einheit')) ?? '';
+			const bilderLauf =
+				(await prompts()).slice(promptsVorher).find((p) => p.includes('die Bilder der Einheit')) ?? '';
 			assert.match(bilderLauf, /Posen der Figuren aus der Bibliothek/);
 			assert.match(bilderLauf, /data-figur="kiki-winkt" src="\.\.\/\.\.\/bilder\/kiki-winkt\.png"/);
 
@@ -1380,6 +1383,7 @@ describe('Lauf einer Einheit (139)', () => {
 			);
 			assert.equal(luna?.name, 'Luna');
 			assert.equal(luna?.steckbrief, 'Eule mit roter Brille');
+			assert.equal(luna?.vermerk, VERMERK_GEGENSTAND, 'ohne Kanon: Lunas Laterne trägt in einer Szene Kiki');
 			assert.equal(luna?.aus, s.titel);
 			assert.deepEqual(figuren.find((f) => f.id === 'kiki')?.posen.map((p) => p.id), ['kiki', 'kiki-winkt']);
 			const bilder = path.join(mappenDir(server.materialDir, mappe), 'bilder');

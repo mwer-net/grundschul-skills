@@ -21,11 +21,13 @@ import { neueFigurId } from './bild-auftrag';
 import type { HerkunftZeile } from './einheit-bibliothek';
 import {
 	artAus,
+	aussehenAus,
 	bibliotheksName,
 	bildFigur,
 	gegenstaendeInGrundpose,
 	GRUNDPOSE,
 	leseHerkunft,
+	ohneGegenstaende,
 	VERMERK_GEGENSTAND,
 } from './einheit-bibliothek';
 import { SchoolboxFehler } from './fehler';
@@ -401,23 +403,6 @@ const nutzungIn = async (mappeDir: string, dokumente: readonly string[]) => {
 };
 
 const gleicherName = (a: string, b: string) => a.toLocaleLowerCase('de') === b.toLocaleLowerCase('de');
-
-/** Das Aussehen aus dem Motiv einer Grundpose: „Grundpose Ella: Eichhörnchen mit … (Referenz …)“ → „Eichhörnchen mit …“. */
-const aussehenAus = (motiv: string) =>
-	motiv
-		.replace(/^grundpose\s+[^:]*:?\s*/i, '')
-		.replace(/\([^)]*\)/g, ' ')
-		.replace(/\s+/g, ' ')
-		.replace(/[\s,;.]+$/, '')
-		.trim()
-		.slice(0, 300);
-
-/** Der Steckbrief ohne die Teile, die einen Gegenstand der Handlung nennen: Er geht in jeden späteren Bild-Prompt. */
-const ohneGegenstaende = (aussehen: string, gegenstaende: readonly string[]) =>
-	aussehen
-		.split(/,\s*|\s+und\s+/)
-		.filter((teil) => !gegenstaende.some((g) => teil.includes(g)))
-		.join(', ');
 
 /**
  * 253, einmal: die Figuren aus `bilder-herkunft.tsv` aller Mappen (Motiv „Grundpose <Name>“ oder „Pose <Name>“), ohne

@@ -158,14 +158,17 @@ import {
 	bibliotheksGrund,
 	bibliotheksName,
 	bildFigur,
+	gegenstaendeInGrundpose,
 	GRUNDPOSE,
 	leseHerkunft,
+	ohneGegenstaende,
 	posenDatei,
 	posenFuerLauf,
 	posenText,
 	requisitenFuer,
 	requisitenText,
 	steckbriefAus,
+	VERMERK_GEGENSTAND,
 } from '@schoolbox/kern/src/einheit-bibliothek';
 import type { BibliotheksFigur } from '@schoolbox/kern/src/figuren';
 import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
@@ -1087,7 +1090,9 @@ export const erstelleEinheiten = (
 		const herkunft = leseHerkunft(await readFile(path.join(bilderDir, BILD_HERKUNFT), 'utf8').catch(() => ''));
 		const namen = (plan.figuren ?? []).map((f) => f.name).filter(Boolean);
 		const mappeDir = mappenDir(materialDir, s.mappe);
-		for (const v of await leseBildVertraege(arbeit)) {
+		const vertraege = await leseBildVertraege(arbeit);
+		const szenen = vertraege.filter((v) => !bildFigur(v, namen)).map((v) => v.motiv);
+		for (const v of vertraege) {
 			const bf = bildFigur(v, namen);
 			const figur = plan.figuren?.find((f) => f.name && bf?.figur.toLocaleLowerCase('de') === f.name.toLocaleLowerCase('de'));
 			const schon = (s.bibliothekNeu ?? []).some((n) => n.figur && n.plan === figur?.name);
@@ -1112,7 +1117,9 @@ export const erstelleEinheiten = (
 				const dateien = await readdir(figurenDir(materialDir)).catch(() => [] as string[]);
 				const id = neueFigurId(figur.name, [...alle.map((f) => f.id), ...dateien.map((d) => path.parse(d).name)]);
 				const kanon = plan.kanon?.figuren.find((k) => k.name.toLocaleLowerCase('de') === figur.name.toLocaleLowerCase('de'));
-				const steckbrief = steckbriefAus(kanon, figur.aussehen);
+				// Ohne Kanon prüft niemand, ob die Grundpose einen Gegenstand der Handlung trägt (248): wie die einmalige Übernahme.
+				const gegenstaende = kanon ? [] : gegenstaendeInGrundpose(v.motiv, figur.name, szenen, namen);
+				const steckbrief = ohneGegenstaende(steckbriefAus(kanon, figur.aussehen), gegenstaende);
 				const name = bibliotheksName(figur.name, artAus(figur.aussehen, figur.name), s.titel, alle);
 				await nimmPoseAuf(kontext.konfig, materialDir, {
 					datei: path.join(mappeDir, 'bilder', inMappe),
@@ -1121,6 +1128,7 @@ export const erstelleEinheiten = (
 					herkunft: path.relative(materialDir, path.join(mappeDir, 'bilder', inMappe)).split(path.sep).join('/'),
 					...(steckbrief ? { steckbrief } : {}),
 					aus: s.titel,
+					...(gegenstaende.length ? { vermerk: VERMERK_GEGENSTAND } : {}),
 				});
 				s.bibliothekNeu = [...(s.bibliothekNeu ?? []), { id, name, plan: figur.name, figur: true, posen: [] }];
 			} catch (fehler) {
