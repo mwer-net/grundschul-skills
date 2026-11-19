@@ -160,11 +160,13 @@ import {
 	bildFigur,
 	gegenstaendeInGrundpose,
 	GRUNDPOSE,
+	kopieGrund,
 	leseHerkunft,
 	ohneGegenstaende,
 	posenDatei,
 	posenFuerLauf,
 	posenText,
+	requisitDatei,
 	requisitenFuer,
 	requisitenText,
 	steckbriefAus,
@@ -1075,7 +1077,7 @@ export const erstelleEinheiten = (
 		const alle = await sammleRequisiten(kontext.konfig, materialDir, s.mappe).catch(() => []);
 		const liste = [];
 		for (const r of requisitenFuer(alle, auftrag)) {
-			const datei = path.join(ziel, r.datei);
+			const datei = path.join(ziel, requisitDatei(r));
 			if (existsSync(datei)) {
 				continue;
 			}
@@ -1233,7 +1235,9 @@ export const erstelleEinheiten = (
 				api: kontext.bildApi,
 				figuren: figuren.map(({ datei, name }) => ({ name, datei })),
 				pruefeVertrag: (v: BildVertrag) =>
-					bibliotheksGrundIn(s, imLauf, v) ?? (s.plan?.kanon ? pruefeBildVertrag(s.plan, v) : null),
+					kopieGrund(v) ??
+					bibliotheksGrundIn(s, imLauf, v) ??
+					(s.plan?.kanon ? pruefeBildVertrag(s.plan, v) : null),
 			});
 			if (bilder) {
 				referenzNamen.set(bilder, new Map(figuren.map((f) => [f.pfad, f.figur])));

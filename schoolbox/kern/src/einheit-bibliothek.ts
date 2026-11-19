@@ -198,9 +198,25 @@ export const steckbriefAus = (kanon: { fest: readonly string[]; nie: readonly st
 	return aussehen.trim();
 };
 
-/** Das Bild einer Pose im Arbeitsordner eines Laufs: ihre Kennung mit der Endung der Datei der Bibliothek. */
+/**
+ * Kopien, die der Server vor einem Lauf nach `bilder/` legt, tragen eine eigene Vorsilbe: `bib-` die Posen der
+ * Bibliothek, `req-` die Requisiten früherer Einheiten. Ein eigenes Bild des Laufs trägt sie nie (`kopieGrund`), so
+ * stößt es nie auf eine Kopie, und eine Kopie nie auf ein eigenes Bild.
+ */
+export const KOPIE_DATEI = /^(bib|req)-/;
+
+/** Das Bild einer Pose im Arbeitsordner eines Laufs: `bib-`, ihre Kennung und die Endung der Datei der Bibliothek. */
 export const posenDatei = (pose: Pick<Pose, 'id' | 'schluessel'>) =>
-	`${pose.id}${/\.[a-z]+$/i.exec(pose.schluessel)?.[0]?.toLowerCase() ?? '.png'}`;
+	`bib-${pose.id}${/\.[a-z]+$/i.exec(pose.schluessel)?.[0]?.toLowerCase() ?? '.png'}`;
+
+/** Die Kopie eines Requisits im Arbeitsordner: `req-` und sein Dateiname (ohne eine Vorsilbe, die er schon trägt). */
+export const requisitDatei = (r: Pick<Requisit, 'datei'>) => `req-${r.datei.replace(KOPIE_DATEI, '')}`;
+
+/** Ablehnung für einen Bildvertrag auf den Namen einer Kopie, sonst `null`. */
+export const kopieGrund = (v: { datei: string }) =>
+	KOPIE_DATEI.test(v.datei)
+		? `bilder/${v.datei}: Dateien mit „bib-“ oder „req-“ am Anfang sind Kopien aus der Bibliothek und früheren Einheiten; binde sie unverändert ein. Für ein eigenes Bild nimm einen Dateinamen ohne diese Vorsilbe.`
+		: null;
 
 /** Posen aus der Ablage (`_figuren/…`); die eingebauten Dateien von Willi und Wilma liegen schon bei den Skills. */
 export const posenFuerLauf = (figur: Pick<BibliotheksFigur, 'posen'>) =>
@@ -275,7 +291,7 @@ export const requisitenFuer = <R extends Requisit>(alle: readonly R[], auftrag: 
 		.map((r) => ({ r, treffer: [...woerter(r.motiv)].filter((w) => gesucht.has(w)).length }))
 		.filter((x) => x.treffer > 0)
 		.sort((a, b) => b.treffer - a.treffer)
-		.filter(({ r }) => !gesehen.has(r.datei) && Boolean(gesehen.add(r.datei)))
+		.filter(({ r }) => !gesehen.has(requisitDatei(r)) && Boolean(gesehen.add(requisitDatei(r))))
 		.slice(0, max)
 		.map(({ r }) => r);
 };
@@ -285,7 +301,7 @@ export const requisitenText = (liste: readonly Requisit[], ordner: string) =>
 	liste.length
 		? [
 				'Requisiten aus früheren Einheiten (liegen schon in bilder/). Sieh dir ein Requisit vorher mit Read an und nimm es nur, wenn es dem Kanon (falls es einen gibt) und dem Vertrag des Bildes entspricht, dann statt ein neues zu erzeugen:',
-				...liste.map((r) => `- ${ordner}${r.datei}: ${r.motiv.slice(0, 160)} (aus „${r.mappe}“)`),
+				...liste.map((r) => `- ${ordner}${requisitDatei(r)}: ${r.motiv.slice(0, 160)} (aus „${r.mappe}“)`),
 			].join('\n')
 		: '';
 
@@ -340,6 +356,8 @@ export const bibliothekNeuSatz = (liste: readonly BibliothekNeu[]) => {
 export interface GenannteFigur {
 	figur: Pick<BibliotheksFigur, 'id' | 'name' | 'posen'>;
 	namen: readonly string[];
+	/** Ihre Grundpose liegt in diesem Lauf nicht in `referenzen/` (Willi und Wilma im neuen Blatt): keine Ablehnung dazu. */
+	ohneReferenz?: boolean;
 }
 
 /**
@@ -360,6 +378,9 @@ export const bibliotheksGrund = (
 		return null;
 	}
 	const { figur } = g;
+	if (bf.pose === GRUNDPOSE && g.ohneReferenz) {
+		return null;
+	}
 	if (bf.pose === GRUNDPOSE) {
 		return `${figur.name} ist eine Figur der Figurenbibliothek: Ihre Grundpose liegt schon in ${referenzen}/. Erzeuge keine neue Grundpose; nimm sie als Referenz für Posen und Szenen.`;
 	}

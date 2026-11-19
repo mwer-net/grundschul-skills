@@ -1373,7 +1373,7 @@ describe('Lauf einer Einheit (139)', () => {
 			const bilderLauf =
 				(await prompts()).slice(promptsVorher).find((p) => p.includes('die Bilder der Einheit')) ?? '';
 			assert.match(bilderLauf, /Posen der Figuren aus der Bibliothek/);
-			assert.match(bilderLauf, /data-figur="kiki-winkt" src="\.\.\/\.\.\/bilder\/kiki-winkt\.png"/);
+			assert.match(bilderLauf, /data-figur="kiki-winkt" src="\.\.\/\.\.\/bilder\/bib-kiki-winkt\.png"/);
 
 			const figuren = await leseBibliothek({ pythonBin: 'python3' }, server.materialDir);
 			const luna = figuren.find((f) => f.id === 'luna');

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { chmod, mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, afterEach, before, describe, it } from 'node:test';
@@ -48,7 +48,7 @@ import { WERKZEUG_BAUEN, WERKZEUG_BILD_BEARBEITEN, WERKZEUG_BILD_ERZEUGEN } from
 import { leseMitschrift, MITSCHRIFT_ORDNER } from './mitschrift';
 import { CSRF_HEADER } from './schutz';
 import type { TestServer } from './testhilfe';
-import { KI_ATTRAPPE, legeDokumentAn, starteTestServer } from './testhilfe';
+import { KI_ATTRAPPE, legeDokumentAn, legeTestfigurenAn, starteTestServer } from './testhilfe';
 
 /** Macht das Beispielblatt zu einem Blatt nach Satz 2 ohne Zeitziel, für das laufMeldungen warnt (225). */
 const mitSatzstand = async (dir: string) => {
@@ -918,7 +918,7 @@ describe('Aufträge an Claude', () => {
 				bauen: { fehlend: string[] }[];
 			}[];
 		};
-		const baue = async (name: string, mitSatz = false) => {
+		const baue = async (name: string, mitSatz = false, antworten: object = {}) => {
 			await fall(name);
 			const blatt = await legeDokumentAn(server.materialDir, { beispiel: true });
 			if (mitSatz) {
@@ -933,7 +933,7 @@ describe('Aufträge an Claude', () => {
 			// Mit Sternchenaufgabe wie im Beispielblatt: keine Korrekturrunde durch den Wächter (210).
 			await los(`${pfad}/ki`, {
 				aktion: 'neu-entwurf',
-				antworten: { thema: 'Uhrzeit', bausteine: { sternchen: true } },
+				antworten: { thema: 'Uhrzeit', bausteine: { sternchen: true }, ...antworten },
 			});
 			const vorher =
 				(await readFile(path.join(path.dirname(bin), 'prompts.txt'), 'utf8')).split('\n---\n').length - 1;
@@ -957,6 +957,7 @@ describe('Aufträge an Claude', () => {
 			const { blatt, html, meta, neu, protokoll } = await baue('plan-unklar');
 			const bauPrompt = neu.find((p) => p.includes('Freigegebener Aufgabenplan')) ?? '';
 			assert.match(bauPrompt, /Pflichtlektüre, ganz und vor dem ersten Aufruf von bauen/);
+			assert.doesNotMatch(bauPrompt, /Grundpose als Referenz|Posen der Figuren/, 'Vorgabe Willi: wie vor 253');
 			assert.match(bauPrompt, /^- Skill html-materialerstellung laden$/m);
 			assert.equal(neu.filter((p) => p.startsWith('Korrekturrunde nach der Prüfung.')).length, 1);
 			assert.match(
@@ -1031,6 +1032,29 @@ describe('Aufträge an Claude', () => {
 			const bau = protokoll.laeufe.find((e) => e.art === 'bau');
 			assert.ok((bau?.bauen[0]?.fehlend.length ?? 0) > 0);
 			assert.deepEqual(bau?.bauen[1]?.fehlend, []);
+		});
+
+		it('Leitfigur aus der Bibliothek (253): Grundpose als Referenz im Arbeitsordner, der Bau nennt sie', async () => {
+			await legeTestfigurenAn(server.materialDir);
+			const dir = path.join(server.materialDir, '_figuren');
+			await copyFile(path.join(dir, 'kiki.png'), path.join(dir, 'luna.png'));
+			const luna = { id: 'luna', name: 'Luna', steckbrief: 'Eule mit roter Brille', posen: [{ datei: 'luna.png' }] };
+			const kiki = { id: 'kiki', name: 'Kiki', posen: [{ datei: 'kiki.png' }, { datei: 'kiki-winkt.png' }] };
+			await writeFile(path.join(dir, 'figuren.json'), JSON.stringify({ version: 1, figuren: [kiki, luna] }));
+			const aufrufe = path.join(path.dirname(bin), 'aufrufe.jsonl');
+			const vorher = (await readFile(aufrufe, 'utf8')).trim().split('\n').length;
+			const { neu } = await baue('plan-bauen', true, {
+				leitfigur: { art: 'bibliothek', figuren: [{ id: 'luna', name: 'Luna' }] },
+			});
+			const bauPrompt = neu.find((p) => p.includes('Freigegebener Aufgabenplan')) ?? '';
+			assert.match(bauPrompt, /^Grundpose als Referenz: referenzen\/luna\.png \(Luna; Eule mit roter Brille\)$/m);
+			assert.match(bauPrompt, /data-figur="luna" src="\.\.\/\.\.\/bilder\/bib-luna\.png"/);
+			const laeufe = (await readFile(aufrufe, 'utf8'))
+				.trim()
+				.split('\n')
+				.slice(vorher)
+				.map((z) => JSON.parse(z) as { referenzen: string[]; bilder: string[] });
+			assert.ok(laeufe.some((l) => l.referenzen.includes('luna.png') && l.bilder.includes('bib-luna.png')));
 		});
 
 		it('bauen mit <x-gitter>: abgewiesen, solange mathe-geometrie.md nicht ganz gelesen ist, danach gebaut (226)', async () => {

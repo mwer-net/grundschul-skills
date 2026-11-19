@@ -84,9 +84,11 @@ import {
 import { sammleRequisiten } from '@schoolbox/kern/src/bilder';
 import {
 	bibliotheksGrund,
+	kopieGrund,
 	posenDatei,
 	posenFuerLauf,
 	posenText,
+	requisitDatei,
 	requisitenFuer,
 	requisitenText,
 } from '@schoolbox/kern/src/einheit-bibliothek';
@@ -98,7 +100,7 @@ import { ANSICHT_BILDER, BILDER_LISTE } from './bild-datei';
 import { BILD_GRENZEN } from './bild-grenzen';
 import type { BildApi, BildKonfig } from './bild-zugang';
 import { REFERENZ_ORDNER } from './bild-werkzeug';
-import { erstelleLaufBilder, posenPfad } from './bild-zugang';
+import { erstelleLaufBilder, grundposeReferenz, posenPfad } from './bild-zugang';
 import type { BlattBilder } from './blatt-bilder';
 import { erstelleBlattBilder } from './blatt-bilder';
 import { leseQuelle } from './dokumente';
@@ -2397,7 +2399,7 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 		const alle = await sammleRequisiten(konfig, konfig.materialDir, w.mappe).catch(() => []);
 		const requisiten = [];
 		for (const r of requisitenFuer(alle, w.requisitenSuche ?? '')) {
-			const datei = path.join(ziel, r.datei);
+			const datei = path.join(ziel, requisitDatei(r));
 			await mkdir(ziel, { recursive: true });
 			if (!existsSync(datei) && (await copyFile(r.pfad, datei).then(() => true, () => false))) {
 				requisiten.push(r);
@@ -2417,15 +2419,26 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 		if (w.neuesBlatt !== true || w.phase === 'plan') {
 			return { blatt: null, werkzeug: null, text: '' };
 		}
-		const { figuren, text } = await blattFiguren(w, arbeit);
+		const { figuren, text: posenUndRequisiten } = await blattFiguren(w, arbeit);
+		// Die Grundpose der Leitfigur als Referenz wie in der Einheit; Willi und Wilma bringen ihre Dateien bei den
+		// Skills mit, für sie bleibt der Bau wie vor 253.
+		const referenzen = new Map<string, { name: string; datei: string; pfad: string }>();
+		for (const f of figuren.filter((x) => !x.posen[0]?.schluessel.startsWith('_assets/'))) {
+			const r = await grundposeReferenz(konfig.materialDir, f).catch(() => null);
+			if (r) {
+				referenzen.set(f.id, r);
+			}
+		}
 		const werkzeug = await erstelleLaufBilder({
 			arbeit,
 			art: 'blatt',
 			konfig,
 			api: bildApi,
+			figuren: [...referenzen.values()].map(({ name, datei }) => ({ name, datei })),
 			pruefeVertrag: (v) =>
+				kopieGrund(v) ??
 				bibliotheksGrund(
-					figuren.map((figur) => ({ figur, namen: [figur.name] })),
+					figuren.map((figur) => ({ figur, namen: [figur.name], ohneReferenz: !referenzen.has(figur.id) })),
 					v,
 					REFERENZ_ORDNER,
 				),
@@ -2440,6 +2453,13 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 				await writeFile(liste, '[]\n');
 			}
 		}
+		const referenzText = werkzeug
+			? figuren.flatMap((f) => {
+					const r = referenzen.get(f.id);
+					return r ? [`Grundpose als Referenz: ${r.pfad} (${f.name}${f.steckbrief ? `; ${f.steckbrief}` : ''})`] : [];
+				})
+			: [];
+		const text = [...referenzText, posenUndRequisiten].filter(Boolean).join('\n\n');
 		return { blatt: erstelleBlattBilder(arbeit, mappenDir(konfig.materialDir, w.mappe)), werkzeug, text };
 	};
 

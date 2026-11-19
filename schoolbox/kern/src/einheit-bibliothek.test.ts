@@ -8,8 +8,10 @@ import {
 	bibliotheksName,
 	bildFigur,
 	gegenstaendeInGrundpose,
+	kopieGrund,
 	leseHerkunft,
 	posenText,
+	requisitDatei,
 	requisitenFuer,
 	steckbriefAus,
 	textWerte,
@@ -83,8 +85,8 @@ describe('einheit-bibliothek (253)', () => {
 		};
 		const text = posenText([luna], '../../bilder/');
 		assert.match(text, /^Posen der Figuren/);
-		assert.match(text, /- Luna: <img class="figur-frei" data-figur="luna" src="\.\.\/\.\.\/bilder\/luna\.png"/);
-		assert.match(text, /src="\.\.\/\.\.\/bilder\/luna-zeigt\.png"/);
+		assert.match(text, /- Luna: <img class="figur-frei" data-figur="luna" src="\.\.\/\.\.\/bilder\/bib-luna\.png"/);
+		assert.match(text, /src="\.\.\/\.\.\/bilder\/bib-luna-zeigt\.png"/);
 		assert.equal(posenText(EINGEBAUTE, '../../bilder/'), '');
 	});
 
@@ -151,9 +153,23 @@ describe('einheit-bibliothek (253)', () => {
 		);
 		assert.match(
 			bibliotheksGrund([luna], { datei: 'luna-zeigt.png', motiv: 'Pose Luna zeigt' }, 'referenzen') ?? '',
-			/\.\.\/\.\.\/bilder\/luna-zeigt\.png/,
+			/\.\.\/\.\.\/bilder\/bib-luna-zeigt\.png/,
 		);
 		assert.equal(bibliotheksGrund([luna], { datei: 'luna-winkt.png', motiv: 'Pose Luna winkt' }, 'referenzen'), null);
+		// Ohne Grundpose in referenzen/ (Willi im neuen Blatt) nennt keine Ablehnung eine Datei, die es nicht gibt.
+		assert.equal(
+			bibliotheksGrund(
+				[{ ...luna, ohneReferenz: true }],
+				{ datei: 'luna.png', motiv: 'Luna', figur: 'Luna', pose: 'grund' },
+				'referenzen',
+			),
+			null,
+		);
+		// Kopien tragen eine eigene Vorsilbe; ein eigenes Bild darf sie nicht tragen.
+		assert.equal(requisitDatei({ datei: 'laterne.png' }), 'req-laterne.png');
+		assert.equal(requisitDatei({ datei: 'req-laterne.png' }), 'req-laterne.png');
+		assert.match(kopieGrund({ datei: 'bib-luna.png' }) ?? '', /eigenes Bild/);
+		assert.equal(kopieGrund({ datei: 'laterne.png' }), null);
 		assert.equal(bibliotheksGrund([luna], { datei: 'ella.png', motiv: 'Grundpose Ella' }, 'referenzen'), null);
 	});
 });

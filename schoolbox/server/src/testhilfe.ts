@@ -90,7 +90,9 @@ export const KI_ATTRAPPE = String.raw`#!/usr/bin/env node
 const fs = require('node:fs'), path = require('node:path');
 const fall = fs.readFileSync(path.join(__dirname, 'fall.txt'), 'utf8').trim();
 const args = process.argv.slice(2);
-fs.appendFileSync(path.join(__dirname, 'aufrufe.jsonl'), JSON.stringify({ args, cwd: process.cwd(), env: Object.keys(process.env) }) + '\n');
+// 253: Was der Server vor dem Lauf nach referenzen/ und bilder/ gelegt hat; der Arbeitsordner ist danach weg.
+const liste = (ordner) => (fs.existsSync(ordner) ? fs.readdirSync(ordner) : []);
+fs.appendFileSync(path.join(__dirname, 'aufrufe.jsonl'), JSON.stringify({ args, cwd: process.cwd(), env: Object.keys(process.env), referenzen: liste('referenzen'), bilder: liste('bilder') }) + '\n');
 if (args[0] === 'auth') {
 	if (fall === 'abgemeldet') { console.log('{"loggedIn":false}'); process.exit(1); }
 	console.log('{"loggedIn":true}'); process.exit(0);
