@@ -33,7 +33,29 @@ export interface BildVertrag extends BildPlatz {
 	vertrag?: unknown;
 	/** 248: Was nach zwei neuen Versuchen am Bild noch nicht stimmt, in einem Satz; die Lehrkraft sieht es. */
 	offen?: string;
+	/** 253: Name der Figur aus dem Plan, wenn das Bild eine Figur allein zeigt (Grundpose oder Pose). */
+	figur?: string;
+	/** 253: `grund` oder das Wort der Pose. */
+	pose?: string;
+	/** 253: Der letzte Eintrag in `pruefung` hakt etwas ab und nennt nichts, was fehlt oder verboten ist. */
+	geprueft: boolean;
 }
+
+/**
+ * Abgenommen (253): Der letzte Versuch in `pruefung` hat Punkte unter `ok` und keine anderen Listen mit Einträgen
+ * (`fehlt`, Funde aus `verboten`).
+ */
+export const istAbgenommen = (pruefung: unknown) => {
+	const letzte: unknown = Array.isArray(pruefung) ? pruefung.at(-1) : null;
+	if (typeof letzte !== 'object' || letzte === null) {
+		return false;
+	}
+	const felder = Object.entries(letzte as Record<string, unknown>).filter(([, w]) => Array.isArray(w));
+	return (
+		felder.some(([k, w]) => k === 'ok' && (w as unknown[]).length > 0) &&
+		felder.every(([k, w]) => k === 'ok' || (w as unknown[]).length === 0)
+	);
+};
 
 /** Läuft mit dem geprüften Inhalt, bevor die Datei in `bilder/` erscheint: Wer das Bild sieht, findet seine Viertel. */
 export type Zuschnitt = (inhalt: Buffer, wunsch: BildPlatz & { datei: string }) => Promise<void>;
@@ -247,10 +269,13 @@ export const leseBildVertraege = async (arbeit: string): Promise<BildVertrag[]> 
 		if (typeof e !== 'object' || e === null) {
 			continue;
 		}
-		const { datei, motiv, offen, vertrag } = e as {
+		const { datei, figur, motiv, offen, pose, pruefung, vertrag } = e as {
 			datei?: unknown;
+			figur?: unknown;
 			motiv?: unknown;
 			offen?: unknown;
+			pose?: unknown;
+			pruefung?: unknown;
 			vertrag?: unknown;
 		};
 		if (istDateiname(datei) && istText(motiv, 300)) {
@@ -260,6 +285,9 @@ export const leseBildVertraege = async (arbeit: string): Promise<BildVertrag[]> 
 				...platzAus(e),
 				...(vertrag === undefined ? {} : { vertrag }),
 				...(istText(offen, 300) ? { offen: offen.trim() } : {}),
+				...(istText(figur, 60) ? { figur: figur.trim() } : {}),
+				...(istText(pose, 40) ? { pose: pose.trim() } : {}),
+				geprueft: istAbgenommen(pruefung),
 			});
 		}
 	}

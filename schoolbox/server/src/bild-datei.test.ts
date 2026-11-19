@@ -97,13 +97,45 @@ describe('Bildvertrag und Zuschnitt (215, seit 237 hier)', () => {
 				platz: { breite: 794, hoehe: 660 },
 				blickpunkt: { x: 40, y: 50 },
 				vertrag: { ...vertrag, pruefung: [{ versuch: 1, ok: false, befund: 'Glöckchen abgeschnitten' }] },
+				geprueft: false,
 			},
-			{ datei: 'karte.png', motiv: 'Karte', offen: 'Das Glöckchen fehlt.' },
+			{ datei: 'karte.png', motiv: 'Karte', offen: 'Das Glöckchen fehlt.', geprueft: false },
 		]);
 		assert.equal(
 			await readFile(path.join(arbeit, 'bilder.json'), 'utf8'),
 			roh,
 			'der Server schreibt die Liste nie',
 		);
+	});
+
+	it('liest Figur, Pose und ob der letzte Versuch abgenommen ist (253)', async () => {
+		const arbeit = await mkdtemp(path.join(tmpdir(), 'schoolbox-bilddatei-'));
+		await writeFile(
+			path.join(arbeit, 'bilder.json'),
+			JSON.stringify([
+				{
+					datei: 'luna.png',
+					motiv: 'Grundpose',
+					figur: 'Luna',
+					pose: 'grund',
+					pruefung: [
+						{ versuch: 1, ok: ['Schal'], fehlt: ['Augen'] },
+						{ versuch: 2, ok: ['Schal', 'Augen'], fehlt: [] },
+					],
+				},
+				{ datei: 'luna-zeigt.png', motiv: 'Pose', figur: 'Luna', pose: 'zeigt', pruefung: [{ ok: ['x'], fehlt: ['y'] }] },
+				{ datei: 'luna-jubelt.png', motiv: 'Pose', pruefung: [{ ok: ['x'], verboten: ['Schrift'] }] },
+			]),
+		);
+		const v = await leseBildVertraege(arbeit);
+		assert.deepEqual(
+			v.map((x) => [x.datei, x.figur, x.pose, x.geprueft]),
+			[
+				['luna.png', 'Luna', 'grund', true],
+				['luna-zeigt.png', 'Luna', 'zeigt', false],
+				['luna-jubelt.png', undefined, undefined, false],
+			],
+		);
+		await rm(arbeit, { recursive: true, force: true });
 	});
 });

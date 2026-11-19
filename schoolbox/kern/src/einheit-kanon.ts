@@ -6,6 +6,8 @@
  */
 import type { EinheitPlan, PlanDokument } from './einheit';
 import { rolleVon } from './einheit-bau';
+import type { BildAngabe } from './einheit-bibliothek';
+import { istGrundpose as istGrundposeBild } from './einheit-bibliothek';
 
 /** Grenzen beim Lesen, wie `kurz` und `kurzListe` für die übrigen Felder des Plans. */
 export const KANON_GRENZEN = {
@@ -465,21 +467,12 @@ export const fehlendeZeilen = (vorschlag: BildVorschlag, vertrag: unknown): Bild
 	return { pflicht: fehlt(vorschlag.pflicht, v.pflicht), verboten: fehlt(vorschlag.verboten, v.verboten) };
 };
 
-const dateiName = (name: string) =>
-	name
-		.toLowerCase()
-		.replace(/ä/g, 'ae')
-		.replace(/ö/g, 'oe')
-		.replace(/ü/g, 'ue')
-		.replace(/ß/g, 'ss')
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-+|-+$/g, '');
-
-/** Eine Grundpose: Das Motiv beginnt mit „Grundpose“, oder die Datei heißt wie eine Figur des Kanons (`ella.png`). */
-const istGrundpose = (kanon: EinheitKanon, datei: string, motiv: string) => {
-	const stamm = datei.replace(/\.(png|jpg)$/, '');
-	return /^grundpose\b/i.test(motiv.trim()) || kanon.figuren.some((f) => dateiName(f.name) === stamm);
-};
+/** Eine Grundpose (253: `pose: "grund"`, sonst Motiv oder Dateiname einer Figur des Kanons), `bildFigur`. */
+const istGrundpose = (kanon: EinheitKanon, e: BildAngabe) =>
+	istGrundposeBild(
+		e,
+		kanon.figuren.map((f) => f.name),
+	);
 
 /** Was das Bild zeigen will: Motiv und `pflicht`, ohne die Zeilen, die schon aus dem Kanon kommen. */
 const zeigtText = (kanon: EinheitKanon, motiv: string, vertrag: unknown) => {
@@ -505,20 +498,20 @@ const zitiert = (zeilen: readonly string[]) => zeilen.map((z) => `„${z}“`).j
  */
 export const pruefeBildVertrag = (
 	plan: Pick<EinheitPlan, 'kanon' | 'geschichte'>,
-	e: { datei: string; motiv: string; vertrag?: unknown },
+	e: BildAngabe & { vertrag?: unknown },
 ): string | null => {
 	const kanon = plan.kanon;
 	if (!kanon) {
 		return null;
 	}
 	const text = zeigtText(kanon, e.motiv, e.vertrag);
-	if (istGrundpose(kanon, e.datei, e.motiv)) {
+	if (istGrundpose(kanon, e)) {
 		const dinge = kanon.dinge.filter((d) => nenntNamen(text, d.name)).map((d) => d.name);
 		if (dinge.length) {
 			return `${GRUNDPOSE_SATZ} Nimm ${zitiert(dinge)} aus „motiv“ und „pflicht“ von ${e.datei} in bilder.json und erzeuge die Grundpose dann.`;
 		}
 	}
-	const kapitel = istGrundpose(kanon, e.datei, e.motiv) ? null : bildKapitel(plan, e.datei, e.motiv);
+	const kapitel = istGrundpose(kanon, e) ? null : bildKapitel(plan, e.datei, e.motiv);
 	const fehlt = fehlendeZeilen(bildVorschlag(kanon, kapitel, text), e.vertrag);
 	if (!fehlt.pflicht.length && !fehlt.verboten.length) {
 		return null;

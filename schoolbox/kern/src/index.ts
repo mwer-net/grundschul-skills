@@ -15,6 +15,7 @@ export * from './einfuegen';
 export * from './einheit';
 export * from './einheit-aufgaben';
 export * from './einheit-bau';
+export * from './einheit-bibliothek';
 export * from './einheit-figuren';
 export * from './einheit-kanon';
 export * from './einheit-plan-pruefung';
