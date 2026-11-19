@@ -80,7 +80,8 @@ export const istGrundpose = (e: BildAngabe, namen: readonly string[] = []) => bi
 const gleicherName = (a: string, b: string) => a.toLocaleLowerCase('de').trim() === b.toLocaleLowerCase('de').trim();
 
 /** Nomen eines Textes (großgeschrieben, ab vier Buchstaben), ohne Klammern. */
-const nomen = (t: string) => new Set(t.replace(/\([^)]*\)/g, ' ').match(/\b[A-ZÄÖÜ][a-zäöüß]{3,}\b/gu) ?? []);
+const nomen = (t: string) =>
+	new Set(t.replace(/\([^)]*\)/g, ' ').match(/(?<!\p{L})[A-ZÄÖÜ]\p{Ll}{3,}(?!\p{L})/gu) ?? []);
 
 /**
  * Trägt die Grundpose einer Figur einen Gegenstand der Handlung? Ein Nomen aus ihrem Motiv steht in einer Szene im
@@ -110,21 +111,33 @@ export const gegenstaendeInGrundpose = (
 };
 
 const ADJEKTIV = /(e|er|es|en|em)$/;
+/** Artikel und Pronomen: Am Satzanfang großgeschrieben, aber nie die Art. */
+const BEGLEITER = new Set(
+	'der die das den dem des ein eine einer eines einem einen kein keine keiner keinen mein meine sein seine ihr ihre unser unsere dieser diese dieses jeder jede jedes er sie es'.split(
+		' ',
+	),
+);
 
 /**
- * Die Art einer Figur aus ihrem Aussehen, für „Fridolin (Fuchs)“: das erste Nomen, das nicht der Name ist. Ein
- * großgeschriebenes Adjektiv am Satzanfang („Braune Eule“) zählt nicht. Leer ohne Nomen.
+ * Die Art einer Figur aus ihrem Aussehen, für „Fridolin (Fuchs)“: das erste Nomen, das nicht der Name ist. Artikel und
+ * Pronomen zählen nie, ein großgeschriebenes Adjektiv am Satzanfang („Braune Eule“, „Kleine, runde Eule“) nicht, wenn
+ * nach weiteren Adjektiven ein Nomen kommt. Leer ohne Nomen.
  */
 export const artAus = (aussehen: string, name: string) => {
-	const woerter = aussehen.replace(/\([^)]*\)/g, ' ').match(/[\p{L}-]+/gu) ?? [];
+	const woerter = (aussehen.replace(/\([^)]*\)/g, ' ').match(/[\p{L}-]+/gu) ?? []).filter(
+		(w) => !BEGLEITER.has(w.toLocaleLowerCase('de')),
+	);
+	const gross = (w: string) => /^[A-ZÄÖÜ]/.test(w);
 	for (const [i, w] of woerter.entries()) {
-		const naechstes = woerter[i + 1] ?? '';
-		const gross = /^[A-ZÄÖÜ]/.test(w);
-		if (!gross || gleicherName(w, name) || w.length < 3) {
+		if (!gross(w) || gleicherName(w, name) || w.length < 3) {
 			continue;
 		}
-		if (i === 0 && ADJEKTIV.test(w) && /^[A-ZÄÖÜ]/.test(naechstes)) {
-			continue;
+		if (i === 0 && ADJEKTIV.test(w)) {
+			const rest = woerter.slice(1);
+			const bis = rest.findIndex(gross);
+			if (bis >= 0 && rest.slice(0, bis).every((x) => ADJEKTIV.test(x))) {
+				continue;
+			}
 		}
 		return w;
 	}

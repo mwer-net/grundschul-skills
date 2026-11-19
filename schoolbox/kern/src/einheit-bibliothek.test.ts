@@ -40,6 +40,11 @@ describe('einheit-bibliothek (253)', () => {
 	it('artAus und bibliotheksName: „Fridolin (Fuchs)“, Willi ist vergeben, dann eine Zahl', () => {
 		assert.equal(artAus('Fuchs, Postbote mit blauer Postmütze', 'Fridolin'), 'Fuchs');
 		assert.equal(artAus('Braune Eule mit Brille', 'Ole'), 'Eule');
+		assert.equal(artAus('Eine kleine Eule mit Schal', 'Luna'), 'Eule');
+		assert.equal(artAus('Ein Fuchs mit Mütze', 'Fridolin'), 'Fuchs');
+		assert.equal(artAus('Das Eichhörnchen hat einen buschigen Schwanz', 'Ella'), 'Eichhörnchen');
+		assert.equal(artAus('Kleine, runde Eule', 'Luna'), 'Eule');
+		assert.equal(artAus('Eule mit Brille', 'Luna'), 'Eule');
 		const vergeben = [...EINGEBAUTE, { id: 'fridolin', name: 'Fridolin' }];
 		assert.equal(bibliotheksName('Luna', 'Eule', 'Spiegel', vergeben), 'Luna');
 		assert.equal(bibliotheksName('Fridolin', 'Fuchs', 'Spiegel', vergeben), 'Fridolin (Fuchs)');
@@ -55,6 +60,10 @@ describe('einheit-bibliothek (253)', () => {
 		assert.deepEqual(gegenstaendeInGrundpose(ella, 'Ella', szenen, namen), ['Glöckchen']);
 		const hanne = 'Grundpose Hanne: Schneehase mit Pudelmütze und kleiner Schere in der Schürzentasche';
 		assert.deepEqual(gegenstaendeInGrundpose(hanne, 'Hanne', szenen, namen), []);
+		// Umlaut am Anfang und ß: ganze Wörter, nicht „Strau“.
+		const igel = 'Grundpose Ilse: Igel mit Äpfeln und einem Strauß';
+		const szene = ['Hanne trägt die Äpfel und den Strauß'];
+		assert.deepEqual(gegenstaendeInGrundpose(igel, 'Ilse', szene, [...namen, 'Ilse']), ['Strauß']);
 	});
 
 	it('steckbriefAus: Kanon vor Aussehen', () => {
