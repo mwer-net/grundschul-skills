@@ -2,6 +2,7 @@ import type { EinheitStand } from '@schoolbox/kern/src/einheit';
 import type { PruefBefund, PruefStand, SchlussStand } from '@schoolbox/kern/src/einheit-pruefung';
 import { befundZeile, FACHLICH_PRUEFEN, fachlichOffen } from '@schoolbox/kern/src/einheit-pruefung';
 
+import { fachlichOffenSatz } from './einheit-pruefung-text';
 import { Aufklapp } from './EinheitPlanDetails';
 
 /** Was nach der Prüfung offen ist: Befunde von Claude und Meldungen des Servers zusammen. */
@@ -78,14 +79,7 @@ const Liste = ({ titel, zeilen }: { titel: string; zeilen: string[] }) =>
 const FachlichPruefen = ({ zeilen }: { zeilen: string[] }) =>
 	zeilen.length > 0 && (
 		<div className="text-sm" data-fachlich-pruefen>
-			<p className="text-warnung">
-				{zeilen.length === 1 ? 'Ein fachlicher Befund' : `${zeilen.length} fachliche Befunde`}
-{' '}
-nach den
-				Korrekturrunden offen: bitte
-{FACHLICH_PRUEFEN}
-.
-			</p>
+			<p className="text-warnung">{fachlichOffenSatz(zeilen.length)}</p>
 			<ul className="list-disc pl-4">
 				{zeilen.map((z) => (
 					<li key={z}>{z}</li>

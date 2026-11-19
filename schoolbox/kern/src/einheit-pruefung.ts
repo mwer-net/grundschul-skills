@@ -424,6 +424,12 @@ const fremdeText = (andere: readonly FremdeLoesung[]) => {
 	].join('\n');
 };
 
+/** Ohne Prüfpunkte prüft der Fachblick gegen den Fach-Skill, ohne ihn gegen die fachliche Definition. */
+const ohnePruefpunkte = (fachSkill: string | null) =>
+	fachSkill
+		? `Es gibt keine fachlichen Prüfpunkte aus einer Recherche. Lies zuerst den Fach-Skill ganz mit Read und prüfe gegen seine Fachdidaktik:\n- ${fachSkill}`
+		: 'Es gibt keine fachlichen Prüfpunkte und keinen Fach-Skill: Prüfe gegen die fachliche Definition.';
+
 export const fachblickText = (o: FachblickAuftrag) => {
 	const andere = o.andere.slice(0, fremdeGrenze(o));
 	return [
@@ -434,10 +440,7 @@ export const fachblickText = (o: FachblickAuftrag) => {
 			? `Ich-kann-Ziele der Lehrkraft: ${o.ziele.map((z) => `„${z}“`).join(' · ')}`
 			: 'Ich-kann-Ziele: Die Lehrkraft hat keine genannt. Nimm das Ich-kann-Ziel auf den Seiten und die Handlung der Stunde.',
 		o.stunden ?? '',
-		o.pruefpunkte ??
-		(o.fachSkill
-				? `Es gibt keine fachlichen Prüfpunkte aus einer Recherche. Lies zuerst den Fach-Skill ganz mit Read und prüfe gegen seine Fachdidaktik:\n- ${o.fachSkill}`
-				: 'Es gibt keine fachlichen Prüfpunkte und keinen Fach-Skill: Prüfe gegen die fachliche Definition.'),
+		o.pruefpunkte ?? ohnePruefpunkte(o.fachSkill),
 		[
 			'Die Seiten liegen in deinem Arbeitsordner. Sieh dir jede mit Read an:',
 			...o.seiten.map((s) => `- ${s}`),
