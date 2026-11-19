@@ -103,8 +103,8 @@ import {
 	pruefWeise,
 	RECHERCHE_DATEI,
 	rechercheAbschnitt,
-	rolleVon,
 	rollenErgebnis,
+	rolleVon,
 	satzBefund,
 	SCHLUSS_SCHRITT,
 	schreibeAtomar,
@@ -137,11 +137,11 @@ import {
 	beendeKind,
 	EINHEIT_PLAN_RECHTE,
 	einheitBauRechte,
+	FACHBLICK_AUFTRAG,
 	KI_GRENZEN,
 	kiArgumente,
 	kiPfad,
 	kiUmgebung,
-	FACHBLICK_AUFTRAG,
 	legeAblageAn,
 	legeFremdeLoesungenAb,
 	lesePids,
@@ -1430,7 +1430,8 @@ export const erstelleEinheiten = (
 		const fachSkill = pruefpunkte || !skill ? null : `${skill}/SKILL.md`;
 		/** Ein Lauf über einen Teil; ohne `text` nur der Eintrag für eine Ansicht, die sich nicht bauen ließ. */
 		const einTeil = async (pruefRolle: PruefRolle, text: string | null, teil: PruefTeil | undefined) => {
-			const pflicht = pruefRolle === 'fach' ? (fachSkill ? blickLektuere([fachSkill]) : []) : blickLektuere(regeln);
+			const pflicht =
+				pruefRolle === 'fach' ? (fachSkill ? blickLektuere([fachSkill]) : []) : blickLektuere(regeln);
 			const eintrag: LaufEintrag = { ...neuerEintrag('pruefung', d.slug, pflicht), rolle: pruefRolle };
 			const lauf = { eintrag, gelesen: new Set<string>() };
 			const beginn = Date.now();
@@ -1450,28 +1451,29 @@ export const erstelleEinheiten = (
 				aktiv.reserviert.runden += vergeben.runden;
 			}
 			await schreibeProtokoll();
-			const ergebnis: PruefErgebnis = await (text
-				? pruefeLauf({
-						bin,
-						...kiJetzt(),
-						ordner: pruefRolle === 'fach' ? fachOrdner : ordner,
-						ablage,
-						text,
-						grenzen,
-						auftragDatei: pruefRolle === 'fach' ? FACHBLICK_AUFTRAG : PRUEF_AUFTRAG,
-						rolle: pruefRolle,
-						gestartet: (k) => {
-							if (aktiv) {
-								merkeKind(aktiv.kinder, k, path.join(dir(s.id), PID), aktiv.abbruch);
-							}
-						},
-						werkzeug: (name, eingabe) => notiereGelesen(lauf, name, eingabe),
-						mitschrift: mitschrift(s, pruefRolle === 'fach' ? 'fachblick' : 'pruefung', d.slug),
-					})
-				: Promise.resolve({
-						...gescheitert('Die Seiten ließen sich für die Prüfung nicht bauen.'),
-						verbrauch: {},
-					})
+			const ergebnis: PruefErgebnis = await (
+				text
+					? pruefeLauf({
+							bin,
+							...kiJetzt(),
+							ordner: pruefRolle === 'fach' ? fachOrdner : ordner,
+							ablage,
+							text,
+							grenzen,
+							auftragDatei: pruefRolle === 'fach' ? FACHBLICK_AUFTRAG : PRUEF_AUFTRAG,
+							rolle: pruefRolle,
+							gestartet: (k) => {
+								if (aktiv) {
+									merkeKind(aktiv.kinder, k, path.join(dir(s.id), PID), aktiv.abbruch);
+								}
+							},
+							werkzeug: (name, eingabe) => notiereGelesen(lauf, name, eingabe),
+							mitschrift: mitschrift(s, pruefRolle === 'fach' ? 'fachblick' : 'pruefung', d.slug),
+						})
+					: Promise.resolve({
+							...gescheitert('Die Seiten ließen sich für die Prüfung nicht bauen.'),
+							verbrauch: {},
+						})
 			).finally(() => {
 				if (aktiv) {
 					aktiv.reserviert.kostenUsd -= vergeben.kostenUsd;
@@ -1481,8 +1483,12 @@ export const erstelleEinheiten = (
 			const fehler = aktiv?.abbruch ? 'Abgebrochen.' : fehlerText(ergebnis.fehler);
 			eintrag.befunde = ergebnis.befunde.map(befundZeile);
 			const hinweis = [
-				teil ? `Prüflauf ${teil.nr} von ${teil.von}, Seiten ${teil.erste}–${teil.letzte} von ${teil.gesamt}.` : '',
-				ergebnis.lesbar ? '' : 'Die Antwort hatte keinen lesbaren Block mit Befunden: keine Befunde übernommen.',
+				teil
+					? `Prüflauf ${teil.nr} von ${teil.von}, Seiten ${teil.erste}–${teil.letzte} von ${teil.gesamt}.`
+					: '',
+				ergebnis.lesbar
+					? ''
+					: 'Die Antwort hatte keinen lesbaren Block mit Befunden: keine Befunde übernommen.',
 			]
 				.filter(Boolean)
 				.join(' ');
@@ -1946,7 +1952,12 @@ export const erstelleEinheiten = (
 					await uebernimmMaterial(s, d);
 					const alt = s.befunde.find((b) => b.slug === d.slug);
 					if (alt?.texte.some(istFolgekorrektur)) {
-						befund(s, d.slug, alt.dok, alt.texte.filter((t) => !istFolgekorrektur(t)));
+						befund(
+							s,
+							d.slug,
+							alt.dok,
+							alt.texte.filter((t) => !istFolgekorrektur(t)),
+						);
 					}
 					await notiereSteckbrief(s, plan, d);
 					vorher.set(d.slug, jetzt);

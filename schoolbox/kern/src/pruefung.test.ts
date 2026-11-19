@@ -726,7 +726,8 @@ describe('pruefung.js: Symmetrie (245)', { skip: browserSkip() }, () => {
 	};
 
 	it('Gitter mit „nur“, die Anweisung nennt die Achse nicht: FEHLER', async () => {
-		const gitter = '<x-gitter spalten="4" zeilen="4" aufgabe="pruefen" nur="senkrecht" figur="1 1 / 1 0"></x-gitter>';
+		const gitter =
+			'<x-gitter spalten="4" zeilen="4" aufgabe="pruefen" nur="senkrecht" figur="1 1 / 1 0"></x-gitter>';
 		const ohne = await melde(blatt('Ist die Figur symmetrisch?', gitter));
 		assert.deepEqual(
 			ohne.map((m) => [m.stufe, m.code]),

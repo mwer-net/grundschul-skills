@@ -199,10 +199,9 @@ export const pruefpunkteText = (recherche: string | null | undefined, berichtigu
 				].join('\n')
 			: '',
 		berichtigungen.length
-			? [
-					'Berichtigt von der Lehrkraft (geht der Recherche vor):',
-					...berichtigungen.map((b) => `- ${b}`),
-				].join('\n')
+			? ['Berichtigt von der Lehrkraft (geht der Recherche vor):', ...berichtigungen.map((b) => `- ${b}`)].join(
+					'\n',
+				)
 			: '',
 	]
 		.filter(Boolean)

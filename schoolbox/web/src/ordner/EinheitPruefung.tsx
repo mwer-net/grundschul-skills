@@ -79,8 +79,12 @@ const FachlichPruefen = ({ zeilen }: { zeilen: string[] }) =>
 	zeilen.length > 0 && (
 		<div className="text-sm" data-fachlich-pruefen>
 			<p className="text-warnung">
-				{zeilen.length === 1 ? 'Ein fachlicher Befund' : `${zeilen.length} fachliche Befunde`} nach den
-				Korrekturrunden offen: bitte {FACHLICH_PRUEFEN}.
+				{zeilen.length === 1 ? 'Ein fachlicher Befund' : `${zeilen.length} fachliche Befunde`}
+{' '}
+nach den
+				Korrekturrunden offen: bitte
+{FACHLICH_PRUEFEN}
+.
 			</p>
 			<ul className="list-disc pl-4">
 				{zeilen.map((z) => (
@@ -109,7 +113,9 @@ export const PruefungDetails = ({ s }: { s: EinheitStand }) => {
 		...(s.schluss && s.schluss.status !== 'laeuft'
 			? s.schluss.offen
 					.filter((b) => b.art === 'fach')
-					.map(({ material, ...b }) => (material ? `„${titel(material)}“, ${befundZeile(b)}` : befundZeile(b)))
+					.map(({ material, ...b }) =>
+						material ? `„${titel(material)}“, ${befundZeile(b)}` : befundZeile(b),
+					)
 			: []),
 	];
 	return (
@@ -118,39 +124,39 @@ export const PruefungDetails = ({ s }: { s: EinheitStand }) => {
 			<Aufklapp
 				titel={`Prüfung der Materialien (${offen ? `${offen} offen` : 'nichts offen'}${fachlich.length ? `, davon ${fachlich.length} ${FACHLICH_PRUEFEN}` : ''})`}
 			>
-			<ul className="flex flex-col gap-1" data-einheit-pruefung>
-				{geprueft.map(({ d, p }) => (
-					<li key={d.slug}>
-						<Aufklapp titel={`${d.titel}: ${pruefZeile(p)}`}>
-							<div className="flex flex-col gap-1">
-								{p.grund && <p>{p.grund}</p>}
-								{p.luecke && <p className="text-warnung">{p.luecke}</p>}
-								<Liste titel="Gefunden" zeilen={p.gefunden.map(befundZeile)} />
-								<Liste titel="Offen" zeilen={[...p.offen.map(befundZeile), ...p.server]} />
-							</div>
-						</Aufklapp>
-					</li>
-				))}
-				{s.schluss && (
-					<li>
-						<Aufklapp titel={`Abgleich der ganzen Einheit: ${schlussZeile(s.schluss)}`}>
-							<div className="flex flex-col gap-1">
-								{s.schluss.grund && <p>{s.schluss.grund}</p>}
-								<Liste titel="Neu gebaut" zeilen={s.schluss.neuGebaut.map(titel)} />
-								<Liste
-									titel="Offen"
-									zeilen={[
-										...s.schluss.offen.map(({ material, ...b }) =>
-											material ? `„${titel(material)}“, ${befundZeile(b)}` : befundZeile(b),
-										),
-										...s.schluss.server,
-									]}
-								/>
-							</div>
-						</Aufklapp>
-					</li>
-				)}
-			</ul>
+				<ul className="flex flex-col gap-1" data-einheit-pruefung>
+					{geprueft.map(({ d, p }) => (
+						<li key={d.slug}>
+							<Aufklapp titel={`${d.titel}: ${pruefZeile(p)}`}>
+								<div className="flex flex-col gap-1">
+									{p.grund && <p>{p.grund}</p>}
+									{p.luecke && <p className="text-warnung">{p.luecke}</p>}
+									<Liste titel="Gefunden" zeilen={p.gefunden.map(befundZeile)} />
+									<Liste titel="Offen" zeilen={[...p.offen.map(befundZeile), ...p.server]} />
+								</div>
+							</Aufklapp>
+						</li>
+					))}
+					{s.schluss && (
+						<li>
+							<Aufklapp titel={`Abgleich der ganzen Einheit: ${schlussZeile(s.schluss)}`}>
+								<div className="flex flex-col gap-1">
+									{s.schluss.grund && <p>{s.schluss.grund}</p>}
+									<Liste titel="Neu gebaut" zeilen={s.schluss.neuGebaut.map(titel)} />
+									<Liste
+										titel="Offen"
+										zeilen={[
+											...s.schluss.offen.map(({ material, ...b }) =>
+												material ? `„${titel(material)}“, ${befundZeile(b)}` : befundZeile(b),
+											),
+											...s.schluss.server,
+										]}
+									/>
+								</div>
+							</Aufklapp>
+						</li>
+					)}
+				</ul>
 			</Aufklapp>
 		</>
 	);

@@ -72,8 +72,8 @@ import {
 	rechercheAbschnitt,
 	rechercheBefund,
 	rechercheText,
-	rolleVon,
 	rollenErgebnis,
+	rolleVon,
 	satzBefund,
 	schreibeAtomar,
 	tausender,
@@ -1186,7 +1186,9 @@ export const pruefeLauf = (o: {
 		kind.on('close', (code) => {
 			clearTimeout(frist);
 			const fehler = grund ?? stand.ergebnis.fehler ?? (code === 0 ? null : (stand.fehlerCode ?? 'unbekannt'));
-			const gelesen = fehler ? { befunde: [], lesbar: true } : lesePruefung(stand.ergebnis.antwort ?? '', PRUEF_VORGABE_ART[o.rolle]);
+			const gelesen = fehler
+				? { befunde: [], lesbar: true }
+				: lesePruefung(stand.ergebnis.antwort ?? '', PRUEF_VORGABE_ART[o.rolle]);
 			resolve({ ...gelesen, fehler, verbrauch: stand.ergebnis.verbrauch ?? {} });
 		});
 	});
@@ -2636,7 +2638,8 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 					});
 					eintrag.befunde = ergebnis.befunde.map(befundZeile);
 					if (!ergebnis.lesbar) {
-						eintrag.hinweis = 'Die Antwort hatte keinen lesbaren Block mit Befunden: keine Befunde übernommen.';
+						eintrag.hinweis =
+							'Die Antwort hatte keinen lesbaren Block mit Befunden: keine Befunde übernommen.';
 					}
 					return ergebnis;
 				} finally {
@@ -2678,7 +2681,11 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 				const pruefpunkte = pruefpunkteText(w.recherche?.ok ? w.recherche.text : null);
 				const fachSkill = pruefpunkte || !skill ? null : `${skill}/SKILL.md`;
 				a.schritte.push(
-					mitKind && weise.fach ? 'Prüft mit Kinderaugen und fachlich' : mitKind ? 'Prüft mit Kinderaugen' : 'Prüft fachlich',
+					mitKind && weise.fach
+						? 'Prüft mit Kinderaugen und fachlich'
+						: mitKind
+							? 'Prüft mit Kinderaugen'
+							: 'Prüft fachlich',
 				);
 				melde(a);
 				const kopf = {
@@ -2733,7 +2740,11 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 				console.error('Prüflauf des Blatts:', (fehler as Error).message);
 				const eintrag = neuerLaufEintrag('pruefung', null, []);
 				const grund = 'Die Seiten ließen sich für die Prüfung nicht bauen.';
-				beendeLaufEintrag(eintrag, Date.now(), { fehler: grund, abgebrochen: aktiv?.abbruch === true, verbrauch: {} });
+				beendeLaufEintrag(eintrag, Date.now(), {
+					fehler: grund,
+					abgebrochen: aktiv?.abbruch === true,
+					verbrauch: {},
+				});
 				protokoll.push(eintrag);
 				return { befunde: [], lesbar: true, fehler: grund, verbrauch: {} };
 			} finally {

@@ -72,7 +72,7 @@ const leseOptionen = (argv: string[]): Optionen => {
 			if (klasse === undefined) {
 				throw new Abbruch(`Unbekannte Klasse: ${roh}. Erlaubt: ${KLASSEN.join(', ')}.`);
 			}
-			anfrage.klasse = klasse as Klasse;
+			anfrage.klasse = klasse;
 			i++;
 		} else if (a === '--ziel') {
 			anfrage.ziele.push(wert(i, a));
@@ -160,11 +160,13 @@ const fuehreAus = async (o: Optionen) => {
 			}
 		} else {
 			const roh = path.join(ordner, RECHERCHE_DATEI);
-			const abgelehnt = o.ausgabe.replace(/\.md$/, '') + '.abgelehnt.md';
+			const abgelehnt = `${o.ausgabe.replace(/\.md$/, '')}.abgelehnt.md`;
 			if (existsSync(roh)) {
 				await copyFile(roh, abgelehnt);
 			}
-			console.log(`\nGescheitert: ${ergebnis.grund}${existsSync(abgelehnt) ? ` Datei des Laufs: ${abgelehnt}` : ''}`);
+			console.log(
+				`\nGescheitert: ${ergebnis.grund}${existsSync(abgelehnt) ? ` Datei des Laufs: ${abgelehnt}` : ''}`,
+			);
 		}
 		console.log(`\n${sekunden} s, Kosten ${usd(kosten)}.`);
 	} finally {

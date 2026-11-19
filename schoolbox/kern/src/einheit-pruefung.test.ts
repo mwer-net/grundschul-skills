@@ -17,9 +17,9 @@ import {
 	figurenDopplungen,
 	folgeBefund,
 	fremdeGrenze,
+	gepruefteZahl,
 	istFolgekorrektur,
 	leseFolgen,
-	gepruefteZahl,
 	lesePruefung,
 	PRUEF_VORGABE_ART,
 	pruefKorrektur,
@@ -138,8 +138,14 @@ describe('Antwort des Prüflaufs (220, Teil 2)', () => {
 			[{ seite: 2, aufgabe: '3', art: 'loesung', text: 'B ist symmetrisch (waagerechte Achse).' }],
 			[],
 		);
-		assert.match(text, /Ein fachlicher Befund wird an der Sache behoben: Aufgabe, Lösung, Beispiel und Tipp stimmen/);
-		assert.match(text, /\(Hinweise, Vorleseheft, Lernzielkontrolle\), nenne es in deiner Antwort und in steckbrief\.json/);
+		assert.match(
+			text,
+			/Ein fachlicher Befund wird an der Sache behoben: Aufgabe, Lösung, Beispiel und Tipp stimmen/,
+		);
+		assert.match(
+			text,
+			/\(Hinweise, Vorleseheft, Lernzielkontrolle\), nenne es in deiner Antwort und in steckbrief\.json/,
+		);
 		assert.match(text, /\{"folgen": \[\{"material": "<slug>", "aussage": /);
 		assert.doesNotMatch(pruefKorrektur([{ seite: 1, aufgabe: '', art: 'unklar', text: 'x' }], []), /an der Sache/);
 	});
@@ -511,15 +517,29 @@ describe('Fachblick (244)', () => {
 	});
 
 	it('ohne Prüfpunkte liest er den Fach-Skill; ohne beides die Definition; ohne Ziele das Ziel der Seite', () => {
-		const mitSkill = fachblickText({ ...FACH, pruefpunkte: null, fachSkill: '/ablage/fach-mathematik/SKILL.md', ziele: [] });
-		assert.match(mitSkill, /Lies zuerst den Fach-Skill ganz mit Read[^\n]*\n- \/ablage\/fach-mathematik\/SKILL\.md/);
+		const mitSkill = fachblickText({
+			...FACH,
+			pruefpunkte: null,
+			fachSkill: '/ablage/fach-mathematik/SKILL.md',
+			ziele: [],
+		});
+		assert.match(
+			mitSkill,
+			/Lies zuerst den Fach-Skill ganz mit Read[^\n]*\n- \/ablage\/fach-mathematik\/SKILL\.md/,
+		);
 		assert.match(mitSkill, /Ich-kann-Ziele: Die Lehrkraft hat keine genannt/);
 		assert.match(fachblickText({ ...FACH, pruefpunkte: null }), /gegen die fachliche Definition/);
 	});
 
 	it('Vorlage: Prüfpunkte, Auftrag, Fach-Skill, berechnete Elemente, Art `fach` vor dem JSON-Block', () => {
 		const vorlage = readFileSync(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit-fachblick.md'), 'utf8');
-		for (const wort of ['Prüfpunkte', 'Auftrag der Lehrkraft', 'Fach-Skill', 'berechnen ihre Lösung selbst', '"art": "fach"']) {
+		for (const wort of [
+			'Prüfpunkte',
+			'Auftrag der Lehrkraft',
+			'Fach-Skill',
+			'berechnen ihre Lösung selbst',
+			'"art": "fach"',
+		]) {
 			assert.ok(vorlage.includes(wort), wort);
 		}
 		const schluss = readFileSync(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit-schluss.md'), 'utf8');
@@ -568,7 +588,9 @@ describe('Fachblick (244)', () => {
 		);
 		assert.equal(fremdeGrenze({ seiten: Array(6).fill('s'), loesungen: [] }), 24);
 		assert.equal(fremdeGrenze({ seiten: Array(16).fill('s'), loesungen: Array(16).fill('l') }), 16);
-		const andere = verteileLoesungen([{ slug: 'k1', titel: 'K1', dateien: Array.from({ length: 30 }, (_, i) => `l${i}`) }]);
+		const andere = verteileLoesungen([
+			{ slug: 'k1', titel: 'K1', dateien: Array.from({ length: 30 }, (_, i) => `l${i}`) },
+		]);
 		assert.equal(andere.length, 24);
 		const text = fachblickText({
 			...FACH,
@@ -583,7 +605,8 @@ describe('Fachblick (244)', () => {
 	});
 
 	it('Befund ohne oder mit unbekannter Art: im Fachblick fach, mit Kinderaugen unklar, im Schlusslauf verworfen', () => {
-		const antwort = '{"befunde": [{"seite": 3, "aufgabe": "Differenzierung", "text": "Die Lösung nennt 0 als ungerade."}]}';
+		const antwort =
+			'{"befunde": [{"seite": 3, "aufgabe": "Differenzierung", "text": "Die Lösung nennt 0 als ungerade."}]}';
 		assert.deepEqual(
 			lesePruefung(antwort, PRUEF_VORGABE_ART.fach).befunde.map((b) => [b.seite, b.aufgabe, b.art]),
 			[[3, 'Differenzierung', 'fach']],
@@ -613,15 +636,30 @@ describe('Fachblick (244)', () => {
 					begriffe: ['gleich weit'],
 					kontrolle: false,
 					aufgaben: [
-						{ dokument: 'k4', format: 'malen-nach-ergebnis', inhalt: 'Symmetrische Felder ausmalen', bereich: 'I' as const, zweitesMal: false },
-						{ dokument: 'k5', format: 'ins-heft', inhalt: 'anderes', bereich: 'II' as const, zweitesMal: false },
+						{
+							dokument: 'k4',
+							format: 'malen-nach-ergebnis',
+							inhalt: 'Symmetrische Felder ausmalen',
+							bereich: 'I' as const,
+							zweitesMal: false,
+						},
+						{
+							dokument: 'k5',
+							format: 'ins-heft',
+							inhalt: 'anderes',
+							bereich: 'II' as const,
+							zweitesMal: false,
+						},
 					],
 				},
 				{ nr: 5, handlung: 'Lernspiel.', begriffe: [], kontrolle: false, aufgaben: [] },
 			],
 		};
 		const eigen = fachblickStunden(plan, 'k4') ?? '';
-		assert.match(eigen, /- Stunde 4: Am Geobrett spannen\. Fachwörter: gleich weit\.\n  - malen-nach-ergebnis \(AB I\): Symmetrische Felder ausmalen/);
+		assert.match(
+			eigen,
+			/- Stunde 4: Am Geobrett spannen\. Fachwörter: gleich weit\.\n {2}- malen-nach-ergebnis \(AB I\): Symmetrische Felder ausmalen/,
+		);
 		assert.doesNotMatch(eigen, /anderes|Stunde 5/);
 		assert.match(fachblickStunden(plan, 'hinweise') ?? '', /- Stunde 4: .*\n- Stunde 5: Lernspiel\./);
 		assert.equal(fachblickStunden({}, 'k4'), null);

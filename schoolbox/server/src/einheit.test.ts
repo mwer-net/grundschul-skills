@@ -343,7 +343,10 @@ describe('Lauf einer Einheit (139)', () => {
 				await mkdir(ziel, { recursive: true });
 				// Die Quelle als „Seitenbild“: So sieht der Prüflauf der Attrappe, was auf der Seite steht.
 				// 244: dazu eine Lösungsseite; nur der Fachblick (und Rollen mit Kind) bekommt sie in seinen Ordner.
-				const bilder = [...Array.from({ length: ansichtSeiten }, (_, i) => `seite-${i + 1}.png`), 'loesung-seite-1.png'];
+				const bilder = [
+					...Array.from({ length: ansichtSeiten }, (_, i) => `seite-${i + 1}.png`),
+					'loesung-seite-1.png',
+				];
 				for (const b of bilder) {
 					await writeFile(path.join(ziel, b), await readFile(quelle));
 				}
@@ -821,12 +824,18 @@ describe('Lauf einer Einheit (139)', () => {
 			// Lösung nach Teil 1 (229). Der Fachblick daneben sieht die Lösung, in seinem eigenen Ordner (244).
 			// Lösungsseiten nie lose im Ordner, nur unter loesung/ (229).
 			const pruefungen = (
-				await jsonl<{ titel: string; rolle: string; loesungLose: boolean; loesungOrdner: boolean; kind: boolean }>(
-					'pruefungen.jsonl',
-				)
+				await jsonl<{
+					titel: string;
+					rolle: string;
+					loesungLose: boolean;
+					loesungOrdner: boolean;
+					kind: boolean;
+				}>('pruefungen.jsonl')
 			).slice(pruefVorher);
 			assert.deepEqual(
-				pruefungen.filter((x) => x.rolle === 'kind').map((x) => [x.titel, x.loesungLose, x.loesungOrdner, x.kind]),
+				pruefungen
+					.filter((x) => x.rolle === 'kind')
+					.map((x) => [x.titel, x.loesungLose, x.loesungOrdner, x.kind]),
 				[
 					['Fall 1', false, true, true],
 					['Fall 1', false, true, true],
@@ -1035,7 +1044,10 @@ describe('Lauf einer Einheit (139)', () => {
 				p?.gefunden.map((b) => [b.aufgabe, b.art]),
 				[['Differenzierung', 'fach']],
 			);
-			assert.match(nachPruefung((await prompts()).slice(vorher))[0] ?? '', /Fachlich falsch: Die Uhr zeigt nicht/);
+			assert.match(
+				nachPruefung((await prompts()).slice(vorher))[0] ?? '',
+				/Fachlich falsch: Die Uhr zeigt nicht/,
+			);
 			assert.ok(p && fachlichOffen(p).length === 1);
 		});
 
@@ -1059,7 +1071,8 @@ describe('Lauf einer Einheit (139)', () => {
 			}
 		});
 
-		const lebt = (pid: number) => existsSync(`/proc/${pid}`) && !/^State:\s+Z/m.test(readFileSync(`/proc/${pid}/status`, 'utf8'));
+		const lebt = (pid: number) =>
+			existsSync(`/proc/${pid}`) && !/^State:\s+Z/m.test(readFileSync(`/proc/${pid}/status`, 'utf8'));
 
 		it('Kinderaugen und Fachblick gleichzeitig: Abbrechen beendet beide, beide Prüfordner sind weg (244)', async () => {
 			await fall('einheit-pruefung-haenger');
@@ -1068,7 +1081,9 @@ describe('Lauf einer Einheit (139)', () => {
 			const pidDatei = path.join(einheit, 'pid');
 			let pids: number[] = [];
 			await warte(() => {
-				pids = existsSync(pidDatei) ? readFileSync(pidDatei, 'utf8').split('\n').filter(Boolean).map(Number) : [];
+				pids = existsSync(pidDatei)
+					? readFileSync(pidDatei, 'utf8').split('\n').filter(Boolean).map(Number)
+					: [];
 				return pids.length === 2;
 			});
 			assert.ok(pids.every(lebt));
@@ -1089,7 +1104,7 @@ describe('Lauf einer Einheit (139)', () => {
 				spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)', einheit], { stdio: 'ignore' }),
 			);
 			const pids = kinder.map((k) => k.pid ?? 0);
-			await writeFile(path.join(einheit, 'pid'), pids.join('\n') + '\n');
+			await writeFile(path.join(einheit, 'pid'), `${pids.join('\n')}\n`);
 			assert.ok(pids.every(lebt));
 			await server.kontext.einheiten.beendeReste();
 			await warte(() => kinder.every((k) => k.exitCode !== null || k.signalCode !== null));

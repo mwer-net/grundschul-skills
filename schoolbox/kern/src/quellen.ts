@@ -281,7 +281,8 @@ const pruefSchwellen = (wurzel: string) => {
 		'ausgeblendet': 'einmal je Material: Elemente mit `data-aus` werden nicht gedruckt',
 		'zeitziel-fehlt': `${laufNeu}: ${MIT_ZEITZIEL.map((a) => ART_ANGABEN[a].name).join(', ')} mit ${satz} und Aufgaben, aber ohne \`data-zeit\` am \`<body>\``,
 		'loesung-fehlt': `${laufNeu}: je Aufgabe, deren Antwortlinien keine Lösung haben; bei offener Aufgabe reicht ein Satz als \`.nur-loesung\``,
-		'symmetrie-achse': '`x-gitter aufgabe="pruefen"` mit `nur`, und die Anweisung spricht von Symmetrie, nennt die Achse aber nicht',
+		'symmetrie-achse':
+			'`x-gitter aufgabe="pruefen"` mit `nur`, und die Anweisung spricht von Symmetrie, nennt die Achse aber nicht',
 	};
 	const stufen = meldungStufen(js);
 	for (const code of OHNE_SCHWELLE) {

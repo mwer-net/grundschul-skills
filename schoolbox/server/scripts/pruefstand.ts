@@ -289,7 +289,7 @@ const vorhabenFuer = async (p: Pruefstand, d: PlanDokument, teile: Teil[]): Prom
 	if (!q) {
 		return 'kein material.html (oder zu groß)';
 	}
-	const { dok, quelle, html } = q;
+	const { dok, html, quelle } = q;
 	const rolle = rolleVon(d);
 	const mitKiBildern =
 		p.auftrag.includes(EINHEIT_BILDER_SATZ.mit) &&

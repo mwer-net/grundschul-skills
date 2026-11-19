@@ -398,15 +398,16 @@ export const berechneteElemente = (html: string) => {
 		}
 		const attrs = new Map<string, string>();
 		for (const a of (t[3] ?? '').matchAll(ATTR)) {
-			attrs.set((a[1] ?? '').toLowerCase(), (a[2] ?? a[3] ?? a[4] ?? '').replace(/\s+/g, ' ').trim().slice(0, 40));
+			attrs.set(
+				(a[1] ?? '').toLowerCase(),
+				(a[2] ?? a[3] ?? a[4] ?? '').replace(/\s+/g, ' ').trim().slice(0, 40),
+			);
 		}
 		const frage = FRAGE_ATTRIBUTE.filter((k) => attrs.get(k)).map((k) => ` ${k}="${attrs.get(k) ?? ''}"`);
 		const schluessel = `<${name}${frage.join('')}>`;
 		zahl.set(schluessel, (zahl.get(schluessel) ?? 0) + 1);
 	}
-	return [...zahl]
-		.map(([e, n]) => (n > 1 ? `${e} (${n}-mal)` : e))
-		.slice(0, MAX_BERECHNET);
+	return [...zahl].map(([e, n]) => (n > 1 ? `${e} (${n}-mal)` : e)).slice(0, MAX_BERECHNET);
 };
 
 /**
@@ -443,7 +444,9 @@ const fremdeText = (andere: readonly FremdeLoesung[]) => {
 	}
 	return [
 		'Lösungsseiten der fertigen Materialien, auf die die Hinweise zeigen. Prüfe jede Lösungs- und Fehlerangabe der Hinweise gegen sie:',
-		...[...gruppen.values()].map((g) => `- „${g[0]?.titel ?? ''}“ (dokumente/${g[0]?.slug ?? ''}): ${g.map((x) => x.datei).join(', ')}`),
+		...[...gruppen.values()].map(
+			(g) => `- „${g[0]?.titel ?? ''}“ (dokumente/${g[0]?.slug ?? ''}): ${g.map((x) => x.datei).join(', ')}`,
+		),
 	].join('\n');
 };
 
@@ -458,12 +461,13 @@ export const fachblickText = (o: FachblickAuftrag) => {
 			: 'Ich-kann-Ziele: Die Lehrkraft hat keine genannt. Nimm das Ich-kann-Ziel auf den Seiten und die Handlung der Stunde.',
 		o.stunden ?? '',
 		o.pruefpunkte ??
-			(o.fachSkill
+		(o.fachSkill
 				? `Es gibt keine fachlichen Prüfpunkte aus einer Recherche. Lies zuerst den Fach-Skill ganz mit Read und prüfe gegen seine Fachdidaktik:\n- ${o.fachSkill}`
 				: 'Es gibt keine fachlichen Prüfpunkte und keinen Fach-Skill: Prüfe gegen die fachliche Definition.'),
-		['Die Seiten liegen in deinem Arbeitsordner. Sieh dir jede mit Read an:', ...o.seiten.map((s) => `- ${s}`)].join(
-			'\n',
-		),
+		[
+			'Die Seiten liegen in deinem Arbeitsordner. Sieh dir jede mit Read an:',
+			...o.seiten.map((s) => `- ${s}`),
+		].join('\n'),
 		o.ausschnitte.length
 			? `Ausschnitte je Aufgabe, wenn du etwas genauer sehen willst: ${o.ausschnitte.slice(0, PRUEF_GRENZEN.ausschnitte).join(', ')}${o.ausschnitte.length > PRUEF_GRENZEN.ausschnitte ? '; weitere Ausschnitte im Ordner' : ''}`
 			: '',
@@ -597,7 +601,8 @@ export const rollenErgebnis = (rollen: readonly { rolle: PruefRolle; teile: read
 		fehler: alle ? fehlerVon(gescheitert[0] ?? { teile: [] }) : null,
 		luecke: alle
 			? null
-			: gescheitert.map((r) => `${PRUEF_ROLLE_NAME[r.rolle]} gescheitert: ${fehlerVon(r) ?? ''}`).join(' ') || null,
+			: gescheitert.map((r) => `${PRUEF_ROLLE_NAME[r.rolle]} gescheitert: ${fehlerVon(r) ?? ''}`).join(' ') ||
+				null,
 	};
 };
 
@@ -694,7 +699,9 @@ export const leseFolgen = (roh: unknown, slugs: readonly string[], eigenes: stri
 			const material = typeof e.material === 'string' ? e.material.trim().replace(/^dokumente\//, '') : '';
 			const aussage =
 				typeof e.aussage === 'string' ? e.aussage.replace(/\s+/g, ' ').trim().slice(0, PRUEF_GRENZEN.text) : '';
-			return material && aussage && material !== eigenes && slugs.includes(material) ? { material, aussage } : null;
+			return material && aussage && material !== eigenes && slugs.includes(material)
+				? { material, aussage }
+				: null;
 		})
 		.filter((f): f is Folgekorrektur => {
 			const k = f ? `${f.material}|${f.aussage}` : '';

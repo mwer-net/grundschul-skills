@@ -158,9 +158,9 @@ const pruefpunktTeile = (punkt: string) => {
  * Lehrkraft aus dem Plan. Je Punkt eine Zeile, das Gegenbeispiel leise dahinter, die Quelle als kurzer Link.
  */
 export const FachPruefpunkte = ({
-	recherche,
 	berichtigungen,
 	planOffen,
+	recherche,
 }: {
 	recherche: string | null;
 	berichtigungen: string[];

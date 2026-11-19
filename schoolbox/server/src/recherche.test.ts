@@ -124,9 +124,15 @@ describe('Prüfung von recherche.md (219)', () => {
 			'Prüfpunkte ohne Quelle (Adresse mit https:// in Klammern): Nr. 2, 3 im Abschnitt „## Fachliche Prüfpunkte“.',
 		);
 		assert.match(pruefpunkteBefund(`${GUT}\n## Fachliche Prüfpunkte\n\n## Quellen\n`) ?? '', /keinen Prüfpunkt/);
-		assert.match(pruefpunkteBefund(`${GUT}\n## Fachliche Prüfpunkte\n- a (https://a.de)\n`) ?? '', /ohne „Wahr: …“: Nr\. 1/);
+		assert.match(
+			pruefpunkteBefund(`${GUT}\n## Fachliche Prüfpunkte\n- a (https://a.de)\n`) ?? '',
+			/ohne „Wahr: …“: Nr\. 1/,
+		);
 		const viele = Array.from({ length: 16 }, (_, i) => `- Wahr: ${i} (https://a.de)`).join('\n');
-		assert.match(pruefpunkteBefund(`${GUT}\n## Fachliche Prüfpunkte\n${viele}\n`) ?? '', /16 Prüfpunkte, höchstens 15/);
+		assert.match(
+			pruefpunkteBefund(`${GUT}\n## Fachliche Prüfpunkte\n${viele}\n`) ?? '',
+			/16 Prüfpunkte, höchstens 15/,
+		);
 	});
 
 	it('pruefpunkteAus liest den Abschnitt bis zur nächsten Überschrift, Fortsetzungszeilen gehören zum Punkt (243)', () => {

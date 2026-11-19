@@ -978,7 +978,15 @@ describe('Aufträge an Claude', () => {
 			assert.equal(protokoll.version, 1);
 			assert.equal(protokoll.einheit, null);
 			assert.equal(protokoll.dokument, blatt.dok);
-			assert.deepEqual(arten(protokoll), ['plan', 'bau', 'pruefung', 'pruefung', 'korrektur', 'pruefung', 'pruefung']);
+			assert.deepEqual(arten(protokoll), [
+				'plan',
+				'bau',
+				'pruefung',
+				'pruefung',
+				'korrektur',
+				'pruefung',
+				'pruefung',
+			]);
 			assert.ok((protokoll.laeufe.find((e) => e.art === 'bau')?.pflicht.length ?? 0) > 2);
 			assert.match(protokoll.laeufe.find((e) => e.art === 'pruefung')?.befunde[0] ?? '', /Was mit den Uhren/);
 		});
@@ -990,7 +998,15 @@ describe('Aufträge an Claude', () => {
 			const warnung = meta.meldungen.find((m) => m.text.startsWith('Prüfung mit Kinderaugen'));
 			assert.equal(warnung?.stufe, 'WARNUNG');
 			assert.match(warnung?.text ?? '', /Seite 1, Aufgabe 1, .*: Was mit den Uhren zu tun ist, steht nicht da\./);
-			assert.deepEqual(arten(protokoll), ['plan', 'bau', 'pruefung', 'pruefung', 'korrektur', 'pruefung', 'pruefung']);
+			assert.deepEqual(arten(protokoll), [
+				'plan',
+				'bau',
+				'pruefung',
+				'pruefung',
+				'korrektur',
+				'pruefung',
+				'pruefung',
+			]);
 		});
 
 		it('bauen vor der Pflichtlektüre: abgewiesen mit der fehlenden Datei, danach gebaut', async () => {
