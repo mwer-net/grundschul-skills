@@ -319,17 +319,24 @@ export interface BildVorschlag {
 
 const BILD_DATEI_KAPITEL = /^(?:fall|folie)-(\d{1,2})(?=[-.])/;
 const BILDFOLIE_IM_MOTIV = /^(?:bildfolie\s+)?(\d{1,2})\.(\d{1,2})(?!\d)/i;
+const KAPITEL_IM_MOTIV = /^kapitel\s+(\d{1,2})\s*:/i;
 
 /**
- * Das Kapitel eines Bildes: aus dem Dateinamen (`fall-3.jpg`, `folie-3-1.jpg`) oder, wenn das Motiv mit der Nummer
- * einer Bildfolie des Plans beginnt („Bildfolie 3.1: …“), aus `geschichte.kapitel.bildfolien`. `null`, wenn die
- * Geschichte das Kapitel nicht hat oder nichts darauf zeigt (Grundpose, Pose, Deckblatt).
+ * Das Kapitel eines Bildes: aus dem Dateinamen (`fall-3.jpg`, `folie-3-1.jpg`), aus einem Motiv, das mit „Kapitel 6:“
+ * beginnt (eine Pose für die Auflösung), oder, wenn das Motiv mit der Nummer einer Bildfolie des Plans beginnt
+ * („Bildfolie 3.1: …“), aus `geschichte.kapitel.bildfolien`. `null`, wenn die Geschichte das Kapitel nicht hat oder
+ * nichts darauf zeigt (Grundpose, Pose, Deckblatt).
  */
 export const bildKapitel = (plan: Pick<EinheitPlan, 'geschichte'>, datei: string, motiv = '') => {
 	const kapitel = plan.geschichte?.kapitel ?? [];
 	const aus = BILD_DATEI_KAPITEL.exec(datei);
 	if (aus) {
 		const nr = Number(aus[1]);
+		return kapitel.some((k) => k.nr === nr) ? nr : null;
+	}
+	const genannt = KAPITEL_IM_MOTIV.exec(motiv.trim());
+	if (genannt) {
+		const nr = Number(genannt[1]);
 		return kapitel.some((k) => k.nr === nr) ? nr : null;
 	}
 	const folie = BILDFOLIE_IM_MOTIV.exec(motiv.trim());
@@ -394,7 +401,8 @@ const nichtBeiFigur = (d: KanonDing, f: KanonFigur, kapitel: number) => {
  *   Werkzeug oder Fachgegenstand im Bild die Regel.
  * - `verboten`: was im Kapitel noch geheim ist, je Figur ihr `nie`, Gegenstände, die die Figur nur in anderen
  *   Kapiteln hat.
- * Ohne Kapitel (Grundpose, Pose, Deckblatt) nur, was in jedem Kapitel gilt: Figuren und Regeln.
+ * Ohne Kapitel (Grundpose, Pose, Deckblatt) Figuren, Regeln und die Geheimnisse wie in Kapitel 0: Diese Bilder sehen
+ * die Kinder vor der Auflösung. Zustände und „Ding bei Figur“ nur mit Kapitel.
  */
 export const bildVorschlag = (kanon: EinheitKanon, kapitel: number | null, text: string): BildVorschlag => {
 	const woerter = woerterVon(text);
@@ -415,7 +423,7 @@ export const bildVorschlag = (kanon: EinheitKanon, kapitel: number | null, text:
 			...kanon.regeln.filter((r) => regelImBild(r, woerter, namen)).map(ohnePunkt),
 		],
 		verboten: [
-			...mitKapitel(() => kanon.geheim.filter((g) => nochGeheim(g, kapitel)).map(geheimZeile)),
+			...kanon.geheim.filter((g) => nochGeheim(g, kapitel ?? 0)).map(geheimZeile),
 			...figuren.filter((f) => f.nie.length).map(figurNie),
 			...mitKapitel(() =>
 				figuren.flatMap((f) =>
@@ -560,7 +568,7 @@ export const bilderKanonText = (kanon: EinheitKanon | undefined, kapitel: readon
 	const je = nummern.flatMap((nr) => kapitelZeilen(kanon, nr));
 	return [
 		'Kanon für die Bilder (aus dem freigegebenen Plan). Ein Bild gehört zum Kapitel seiner Fall-Karte oder Bildfolie („3.1“ zu Kapitel 3).',
-		`Bildvertrag aus dem Kanon: Übernimm jede Zeile, die zu einem Bild passt, wörtlich als eigenen Eintrag in „pflicht“ oder „verboten“ seines Vertrags und ergänze, was das Bild sonst braucht. bild_erzeugen lehnt einen Vertrag ab, dem eine dieser Zeilen fehlt, und nennt sie. ${GRUNDPOSE_SATZ} Grundposen, Posen und das Deckblatt haben kein Kapitel: Für sie gelten nur Figuren und Regeln.`,
+		`Bildvertrag aus dem Kanon: Übernimm jede Zeile, die zu einem Bild passt, wörtlich als eigenen Eintrag in „pflicht“ oder „verboten“ seines Vertrags und ergänze, was das Bild sonst braucht. bild_erzeugen lehnt einen Vertrag ab, dem eine dieser Zeilen fehlt, und nennt sie. ${GRUNDPOSE_SATZ} Grundposen, Posen und das Deckblatt haben kein Kapitel: Für sie gelten Figuren, Regeln und die Geheimnisse von Kapitel 0. Eine Pose, die erst ab einem Kapitel vorkommt, nennt es am Anfang des Motivs („Kapitel 6: …“); die Grundpose nie.`,
 		figuren.length ? ['Je Figur, in jedem Bild:', ...figuren].join('\n') : '',
 		kanon.regeln.length
 			? [

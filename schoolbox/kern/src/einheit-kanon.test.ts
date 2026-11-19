@@ -315,6 +315,8 @@ describe('Kanon der Einheit (246)', () => {
 			assert.equal(bildKapitel(GESCHICHTE, 'szene.jpg', '4.7 gibt es nicht'), null);
 			assert.equal(bildKapitel(GESCHICHTE, 'fall-9.jpg'), null);
 			assert.equal(bildKapitel(GESCHICHTE, 'titel.jpg', 'Deckblatt'), null);
+			assert.equal(bildKapitel(GESCHICHTE, 'ella-lacht.png', 'Kapitel 6: Ella lacht'), 6);
+			assert.equal(bildKapitel(GESCHICHTE, 'ella-lacht.png', 'Kapitel 9: Ella lacht'), null);
 			assert.equal(bildKapitel({}, 'fall-1.jpg'), null);
 		});
 
@@ -327,9 +329,15 @@ describe('Kanon der Einheit (246)', () => {
 				],
 				verboten: ['erkennbar vor Kapitel 6: Ella ist die Täterin', 'das Glöckchen bei Luna'],
 			});
-			assert.deepEqual(bildVorschlag(KANON, null, 'Deckblatt: Ella und Luna').verboten, ['Ella, nie: trägt das Glöckchen']);
+			assert.deepEqual(bildVorschlag(KANON, null, 'Deckblatt: Ella und Luna').verboten, [
+				'erkennbar vor Kapitel 6: Ella ist die Täterin',
+				'Ella, nie: trägt das Glöckchen',
+			]);
 			const ohneBrille = leseKanon({ ...ROH, figuren: [{ name: 'Luna', fest: ['zwei Flügel'], nie: ['keine Brille', 'kein Hut'] }] });
-			assert.deepEqual(ohneBrille && bildVorschlag(ohneBrille, null, 'Luna').verboten, ['Luna, nie: Brille; Hut']);
+			assert.deepEqual(ohneBrille && bildVorschlag(ohneBrille, null, 'Luna').verboten, [
+				'erkennbar vor Kapitel 6: Ella ist die Täterin',
+				'Luna, nie: Brille; Hut',
+			]);
 		});
 
 		it('Szene vor Kapitel 6 ohne „erkennbar vor Kapitel 6: …“: abgelehnt, mit jeder fehlenden Zeile wörtlich', () => {
@@ -367,11 +375,33 @@ describe('Kanon der Einheit (246)', () => {
 					motiv: 'Grundpose Ella',
 					vertrag: {
 						pflicht: ['Ella: ein buschiger Schwanz; zwei Ohren mit Pinseln'],
-						verboten: ['Ella, nie: trägt das Glöckchen'],
+						verboten: ['Ella, nie: trägt das Glöckchen', 'erkennbar vor Kapitel 6: Ella ist die Täterin'],
 					},
 				}),
 				null,
 			);
+		});
+
+		it('Deckblatt und Posen: das Geheimnis wie in Kapitel 0; eine Pose mit „Kapitel 6:“ nicht', () => {
+			const luna = ['Luna: zwei Flügel; eine kleine Brille'];
+			const deckblatt = pruefeBildVertrag(GESCHICHTE, {
+				datei: 'titel.jpg',
+				motiv: 'Deckblatt: Luna am Fenster',
+				vertrag: { pflicht: luna },
+			});
+			assert.match(deckblatt ?? '', /- verboten: „erkennbar vor Kapitel 6: Ella ist die Täterin“$/);
+			const pose = {
+				datei: 'ella-lacht.png',
+				motiv: 'Kapitel 6: Ella lacht',
+				vertrag: {
+					pflicht: ['Ella: ein buschiger Schwanz; zwei Ohren mit Pinseln'],
+					verboten: ['Ella, nie: trägt das Glöckchen'],
+				},
+			};
+			assert.equal(pruefeBildVertrag(GESCHICHTE, pose), null);
+			assert.match(pruefeBildVertrag(GESCHICHTE, { ...pose, motiv: 'Pose: Ella lacht' }) ?? '', /Ella ist die Täterin/);
+			const spiegel = bildVorschlag(KANON, null, 'Pose: Luna hält den Spiegel');
+			assert.ok(!spiegel.verboten.some((z) => z.includes(' bei ')), 'Ding bei Figur nur mit Kapitel');
 		});
 
 		it('ohne Kanon kein Vorschlag und kein Ablehnen; fehlendeZeilen liest Listen und Objekte', () => {
