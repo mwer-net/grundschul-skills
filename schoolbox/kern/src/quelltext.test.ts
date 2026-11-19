@@ -348,7 +348,7 @@ describe('Baustein-Register', () => {
 	it('kennt jede Abbildung aus abbildungen.js', () => {
 		const js = readFileSync(path.join(ASSETS, 'abbildungen.js'), 'utf8');
 		const arten = /const ARTEN = \{([^}]*)\}/.exec(js)?.[1] ?? '';
-		const namen = [...arten.matchAll(/"(x-[a-z]+)"/g)].map((t) => t[1]);
+		const namen = [...arten.matchAll(/"(x-[a-z0-9-]+)"/g)].map((t) => t[1]);
 		assert.deepEqual([...namen].sort(), [...ABBILDUNGEN].sort());
 	});
 
