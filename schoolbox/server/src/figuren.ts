@@ -1,4 +1,4 @@
-import { benenneFigur, entfernePose, leseBibliothek, setzeEntferntesEin } from '@schoolbox/kern';
+import { benenneFigur, entfernePose, leseBibliothek, quittiereVermerk, setzeEntferntesEin } from '@schoolbox/kern';
 import { Router } from 'express';
 
 import { HttpFehler } from './fehler';
@@ -40,6 +40,14 @@ export const figurenApi = (kontext: Kontext) => {
 			throw new HttpFehler(400, '„name“ fehlt.');
 		}
 		if (!(await benenneFigur(konfig, konfig.materialDir, req.params.figur, name))) {
+			throw new HttpFehler(404, 'Diese Figur gibt es nicht.');
+		}
+		res.json({ ok: true });
+	});
+
+	/** 253: „Geprüft“ am Vermerk einer Figur aus einem Lauf: Der Vermerk geht weg. */
+	router.post('/:figur/geprueft', async (req, res) => {
+		if (!(await quittiereVermerk(konfig, konfig.materialDir, req.params.figur))) {
 			throw new HttpFehler(404, 'Diese Figur gibt es nicht.');
 		}
 		res.json({ ok: true });

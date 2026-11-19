@@ -923,3 +923,18 @@ export const benenneFigur = async (
 		return true;
 	});
 };
+
+/** 253: Die Lehrkraft hat die Figur geprüft: Der Vermerk geht weg. `false`, wenn es die Figur nicht gibt. */
+export const quittiereVermerk = async (
+	konfig: Pick<Konfig, 'pythonBin'>,
+	materialDir: string,
+	figurId: string,
+): Promise<boolean> =>
+	aendereBibliothek(konfig, materialDir, (gespeichert) => {
+		const eintrag = gespeichert.figuren.find((f) => istObjekt(f) && f.id === figurId);
+		if (!eintrag) {
+			return false;
+		}
+		delete eintrag.vermerk;
+		return true;
+	});

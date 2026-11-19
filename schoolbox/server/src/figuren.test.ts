@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
@@ -56,5 +56,39 @@ describe('Figuren entfernen (176)', () => {
 		const antwort = await entferne('wilma');
 		assert.equal(antwort.status, 400);
 		assert.deepEqual(await posen(), davor);
+	});
+});
+
+describe('Vermerk quittieren (253)', () => {
+	let server: TestServer;
+	const geprueft = (figur: string) =>
+		server.holen(`${server.url}/api/figuren/${figur}/geprueft`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', [CSRF_HEADER]: '1' },
+			body: '{}',
+		});
+
+	before(async () => {
+		const materialDir = await mkdtemp(path.join(tmpdir(), 'schoolbox-figuren-api-'));
+		await legeTestfigurenAn(materialDir);
+		const kiki = { id: 'kiki', name: 'Kiki', vermerk: 'Bitte prüfen', posen: [{ datei: 'kiki.png' }] };
+		await writeFile(path.join(figurenDir(materialDir), 'figuren.json'), JSON.stringify({ version: 1, figuren: [kiki] }));
+		server = await starteTestServer({ materialDir });
+	});
+
+	after(async () => {
+		await server.stop();
+	});
+
+	it('„Geprüft“ entfernt den Vermerk; 404 für eine Figur, die es nicht gibt', async () => {
+		const vermerk = async () =>
+			(
+				(await (await server.holen(`${server.url}/api/figuren`)).json()) as { figuren: BibliotheksFigur[] }
+			).figuren.find((f) => f.id === 'kiki')?.vermerk;
+		assert.equal(await vermerk(), 'Bitte prüfen');
+		const antwort = await geprueft('kiki');
+		assert.equal(antwort.status, 200, await antwort.clone().text());
+		assert.equal(await vermerk(), undefined);
+		assert.equal((await geprueft('gibtsnicht')).status, 404);
 	});
 });

@@ -372,9 +372,25 @@ export const Inhalt = (t: SchubladenTeile) => {
 								{figur.aus && <span className="text-leise">{`aus „${figur.aus}“`}</span>}
 								{figur.aus && figur.vermerk && <span className="text-leise"> · </span>}
 								{figur.vermerk && (
-									<span className="font-medium text-warnung" data-figur-vermerk>
-										{figur.vermerk}
-									</span>
+									<>
+										<span className="font-medium text-warnung" data-figur-vermerk>
+											{figur.vermerk}
+										</span>{' '}
+										<button
+											type="button"
+											data-figur-geprueft={figur.id}
+											title="Vermerk entfernen: Die Figur ist geprüft."
+											className="rounded px-1 font-medium text-brand-700 hover:bg-brand-50"
+											onClick={() =>
+												void sende(`/api/figuren/${encodeURIComponent(figur.id)}/geprueft`, {}).then(
+													() => ladeFigurenNeu(),
+													(grund: unknown) => zeigeHinweis({ text: meldung(grund), art: 'fehler' }),
+												)
+											}
+										>
+											Geprüft
+										</button>
+									</>
 								)}
 							</p>
 						)}

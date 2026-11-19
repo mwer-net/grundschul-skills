@@ -17,6 +17,7 @@ import {
 	figurenDir,
 	leseBibliothek,
 	nimmPoseAuf,
+	quittiereVermerk,
 	setzeEntferntesEin,
 } from './figurenbibliothek';
 import { ASSETS } from './konfig';
@@ -539,6 +540,17 @@ describe('Canva-Referenz, Steckbrief und entfernePose (176)', () => {
 		assert.equal(await benenneFigur(KONFIG, materialDir, 'gibtsnicht', 'X'), false);
 		await assert.rejects(benenneFigur(KONFIG, materialDir, 'willi', 'Bert'), SchoolboxFehler);
 		await assert.rejects(benenneFigur(KONFIG, materialDir, 'kiki', '   '), SchoolboxFehler);
+	});
+
+	it('253: „Geprüft“ entfernt den Vermerk, sonst bleibt die Figur gleich', async () => {
+		const { bild, materialDir } = await mitKiki();
+		await nimmPoseAuf(KONFIG, materialDir, { datei: bild, figur: 'momo', name: 'Momo', aus: 'Herbst', vermerk: 'Prüfen' });
+		const momo = async () => (await leseBibliothek(KONFIG, materialDir)).find((f) => f.id === 'momo');
+		assert.equal((await momo())?.vermerk, 'Prüfen');
+		assert.equal(await quittiereVermerk(KONFIG, materialDir, 'momo'), true);
+		assert.equal((await momo())?.vermerk, undefined);
+		assert.equal((await momo())?.aus, 'Herbst');
+		assert.equal(await quittiereVermerk(KONFIG, materialDir, 'gibtsnicht'), false);
 	});
 
 	it('199-N01: lehnt einen Namen ab, den schon eine Figur trägt, ohne Groß/klein und Leerzeichen', async () => {
