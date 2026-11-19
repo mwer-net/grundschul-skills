@@ -2212,6 +2212,39 @@ describe('Ordner des Prüflaufs (229)', () => {
 		assert.deepEqual(teile.loesungen, ['loesung/loesung-seite-1.png', 'loesung/loesung-seite-2.png']);
 		assert.ok([...teile.seiten, ...teile.ausschnitte].every((n) => !n.includes('loesung')));
 	});
+
+	it('Bilder: Kennung aus Inhalt und Vertrag; ein geprüftes bekommt nur den Ausschnitt (248)', async () => {
+		const ordner = await mkdtemp(path.join(tmpdir(), 'pruefordner-'));
+		const arbeit = await mkdtemp(path.join(tmpdir(), 'pruefarbeit-'));
+		try {
+			await mkdir(path.join(arbeit, 'bilder'));
+			await mkdir(path.join(arbeit, 'ansicht', 'bilder'), { recursive: true });
+			await writeFile(path.join(arbeit, 'bilder', 'folie-6-2.jpg'), 'bild');
+			for (const n of ['folie-6-2-v1.png', 'folie-6-2-platz.png', 'folie-6-2-2-v1.png', 'folie-6-2-alt.png']) {
+				await writeFile(path.join(arbeit, 'ansicht', 'bilder', n), n);
+			}
+			const eintrag = { datei: 'folie-6-2.jpg', motiv: 'Ella', vertrag: { pflicht: ['Ella'] } };
+			await writeFile(path.join(arbeit, 'bilder.json'), JSON.stringify([eintrag]));
+			const html = '<img src="../../bilder/folie-6-2.jpg">';
+			const erst = await richtePruefOrdnerEin(ordner, [], html, arbeit, false);
+			const [bild] = erst.bilder;
+			assert.deepEqual(bild?.pruefbilder, ['bilder/folie-6-2-platz.png', 'bilder/folie-6-2-v1.png']);
+			assert.equal(bild?.geprueft, undefined);
+			assert.match(bild?.kennung ?? '', /^[0-9a-f]{16}$/);
+
+			const dann = await richtePruefOrdnerEin(ordner, [], html, arbeit, false, new Set([bild?.kennung ?? '']));
+			assert.deepEqual(dann.bilder[0]?.pruefbilder, ['bilder/folie-6-2-platz.png']);
+			assert.equal(dann.bilder[0]?.geprueft, true);
+
+			await writeFile(path.join(arbeit, 'bilder.json'), JSON.stringify([{ ...eintrag, vertrag: { pflicht: ['Luna'] } }]));
+			const neuerVertrag = await richtePruefOrdnerEin(ordner, [], html, arbeit, false, new Set([bild?.kennung ?? '']));
+			assert.notEqual(neuerVertrag.bilder[0]?.kennung, bild?.kennung);
+			assert.equal(neuerVertrag.bilder[0]?.geprueft, undefined);
+		} finally {
+			await rm(ordner, { recursive: true, force: true });
+			await rm(arbeit, { recursive: true, force: true });
+		}
+	});
 });
 
 describe('Modell und Gründlichkeit im Aufruf (232)', () => {

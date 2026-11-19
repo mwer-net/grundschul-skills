@@ -2,7 +2,7 @@ import type { EinheitStand } from '@schoolbox/kern/src/einheit';
 import type { PruefBefund, PruefStand, SchlussStand } from '@schoolbox/kern/src/einheit-pruefung';
 import { befundZeile, FACHLICH_PRUEFEN, fachlichOffen } from '@schoolbox/kern/src/einheit-pruefung';
 
-import { fachlichOffenSatz } from './einheit-pruefung-text';
+import { bildHinweisZeile, bilderOffenSatz, fachlichOffenSatz } from './einheit-pruefung-text';
 import { Aufklapp } from './EinheitPlanDetails';
 
 /** Was nach der Prüfung offen ist: Befunde von Claude und Meldungen des Servers zusammen. */
@@ -87,6 +87,28 @@ const FachlichPruefen = ({ zeilen }: { zeilen: string[] }) =>
 			</ul>
 		</div>
 	);
+
+/**
+ * Bilder, die nach zwei neuen Versuchen nicht stimmen (248): offen und in der Farbe der Warnung, wie fachlich Offenes,
+ * je Bild eine Zeile mit dem Material. Die Lehrkraft erzeugt sie neu oder ersetzt sie.
+ */
+export const BilderHinweise = ({ s }: { s: EinheitStand }) => {
+	const hinweise = s.bildHinweise ?? [];
+	if (hinweise.length === 0) {
+		return null;
+	}
+	const titel = (slug: string) => s.plan?.dokumente.find((d) => d.slug === slug)?.titel ?? slug;
+	return (
+		<div className="text-sm" data-bild-hinweise>
+			<p className="text-warnung">{bilderOffenSatz(hinweise.length)}</p>
+			<ul className="list-disc pl-4">
+				{hinweise.map((h) => (
+					<li key={h.datei}>{bildHinweisZeile(h, titel)}</li>
+				))}
+			</ul>
+		</div>
+	);
+};
 
 /**
  * Was die Prüfläufe mit Kinderaugen, der Fachblick und der Schlusslauf gefunden haben (220, Teil 2; 244): je Material

@@ -275,25 +275,33 @@ process.stdin.on('end', () => {
 				ende({ result: 'Behoben.' });
 				return;
 			}
-			// 237: „einheit-bild“ erzeugt im Bilder-Lauf dieselbe Datei zweimal über bild_erzeugen und wartet einen Takt des
-			// Servers ab, „einheit-bild-gesperrt“ trifft beim ersten Aufruf auf die Sperre.
+			// 237: „einheit-bild“ erzeugt im Bilder-Lauf dieselbe Datei zweimal über bild_erzeugen (das zweite Mal mit Befund,
+			// 248) und wartet einen Takt des Servers ab, „einheit-bild-gesperrt“ trifft beim ersten Aufruf auf die Sperre.
 			if (eingabe.includes('die Bilder der Einheit')) {
 				lies(lektuere);
-				if (fall === 'einheit-bild' || fall === 'einheit-bild-gesperrt') {
+				if (fall === 'einheit-bild' || fall === 'einheit-bild-gesperrt' || fall === 'einheit-bild-offen') {
 					const argumente = { datei: 'uhr-gross.png', prompt: (fall === 'einheit-bild-gesperrt' ? '[gesperrt] ' : '') + 'Eine große Uhr', format: 'SQUARE_1_1', transparent: true };
 					fs.writeFileSync('bilder.json', JSON.stringify([{ datei: argumente.datei, motiv: 'Eine große Uhr' }]));
-					const erzeuge = () => new Promise((fertig) => {
+					const erzeuge = (befund) => new Promise((fertig) => {
 						const konfig = JSON.parse(fs.readFileSync(neben('--mcp-config'), 'utf8'));
 						const v = require('node:net').connect(konfig.mcpServers.schoolbox.args[1]);
 						let antwort = '';
-						v.on('connect', () => v.write(JSON.stringify({ werkzeug: 'bild_erzeugen', argumente }) + '\n'));
+						v.on('connect', () => v.write(JSON.stringify({ werkzeug: 'bild_erzeugen', argumente: { ...argumente, ...(befund ? { befund } : {}) } }) + '\n'));
 						v.on('data', (t) => { antwort += t; });
 						v.on('close', () => { const a = JSON.parse(antwort || '{}'); fs.appendFileSync(path.join(__dirname, 'bild.jsonl'), JSON.stringify({ argumente, ...a }) + '\n'); fertig(a); });
 						v.on('error', () => fertig({ fehler: true }));
 					});
 					const a = await erzeuge();
+					if (fall === 'einheit-bild-offen') {
+						// 248: zweimal neu für denselben Befund, der dritte Versuch wird abgelehnt.
+						for (let i = 0; i < 3; i += 1) {
+							await erzeuge('Die Zeiger fehlen.');
+						}
+						ende({ result: 'Die Zeiger fehlen noch.' });
+						return;
+					}
 					if (!a.fehler) {
-						await erzeuge();
+						await erzeuge('Die Zeiger fehlen.');
 						await warte(2500);
 					}
 					ende({ result: a.fehler ? 'Keine Bilder, OpenAI sperrt.' : 'Ein Bild, zweimal erzeugt.' });

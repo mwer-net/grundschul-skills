@@ -56,6 +56,10 @@ const DATEI = {
 	description: 'Dateiname in bilder/, z. B. fall-1.jpg: Kleinbuchstaben, Ziffern, Bindestrich, .png oder .jpg.',
 };
 const PROMPT = { type: 'string', description: 'Der Prompt für das Bildmodell.' };
+const befund = (wann) => ({
+	type: 'string',
+	description: `Der Fehler, den ${wann} behebt, in einem Satz, höchstens 300 Zeichen. Für denselben Fehler derselbe Wortlaut.`,
+});
 const referenzen = (max) => ({
 	type: 'array',
 	items: { type: 'string' },
@@ -75,6 +79,7 @@ const BILD_ERZEUGEN = {
 			format: { type: 'string', enum: FORMATE },
 			referenzen: referenzen(4),
 			transparent: { type: 'boolean', description: 'Freigestellt auf transparentem Hintergrund, nur bei .png.' },
+			befund: befund('das neue Bild'),
 		},
 		required: ['datei', 'prompt', 'format'],
 	},
@@ -83,11 +88,11 @@ const BILD_ERZEUGEN = {
 const BILD_BEARBEITEN = {
 	name: 'bild_bearbeiten',
 	description:
-		'Bearbeitet ein vorhandenes Bild in bilder/ und ersetzt es; Format und Transparenz bleiben. Die Vorversion bleibt unter ansicht/bilder/versuche/ und kann Referenz sein („stelle … wie in Bild 2 wieder her“). Im Prompt „Ändere nur …“ und aufzählen, was bleibt; eine Änderung je Aufruf. Danach neue Prüfbilder.',
+		'Bearbeitet ein vorhandenes Bild in bilder/ und ersetzt es; Format und Transparenz bleiben. Die Vorversion bleibt unter ansicht/bilder/versuche/ und kann Referenz sein („stelle … wie in Bild 2 wieder her“). Im Prompt „Ändere nur …“ und aufzählen, was bleibt; eine Änderung je Aufruf, eine Bearbeitung je Fehler. Danach neue Prüfbilder.',
 	inputSchema: {
 		type: 'object',
-		properties: { datei: DATEI, prompt: PROMPT, referenzen: referenzen(3) },
-		required: ['datei', 'prompt'],
+		properties: { datei: DATEI, prompt: PROMPT, referenzen: referenzen(3), befund: befund('diese Bearbeitung') },
+		required: ['datei', 'prompt', 'befund'],
 	},
 };
 

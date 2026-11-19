@@ -206,6 +206,9 @@ describe('mcp.mjs: mehrere Werkzeuge je Prozess (237)', () => {
 			const erzeugen = liste?.result?.tools?.find((t) => t.name === 'bild_erzeugen');
 			assert.deepEqual(erzeugen?.inputSchema.properties.format?.enum, BILD_FORMAT_NAMEN);
 			assert.deepEqual(erzeugen?.inputSchema.required, ['datei', 'prompt', 'format']);
+			const bearbeiten = liste?.result?.tools?.find((t) => t.name === 'bild_bearbeiten');
+			assert.deepEqual(bearbeiten?.inputSchema.required, ['datei', 'prompt', 'befund']);
+			assert.ok(erzeugen?.inputSchema.properties.befund);
 			const text = JSON.stringify(liste?.result?.tools);
 			assert.match(text, /bilder\.json/);
 			assert.match(text, /nur aus bilder\/, referenzen\/ und den Vorversionen in ansicht\/bilder\/versuche\//);

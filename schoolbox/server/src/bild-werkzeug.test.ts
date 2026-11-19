@@ -12,7 +12,7 @@ import type { BildPlatz } from './bild-datei';
 import { hatTransparenz } from './bild-datei';
 import { BILD_GRENZEN } from './bild-grenzen';
 import type { BildWerkzeugOptionen } from './bild-werkzeug';
-import { BILD_HERKUNFT, erstelleBildWerkzeug, VERSUCHE } from './bild-werkzeug';
+import { BILD_HERKUNFT, erstelleBildWerkzeug, gleicherBefund, inhaltHash, VERSUCHE } from './bild-werkzeug';
 import { KI_GRENZEN } from './ki';
 
 type Alpha = 'ohne' | 'deckend' | 'ecke';
@@ -293,13 +293,21 @@ describe('Bildwerkzeuge (237)', () => {
 			datei: 'fall-1.jpg',
 			prompt: 'Szene',
 			format: 'LANDSCAPE_5_4',
+			befund: 'Die Eule hat drei Flügel.',
 		});
 		assert.match(zweite.text, /Versuch 2\./);
 		assert.match(zweite.text, /Die Vorversion liegt unter ansicht\/bilder\/versuche\/fall-1-1\.jpg\./);
 		assert.deepEqual(await readFile(path.join(arbeit, VERSUCHE, 'fall-1-1.jpg')), ersteDatei);
 
-		const dritte = await w.aufruf('bild_bearbeiten', { datei: 'fall-1.jpg', prompt: 'Ändere nur die Blätter.' });
+		const zweiteDatei = await readFile(path.join(arbeit, 'bilder', 'fall-1.jpg'));
+		const dritte = await w.aufruf('bild_bearbeiten', {
+			datei: 'fall-1.jpg',
+			prompt: 'Ändere nur die Blätter.',
+			befund: 'Die Blätter sind blau.',
+		});
 		assert.match(dritte.text, /Versuch 3\./);
+		assert.match(dritte.text, /Eine Bearbeitung je Fehler\./);
+		const dritteDatei = await readFile(path.join(arbeit, 'bilder', 'fall-1.jpg'));
 		assert.ok(existsSync(path.join(arbeit, VERSUCHE, 'fall-1-2.jpg')));
 		const bearbeiten = anfragen[2];
 		assert.equal(bearbeiten?.bearbeiten, true);
@@ -308,9 +316,13 @@ describe('Bildwerkzeuge (237)', () => {
 		assert.equal(bearbeiten?.referenzen.length, 1);
 
 		const herkunft = (await readFile(path.join(arbeit, 'bilder', BILD_HERKUNFT), 'utf8')).trim().split('\n');
+		const zeile = (art: string, befund: string, inhalt: Buffer) =>
+			`fall-1.jpg\topenai\tgpt-image-test\t2026-11-18\tEule am Tisch\t${art}\t${befund}\t${inhaltHash(inhalt)}`;
 		assert.deepEqual(herkunft, [
-			'datei\tquelle\tmodell\tdatum\tmotiv',
-			...Array.from({ length: 3 }, () => 'fall-1.jpg\topenai\tgpt-image-test\t2026-11-18\tEule am Tisch'),
+			'datei\tquelle\tmodell\tdatum\tmotiv\tart\tbefund\tinhalt',
+			zeile('erzeugt', '', ersteDatei),
+			zeile('erzeugt', 'Die Eule hat drei Flügel.', zweiteDatei),
+			zeile('bearbeitet', 'Die Blätter sind blau.', dritteDatei),
 		]);
 		assert.deepEqual(w.stand(), {
 			gesperrt: false,
@@ -318,20 +330,25 @@ describe('Bildwerkzeuge (237)', () => {
 			obergrenze: BILD_GRENZEN.aufrufe.einheit,
 			bilder: ['bilder/fall-1.jpg', 'bilder/fall-1.jpg', 'bilder/fall-1.jpg'],
 			kostenUsd: 0.09,
+			offen: [],
 		});
 	});
 
 	it('bearbeiten behält Format und Transparenz des Bilds', async () => {
 		await writeFile(path.join(arbeit, 'bilder', 'luna.png'), png(64, 64, 'ecke'));
 		const w = await werkzeug();
-		const antwort = await w.aufruf('bild_bearbeiten', { datei: 'luna.png', prompt: 'Ändere nur den Schal.' });
+		const antwort = await w.aufruf('bild_bearbeiten', {
+			datei: 'luna.png',
+			prompt: 'Ändere nur den Schal.',
+			befund: 'Der Schal fehlt.',
+		});
 		assert.equal(antwort.fehler, undefined, antwort.text);
 		assert.equal(anfragen[0]?.format, 'SQUARE_1_1');
 		assert.equal(anfragen[0]?.transparent, true);
 		assert.equal(anfragen[0]?.typ, 'png');
 		assert.match(antwort.text, /Prüfbilder: ansicht\/bilder\/luna-v1\.png, .*luna-v4\.png\./);
 		assert.doesNotMatch(antwort.text, /luna-platz/);
-		const fehlt = await w.aufruf('bild_bearbeiten', { datei: 'fehlt.png', prompt: 'x' });
+		const fehlt = await w.aufruf('bild_bearbeiten', { datei: 'fehlt.png', prompt: 'x', befund: 'x' });
 		assert.match(fehlt.text, /gibt es nicht/);
 	});
 
@@ -362,17 +379,15 @@ describe('Bildwerkzeuge (237)', () => {
 	});
 
 	it('Obergrenze je Lauf: danach lehnt das Werkzeug ab, ohne die API zu fragen', async () => {
-		await vertrag({ datei: 'a.png', motiv: 'A' });
+		const namen = ['a.png', 'b.png', 'c.png', 'd.png'];
+		await vertrag(...namen.map((datei) => ({ datei, motiv: 'A' })));
 		assert.deepEqual(BILD_GRENZEN.aufrufe, { einheit: 90, blatt: 8, schublade: 3 });
 		assert.equal(KI_GRENZEN.bild, BILD_GRENZEN);
 		const w = await werkzeug({ art: 'schublade' });
-		for (let i = 0; i < 3; i += 1) {
-			assert.equal(
-				(await w.aufruf('bild_erzeugen', { datei: 'a.png', prompt: 'A', format: 'SQUARE_1_1' })).fehler,
-				undefined,
-			);
+		for (const datei of namen.slice(0, 3)) {
+			assert.equal((await w.aufruf('bild_erzeugen', { datei, prompt: 'A', format: 'SQUARE_1_1' })).fehler, undefined);
 		}
-		const vierte = await w.aufruf('bild_erzeugen', { datei: 'a.png', prompt: 'A', format: 'SQUARE_1_1' });
+		const vierte = await w.aufruf('bild_erzeugen', { datei: 'd.png', prompt: 'A', format: 'SQUARE_1_1' });
 		assert.equal(vierte.fehler, true);
 		assert.match(vierte.text, /Obergrenze von 3 Bildaufrufen/);
 		assert.equal(anfragen.length, 3);
@@ -408,6 +423,88 @@ describe('Bildwerkzeuge (237)', () => {
 		const antwort = await w.aufruf('bild_erzeugen', { datei: 'a.png', prompt: 'A', format: 'SQUARE_1_1' });
 		assert.deepEqual(antwort, { text: 'Sicherheitsfilter: Motiv harmloser formulieren.', fehler: true });
 		assert.equal(w.stand().gesperrt, false);
+	});
+
+	it('Vertrag aus dem Kanon: pruefeVertrag lehnt vor der API ab, mit seinem Satz (248)', async () => {
+		await vertrag({ datei: 'fall-1.jpg', motiv: 'Szene', vertrag: { pflicht: ['Luna'] } });
+		const gesehen: unknown[] = [];
+		const w = await werkzeug({
+			pruefeVertrag: (v) => {
+				gesehen.push(v.vertrag);
+				return 'Dem Bildvertrag fehlt: „Luna: graue Federn“.';
+			},
+		});
+		const antwort = await w.aufruf('bild_erzeugen', { datei: 'fall-1.jpg', prompt: 'Szene', format: 'SQUARE_1_1' });
+		assert.deepEqual(antwort, { text: 'Dem Bildvertrag fehlt: „Luna: graue Federn“.', fehler: true });
+		assert.deepEqual(gesehen, [{ pflicht: ['Luna'] }]);
+		assert.equal(anfragen.length, 0);
+		assert.equal(w.stand().aufrufe, 0);
+	});
+
+	it('neu statt flicken: ein Befund je Bearbeitung, dann neu erzeugen, nach zwei neuen Bildern offen (248)', async () => {
+		await vertrag({ datei: 'fall-1.jpg', motiv: 'Eule am Fenster' });
+		const w = await werkzeug();
+		const erzeugen = (befund?: string) =>
+			w.aufruf('bild_erzeugen', { datei: 'fall-1.jpg', prompt: 'Szene', format: 'SQUARE_1_1', befund });
+		const bearbeiten = (befund?: string) =>
+			w.aufruf('bild_bearbeiten', { datei: 'fall-1.jpg', prompt: 'Ändere nur den Spiegel.', befund });
+		assert.equal((await erzeugen()).fehler, undefined);
+
+		assert.match((await bearbeiten()).text, /„befund“ fehlt/);
+		assert.match((await erzeugen()).text, /gibt es schon\. Nenne in „befund“/);
+		assert.equal((await bearbeiten('Der Spiegel ist eine Glasscheibe.')).fehler, undefined);
+		const nochmal = await bearbeiten('Der Spiegel ist immer noch eine Glasscheibe');
+		assert.equal(nochmal.fehler, true);
+		assert.match(nochmal.text, /^Neu erzeugen: Eine Bearbeitung je Fehler\./);
+		assert.equal(anfragen.length, 2);
+
+		assert.equal((await erzeugen('Der Spiegel ist eine Glasscheibe.')).fehler, undefined);
+		assert.equal((await erzeugen('Der Spiegel ist eine Glasscheibe.')).fehler, undefined);
+		const dritte = await erzeugen('Der Spiegel ist eine Glasscheibe.');
+		assert.equal(dritte.fehler, true);
+		assert.match(dritte.text, /kein weiterer Versuch an bilder\/fall-1\.jpg/);
+		assert.match(dritte.text, /"offen"/);
+		assert.equal(anfragen.length, 4);
+		assert.match((await bearbeiten('Der Spiegel ist eine Glasscheibe.')).text, /kein weiterer Versuch/);
+		assert.deepEqual(w.stand().offen, [{ datei: 'fall-1.jpg', befund: 'Der Spiegel ist eine Glasscheibe.' }]);
+
+		const zeilen = (await readFile(path.join(arbeit, 'bilder', BILD_HERKUNFT), 'utf8')).trim().split('\n');
+		assert.deepEqual(
+			zeilen.slice(1).map((z) => z.split('\t')[5]),
+			['erzeugt', 'bearbeitet', 'erzeugt', 'erzeugt', 'offen'],
+		);
+		assert.equal(zeilen.at(-1)?.split('\t')[6], 'Der Spiegel ist eine Glasscheibe.');
+
+		const anderer = await w.aufruf('bild_bearbeiten', {
+			datei: 'fall-1.jpg',
+			prompt: 'Ändere nur den Schal.',
+			befund: 'Luna trägt keinen Schal.',
+		});
+		assert.equal(anderer.fehler, undefined, anderer.text);
+	});
+
+	it('zählt über Läufe; Zeilen der Herkunft von vor 248 zählen nicht', async () => {
+		await vertrag({ datei: 'fall-1.jpg', motiv: 'Eule' });
+		await writeFile(path.join(arbeit, 'bilder', 'fall-1.jpg'), jpg(1440, 1152));
+		await writeFile(
+			path.join(arbeit, 'bilder', BILD_HERKUNFT),
+			'datei\tquelle\tmodell\tdatum\tmotiv\nfall-1.jpg\topenai\tm\t2026-11-01\tEule\n',
+		);
+		const erster = await werkzeug();
+		assert.equal(
+			(await erster.aufruf('bild_bearbeiten', { datei: 'fall-1.jpg', prompt: 'x', befund: 'Flügel fehlen.' })).fehler,
+			undefined,
+		);
+		const zweiter = await werkzeug();
+		const antwort = await zweiter.aufruf('bild_bearbeiten', { datei: 'fall-1.jpg', prompt: 'x', befund: 'Die Flügel fehlen' });
+		assert.match(antwort.text, /^Neu erzeugen/);
+	});
+
+	it('gleicherBefund: gleich nach Wortlaut oder Wortanfängen, sonst verschieden', () => {
+		assert.equal(gleicherBefund('Der Spiegel ist eine Glasscheibe.', 'der spiegel  ist eine glasscheibe.'), true);
+		assert.equal(gleicherBefund('Luna hat drei Flügel', 'Luna hat immer noch drei Flügeln.'), true);
+		assert.equal(gleicherBefund('Luna hat drei Flügel', 'Das Glöckchen hängt am falschen Schwanz.'), false);
+		assert.equal(gleicherBefund('', 'x'), false);
 	});
 
 	it('ohne Schlüssel gesperrt von Anfang an', async () => {

@@ -10,6 +10,7 @@ import {
 	abbildungenIn,
 	befundeDerTeile,
 	berechneteElemente,
+	bilderMitBefund,
 	bestandteileText,
 	blickLektuere,
 	blickRegeln,
@@ -209,6 +210,55 @@ describe('Nachricht an den Prüflauf (229)', () => {
 				'Teil 2, der zweite Blick. Lies zuerst diese Regeln ganz mit Read:\n- r.md',
 			].join('\n\n'),
 		);
+	});
+
+	describe('schon geprüfte Bilder (248)', () => {
+		const BILD = {
+			datei: 'fall-1.jpg',
+			motiv: 'Luna am Fenster',
+			vertrag: '{"vertrag":{}}',
+			pruefbilder: ['bilder/fall-1-v1.png', 'bilder/fall-1-platz.png'],
+		};
+		it('ein neues Bild wie vor 248, ein geprüftes nur mit Ausschnitt und der Frage nach dem Text', () => {
+			const neu = pruefText({ ...AUFTRAG, regeln: ['r.md'], bilder: [{ ...BILD, kennung: 'abc' }] });
+			assert.match(
+				neu,
+				/- fall-1\.jpg: Luna am Fenster\. Vertrag: \{"vertrag":\{\}\}\. Prüfbilder: bilder\/fall-1-v1\.png, bilder\/fall-1-platz\.png(\n|$)/,
+			);
+			const alt = pruefText({
+				...AUFTRAG,
+				regeln: ['r.md'],
+				bilder: [{ ...BILD, pruefbilder: ['bilder/fall-1-platz.png'], geprueft: true }],
+			});
+			assert.match(
+				alt,
+				/- fall-1\.jpg: Luna am Fenster\. Schon in Vierteln gegen diesen Vertrag geprüft: Prüfe nur, ob es zum Text dieses Materials passt\. Ausschnitt: bilder\/fall-1-platz\.png\./,
+			);
+		});
+		it('Befund mit Feld bild; bilderMitBefund ordnet zu, Unzuordenbares zählt für alle', () => {
+			const [befund] = lesePruefung(
+				JSON.stringify({ befunde: [{ art: 'bild', bild: 'folie-3-1.jpg', aufgabe: '', text: 'Spiegel aus Glas' }] }),
+			).befunde;
+			assert.equal(befund?.bild, 'folie-3-1.jpg');
+			assert.equal(lesePruefung('{"befunde":[{"art":"bild","bild":"../x.png","text":"t"}]}').befunde[0]?.bild, undefined);
+			const zwei = [
+				{ ...BILD, datei: 'folie-3-1.jpg' },
+				{ ...BILD, datei: 'fall-2.jpg' },
+			];
+			assert.deepEqual(
+				bilderMitBefund(zwei, befund ? [befund] : []).map((b) => b.datei),
+				['folie-3-1.jpg'],
+			);
+			const ohne = { seite: 1, aufgabe: '', art: 'bild' as const, text: 'Ein Bild ist unscharf.' };
+			assert.equal(bilderMitBefund(zwei, [ohne]).length, 2);
+			assert.equal(bilderMitBefund(zwei, [{ ...ohne, art: 'unklar' as const, text: 'Aufgabe 2 unklar' }]).length, 0);
+			assert.deepEqual(
+				bilderMitBefund(zwei, [{ ...ohne, art: 'kanon' as const, text: 'Auf fall-2 hängt das Glöckchen schon an Ella.' }]).map(
+					(b) => b.datei,
+				),
+				['fall-2.jpg'],
+			);
+		});
 	});
 
 	it('mit Lösungsseiten nennt sie erst nach den Seiten des ersten Teils', () => {

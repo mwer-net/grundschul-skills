@@ -11,6 +11,7 @@ import { ASSETS, ASSETS_SCHLUESSEL } from '@schoolbox/kern';
 
 import type { BildAnfrage, BildErgebnis } from './bild-api';
 import { BildApiFehler, erzeugeBild } from './bild-api';
+import type { BildVertrag } from './bild-datei';
 import { typAus } from './bild-datei';
 import { BILD_GRENZEN } from './bild-grenzen';
 import type { BildWerkzeug, BildWerkzeugArt } from './bild-werkzeug';
@@ -51,6 +52,7 @@ export const erstelleLaufBilder = async (o: {
 	api?: BildApi | null;
 	obergrenze?: number;
 	figuren?: { name: string; datei: string }[];
+	pruefeVertrag?: (vertrag: BildVertrag) => string | null;
 }): Promise<LaufBilder | null> => {
 	const { konfig } = o;
 	if (!konfig.openaiSchluessel) {
@@ -71,6 +73,7 @@ export const erstelleLaufBilder = async (o: {
 		konfig,
 		obergrenze: o.obergrenze,
 		figuren: o.figuren,
+		pruefeVertrag: o.pruefeVertrag,
 		api: async (anfrage, bis) => {
 			try {
 				return await api(anfrage, bis);

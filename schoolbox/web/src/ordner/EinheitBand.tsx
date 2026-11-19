@@ -26,7 +26,7 @@ import {
 	StundenKurz,
 } from './EinheitPlanDetails';
 import { PlanGeprueft } from './EinheitPlanPruefung';
-import { PruefungDetails } from './EinheitPruefung';
+import { BilderHinweise, PruefungDetails } from './EinheitPruefung';
 import { useAblage } from './kontext';
 
 /** „Einheit: 3 von 12“ im Kopf jeder Seite, solange eine läuft (140). Ersetzt für Einheiten den globalen Chat. */
@@ -444,6 +444,7 @@ export const EinheitBand = ({ s }: { s: EinheitStand }) => {
 				<p className="whitespace-pre-wrap">{s.auftrag}</p>
 			</Aufklapp>
 			{!laeuft && <BandBefunde s={s} />}
+			<BilderHinweise s={s} />
 			<PruefungDetails s={s} />
 			{!plant && <Platzhalter s={s} />}
 		</section>

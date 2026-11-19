@@ -85,7 +85,7 @@ describe('Bildvertrag und Zuschnitt (215, seit 237 hier)', () => {
 				blickpunkt: { x: 40, y: 50 },
 				vertrag: { ...vertrag, pruefung: [{ versuch: 1, ok: false, befund: 'Glöckchen abgeschnitten' }] },
 			},
-			{ datei: 'karte.png', motiv: 'Karte', platz: { breite: -1, hoehe: 'x' } },
+			{ datei: 'karte.png', motiv: 'Karte', platz: { breite: -1, hoehe: 'x' }, offen: '  Das Glöckchen fehlt. ' },
 			{ datei: 'ohne-motiv.png' },
 		];
 		const roh = JSON.stringify(liste);
@@ -96,8 +96,9 @@ describe('Bildvertrag und Zuschnitt (215, seit 237 hier)', () => {
 				motiv: 'Werkstatt',
 				platz: { breite: 794, hoehe: 660 },
 				blickpunkt: { x: 40, y: 50 },
+				vertrag: { ...vertrag, pruefung: [{ versuch: 1, ok: false, befund: 'Glöckchen abgeschnitten' }] },
 			},
-			{ datei: 'karte.png', motiv: 'Karte' },
+			{ datei: 'karte.png', motiv: 'Karte', offen: 'Das Glöckchen fehlt.' },
 		]);
 		assert.equal(
 			await readFile(path.join(arbeit, 'bilder.json'), 'utf8'),

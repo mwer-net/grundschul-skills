@@ -6,14 +6,19 @@ import { describe, it } from 'node:test';
 import { lesePlan } from './einheit';
 import type { EinheitKanon } from './einheit-kanon';
 import {
+	bildKapitel,
 	bilderKanonText,
 	bildKanon,
+	bildVorschlag,
+	fehlendeZeilen,
+	GRUNDPOSE_SATZ,
 	fuehreKanonNach,
 	geheimText,
 	KANON_GRENZEN,
 	kanonText,
 	kapitelVon,
 	leseKanon,
+	pruefeBildVertrag,
 	pruefKanon,
 	widerspruchText,
 	zustandIn,
@@ -280,14 +285,100 @@ describe('Kanon der Einheit (246)', () => {
 		});
 		assert.deepEqual(bildKanon(KANON, 6).verboten, []);
 		const text = bilderKanonText(KANON, [0, 1, 6]);
-		assert.match(text, /eine Grundpose zeigt nur, was unter den Figuren steht, keinen Gegenstand der Handlung/);
+		assert.ok(text.includes(GRUNDPOSE_SATZ));
+		assert.match(text, /bild_erzeugen lehnt einen Vertrag ab, dem eine dieser Zeilen fehlt/);
 		assert.match(
 			text,
-			/- Kapitel 1: das Glöckchen: hängt am Fenster; der Spiegel: Luna bekommt ihn\.\n {2}Darf nicht zu sehen sein: Ella ist die Täterin\./,
+			/- im Bild Ella: pflicht „Ella: ein buschiger Schwanz; zwei Ohren mit Pinseln“; verboten „Ella, nie: trägt das Glöckchen“/,
 		);
-		assert.match(text, /- Kapitel 6: das Glöckchen: zurück an Luna; der Spiegel: Hanne leiht ihn aus\.(\n|$)/);
-		assert.match(text, /Lunas Spiegel ist ein Taschenspiegel/);
+		assert.match(
+			text,
+			/- Kapitel 1: verboten „erkennbar vor Kapitel 6: Ella ist die Täterin“; im Bild „das Glöckchen“: pflicht „das Glöckchen: hängt am Fenster“; im Bild „der Spiegel“: pflicht „der Spiegel: Luna bekommt ihn“/,
+		);
+		assert.match(text, /- Kapitel 6: im Bild „das Glöckchen“: pflicht „das Glöckchen: zurück an Luna“/);
+		assert.match(text, /- „Lunas Spiegel ist ein Taschenspiegel mit Rahmen, kein Glas im Fenster“/);
 		assert.match(text, /Eine Spur im Bild ist erlaubt, die erkennbare Auflösung nicht:/);
+	});
+
+	describe('Bildvertrag aus dem Kanon (248)', () => {
+		const GESCHICHTE = {
+			kanon: KANON,
+			geschichte: {
+				kapitel: [1, 2, 3, 4, 5, 6].map((nr) => ({ nr, titel: '', inhalt: '', bildfolien: [`${nr}.1 Szene`] })),
+			},
+		} as unknown as Parameters<typeof pruefeBildVertrag>[0];
+
+		it('bildKapitel: aus fall-N und folie-N-M, sonst aus der Bildfolie im Motiv; ohne Kapitel null', () => {
+			assert.equal(bildKapitel(GESCHICHTE, 'fall-3.jpg'), 3);
+			assert.equal(bildKapitel(GESCHICHTE, 'folie-6-2-2.jpg'), 6);
+			assert.equal(bildKapitel(GESCHICHTE, 'szene.jpg', 'Bildfolie 4.1: Hanne am Fenster'), 4);
+			assert.equal(bildKapitel(GESCHICHTE, 'szene.jpg', '4.7 gibt es nicht'), null);
+			assert.equal(bildKapitel(GESCHICHTE, 'fall-9.jpg'), null);
+			assert.equal(bildKapitel(GESCHICHTE, 'titel.jpg', 'Deckblatt'), null);
+			assert.equal(bildKapitel({}, 'fall-1.jpg'), null);
+		});
+
+		it('Vorschlag für Kapitel 1: Figur, Gegenstand, Regel zum Werkzeug, Geheimnis, was nicht an der Figur ist', () => {
+			assert.deepEqual(bildVorschlag(KANON, 1, 'Luna hält den Spiegel'), {
+				pflicht: [
+					'Luna: zwei Flügel; eine kleine Brille',
+					'der Spiegel: Luna bekommt ihn',
+					'Lunas Spiegel ist ein Taschenspiegel mit Rahmen, kein Glas im Fenster',
+				],
+				verboten: ['erkennbar vor Kapitel 6: Ella ist die Täterin', 'das Glöckchen bei Luna'],
+			});
+			assert.deepEqual(bildVorschlag(KANON, null, 'Deckblatt: Ella und Luna').verboten, ['Ella, nie: trägt das Glöckchen']);
+		});
+
+		it('Szene vor Kapitel 6 ohne „erkennbar vor Kapitel 6: …“: abgelehnt, mit jeder fehlenden Zeile wörtlich', () => {
+			const grund = pruefeBildVertrag(GESCHICHTE, {
+				datei: 'fall-3.jpg',
+				motiv: 'Ella am Baum',
+				vertrag: { pflicht: ['Ella: ein buschiger Schwanz; zwei Ohren mit Pinseln'], verboten: ['Schrift'] },
+			});
+			assert.equal(
+				grund,
+				'Dem Bildvertrag von fall-3.jpg in bilder.json fehlen Zeilen aus dem Kanon (Kapitel 3). Übernimm jede wörtlich als eigenen Eintrag in ihr Feld von „vertrag“ und erzeuge das Bild dann:\n- verboten: „erkennbar vor Kapitel 6: Ella ist die Täterin“, „Ella, nie: trägt das Glöckchen“',
+			);
+			const mitAllem = {
+				datei: 'fall-3.jpg',
+				motiv: 'Ella am Baum',
+				vertrag: {
+					pflicht: [{ was: 'ella:  ein buschiger Schwanz; zwei Ohren mit Pinseln.' }],
+					verboten: ['„Erkennbar vor Kapitel 6: Ella ist die Täterin“', 'Ella, nie: trägt das Glöckchen', 'Schrift'],
+				},
+			};
+			assert.equal(pruefeBildVertrag(GESCHICHTE, mitAllem), null, 'Groß und klein, Leerraum, Zeichen am Ende');
+		});
+
+		it('Grundpose mit einem Gegenstand der Handlung: abgelehnt mit dem Satz und dem Gegenstand', () => {
+			const grund = pruefeBildVertrag(GESCHICHTE, {
+				datei: 'ella.png',
+				motiv: 'Eichhörnchen mit goldenem Glöckchen am Schwanz',
+				vertrag: { pflicht: ['Ella: ein buschiger Schwanz; zwei Ohren mit Pinseln'] },
+			});
+			assert.ok(grund?.startsWith(GRUNDPOSE_SATZ), grund ?? '');
+			assert.match(grund ?? '', /Nimm „das Glöckchen“ aus „motiv“ und „pflicht“ von ella\.png/);
+			assert.equal(
+				pruefeBildVertrag(GESCHICHTE, {
+					datei: 'ella.png',
+					motiv: 'Grundpose Ella',
+					vertrag: {
+						pflicht: ['Ella: ein buschiger Schwanz; zwei Ohren mit Pinseln'],
+						verboten: ['Ella, nie: trägt das Glöckchen'],
+					},
+				}),
+				null,
+			);
+		});
+
+		it('ohne Kanon kein Vorschlag und kein Ablehnen; fehlendeZeilen liest Listen und Objekte', () => {
+			assert.equal(pruefeBildVertrag({ geschichte: GESCHICHTE.geschichte }, { datei: 'ella.png', motiv: 'Glöckchen' }), null);
+			assert.deepEqual(
+				fehlendeZeilen({ pflicht: ['A b'], verboten: ['Ella, nie: trägt'] }, { pflicht: { x: ['a  B.'] }, verboten: 'Ella' }),
+				{ pflicht: [], verboten: ['Ella, nie: trägt'] },
+			);
+		});
 	});
 
 	it('Prüfläufe: Kinderaugen nur geheim, Fachblick den ganzen Kanon, bei Hinweisen als Hauptauftrag', () => {

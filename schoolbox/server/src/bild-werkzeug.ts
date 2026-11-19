@@ -5,6 +5,7 @@
  * eine Zeile in `bilder/bilder-herkunft.tsv`. Gesperrt die API (Guthaben, Ausgabenlimit, Schlüssel), merkt sich das
  * Werkzeug das für den Lauf: `stand().gesperrt`.
  */
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { appendFile, copyFile, lstat, mkdir, readdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -35,13 +36,26 @@ export const REFERENZ_ORDNER = 'referenzen';
 export const VERSUCHE = `${ANSICHT_BILDER}/versuche`;
 /** Woher Referenzen kommen dürfen, relativ zum Arbeitsordner; die Vorversionen, damit Claude eine wiederherstellen kann. */
 export const REFERENZ_QUELLEN = ['bilder', REFERENZ_ORDNER, VERSUCHE];
-const HERKUNFT_KOPF = 'datei\tquelle\tmodell\tdatum\tmotiv\n';
+/**
+ * Seit 248 mit `art` (`erzeugt`, `bearbeitet`, `offen`), dem Befund, den der Versuch behebt (oder der offen blieb), und
+ * dem Hash des Inhalts. Zeilen mit fünf Spalten stammen von davor und zählen für die Versuche nicht.
+ */
+const HERKUNFT_KOPF = 'datei\tquelle\tmodell\tdatum\tmotiv\tart\tbefund\tinhalt\n';
+/** Neu erzeugen wegen desselben Befunds: höchstens so oft je Datei (248, „neu statt flicken“). */
+export const MAX_NEU_ERZEUGT = 2;
+/** Bearbeitungen je Fassung eines Bildes, über alle Befunde (248). */
+export const MAX_BEARBEITUNGEN_JE_FASSUNG = 2;
+const MAX_BEFUND = 300;
 export const MAX_REFERENZEN_ERZEUGEN = 4;
 export const MAX_REFERENZEN_BEARBEITEN = 3;
 const MAX_PROMPT = 8000;
 const MAX_PFAD = 200;
 const FIGUR_NAME = /^[a-z0-9][a-z0-9-]{0,59}$/;
 const PRUEFEN_SATZ = 'Prüfe sie gegen den Vertrag und trage die Prüfung in `bilder.json` ein.';
+const FLICKEN_SATZ =
+	'Eine Bearbeitung je Fehler. Bleibt der Fehler, erzeuge das Bild neu mit bild_erzeugen und einem Prompt, der den Fehler ausdrücklich ausschließt (mit „befund“).';
+const offenSatz = (datei: string) =>
+	`Zwei neue Bilder haben den Fehler nicht behoben: kein weiterer Versuch an bilder/${datei}. Lass es, wie es ist, passe den Text an, wenn er nur nennen kann, was das Bild zeigt, und trage sonst beim Eintrag in ${BILDER_LISTE} "offen": "<der Fehler in einem Satz>" ein. Die Lehrkraft sieht den Hinweis.`;
 const GESPERRT_ANWEISUNG = `${BILD_API_GESPERRT}: OpenAI erzeugt keine Bilder mehr (Guthaben, Ausgabenlimit oder Schlüssel). Frage kein Bild mehr an, auch nicht ein zweites Mal. Lass fehlende Verträge in ${BILDER_LISTE} ohne Bild und mach weiter, wie dein Auftrag es für ${BILD_API_GESPERRT} sagt.`;
 
 /** Wo der Lauf hingehört; danach richtet sich die Obergrenze (`BILD_GRENZEN.aufrufe`). */
@@ -50,6 +64,12 @@ export type BildWerkzeugArt = keyof typeof BILD_GRENZEN.aufrufe;
 export interface WerkzeugAntwort {
 	text: string;
 	fehler?: boolean;
+}
+
+/** 248: Ein Bild, an dem der Server einen weiteren Versuch abgelehnt hat, mit dem Befund, der offen blieb. */
+export interface BildOffen {
+	datei: string;
+	befund: string;
 }
 
 export interface BildWerkzeugStand {
@@ -62,6 +82,8 @@ export interface BildWerkzeugStand {
 	bilder: string[];
 	/** Geschätzt aus `usage`. */
 	kostenUsd: number;
+	/** 248: Bilder ohne weiteren Versuch, in der Reihenfolge der Ablehnung. */
+	offen: BildOffen[];
 }
 
 export interface BildWerkzeugOptionen {
@@ -73,6 +95,11 @@ export interface BildWerkzeugOptionen {
 	obergrenze?: number;
 	/** Grundposen als Referenz: Der Server kopiert `datei` nach `referenzen/<name>.<png|jpg>`. */
 	figuren?: { name: string; datei: string }[];
+	/**
+	 * 248: Prüft den Vertrag aus `bilder.json` vor `bild_erzeugen`, etwa gegen den Kanon der Einheit; ein Satz lehnt ab.
+	 * Ohne Angabe prüft nur der Eintrag selbst (Datei und Motiv).
+	 */
+	pruefeVertrag?: (vertrag: BildVertrag) => string | null;
 	/** Für Tests: statt der echten Bild-API. */
 	api?: (anfrage: BildAnfrage, bis: number) => Promise<BildErgebnis>;
 	/** Für Tests: statt `blatt.py viertel`. */
@@ -109,6 +136,9 @@ const erstelleSchranke = (n: number) => {
 
 const tsvFeld = (text: string) => text.replace(/[\t\r\n]+/g, ' ').trim();
 
+/** Der Hash eines Bildes in `bilder-herkunft.tsv` und in der Kennung der Prüfung (248). */
+export const inhaltHash = (inhalt: Buffer) => createHash('sha256').update(inhalt).digest('hex').slice(0, 16);
+
 const istText = (w: unknown, max: number): w is string =>
 	typeof w === 'string' && w.trim().length > 0 && w.length <= max;
 
@@ -118,12 +148,57 @@ interface Argumente {
 	referenzen: string[];
 	format?: BildFormat;
 	transparent: boolean;
+	/** 248: welchen Fehler der Versuch behebt; Pflicht beim Bearbeiten und beim neuen Erzeugen eines vorhandenen Bildes. */
+	befund: string | null;
 }
+
+/** Ein Versuch aus `bilder-herkunft.tsv` (248). */
+interface Versuch {
+	art: string;
+	befund: string;
+}
+
+/** Die Versuche je Datei, in der Reihenfolge der Datei; Zeilen von vor 248 (ohne `art`) fehlen. */
+export const leseVersuche = async (herkunft: string) => {
+	const je = new Map<string, Versuch[]>();
+	const text = await readFile(herkunft, 'utf8').catch(() => '');
+	for (const zeile of text.split('\n').slice(1)) {
+		const [datei, , , , , art, befund] = zeile.split('\t');
+		if (datei && art) {
+			je.set(datei, [...(je.get(datei) ?? []), { art, befund: befund ?? '' }]);
+		}
+	}
+	return je;
+};
+
+const befundWoerter = (text: string) =>
+	new Set(
+		text
+			.toLowerCase()
+			.split(/[^\p{L}\p{N}]+/u)
+			.filter((w) => w.length >= 4)
+			.map((w) => w.slice(0, 6)),
+	);
+
+/**
+ * Derselbe Befund (248)? Gleich nach Groß- und Kleinschreibung und Leerraum, oder die Hälfte der Wörter des kürzeren
+ * stimmt mit dem anderen überein (Wortanfänge, damit „Flügel“ und „Flügeln“ zählen).
+ */
+export const gleicherBefund = (a: string, b: string) => {
+	const norm = (t: string) => t.toLowerCase().replace(/\s+/g, ' ').trim();
+	if (norm(a) === norm(b)) {
+		return true;
+	}
+	const x = befundWoerter(a);
+	const y = befundWoerter(b);
+	const kleiner = Math.min(x.size, y.size);
+	return kleiner > 0 && [...x].filter((w) => y.has(w)).length / kleiner >= 0.5;
+};
 
 /** Prüft die Argumente je Werkzeug; wirft `Abgelehnt` mit einem Satz für Claude. */
 export const pruefeBildArgumente = (werkzeug: string, roh: Record<string, unknown>): Argumente => {
 	const erzeugen = werkzeug === BILD_ERZEUGEN;
-	const { datei, format, prompt, referenzen = [], transparent = false } = roh;
+	const { befund: befundRoh, datei, format, prompt, referenzen = [], transparent = false } = roh;
 	if (!istDateiname(datei)) {
 		throw new Abgelehnt(
 			'„datei“ ist ungültig: Kleinbuchstaben, Ziffern und Bindestrich, Endung .png oder .jpg, ohne Ordner.',
@@ -136,8 +211,15 @@ export const pruefeBildArgumente = (werkzeug: string, roh: Record<string, unknow
 	if (!Array.isArray(referenzen) || referenzen.length > max || !referenzen.every((r) => istText(r, MAX_PFAD))) {
 		throw new Abgelehnt(`„referenzen“ ist eine Liste von höchstens ${max} Pfaden.`);
 	}
+	if (befundRoh !== undefined && !istText(befundRoh, MAX_BEFUND)) {
+		throw new Abgelehnt(`„befund“ ist ein Satz, höchstens ${MAX_BEFUND} Zeichen.`);
+	}
+	const befund = typeof befundRoh === 'string' ? tsvFeld(befundRoh) : null;
 	if (!erzeugen) {
-		return { datei, prompt, referenzen, transparent: false };
+		if (!befund) {
+			throw new Abgelehnt('„befund“ fehlt: Nenne in einem Satz den Fehler, den diese Bearbeitung behebt.');
+		}
+		return { datei, prompt, referenzen, transparent: false, befund };
 	}
 	if (!istBildFormat(format)) {
 		throw new Abgelehnt(`„format“ ist einer von: ${BILD_FORMAT_NAMEN.join(', ')}.`);
@@ -148,7 +230,7 @@ export const pruefeBildArgumente = (werkzeug: string, roh: Record<string, unknow
 	if (transparent && !datei.endsWith('.png')) {
 		throw new Abgelehnt('„transparent“ geht nur bei .png.');
 	}
-	return { datei, prompt, format, referenzen, transparent };
+	return { datei, prompt, format, referenzen, transparent, befund };
 };
 
 const fehlerText = (fehler: unknown) => (fehler instanceof Error ? fehler.message : 'Unbekannter Fehler.');
@@ -180,7 +262,9 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 		obergrenze,
 		bilder: [],
 		kostenUsd: 0,
+		offen: [],
 	};
+	const herkunft = path.join(bilderDir, BILD_HERKUNFT);
 
 	const referenzen: string[] = [];
 	for (const figur of o.figuren ?? []) {
@@ -238,7 +322,77 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 		return Math.max(0, ...namen.map((n) => Number(muster.exec(n)?.[1] ?? 0))) + 1;
 	};
 
-	const speichere = async (datei: string, inhalt: Buffer, vertrag: BildVertrag | undefined) => {
+	/** Schreibt eine Zeile in `bilder-herkunft.tsv`; die Kopfzeile legt nur an, wer die Datei neu erzeugt. */
+	const notiere = async (felder: string[]) => {
+		await mkdir(bilderDir, { recursive: true });
+		await writeFile(herkunft, HERKUNFT_KOPF, { flag: 'wx' }).catch((fehler: unknown) => {
+			if ((fehler as { code?: unknown }).code !== 'EEXIST') {
+				throw fehler;
+			}
+		});
+		await appendFile(herkunft, `${felder.map(tsvFeld).join('\t')}\n`);
+	};
+
+	const herkunftZeile = (datei: string, vertrag: BildVertrag | undefined, art: string, befund: string, hash: string) => [
+		datei,
+		'openai',
+		o.konfig.bildModell,
+		jetzt().toISOString().slice(0, 10),
+		vertrag?.motiv ?? '',
+		art,
+		befund,
+		hash,
+	];
+
+	/** Lehnt einen weiteren Versuch ab (248) und merkt ihn als offen, mit einer Zeile `offen` in der Herkunft. */
+	const keinVersuchMehr = async (datei: string, befund: string, vertrag: BildVertrag | undefined) => {
+		if (!stand.offen.some((x) => x.datei === datei)) {
+			stand.offen.push({ datei, befund });
+			const inhalt = await readFile(path.join(bilderDir, datei)).catch(() => Buffer.alloc(0));
+			await notiere(herkunftZeile(datei, vertrag, 'offen', befund, inhaltHash(inhalt)));
+		}
+		return new Abgelehnt(offenSatz(datei));
+	};
+
+	/**
+	 * Neu statt flicken (248): eine Bearbeitung je Befund und höchstens `MAX_BEARBEITUNGEN_JE_FASSUNG` je Fassung; wegen
+	 * desselben Befunds höchstens `MAX_NEU_ERZEUGT` neue Bilder. Zählt über alle Läufe im Arbeitsordner, ein neuer Befund
+	 * (etwa ein Wunsch der Lehrkraft) fängt neu an.
+	 */
+	const pruefeVersuch = async (werkzeug: string, a: Argumente, vertrag: BildVertrag | undefined) => {
+		const versuche = (await leseVersuche(herkunft)).get(a.datei) ?? [];
+		const da = existsSync(path.join(bilderDir, a.datei));
+		const erzeugt = versuche.filter((v) => v.art === 'erzeugt' && v.befund && gleicherBefund(v.befund, a.befund ?? ''));
+		if (werkzeug === BILD_ERZEUGEN) {
+			if (!da) {
+				return;
+			}
+			if (!a.befund) {
+				throw new Abgelehnt(
+					`bilder/${a.datei} gibt es schon. Nenne in „befund“ in einem Satz den Fehler, den das neue Bild nicht mehr hat.`,
+				);
+			}
+			if (erzeugt.length >= MAX_NEU_ERZEUGT) {
+				throw await keinVersuchMehr(a.datei, a.befund, vertrag);
+			}
+			return;
+		}
+		const befund = a.befund ?? '';
+		const bearbeitet = versuche.filter((v) => v.art === 'bearbeitet');
+		const seitFassung = versuche.slice(versuche.findLastIndex((v) => v.art === 'erzeugt') + 1);
+		const zuOft =
+			bearbeitet.some((v) => gleicherBefund(v.befund, befund)) ||
+			seitFassung.filter((v) => v.art === 'bearbeitet').length >= MAX_BEARBEITUNGEN_JE_FASSUNG;
+		if (!zuOft) {
+			return;
+		}
+		if (erzeugt.length >= MAX_NEU_ERZEUGT) {
+			throw await keinVersuchMehr(a.datei, befund, vertrag);
+		}
+		throw new Abgelehnt(`Neu erzeugen: ${FLICKEN_SATZ}`);
+	};
+
+	const speichere = async (datei: string, inhalt: Buffer, vertrag: BildVertrag | undefined, art: string, befund: string) => {
 		const ziel = path.join(bilderDir, datei);
 		const ext = path.extname(datei);
 		let vorversion: string | null = null;
@@ -260,17 +414,8 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 		}
 		await mkdir(bilderDir, { recursive: true });
 		await schreibeAtomar(ziel, inhalt);
-		const herkunft = path.join(bilderDir, BILD_HERKUNFT);
-		const zeile = [datei, 'openai', o.konfig.bildModell, jetzt().toISOString().slice(0, 10), vertrag?.motiv ?? '']
-			.map(tsvFeld)
-			.join('\t');
-		// Zwei Bilder können zugleich fertig werden: Die Kopfzeile legt nur an, wer die Datei neu erzeugt.
-		await writeFile(herkunft, HERKUNFT_KOPF, { flag: 'wx' }).catch((fehler: unknown) => {
-			if ((fehler as { code?: unknown }).code !== 'EEXIST') {
-				throw fehler;
-			}
-		});
-		await appendFile(herkunft, `${zeile}\n`);
+		// Zwei Bilder können zugleich fertig werden: `notiere` legt die Kopfzeile nur an, wenn die Datei neu ist.
+		await notiere(herkunftZeile(datei, vertrag, art, befund, inhaltHash(inhalt)));
 		stand.bilder.push(`bilder/${datei}`);
 		const masse = bildMasse(inhalt);
 		return [
@@ -280,6 +425,7 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 				? `Prüfbilder: ${pruefbilder.join(', ')}.`
 				: `Keine Prüfbilder: Sieh dir bilder/${datei} ganz an.`,
 			PRUEFEN_SATZ,
+			art === 'bearbeitet' ? FLICKEN_SATZ : null,
 		]
 			.filter(Boolean)
 			.join('\n');
@@ -305,6 +451,10 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 					`In ${BILDER_LISTE} fehlt ein Eintrag mit "datei": "${a.datei}" und einem "motiv". Vertrag, dann erzeugen: Trage zuerst den Bildvertrag ein.`,
 				);
 			}
+			const grund = o.pruefeVertrag?.(vertrag);
+			if (grund) {
+				throw new Abgelehnt(grund);
+			}
 		} else {
 			const pfad = path.join(bilderDir, a.datei);
 			const info = await lstat(pfad).catch(() => null);
@@ -327,6 +477,7 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 		if (inArbeit.has(a.datei)) {
 			throw new Abgelehnt(`bilder/${a.datei} entsteht gerade schon. Warte auf diese Antwort.`);
 		}
+		await pruefeVersuch(werkzeug, a, vertrag);
 		if (stand.aufrufe >= obergrenze) {
 			throw new Abgelehnt(
 				`Die Obergrenze von ${obergrenze} Bildaufrufen für diesen Lauf ist erreicht. Frage kein Bild mehr an. Lass fehlende Verträge in ${BILDER_LISTE} ohne Bild und mach weiter, wie dein Auftrag es für fehlende Bilder sagt.`,
@@ -343,7 +494,13 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 				return await api(anfrage, bis);
 			});
 			stand.kostenUsd = Math.round((stand.kostenUsd + ergebnis.kostenUsd) * 1e4) / 1e4;
-			return await speichere(a.datei, ergebnis.inhalt, vertrag);
+			return await speichere(
+				a.datei,
+				ergebnis.inhalt,
+				vertrag,
+				werkzeug === BILD_ERZEUGEN ? 'erzeugt' : 'bearbeitet',
+				a.befund ?? '',
+			);
 		} catch (fehler) {
 			if (fehler instanceof BildApiFehler && fehler.art === 'gesperrt') {
 				stand.gesperrt = true;
@@ -372,7 +529,7 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 				return { text: fehlerText(fehler), fehler: true };
 			}
 		},
-		stand: (): BildWerkzeugStand => ({ ...stand, bilder: [...stand.bilder] }),
+		stand: (): BildWerkzeugStand => ({ ...stand, bilder: [...stand.bilder], offen: [...stand.offen] }),
 	};
 };
 

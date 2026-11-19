@@ -36,6 +36,7 @@ import type {
 	PruefAuftrag,
 	PruefBefund,
 	Pruefbericht,
+	PruefBild,
 	PruefRolle,
 	PruefStand,
 	PruefTeil,
@@ -54,6 +55,7 @@ import {
 	berechneteElemente,
 	bestandteileText,
 	BILDER_SCHRITT,
+	bilderMitBefund,
 	blickLektuere,
 	blickRegeln,
 	dokKnotenSchluessel,
@@ -142,13 +144,17 @@ import {
 	fuehreKanonNach,
 	kanonText,
 	kapitelVon,
+	pruefeBildVertrag,
 	pruefKanon,
 	widerspruchText,
 } from '@schoolbox/kern/src/einheit-kanon';
 import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
 import type { Router as RouterTyp } from 'express';
 
+import type { BildVertrag } from './bild-datei';
+import { leseBildVertraege } from './bild-datei';
 import { materialKennung, uebertrageHerkunft } from './bild-herkunft';
+import type { BildWerkzeugStand } from './bild-werkzeug';
 import type { LaufBilder } from './bild-zugang';
 import { BILDER_AUS, BILDER_GESPERRT, bilderStand, erstelleLaufBilder, grundposeReferenz } from './bild-zugang';
 import { schreibeQuelle } from './dokumente';
@@ -193,6 +199,10 @@ const PID = 'pid';
 const TAKT_MS = 2000;
 /** So viele Grundposen kommen höchstens als Referenz in einen Lauf; mehr Figuren nennt kein Plan. */
 const MAX_REFERENZ_FIGUREN = 8;
+/** So viele Kennungen geprüfter Bilder behält der Stand (248); die ältesten fallen heraus. */
+const MAX_GEPRUEFTE_BILDER = 400;
+/** So viele Hinweise zu Bildern, die nicht gelungen sind (248), behält der Stand. */
+const MAX_BILD_HINWEISE = 40;
 
 /** Geladen ist eine Datei einmal, auch wenn der Lauf sie mehrmals erzeugt oder bearbeitet hat (237). */
 const verschiedeneBilder = (bilder: LaufBilder) => new Set(bilder.stand().bilder).size;
@@ -911,6 +921,9 @@ export const erstelleEinheiten = (
 					aktiv.bilder = null;
 					aktiv.bilderGesperrt ||= st.gesperrt;
 				}
+				await merkeBildHinweise(s, st, o.material ?? BILDER_SCHRITT).catch((fehler: unknown) => {
+					console.error('Hinweise zu Bildern:', fehler);
+				});
 			}
 			beendeEintrag(eintrag, beginn, ergebnis.fehler, ergebnis.verbrauch);
 			if (aktiv?.lauf === lauf) {
@@ -926,6 +939,28 @@ export const erstelleEinheiten = (
 				: {}),
 		});
 		return ergebnis;
+	};
+
+	/**
+	 * Ehrlich, wenn ein Bild nicht gelingt (248): Lehnt das Bildwerkzeug nach zwei neuen Bildern einen weiteren Versuch
+	 * ab, oder trägt Claude `offen` beim Eintrag in `bilder.json` ein, steht ein Hinweis im Stand. Ein Bild, das der Lauf
+	 * danach doch gespeichert hat und das kein `offen` mehr trägt, verliert ihn.
+	 */
+	const merkeBildHinweise = async (s: EinheitStand, st: BildWerkzeugStand, von: string) => {
+		const vertraege = await leseBildVertraege(arbeitDir(s.id));
+		const offen = new Map(vertraege.flatMap((v) => (v.offen ? [[v.datei, v.offen] as const] : [])));
+		for (const o of st.offen) {
+			offen.set(o.datei, offen.get(o.datei) ?? o.befund);
+		}
+		const neu = new Set(st.bilder.map((b) => path.basename(b)));
+		const bleibt = (s.bildHinweise ?? []).filter((h) => !offen.has(h.datei) && !neu.has(h.datei));
+		const hinweise = [
+			...bleibt,
+			...[...offen].map(([datei, text]) => ({ datei, text: `${text.replace(/[.\s]+$/, '')}.`, von })),
+		].slice(-MAX_BILD_HINWEISE);
+		if (hinweise.length || s.bildHinweise) {
+			s.bildHinweise = hinweise;
+		}
 	};
 
 	const bibliothek = () => leseBibliothek(kontext.konfig, materialDir).catch(() => [...EINGEBAUTE]);
@@ -957,6 +992,7 @@ export const erstelleEinheiten = (
 				konfig: kontext.konfig,
 				api: kontext.bildApi,
 				figuren: figuren.map(({ datei, name }) => ({ name, datei })),
+				...(s.plan?.kanon ? { pruefeVertrag: (v: BildVertrag) => pruefeBildVertrag(s.plan ?? {}, v) } : {}),
 			});
 			if (bilder) {
 				referenzNamen.set(bilder, new Map(figuren.map((f) => [f.pfad, f.figur])));
@@ -1591,6 +1627,8 @@ export const erstelleEinheiten = (
 	interface PruefAuftraege {
 		kind: { text: string; teil?: PruefTeil }[];
 		fach: { text: string; teil?: PruefTeil }[];
+		/** Die KI-Bilder im Auftrag mit Kinderaugen, mit Kennung (248). */
+		bilder: PruefBild[];
 	}
 
 	/**
@@ -1613,7 +1651,14 @@ export const erstelleEinheiten = (
 		const ansicht = await baueAnsicht(path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html'), ordner, {
 			sw: false,
 		});
-		const teile = await richtePruefOrdnerEin(ordner, ansicht.bilder, html, arbeitDir(s.id), o.kind || o.fach);
+		const teile = await richtePruefOrdnerEin(
+			ordner,
+			ansicht.bilder,
+			html,
+			arbeitDir(s.id),
+			o.kind || o.fach,
+			new Set(s.bilderGeprueft ?? []),
+		);
 		const kopf = {
 			titel: d.titel,
 			artName: ART_NAME[d.art],
@@ -1634,8 +1679,9 @@ export const erstelleEinheiten = (
 					felder: ansicht.bericht.felder,
 				}).map((a) => ({ text: pruefText(a), teil: a.teil }))
 			: [];
+		const bilder = o.mitKind && o.bilder ? teile.bilder : [];
 		if (!o.fach) {
-			return { kind, fach: [] };
+			return { kind, fach: [], bilder };
 		}
 		await trennePruefOrdner(ordner, fachOrdner, o.kind);
 		const andere = rolleVon(d) === 'hinweise' ? await fremdeLoesungen(s, plan, d, fachOrdner) : [];
@@ -1653,7 +1699,22 @@ export const erstelleEinheiten = (
 			andere,
 			...kanon.fach,
 		}).map((a) => ({ text: fachblickText(a), teil: a.teil }));
-		return { kind, fach: fachLaeufe };
+		return { kind, fach: fachLaeufe, bilder };
+	};
+
+	/**
+	 * Einmal gründlich, dann nur Geändertes (248): Ein Bild, das der Lauf mit Kinderaugen in Vierteln geprüft hat, ohne
+	 * dass ein Befund es nennt, gilt mit seiner Kennung (Inhalt und Vertrag) als geprüft. Nennt ein Befund es, auch einer
+	 * des Fachblicks, fällt es heraus. Nur nach einem vollständigen Lauf mit Kinderaugen.
+	 */
+	const merkeGepruefteBilder = (s: EinheitStand, bilder: readonly PruefBild[], befunde: readonly PruefBefund[]) => {
+		const mitBefund = new Set(bilderMitBefund(bilder, befunde).map((b) => b.kennung));
+		const inVierteln = (b: PruefBild) => b.pruefbilder.some((p) => /-v[1-4]\.png$/.test(p));
+		const neu = bilder.filter((b) => b.kennung && !b.geprueft && inVierteln(b) && !mitBefund.has(b.kennung));
+		const bleibt = (s.bilderGeprueft ?? []).filter((k) => !mitBefund.has(k));
+		s.bilderGeprueft = [...new Set([...bleibt, ...neu.flatMap((b) => (b.kennung ? [b.kennung] : []))])].slice(
+			-MAX_GEPRUEFTE_BILDER,
+		);
 	};
 
 	/**
@@ -1801,6 +1862,10 @@ export const erstelleEinheiten = (
 				o.mitKind ? strecke('kind', auftraege?.kind ?? null) : [],
 				o.fach ? strecke('fach', auftraege?.fach ?? null) : [],
 			]);
+			const kindTeile = beide[0] ?? [];
+			if (auftraege?.bilder.length && kindTeile.length && kindTeile.every((t) => !t.fehler && t.lesbar)) {
+				merkeGepruefteBilder(s, auftraege.bilder, beide.flat().flatMap((t) => t.befunde));
+			}
 		} finally {
 			await rm(ordner, { recursive: true, force: true });
 			await rm(fachOrdner, { recursive: true, force: true });

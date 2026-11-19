@@ -29,6 +29,10 @@ export interface BildPlatz {
 export interface BildVertrag extends BildPlatz {
 	datei: string;
 	motiv: string;
+	/** Das Feld `vertrag` aus `bilder.json`, wie es dort steht (`pflicht`, `buehne`, `verboten`); 248 prüft es. */
+	vertrag?: unknown;
+	/** 248: Was nach zwei neuen Versuchen am Bild noch nicht stimmt, in einem Satz; die Lehrkraft sieht es. */
+	offen?: string;
 }
 
 /** Läuft mit dem geprüften Inhalt, bevor die Datei in `bilder/` erscheint: Wer das Bild sieht, findet seine Viertel. */
@@ -243,9 +247,20 @@ export const leseBildVertraege = async (arbeit: string): Promise<BildVertrag[]> 
 		if (typeof e !== 'object' || e === null) {
 			continue;
 		}
-		const { datei, motiv } = e as { datei?: unknown; motiv?: unknown };
+		const { datei, motiv, offen, vertrag } = e as {
+			datei?: unknown;
+			motiv?: unknown;
+			offen?: unknown;
+			vertrag?: unknown;
+		};
 		if (istDateiname(datei) && istText(motiv, 300)) {
-			vertraege.set(datei, { datei, motiv, ...platzAus(e) });
+			vertraege.set(datei, {
+				datei,
+				motiv,
+				...platzAus(e),
+				...(vertrag === undefined ? {} : { vertrag }),
+				...(istText(offen, 300) ? { offen: offen.trim() } : {}),
+			});
 		}
 	}
 	return [...vertraege.values()];

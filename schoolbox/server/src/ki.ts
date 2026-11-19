@@ -980,7 +980,8 @@ export const trennePruefOrdner = async (ordner: string, fachOrdner: string, kind
  * Richtet den Ordner des Prüflaufs ein, nachdem `ansicht` die Seiten frisch hineingebaut hat: Lösungsseiten gehen
  * heraus, mit `mitLoesung` (Rollen mit Kinderaugen, 229) liegen die ganzen Lösungsseiten danach unter `loesung/`. Die
  * Prüfbilder der neuen Bilder des Materials kommen nach `bilder/`. `arbeit` ist der Arbeitsordner des Baus mit
- * `bilder.json` und `ansicht/bilder/`.
+ * `bilder.json` und `ansicht/bilder/`. Jedes Bild bekommt eine Kennung aus Inhalt und Vertrag (248); steht sie in
+ * `geprueft`, kommt nur der Ausschnitt mit (`-platz.png`), die Viertel nicht.
  */
 export const richtePruefOrdnerEin = async (
 	ordner: string,
@@ -988,6 +989,7 @@ export const richtePruefOrdnerEin = async (
 	html: string,
 	arbeit: string,
 	mitLoesung: boolean,
+	geprueft: ReadonlySet<string> = new Set(),
 ) => {
 	const loesungen: string[] = [];
 	for (const b of gebaut.filter((n) => n.startsWith('loesung-'))) {
@@ -1020,7 +1022,15 @@ export const richtePruefOrdnerEin = async (
 			continue;
 		}
 		const stamm = datei.replace(/\.(png|jpg)$/, '');
-		const pruefbilder = vorhanden.filter((n) => n.startsWith(`${stamm}-`) && n.endsWith('.png')).sort();
+		const vertrag = JSON.stringify({ platz: e.platz, blickpunkt: e.blickpunkt, vertrag: e.vertrag });
+		const motiv = typeof e.motiv === 'string' ? e.motiv.slice(0, 200) : '';
+		const inhalt = await readFile(path.join(arbeit, 'bilder', datei)).catch(() => null);
+		const bildKennung = inhalt
+			? createHash('sha256').update(inhalt).update(motiv).update(vertrag).digest('hex').slice(0, 16)
+			: null;
+		const schonGeprueft = bildKennung !== null && geprueft.has(bildKennung);
+		const muster = new RegExp(`^${stamm}-(${schonGeprueft ? 'platz' : 'v[1-4]|platz'})\\.png$`);
+		const pruefbilder = vorhanden.filter((n) => muster.test(n)).sort();
 		if (pruefbilder.length) {
 			await mkdir(path.join(ordner, 'bilder'), { recursive: true });
 			for (const n of pruefbilder) {
@@ -1029,12 +1039,11 @@ export const richtePruefOrdnerEin = async (
 		}
 		bilder.push({
 			datei,
-			motiv: typeof e.motiv === 'string' ? e.motiv.slice(0, 200) : '',
-			vertrag: JSON.stringify({ platz: e.platz, blickpunkt: e.blickpunkt, vertrag: e.vertrag }).slice(
-				0,
-				MAX_VERTRAG,
-			),
+			motiv,
+			vertrag: vertrag.slice(0, MAX_VERTRAG),
 			pruefbilder: pruefbilder.map((n) => `bilder/${n}`),
+			...(bildKennung ? { kennung: bildKennung } : {}),
+			...(schonGeprueft ? { geprueft: true } : {}),
 		});
 	}
 	return { seiten, ausschnitte, bilder, loesungen };

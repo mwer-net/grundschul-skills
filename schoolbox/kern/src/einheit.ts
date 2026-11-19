@@ -633,4 +633,18 @@ export interface EinheitStand {
 	pruefung?: Record<string, PruefStand>;
 	/** Der Schlusslauf über alle Materialien; fehlt, bis er beginnt. */
 	schluss?: SchlussStand;
+	/**
+	 * 248: Bilder, die nach zwei neuen Versuchen noch nicht stimmen. Die Lehrkraft erzeugt sie neu oder ersetzt sie;
+	 * `von` ist das Material oder `BILDER_SCHRITT`, in dessen Lauf es auffiel.
+	 */
+	bildHinweise?: BildHinweis[];
+	/** 248: Kennungen der Bilder (Inhalt und Vertrag), die ein Prüflauf in Vierteln ohne Befund geprüft hat. */
+	bilderGeprueft?: string[];
+}
+
+/** Ein Bild, das nicht gelungen ist (248): Datei im Arbeitsordner und der Fehler in einem Satz. */
+export interface BildHinweis {
+	datei: string;
+	text: string;
+	von: string;
 }

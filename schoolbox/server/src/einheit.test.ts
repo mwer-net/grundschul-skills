@@ -10,6 +10,7 @@ import type { Art, EinheitStand, LaufProtokoll, Pruefbericht } from '@schoolbox/
 import {
 	aufgabenFuerBau,
 	bausteinVerstoesse,
+	BILDER_SCHRITT,
 	einheitAuftragAus,
 	fachlichOffen,
 	LAUF_DATEI,
@@ -24,6 +25,7 @@ import {
 import type { BibliotheksFigur } from '@schoolbox/kern/src/figuren';
 import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
 
+import { BILD_HERKUNFT } from './bild-werkzeug';
 import { BILDER_GESPERRT, grundposeReferenz } from './bild-zugang';
 import { einheitenWurzel } from './einheit';
 import { KI_GRENZEN, VERBRAUCH_DATEI } from './ki';
@@ -1315,6 +1317,24 @@ describe('Lauf einer Einheit (139)', () => {
 				return false;
 			});
 			assert.deepEqual(bilderZeile?.bilder, { aufrufe: 2, kostenUsd: 0.02, gesperrt: false });
+		});
+
+		it('Nach zwei neuen Bildern für denselben Befund: kein dritter, der Hinweis steht im Stand (248)', async () => {
+			await fall('einheit-bild-offen');
+			const vorher = (await bildAufrufe()).length;
+			const { id } = await starte(MIT_BILDERN);
+			const s = await bis(id, 'fertig');
+			const aufrufe = (await bildAufrufe()).slice(vorher);
+			assert.deepEqual(
+				aufrufe.map((a) => a.fehler === true),
+				[false, false, false, true],
+			);
+			assert.deepEqual(s.bildHinweise, [{ datei: 'uhr-gross.png', text: 'Die Zeiger fehlen.', von: BILDER_SCHRITT }]);
+			const herkunft = await readFile(
+				path.join(einheitenWurzel(server.materialDir), `einheit-${id}`, 'arbeit', 'bilder', BILD_HERKUNFT),
+				'utf8',
+			);
+			assert.match(herkunft, /\toffen\tDie Zeiger fehlen\.\t[0-9a-f]{16}\n$/);
 		});
 
 		it('Sperrt OpenAI im Bilder-Lauf: unvollständig mit dem Satz, ohne Pause, ohne Material; Weiterbauen geht dort weiter', async () => {
