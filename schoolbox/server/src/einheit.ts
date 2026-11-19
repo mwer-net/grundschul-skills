@@ -148,7 +148,7 @@ import {
 import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
 import type { Router as RouterTyp } from 'express';
 
-import { uebertrageHerkunft } from './bild-herkunft';
+import { materialKennung, uebertrageHerkunft } from './bild-herkunft';
 import type { LaufBilder } from './bild-zugang';
 import { BILDER_AUS, BILDER_GESPERRT, bilderStand, erstelleLaufBilder, grundposeReferenz } from './bild-zugang';
 import { schreibeQuelle } from './dokumente';
@@ -573,7 +573,10 @@ export const erstelleEinheiten = (
 			return;
 		}
 		const roh = await readFile(datei, 'utf8');
-		const k = kennung(roh);
+		const bilder = [...new Set([...roh.matchAll(BILD_IM_DOKUMENT)].map((t) => `bilder/${t[1]}`))].filter((b) =>
+			existsSync(path.join(arbeitDir(s.id), b)),
+		);
+		const k = await materialKennung(roh, arbeitDir(s.id), bilder);
 		if (s.importiert[d.slug]?.kennung === k) {
 			return;
 		}
@@ -588,9 +591,6 @@ export const erstelleEinheiten = (
 			return;
 		}
 		const mappeDir = mappenDir(materialDir, s.mappe);
-		const bilder = [...new Set([...roh.matchAll(BILD_IM_DOKUMENT)].map((t) => `bilder/${t[1]}`))].filter((b) =>
-			existsSync(path.join(arbeitDir(s.id), b)),
-		);
 		const umbenannt = await uebernimmBilder(arbeitDir(s.id), mappeDir, bilder);
 		await uebertrageHerkunft(
 			path.join(arbeitDir(s.id), 'bilder'),

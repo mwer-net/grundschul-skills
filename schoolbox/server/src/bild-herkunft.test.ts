@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
-import { CANVA_IDS, uebertrageHerkunft } from './bild-herkunft';
+import { CANVA_IDS, materialKennung, uebertrageHerkunft } from './bild-herkunft';
 import { BILD_HERKUNFT } from './bild-werkzeug';
 
 const KOPF = 'datei\tquelle\tmodell\tdatum\tmotiv\n';
@@ -58,5 +59,26 @@ describe('uebertrageHerkunft (237)', () => {
 		await uebertrageHerkunft(path.join(dir, 'fehlt'), leer, { 'x.png': 'x.png' });
 		await uebertrageHerkunft(von, leer, {});
 		assert.equal(existsSync(leer), false);
+	});
+});
+
+describe('materialKennung: Korrektur nur am Bild kommt in die Mappe (248)', () => {
+	it('ändert sich mit dem Inhalt eines genannten Bildes, ohne Bilder wie die Kennung des Textes allein', async () => {
+		const arbeit = await mkdtemp(path.join(tmpdir(), 'material-kennung-'));
+		try {
+			await mkdir(path.join(arbeit, 'bilder'));
+			await writeFile(path.join(arbeit, 'bilder', 'folie-1-2.jpg'), 'erste Fassung');
+			const html = '<img src="../../bilder/folie-1-2.jpg">';
+			const vorher = await materialKennung(html, arbeit, ['bilder/folie-1-2.jpg']);
+			assert.equal(await materialKennung(html, arbeit, ['bilder/folie-1-2.jpg']), vorher);
+			await writeFile(path.join(arbeit, 'bilder', 'folie-1-2.jpg'), 'neu nach bild_bearbeiten');
+			assert.notEqual(await materialKennung(html, arbeit, ['bilder/folie-1-2.jpg']), vorher);
+			assert.equal(
+				await materialKennung('<p>ohne Bild</p>', arbeit, []),
+				createHash('sha256').update('<p>ohne Bild</p>').digest('hex').slice(0, 16),
+			);
+		} finally {
+			await rm(arbeit, { recursive: true, force: true });
+		}
 	});
 });

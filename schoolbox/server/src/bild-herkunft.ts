@@ -3,6 +3,7 @@
  * Bilder aus Canva (138). Beide liegen in `bilder/` neben den Bildern und gehen mit, wenn ein Bild aus einem
  * Arbeitsordner in die Mappe kommt. Für dieselbe Datei gilt die letzte Zeile.
  */
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { appendFile, mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -69,4 +70,19 @@ export const uebertrageHerkunft = async (vonBilderDir: string, zuBilderDir: stri
 		const kopf = existsSync(zielDatei) && ziel?.kopf ? '' : `${von.kopf}\n`;
 		await appendFile(zielDatei, `${kopf}${neu.join('\n')}\n`);
 	}
+};
+
+const hash = (inhalt: string | Buffer) => createHash('sha256').update(inhalt).digest('hex').slice(0, 16);
+
+/**
+ * Die Kennung, an der der Import ein Material als schon übernommen erkennt: der Text und der Inhalt der Bilder, die er
+ * aus dem Arbeitsordner nennt. Eine Korrektur nur am Bild ändert das HTML nicht und muss trotzdem in die Mappe. Ohne
+ * Bilder ist sie die Kennung des Textes allein, wie vor 248.
+ */
+export const materialKennung = async (html: string, arbeit: string, bilder: readonly string[]) => {
+	if (bilder.length === 0) {
+		return hash(html);
+	}
+	const inhalte = await Promise.all(bilder.map(async (b) => `${b} ${hash(await readFile(path.join(arbeit, b)))}`));
+	return hash([html, ...inhalte].join('\n'));
 };
