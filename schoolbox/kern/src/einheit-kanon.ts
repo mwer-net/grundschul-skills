@@ -156,7 +156,14 @@ export const leseKanon = (roh: unknown): EinheitKanon | undefined => {
 		regeln: kurzListe(x.regeln, KANON_GRENZEN.regel, KANON_GRENZEN.regeln),
 		begriffe: leseBegriffe(x.begriffe),
 	};
-	return Object.values(kanon).some((l) => l.length) ? kanon : undefined;
+	const listen: readonly (readonly unknown[])[] = [
+		kanon.figuren,
+		kanon.dinge,
+		kanon.geheim,
+		kanon.regeln,
+		kanon.begriffe,
+	];
+	return listen.some((l) => l.length > 0) ? kanon : undefined;
 };
 
 // ── Wo ein Material in der Geschichte steht ──
@@ -168,7 +175,10 @@ const GANZE_REIHE = new Set(['vorleseheft', 'hinweise', 'deckblatt', 'quellen', 
  * Das Kapitel eines Materials: die eine Stunde, die es in der Aufgaben-Übersicht nennt (Stunde und Kapitel haben dieselbe
  * Nummer). `null` für Rollen über die ganze Reihe, für den Auftakt und für ein Material, das mehrere Stunden nennen.
  */
-export const kapitelVon = (plan: Pick<EinheitPlan, 'stunden'> & { dokumente?: readonly PlanDokument[] }, slug: string) => {
+export const kapitelVon = (
+	plan: Pick<EinheitPlan, 'stunden'> & { dokumente?: readonly PlanDokument[] },
+	slug: string,
+) => {
 	const d = plan.dokumente?.find((x) => x.slug === slug);
 	if (GANZE_REIHE.has(rolleVon(d ?? { slug, art: 'arbeitsblatt' }))) {
 		return null;
@@ -189,7 +199,8 @@ export const zustandIn = (ding: KanonDing, kapitel: number) => {
 /** Ist es im Kapitel noch geheim? Ohne Kapitel (ganze Reihe) gilt jedes Geheimnis. */
 const nochGeheim = (g: KanonGeheim, kapitel: number | null) => kapitel === null || g.bis === null || kapitel < g.bis;
 
-const geheimBis = (g: KanonGeheim) => (g.bis === null ? 'bleibt in der ganzen Reihe geheim' : `erst ab Kapitel ${g.bis}`);
+const geheimBis = (g: KanonGeheim) =>
+	g.bis === null ? 'bleibt in der ganzen Reihe geheim' : `erst ab Kapitel ${g.bis}`;
 
 /** Wann ein Geheimnis verraten ist: für Bau, Kinderaugen, Fachblick und Schlusslauf gleich. */
 const VERRAT =
@@ -306,9 +317,9 @@ export const bilderKanonText = (kanon: EinheitKanon | undefined, kapitel: readon
 	if (!kanon) {
 		return '';
 	}
-	const nummern = [
-		...new Set([...kapitel, ...kanon.dinge.flatMap((d) => Object.keys(d.kapitel).map(Number))]),
-	].sort((a, b) => a - b);
+	const nummern = [...new Set([...kapitel, ...kanon.dinge.flatMap((d) => Object.keys(d.kapitel).map(Number))])].sort(
+		(a, b) => a - b,
+	);
 	const je = nummern.flatMap((nr) => {
 		const b = bildKanon(kanon, nr);
 		if (!b.zustand.length && !b.verboten.length) {

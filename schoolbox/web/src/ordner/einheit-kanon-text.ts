@@ -42,12 +42,16 @@ export const kanonAbschnitte = (
 		},
 		{
 			titel: 'Geheim',
-			zeilen: kanon.geheim.map((g) => `${g.was} (${g.bis === null ? 'bis zum Schluss' : `bis ${kapitelName(g.bis)}`})`),
+			zeilen: kanon.geheim.map(
+				(g) => `${g.was} (${g.bis === null ? 'bis zum Schluss' : `bis ${kapitelName(g.bis)}`})`,
+			),
 		},
 		{ titel: 'Regeln', zeilen: kanon.regeln },
 		{
 			titel: 'Fachwörter',
-			zeilen: kanon.begriffe.map((b) => `${b.wort}: ${b.bedeutung}${b.ab === null ? '' : ` (ab Stunde ${b.ab})`}`),
+			zeilen: kanon.begriffe.map(
+				(b) => `${b.wort}: ${b.bedeutung}${b.ab === null ? '' : ` (ab Stunde ${b.ab})`}`,
+			),
 		},
 		{ titel: 'Ergänzt', zeilen: nachtrag.map((n) => `${n.name}: ${n.was} („${titel(n.von)}“)`) },
 	];

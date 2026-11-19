@@ -287,7 +287,8 @@ const pruefSchwellen = (wurzel: string) => {
 		'kontrast-sw-schau': `gedruckt wird s/w (Quelle in s/w oder \`blatt.py --sw-druck\`): Text auf einer Schauseite (Fall-Karte, Deckblatt, A3) mit Kontrast unter ${zahl('KONTRAST_MIN')}:1`,
 		'feld-klein': `\`.feld-kleben\` oder \`.feld-zeichnen\` kleiner als \`data-fuer\` und ${zahl('FELD_RAND')} mm je Seite, auch gedreht (FEHLER); Zeichenfeld ohne \`data-fuer\` unter dem Maß der Klasse (WARNUNG); Maße in „Platz zum Kleben, Zeichnen und Schreiben“`,
 		'feld-fuer': '`data-fuer` ist kein Maß (FEHLER) oder fehlt am Klebefeld (WARNUNG)',
-		'linien-wenig': '`data-antwort="satz"` oder `"begruendung"` mit weniger Schreiblinien als in „Platz zum Kleben, Zeichnen und Schreiben“',
+		'linien-wenig':
+			'`data-antwort="satz"` oder `"begruendung"` mit weniger Schreiblinien als in „Platz zum Kleben, Zeichnen und Schreiben“',
 		'antwort-menge':
 			'eine Aufgabe mit Schreibplatz sagt „weil“, „begründe“ oder „erkläre“ und hat kein `data-antwort` (HINWEIS, einmal je Seite); `data-antwort` mit einem Wert, den es nicht gibt (FEHLER)',
 	};
@@ -319,9 +320,12 @@ const pruefSchwellen = (wurzel: string) => {
 const platzJeKlasse = (wurzel: string) => {
 	const js = readFileSync(path.join(wurzel, PRUEFUNG_JS), 'utf8');
 	const { treffer, zahl } = leser(js);
-	const jeKlasse = (objekt: string) => new Map([...objekt.matchAll(/(\d): (\d+)/g)].map((t) => [t[1] ?? '', t[2] ?? '']));
+	const jeKlasse = (objekt: string) =>
+		new Map([...objekt.matchAll(/(\d): (\d+)/g)].map((t) => [t[1] ?? '', t[2] ?? '']));
 	const [zeichnen = ''] = treffer(/const ZEICHENFELD_MIN = (\{[^}]+\})/);
-	const [satz = '', begruendung = ''] = treffer(/const LINIEN_MIN = \{ satz: (\{[^}]+\}), begruendung: (\{[^}]+\}) \}/);
+	const [satz = '', begruendung = ''] = treffer(
+		/const LINIEN_MIN = \{ satz: (\{[^}]+\}), begruendung: (\{[^}]+\}) \}/,
+	);
 	const [kind = ''] = treffer(/KANTE_MIN = \{ karte: \d+, stein: \d+, kind: (\d+) \}/);
 	const KLASSEN = ['1', '2', '3', '4'];
 	const zeile = (was: string, werte: Map<string, string>, wert: (w: string) => string) => [
@@ -335,8 +339,16 @@ const platzJeKlasse = (wurzel: string) => {
 			[
 				zeile('Zeichenfeld ohne `data-fuer` (`.feld-zeichnen`)', jeKlasse(zeichnen), (w) => `${w} × ${w} mm`),
 				zeile('Schreiblinien für einen Satz (`data-antwort="satz"`)', jeKlasse(satz), (w) => w),
-				zeile('Schreiblinien für eine Begründung (`data-antwort="begruendung"`)', jeKlasse(begruendung), (w) => w),
-				zeile('Teil zum Selbstschneiden, kurze Kante', new Map(KLASSEN.map((k) => [k, kind])), (w) => `${w} mm`),
+				zeile(
+					'Schreiblinien für eine Begründung (`data-antwort="begruendung"`)',
+					jeKlasse(begruendung),
+					(w) => w,
+				),
+				zeile(
+					'Teil zum Selbstschneiden, kurze Kante',
+					new Map(KLASSEN.map((k) => [k, kind])),
+					(w) => `${w} mm`,
+				),
 			],
 		),
 		'',

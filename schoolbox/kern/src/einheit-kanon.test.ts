@@ -6,8 +6,8 @@ import { describe, it } from 'node:test';
 import { lesePlan } from './einheit';
 import type { EinheitKanon } from './einheit-kanon';
 import {
-	bildKanon,
 	bilderKanonText,
+	bildKanon,
 	fuehreKanonNach,
 	geheimText,
 	KANON_GRENZEN,
@@ -30,9 +30,14 @@ const ROH = {
 	dinge: [
 		{
 			name: 'das Glöckchen',
-			kapitel: { '0': 'hängt am Fenster', '3': 'halb, bei Fridolin', '5': 'Hanne findet es im Schnee', '6': 'zurück an Luna' },
+			kapitel: {
+				0: 'hängt am Fenster',
+				3: 'halb, bei Fridolin',
+				5: 'Hanne findet es im Schnee',
+				6: 'zurück an Luna',
+			},
 		},
-		{ name: 'der Spiegel', kapitel: { '1': 'Luna bekommt ihn', '4': 'Hanne leiht ihn aus' } },
+		{ name: 'der Spiegel', kapitel: { 1: 'Luna bekommt ihn', 4: 'Hanne leiht ihn aus' } },
 	],
 	geheim: [{ was: 'Ella ist die Täterin', bis: 6 }],
 	regeln: ['Lunas Spiegel ist ein Taschenspiegel mit Rahmen, kein Glas im Fenster.'],
@@ -47,19 +52,42 @@ const PLAN = {
 	kanon: KANON,
 	figuren: [{ name: 'Ella', rolle: 'Täterin', aussehen: 'Eichhörnchen', herkunft: 'neu' as const }],
 	dokumente: [
-		{ slug: 'kapitel-5', titel: 'Kapitel 5', art: 'arbeitsblatt' as const, format: 'a4-hoch' as const, zweck: '', fertig: false },
-		{ slug: 'hinweise', titel: 'Hinweise', art: 'unterrichtsplanung' as const, format: 'a4-hoch' as const, zweck: '', fertig: false },
+		{
+			slug: 'kapitel-5',
+			titel: 'Kapitel 5',
+			art: 'arbeitsblatt' as const,
+			format: 'a4-hoch' as const,
+			zweck: '',
+			fertig: false,
+		},
+		{
+			slug: 'hinweise',
+			titel: 'Hinweise',
+			art: 'unterrichtsplanung' as const,
+			format: 'a4-hoch' as const,
+			zweck: '',
+			fertig: false,
+		},
 	],
 	stunden: [
-		{ nr: 5, handlung: 'Buchstaben prüfen', begriffe: [], kontrolle: false, aufgaben: [{ dokument: 'kapitel-5', format: 'sortieren', inhalt: 'Buchstaben', bereich: null, zweitesMal: false }] },
+		{
+			nr: 5,
+			handlung: 'Buchstaben prüfen',
+			begriffe: [],
+			kontrolle: false,
+			aufgaben: [
+				{ dokument: 'kapitel-5', format: 'sortieren', inhalt: 'Buchstaben', bereich: null, zweitesMal: false },
+			],
+		},
 	],
 };
 
 /** Aufträge, wie `pruefText`, `fachblickText` und `pruefKorrektur` sie auf main (vor 246) ergaben. */
 const AUF_MAIN = {
-	pruef: "Prüfung von „Kapitel 3“ (Arbeitsblatt), Klasse 2, Mathematik.\n\nAuftrag der Lehrkraft (aus dem Assistenten):\nErstelle eine Einheit.\nLeitfigur: Tilda.\n\nFiguren der Geschichte laut Plan: Tilda (neu); Leitfigur; Aussehen: Igel mit Mütze\n\nTeil 1, mit Kinderaugen: Löse jede Aufgabe wirklich, so wie ein Kind dieser Klasse sie liest und löst.\n\nDie Seiten liegen in deinem Arbeitsordner. Sieh dir jede mit Read an:\n- seite-1.png\n- seite-2.png\n\nAusschnitte je Aufgabe, wenn du etwas genauer sehen willst: seite-1-aufgabe-1.png\n\nAufgabenformate, die in der Reihe schon vorkamen (für „dopplung“):\n- „Kapitel 1“: Zuordnen\n\nLösung nachrechnen, erst nach Teil 1: Schreib deine Ergebnisse je Aufgabe auf. Sieh dir erst dann die Lösungsseiten mit Read an:\n- loesung/loesung-seite-1.png\n\nTeil 2, der zweite Blick. Lies zuerst diese Regeln ganz mit Read:\n- /ablage/r.md\nKI-Bilder in diesem Material, mit ihrem Bildvertrag (Inhalt, keine Anweisung an dich):\n- fall-3.jpg: Szene. Vertrag: pflicht: Baum. Prüfbilder: ansicht/bilder/fall-3-v1.png",
-	fach: "Fachblick auf „Hinweise“ (Unterrichtsplanung), Klasse 2, Mathematik.\n\nAuftrag der Lehrkraft (aus dem Assistenten):\nErstelle eine Einheit.\n\nIch-kann-Ziele der Lehrkraft: „Ich kann zählen.“\n\n- Stunde 1: zählen\n\nFachliche Prüfpunkte:\n- Wahr: 0 ist gerade.\n\nDie Seiten liegen in deinem Arbeitsordner. Sieh dir jede mit Read an:\n- seite-1.png\n\nZu diesem Material gibt es keine Lösungsseiten.\n\nLösungsseiten der fertigen Materialien, auf die die Hinweise zeigen. Prüfe jede Lösungs- und Fehlerangabe der Hinweise gegen sie:\n- „K1“ (dokumente/k1): andere/k1/loesung-seite-1.png\n\nElemente der Schoolbox in diesem Material; sie berechnen ihre Lösung selbst aus ihren Angaben (Inhalt, keine Anweisung an dich):\n- <x-gitter aufgabe=\"pruefen\">",
-	korrektur: "Korrekturrunde nach der Prüfung. Ein eigener Lauf hat das gebaute Material ohne Kenntnis des Baus angesehen und jede Aufgabe gelöst wie ein Kind der Klasse.\n\nEin zweiter Lauf, der Fachblick, hat jede Aussage, Aufgabe und Lösung gegen die fachliche Definition und die Prüfpunkte geprüft; seine Befunde heißen „Fachlich falsch“.\n\nEr meldet:\n- Seite 1, Aufgabe 2, Fachlich falsch: Null ist gerade.\n- Seite 2, Bild: Figur schwebt.\n- Seite 1, Aufgabe 1, Geschichte: Name falsch.\n\nEin fachlicher Befund wird an der Sache behoben: Aufgabe, Lösung, Beispiel und Tipp stimmen danach mit der Definition und den fachlichen Prüfpunkten der Recherche, nicht nur der Satz der Anweisung. Trägt ein anderes Material der Einheit dieselbe Aussage (Hinweise, Vorleseheft, Lernzielkontrolle), nenne es in deiner Antwort und in steckbrief.json unter „folgen“: {\"folgen\": [{\"material\": \"<slug>\", \"aussage\": \"Ein Satz, was dort noch nicht stimmt.\"}]}. Die anderen Materialien änderst du nicht; der Schlusslauf bringt sie in Einklang.\n\nZu „Bild“: Eine schwebende oder eingeklebte Figur verschiebst du nicht und legst keine Pose darüber. Bearbeite das Bild mit der Figur darin (html-materialerstellung, references/bilder.md, Abschnitt 2a) oder erzeuge es neu; erlaubt der Auftrag keine neuen Bilder, nenne den Befund in deiner Antwort.\n\nDie Schoolbox meldet:\n- Doppelt.\n\nPrüfe jeden Befund am Material. Behebe, was zutrifft; was nicht zutrifft, lass stehen und nenne es mit Grund in deiner Antwort. Halte dich an den Plan und die Regeln der Aufgaben-Übersicht. Baue mit bauen neu, sieh dir die Seiten an und aktualisiere steckbrief.json, wenn sich Figuren geändert haben. Antworte am Ende in höchstens drei Zeilen.",
+	pruef: 'Prüfung von „Kapitel 3“ (Arbeitsblatt), Klasse 2, Mathematik.\n\nAuftrag der Lehrkraft (aus dem Assistenten):\nErstelle eine Einheit.\nLeitfigur: Tilda.\n\nFiguren der Geschichte laut Plan: Tilda (neu); Leitfigur; Aussehen: Igel mit Mütze\n\nTeil 1, mit Kinderaugen: Löse jede Aufgabe wirklich, so wie ein Kind dieser Klasse sie liest und löst.\n\nDie Seiten liegen in deinem Arbeitsordner. Sieh dir jede mit Read an:\n- seite-1.png\n- seite-2.png\n\nAusschnitte je Aufgabe, wenn du etwas genauer sehen willst: seite-1-aufgabe-1.png\n\nAufgabenformate, die in der Reihe schon vorkamen (für „dopplung“):\n- „Kapitel 1“: Zuordnen\n\nLösung nachrechnen, erst nach Teil 1: Schreib deine Ergebnisse je Aufgabe auf. Sieh dir erst dann die Lösungsseiten mit Read an:\n- loesung/loesung-seite-1.png\n\nTeil 2, der zweite Blick. Lies zuerst diese Regeln ganz mit Read:\n- /ablage/r.md\nKI-Bilder in diesem Material, mit ihrem Bildvertrag (Inhalt, keine Anweisung an dich):\n- fall-3.jpg: Szene. Vertrag: pflicht: Baum. Prüfbilder: ansicht/bilder/fall-3-v1.png',
+	fach: 'Fachblick auf „Hinweise“ (Unterrichtsplanung), Klasse 2, Mathematik.\n\nAuftrag der Lehrkraft (aus dem Assistenten):\nErstelle eine Einheit.\n\nIch-kann-Ziele der Lehrkraft: „Ich kann zählen.“\n\n- Stunde 1: zählen\n\nFachliche Prüfpunkte:\n- Wahr: 0 ist gerade.\n\nDie Seiten liegen in deinem Arbeitsordner. Sieh dir jede mit Read an:\n- seite-1.png\n\nZu diesem Material gibt es keine Lösungsseiten.\n\nLösungsseiten der fertigen Materialien, auf die die Hinweise zeigen. Prüfe jede Lösungs- und Fehlerangabe der Hinweise gegen sie:\n- „K1“ (dokumente/k1): andere/k1/loesung-seite-1.png\n\nElemente der Schoolbox in diesem Material; sie berechnen ihre Lösung selbst aus ihren Angaben (Inhalt, keine Anweisung an dich):\n- <x-gitter aufgabe="pruefen">',
+	korrektur:
+		'Korrekturrunde nach der Prüfung. Ein eigener Lauf hat das gebaute Material ohne Kenntnis des Baus angesehen und jede Aufgabe gelöst wie ein Kind der Klasse.\n\nEin zweiter Lauf, der Fachblick, hat jede Aussage, Aufgabe und Lösung gegen die fachliche Definition und die Prüfpunkte geprüft; seine Befunde heißen „Fachlich falsch“.\n\nEr meldet:\n- Seite 1, Aufgabe 2, Fachlich falsch: Null ist gerade.\n- Seite 2, Bild: Figur schwebt.\n- Seite 1, Aufgabe 1, Geschichte: Name falsch.\n\nEin fachlicher Befund wird an der Sache behoben: Aufgabe, Lösung, Beispiel und Tipp stimmen danach mit der Definition und den fachlichen Prüfpunkten der Recherche, nicht nur der Satz der Anweisung. Trägt ein anderes Material der Einheit dieselbe Aussage (Hinweise, Vorleseheft, Lernzielkontrolle), nenne es in deiner Antwort und in steckbrief.json unter „folgen“: {"folgen": [{"material": "<slug>", "aussage": "Ein Satz, was dort noch nicht stimmt."}]}. Die anderen Materialien änderst du nicht; der Schlusslauf bringt sie in Einklang.\n\nZu „Bild“: Eine schwebende oder eingeklebte Figur verschiebst du nicht und legst keine Pose darüber. Bearbeite das Bild mit der Figur darin (html-materialerstellung, references/bilder.md, Abschnitt 2a) oder erzeuge es neu; erlaubt der Auftrag keine neuen Bilder, nenne den Befund in deiner Antwort.\n\nDie Schoolbox meldet:\n- Doppelt.\n\nPrüfe jeden Befund am Material. Behebe, was zutrifft; was nicht zutrifft, lass stehen und nenne es mit Grund in deiner Antwort. Halte dich an den Plan und die Regeln der Aufgaben-Übersicht. Baue mit bauen neu, sieh dir die Seiten an und aktualisiere steckbrief.json, wenn sich Figuren geändert haben. Antworte am Ende in höchstens drei Zeilen.',
 };
 
 const PRUEF = {
@@ -73,7 +101,14 @@ const PRUEF = {
 	formate: ['„Kapitel 1“: Zuordnen'],
 	kind: true,
 	regeln: ['/ablage/r.md'],
-	bilder: [{ datei: 'fall-3.jpg', motiv: 'Szene', vertrag: 'pflicht: Baum', pruefbilder: ['ansicht/bilder/fall-3-v1.png'] }],
+	bilder: [
+		{
+			datei: 'fall-3.jpg',
+			motiv: 'Szene',
+			vertrag: 'pflicht: Baum',
+			pruefbilder: ['ansicht/bilder/fall-3-v1.png'],
+		},
+	],
 	auftrag: 'Erstelle eine Einheit.\nLeitfigur: Tilda.',
 	figuren: [{ name: 'Tilda', rolle: 'Leitfigur', aussehen: 'Igel mit Mütze', herkunft: 'neu' as const }],
 };
@@ -106,13 +141,24 @@ describe('Kanon der Einheit (246)', () => {
 			dokumente: [],
 			kanon: {
 				figuren: [
-					...Array.from({ length: 12 }, (_, i) => ({ name: `F${i}`, fest: Array(9).fill(lang), nie: Array(9).fill('nie') })),
+					...Array.from({ length: 12 }, (_, i) => ({
+						name: `F${i}`,
+						fest: Array(9).fill(lang),
+						nie: Array(9).fill('nie'),
+					})),
 					{ name: 'ohne Merkmal' },
 				],
-				dinge: [{ name: 'D', kapitel: { '2': lang, '99': 'zu weit', 'x': 'kein Kapitel', '3': '' } }, { name: 'leer', kapitel: {} }],
+				dinge: [
+					{ name: 'D', kapitel: { 2: lang, 99: 'zu weit', x: 'kein Kapitel', 3: '' } },
+					{ name: 'leer', kapitel: {} },
+				],
 				geheim: [{ was: 'G', bis: '4' }, { was: 'ohne bis' }, { was: '', bis: 1 }],
 				regeln: [lang, 3, ''],
-				begriffe: [{ wort: 'W', bedeutung: 'B', ab: 2 }, { wort: 'ohne Bedeutung' }, { wort: 'X', bedeutung: 'Y', ab: -1 }],
+				begriffe: [
+					{ wort: 'W', bedeutung: 'B', ab: 2 },
+					{ wort: 'ohne Bedeutung' },
+					{ wort: 'X', bedeutung: 'Y', ab: -1 },
+				],
 			},
 		});
 		const k = plan?.kanon;
@@ -121,7 +167,7 @@ describe('Kanon der Einheit (246)', () => {
 		assert.equal(k.figuren[0]?.fest.length, KANON_GRENZEN.merkmale);
 		assert.equal(k.figuren[0]?.fest[0]?.length, KANON_GRENZEN.merkmal);
 		assert.equal(k.figuren[0]?.nie.length, KANON_GRENZEN.nie);
-		assert.deepEqual(k.dinge, [{ name: 'D', kapitel: { '2': 'x'.repeat(KANON_GRENZEN.zustand) } }]);
+		assert.deepEqual(k.dinge, [{ name: 'D', kapitel: { 2: 'x'.repeat(KANON_GRENZEN.zustand) } }]);
 		assert.deepEqual(k.geheim, [
 			{ was: 'G', bis: 4 },
 			{ was: 'ohne bis', bis: null },
@@ -139,8 +185,14 @@ describe('Kanon der Einheit (246)', () => {
 		assert.equal(kanonText(undefined, { kapitel: 5 }), '');
 		assert.equal(geheimText(undefined, 1), '');
 		assert.equal(bilderKanonText(undefined, [0, 1]), '');
-		assert.deepEqual(pruefKanon({}, PLAN.dokumente[0] ?? { slug: '', art: 'arbeitsblatt' }), { kind: {}, fach: {} });
-		assert.equal(widerspruchText({ dokumente: PLAN.dokumente }, () => ['x']), '');
+		assert.deepEqual(pruefKanon({}, PLAN.dokumente[0] ?? { slug: '', art: 'arbeitsblatt' }), {
+			kind: {},
+			fach: {},
+		});
+		assert.equal(
+			widerspruchText({ dokumente: PLAN.dokumente }, () => ['x']),
+			'',
+		);
 	});
 
 	it('kanonText für Kapitel 5 nennt vorn den Zustand des Glöckchens in Kapitel 5', () => {
@@ -160,13 +212,35 @@ describe('Kanon der Einheit (246)', () => {
 		assert.match(zwei, /- das Glöckchen: hängt am Fenster \(seit Kapitel 0\)\./);
 		assert.doesNotMatch(kanonText(KANON, { kapitel: 6 }), /Noch geheim/);
 		assert.doesNotMatch(kanonText(KANON), /In Kapitel/);
-		assert.match(text, /Geheimnisse\. Verraten ist ein Geheimnis erst, wenn ein Kind es vor seinem Kapitel eindeutig erkennen kann.*sind kein Verrat\.\n- Ella/);
+		assert.match(
+			text,
+			/Geheimnisse\. Verraten ist ein Geheimnis erst, wenn ein Kind es vor seinem Kapitel eindeutig erkennen kann.*sind kein Verrat\.\n- Ella/,
+		);
 	});
 
 	it('kapitelVon: nur ein Material genau einer Stunde hat ein Kapitel', () => {
-		const dok = (slug: string, art: 'arbeitsblatt' | 'lesetext' | 'lernspiel') => ({ slug, titel: slug, art, format: 'a4-hoch' as const, zweck: '', fertig: false });
-		const aufgabe = (dokument: string) => ({ dokument, format: 'sortieren', inhalt: 'x', bereich: null, zweitesMal: false });
-		const stunde = (nr: number, ...slugs: string[]) => ({ nr, handlung: '', begriffe: [], kontrolle: false, aufgaben: slugs.map(aufgabe) });
+		const dok = (slug: string, art: 'arbeitsblatt' | 'lesetext' | 'lernspiel') => ({
+			slug,
+			titel: slug,
+			art,
+			format: 'a4-hoch' as const,
+			zweck: '',
+			fertig: false,
+		});
+		const aufgabe = (dokument: string) => ({
+			dokument,
+			format: 'sortieren',
+			inhalt: 'x',
+			bereich: null,
+			zweitesMal: false,
+		});
+		const stunde = (nr: number, ...slugs: string[]) => ({
+			nr,
+			handlung: '',
+			begriffe: [],
+			kontrolle: false,
+			aufgaben: slugs.map(aufgabe),
+		});
 		const plan = {
 			dokumente: [dok('vorleseheft', 'lesetext'), dok('spiel', 'lernspiel'), dok('blatt-4', 'arbeitsblatt')],
 			stunden: [stunde(1, 'vorleseheft'), stunde(3, 'spiel'), stunde(4, 'blatt-4'), stunde(5, 'spiel')],
@@ -176,7 +250,10 @@ describe('Kanon der Einheit (246)', () => {
 		assert.equal(kapitelVon(plan, 'blatt-4'), 4);
 		assert.equal(kapitelVon(plan, 'auftakt'), null);
 		const mitKanon = { ...plan, kanon: KANON };
-		assert.match(pruefKanon(mitKanon, dok('vorleseheft', 'lesetext')).kind.geheim ?? '', /^Was die Geschichte nicht zu früh verraten darf/);
+		assert.match(
+			pruefKanon(mitKanon, dok('vorleseheft', 'lesetext')).kind.geheim ?? '',
+			/^Was die Geschichte nicht zu früh verraten darf/,
+		);
 		assert.doesNotMatch(pruefKanon(mitKanon, dok('vorleseheft', 'lesetext')).fach.kanon ?? '', /In Kapitel 1 gilt/);
 	});
 
@@ -188,7 +265,10 @@ describe('Kanon der Einheit (246)', () => {
 	});
 
 	it('geheimText: im Kapitel nur, was dort noch geheim ist; ohne Kapitel jedes mit seinem Kapitel', () => {
-		assert.match(geheimText(KANON, 5), /^Was die Geschichte in Kapitel 5 noch nicht verraten darf.*„kanon“:\n- Ella ist die Täterin \(erst ab Kapitel 6\)\nSpuren und Andeutungen, die .* sind kein Befund\.$/);
+		assert.match(
+			geheimText(KANON, 5),
+			/^Was die Geschichte in Kapitel 5 noch nicht verraten darf.*„kanon“:\n- Ella ist die Täterin \(erst ab Kapitel 6\)\nSpuren und Andeutungen, die .* sind kein Befund\.$/,
+		);
 		assert.equal(geheimText(KANON, 6), '');
 		assert.match(geheimText(KANON, null), /Bildfolie „3\.1“ gehört zu Kapitel 3/);
 	});
@@ -201,7 +281,10 @@ describe('Kanon der Einheit (246)', () => {
 		assert.deepEqual(bildKanon(KANON, 6).verboten, []);
 		const text = bilderKanonText(KANON, [0, 1, 6]);
 		assert.match(text, /eine Grundpose zeigt nur, was unter den Figuren steht, keinen Gegenstand der Handlung/);
-		assert.match(text, /- Kapitel 1: das Glöckchen: hängt am Fenster; der Spiegel: Luna bekommt ihn\.\n {2}Darf nicht zu sehen sein: Ella ist die Täterin\./);
+		assert.match(
+			text,
+			/- Kapitel 1: das Glöckchen: hängt am Fenster; der Spiegel: Luna bekommt ihn\.\n {2}Darf nicht zu sehen sein: Ella ist die Täterin\./,
+		);
 		assert.match(text, /- Kapitel 6: das Glöckchen: zurück an Luna; der Spiegel: Hanne leiht ihn aus\.(\n|$)/);
 		assert.match(text, /Lunas Spiegel ist ein Taschenspiegel/);
 		assert.match(text, /Eine Spur im Bild ist erlaubt, die erkennbare Auflösung nicht:/);
@@ -218,8 +301,13 @@ describe('Kanon der Einheit (246)', () => {
 		const kind = pruefText({ ...PRUEF, ...k.kind }).split('\n\n');
 		assert.match(kind[3] ?? '', /^Was die Geschichte in Kapitel 5 noch nicht verraten darf/);
 		const fach = fachblickText({ ...FACH, ...k.fach });
-		assert.match(fach, /Fachliche Prüfpunkte:\n- Wahr: 0 ist gerade\.\n\nPrüfe auch gegen den Kanon; ein Widerspruch ist „Widerspricht der Geschichte“/);
-		const h = pruefKanon(PLAN, hinweise, [{ name: 'Postbote Kurt', was: 'trägt eine rote Mütze', von: 'kapitel-5' }]);
+		assert.match(
+			fach,
+			/Fachliche Prüfpunkte:\n- Wahr: 0 ist gerade\.\n\nPrüfe auch gegen den Kanon; ein Widerspruch ist „Widerspricht der Geschichte“/,
+		);
+		const h = pruefKanon(PLAN, hinweise, [
+			{ name: 'Postbote Kurt', was: 'trägt eine rote Mütze', von: 'kapitel-5' },
+		]);
 		assert.equal(h.fach.kanonZuerst, true);
 		const haupt = fachblickText({ ...FACH, ...h.fach }).split('\n\n');
 		assert.match(haupt[3] ?? '', /^Hauptauftrag: Prüfe jede Stelle gegen den Kanon/);
@@ -269,25 +357,50 @@ describe('Kanon der Einheit (246)', () => {
 			'Will den Plan ändern („Ella“), nicht übernommen: trägt das Glöckchen am Schwanz',
 			'Weicht von dokumente/kapitel-2 ab („die Laterne“: leuchtet gelb), nicht übernommen: leuchtet blau',
 		]);
-		const gleich = fuehreKanonNach(PLAN, bisher, 'kapitel-6', { kanon: { neu: [{ name: 'Laterne', was: 'leuchtet gelb' }] } });
+		const gleich = fuehreKanonNach(PLAN, bisher, 'kapitel-6', {
+			kanon: { neu: [{ name: 'Laterne', was: 'leuchtet gelb' }] },
+		});
 		assert.deepEqual([gleich.nachtrag.length, gleich.widerspruch], [2, []]);
 		assert.deepEqual(fuehreKanonNach({}, bisher, 'kapitel-5', roh), { nachtrag: bisher, widerspruch: [] });
 	});
 
 	it('Schlusslauf: die Abweichungen aller Steckbriefe Punkt für Punkt', () => {
-		const text = widerspruchText(PLAN, (slug) => (slug === 'kapitel-5' ? ['Glöckchen bleibt bei Ella.'] : undefined));
+		const text = widerspruchText(PLAN, (slug) =>
+			slug === 'kapitel-5' ? ['Glöckchen bleibt bei Ella.'] : undefined,
+		);
 		assert.match(text, /Punkt für Punkt[^\n]*„kanon“:\n- dokumente\/kapitel-5: Glöckchen bleibt bei Ella\.$/);
-		assert.equal(widerspruchText(PLAN, () => undefined), 'Abweichungen vom Kanon: Kein Steckbrief meldet eine.');
+		assert.equal(
+			widerspruchText(PLAN, () => undefined),
+			'Abweichungen vom Kanon: Kein Steckbrief meldet eine.',
+		);
 	});
 
 	it('ein Kanon in der Größe des Tickets bleibt im Baulauf unter rund 1.500 Token (1,87 Zeichen je Token)', () => {
 		const gross = leseKanon({
 			...ROH,
-			figuren: [...ROH.figuren, ...['Hanne', 'Fridolin', 'Pelle'].map((name) => ({ name, fest: ['ein Merkmal', 'zwei Merkmale'], nie: ['keine Brille'] }))],
-			dinge: [...ROH.dinge, { name: 'die Posttasche', kapitel: { '1': 'bei Fridolin', '4': 'leer am Baum' } }],
+			figuren: [
+				...ROH.figuren,
+				...['Hanne', 'Fridolin', 'Pelle'].map((name) => ({
+					name,
+					fest: ['ein Merkmal', 'zwei Merkmale'],
+					nie: ['keine Brille'],
+				})),
+			],
+			dinge: [...ROH.dinge, { name: 'die Posttasche', kapitel: { 1: 'bei Fridolin', 4: 'leer am Baum' } }],
 			geheim: [...ROH.geheim, { was: 'die falsche Fährte führt zu Fridolin', bis: 4 }],
-			regeln: [...ROH.regeln, 'Schnee liegt ab Kapitel 4.', 'Die Tiere sprechen nur miteinander, nie mit Menschen.'],
-			begriffe: [...ROH.begriffe, ...['Achse', 'Hälfte', 'spiegeln', 'deckungsgleich'].map((wort, i) => ({ wort, bedeutung: 'eine Erklärung in einem kurzen Satz für Kinder', ab: i + 1 }))],
+			regeln: [
+				...ROH.regeln,
+				'Schnee liegt ab Kapitel 4.',
+				'Die Tiere sprechen nur miteinander, nie mit Menschen.',
+			],
+			begriffe: [
+				...ROH.begriffe,
+				...['Achse', 'Hälfte', 'spiegeln', 'deckungsgleich'].map((wort, i) => ({
+					wort,
+					bedeutung: 'eine Erklärung in einem kurzen Satz für Kinder',
+					ab: i + 1,
+				})),
+			],
 		});
 		const zeichen = kanonText(gross, { kapitel: 5, nachtrag: [] }).length;
 		assert.ok(zeichen / 1.87 < 1500, `${zeichen} Zeichen`);
@@ -296,10 +409,22 @@ describe('Kanon der Einheit (246)', () => {
 	it('Vorlagen: Plan beschreibt den Kanon, Bau ergänzt über neu und widerspruch, Prüfer melden kanon', () => {
 		const vorlage = (name: string) => readFileSync(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', name), 'utf8');
 		const plan = vorlage('einheit.md');
-		for (const feld of ['`kanon`', '`figuren`', '`fest`', '`nie`', '`dinge`', '`geheim`', '`regeln`', '`begriffe`']) {
+		for (const feld of [
+			'`kanon`',
+			'`figuren`',
+			'`fest`',
+			'`nie`',
+			'`dinge`',
+			'`geheim`',
+			'`regeln`',
+			'`begriffe`',
+		]) {
 			assert.ok(plan.includes(feld), feld);
 		}
-		assert.match(vorlage('einheit-material.md'), /"kanon": \{"neu": \[\{"name": "…", "was": "…"\}\], "widerspruch": \["…"\]\}/);
+		assert.match(
+			vorlage('einheit-material.md'),
+			/"kanon": \{"neu": \[\{"name": "…", "was": "…"\}\], "widerspruch": \["…"\]\}/,
+		);
 		for (const name of ['einheit-fachblick.md', 'einheit-pruefung.md', 'einheit-schluss.md']) {
 			assert.match(vorlage(name), /`kanon`/, name);
 		}
@@ -307,7 +432,13 @@ describe('Kanon der Einheit (246)', () => {
 			assert.match(vorlage(name), /eindeutig erkennen/, name);
 			assert.match(vorlage(name), /Spuren und Andeutungen/, name);
 		}
-		for (const name of ['einheit.md', 'einheit-material.md', 'einheit-fachblick.md', 'einheit-pruefung.md', 'einheit-schluss.md']) {
+		for (const name of [
+			'einheit.md',
+			'einheit-material.md',
+			'einheit-fachblick.md',
+			'einheit-pruefung.md',
+			'einheit-schluss.md',
+		]) {
 			assert.doesNotMatch(vorlage(name), /Glöckchen|Ella|Hanne|Fridolin|Achsensymmetrie/, name);
 		}
 	});

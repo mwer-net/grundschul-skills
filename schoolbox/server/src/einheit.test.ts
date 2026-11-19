@@ -654,7 +654,7 @@ describe('Lauf einer Einheit (139)', () => {
 
 		it('Ohne Befund: ein Prüflauf mit Plan und Recherche, keine Rückrunde, der Stand ohne Punkte', async () => {
 			await fall('einheit');
-			const { id, mappe, s, neu, pruefungen } = await planen();
+			const { id, mappe, neu, pruefungen, s } = await planen();
 			assert.equal(pruefungen.length, 1);
 			assert.deepEqual(pruefungen[0]?.dateien, ['einheit.json', 'recherche.md']);
 			assert.equal(pruefungen[0]?.auftrag, 'einheit-plan-pruefung.md');
@@ -678,7 +678,7 @@ describe('Lauf einer Einheit (139)', () => {
 
 		it('Befunde gehen in genau eine Rückrunde; behoben und offen stehen im Stand, der Block nicht im Plan', async () => {
 			await fall('einheit-plan-befund');
-			const { id, s, neu } = await planen();
+			const { id, neu, s } = await planen();
 			const runde = rueckrunden(neu);
 			assert.equal(runde.length, 1);
 			assert.match(runde[0] ?? '', /^1\. Stunde 2, Aufbau der Reihe: Die Lernzielkontrolle prüft/m);
@@ -714,7 +714,7 @@ describe('Lauf einer Einheit (139)', () => {
 
 		it('Scheitert die Prüfung, kommt der Plan trotzdem, mit Hinweis; keine Rückrunde', async () => {
 			await fall('einheit-plan-scheitert');
-			const { id, s, neu } = await planen();
+			const { id, neu, s } = await planen();
 			assert.equal(s.status, 'plan');
 			assert.match(s.planText ?? '', /Zwei Fälle/);
 			assert.deepEqual(rueckrunden(neu), []);
@@ -1008,7 +1008,10 @@ describe('Lauf einer Einheit (139)', () => {
 			await bis(id, 'fertig');
 			const neu = (await prompts()).slice(vorher);
 			const kind = neu.find((x) => x.startsWith('Prüfung von „Fall 1“')) ?? '';
-			assert.match(kind, /\n\nGemessen beim Bau \(Breite × Höhe\): [^\n]+\n- S\. 1, A3: drei leere Felder je 1,1 × 2,4 cm\n\n/);
+			assert.match(
+				kind,
+				/\n\nGemessen beim Bau \(Breite × Höhe\): [^\n]+\n- S\. 1, A3: drei leere Felder je 1,1 × 2,4 cm\n\n/,
+			);
 			const fach = neu.find((x) => x.startsWith('Fachblick auf „Fall 1“')) ?? '';
 			assert.ok(fach);
 			assert.doesNotMatch(fach, /Gemessen beim Bau/);

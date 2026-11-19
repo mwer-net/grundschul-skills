@@ -94,7 +94,8 @@ export const AUFGABEN_FORMATE: readonly AufgabenFormat[] = [
 		name: 'beobachten',
 		titel: 'Tun und beobachten (Beobachtungsbogen)',
 		geeignet: 'Handlungsziele, vor allem in der Lernzielkontrolle',
-		hinweis: 'Das Kind tut es mit Material oder Werkzeug, die Lehrkraft hakt je Kind in einer Tabelle ab, was gelingt',
+		hinweis:
+			'Das Kind tut es mit Material oder Werkzeug, die Lehrkraft hakt je Kind in einer Tabelle ab, was gelingt',
 	},
 	{
 		name: 'ergaenzen',

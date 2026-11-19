@@ -385,15 +385,18 @@ export const planPruefStand = (o: {
 	const punkte: PlanPruefPunkt[] = [
 		...rechnungVorher
 			.filter((r) => !o.nachher.includes(r.text))
-			.map(
-				(r): PlanPruefPunkt => ({
-					von: 'rechnung',
-					text: r.text,
-					stand: o.rueckrunde ? 'behoben' : 'offen',
-					...antwort(r.nr),
-				}),
-			),
-		...o.nachher.map((text): PlanPruefPunkt => ({ von: 'rechnung', text, stand: 'offen', ...antwort(nrVon(text)) })),
+			.map((r): PlanPruefPunkt => ({
+				von: 'rechnung',
+				text: r.text,
+				stand: o.rueckrunde ? 'behoben' : 'offen',
+				...antwort(r.nr),
+			})),
+		...o.nachher.map((text): PlanPruefPunkt => ({
+			von: 'rechnung',
+			text,
+			stand: 'offen',
+			...antwort(nrVon(text)),
+		})),
 		...o.vorher.flatMap((p, i): PlanPruefPunkt[] => {
 			if (p.von !== 'pruefung') {
 				return [];

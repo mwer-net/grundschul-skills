@@ -775,7 +775,14 @@ describe('pruefung.js: Symmetrie (245)', { skip: browserSkip() }, () => {
 describe('pruefung.js: Platz und Größe (249)', { skip: browserSkip() }, () => {
 	interface Bericht {
 		meldungen: Meldung[];
-		felder?: { seite: number; aufgabe: string | null; art: string; anzahl: number; breite: number; hoehe: number }[];
+		felder?: {
+			seite: number;
+			aufgabe: string | null;
+			art: string;
+			anzahl: number;
+			breite: number;
+			hoehe: number;
+		}[];
 	}
 	const blatt = (inhalt: string, body = 'kl2 farbe') =>
 		[
@@ -808,7 +815,11 @@ describe('pruefung.js: Platz und Größe (249)', { skip: browserSkip() }, () => 
 
 	it('Klebefeld 26 × 77 mm für einen Faltschnitt 80 × 95 mm: FEHLER; groß genug oder gedreht: still', async () => {
 		const feld = (b: number, h: number, fuer = '80x95') =>
-			aufgabe(3, 'Klebe den Faltschnitt auf.', `<div class="feld-kleben" data-fuer="${fuer}" style="--b:${b}mm;--h:${h}mm"></div>`);
+			aufgabe(
+				3,
+				'Klebe den Faltschnitt auf.',
+				`<div class="feld-kleben" data-fuer="${fuer}" style="--b:${b}mm;--h:${h}mm"></div>`,
+			);
 		const klein = await pruefeMit(blatt(feld(26, 77)));
 		assert.deepEqual(
 			codes(klein, 'feld-klein').map(([stufe, , text]) => [stufe, text?.split(' → ')[0]]),
@@ -833,7 +844,9 @@ describe('pruefung.js: Platz und Größe (249)', { skip: browserSkip() }, () => 
 
 	it('Begründung mit einer Linie in Kl. 2: WARNUNG; mit drei Linien still', async () => {
 		const linien = (n: number) => '<div class="schreiblinie"></div>'.repeat(n);
-		const eine = await pruefeMit(blatt(aufgabe(2, 'Ist das symmetrisch?', linien(1), ' data-antwort="begruendung"')));
+		const eine = await pruefeMit(
+			blatt(aufgabe(2, 'Ist das symmetrisch?', linien(1), ' data-antwort="begruendung"')),
+		);
 		assert.deepEqual(codes(eine, 'linien-wenig'), [
 			[
 				'WARNUNG',
@@ -841,14 +854,18 @@ describe('pruefung.js: Platz und Größe (249)', { skip: browserSkip() }, () => 
 				'A2: 1 Schreiblinie für eine Begründung, Klasse 2 braucht mindestens 3 → weitere .schreiblinie',
 			],
 		]);
-		const drei = await pruefeMit(blatt(aufgabe(2, 'Ist das symmetrisch?', linien(3), ' data-antwort="begruendung"')));
+		const drei = await pruefeMit(
+			blatt(aufgabe(2, 'Ist das symmetrisch?', linien(3), ' data-antwort="begruendung"')),
+		);
 		assert.deepEqual(codes(drei, 'linien-wenig', 'antwort-menge'), []);
 	});
 
 	it('„weil“ ohne data-antwort: ein HINWEIS je Seite für alle Aufgaben', async () => {
 		const weil = (nr: number) =>
 			aufgabe(nr, 'Ist das symmetrisch?', '<div class="zeile">Nein, weil</div><div class="schreiblinie"></div>');
-		const bericht = await pruefeMit(blatt(`${weil(1)}${weil(2)}${aufgabe(3, 'Rechne.', '<div class="schreiblinie"></div>')}`));
+		const bericht = await pruefeMit(
+			blatt(`${weil(1)}${weil(2)}${aufgabe(3, 'Rechne.', '<div class="schreiblinie"></div>')}`),
+		);
 		assert.deepEqual(
 			codes(bericht, 'antwort-menge').map(([stufe, , text]) => [stufe, text?.split(':')[0]]),
 			[['HINWEIS', 'A1, A2']],
@@ -856,8 +873,15 @@ describe('pruefung.js: Platz und Größe (249)', { skip: browserSkip() }, () => 
 	});
 
 	it('Ausschneidemotiv mit 15 mm in Kl. 2: WARNUNG teil-klein', async () => {
-		const motiv = aufgabe(1, 'Schneide aus.', '<svg data-schnitt width="57" height="57"><circle cx="28" cy="28" r="26" fill="none" stroke="#000" stroke-dasharray="4 3"/></svg>');
-		const text = codes(await pruefeMit(blatt(motiv)), 'teil-klein').map(([stufe, , t]) => [stufe, t?.split(':')[0]]);
+		const motiv = aufgabe(
+			1,
+			'Schneide aus.',
+			'<svg data-schnitt width="57" height="57"><circle cx="28" cy="28" r="26" fill="none" stroke="#000" stroke-dasharray="4 3"/></svg>',
+		);
+		const text = codes(await pruefeMit(blatt(motiv)), 'teil-klein').map(([stufe, , t]) => [
+			stufe,
+			t?.split(':')[0],
+		]);
 		assert.deepEqual(text, [['WARNUNG', '1 Teil zum Selbstschneiden ist zu klein (15 × 15 mm)']]);
 	});
 
@@ -869,14 +893,25 @@ describe('pruefung.js: Platz und Größe (249)', { skip: browserSkip() }, () => 
 		const bericht = await pruefeMit(
 			blatt(
 				[
-					aufgabe(3, 'Male die Fehler.', `<div class="reihe" style="--spalten:3">${`<div class="zelle">${rechteck}</div>`.repeat(3)}</div>`),
+					aufgabe(
+						3,
+						'Male die Fehler.',
+						`<div class="reihe" style="--spalten:3">${`<div class="zelle">${rechteck}</div>`.repeat(3)}</div>`,
+					),
 					aufgabe(4, 'Kreuze an.', `<span class="box"></span> ja ${voll}<div class="schreiblinie"></div>`),
 					`<div style="border:2px solid #000;padding:4mm">${aufgabe(5, 'Male.', '<div class="malfeld" style="--h:100px;width:60mm"></div>')}</div>`,
 				].join(''),
 			),
 		);
 		assert.deepEqual(
-			bericht.felder?.map(({ aufgabe: a, anzahl, art, breite, hoehe, seite }) => [seite, a, art, anzahl, breite, hoehe]),
+			bericht.felder?.map(({ anzahl, art, aufgabe: a, breite, hoehe, seite }) => [
+				seite,
+				a,
+				art,
+				anzahl,
+				breite,
+				hoehe,
+			]),
 			[
 				[1, 'A3', 'leer', 3, 12, 24],
 				[1, 'A5', 'leer', 1, 60, 26],
@@ -887,10 +922,11 @@ describe('pruefung.js: Platz und Größe (249)', { skip: browserSkip() }, () => 
 	it('Schauseite in s/w: WARNUNG nur, wenn s/w gedruckt wird (Quelle in s/w oder --sw-druck)', async () => {
 		const fall =
 			'<section class="seite fall"><div class="fall-innen" style="background:#fff"><h1 style="color:#c8c8c8">Schnipsel im Schnee</h1></div></section>';
-		const html = (body: string) =>
-			blatt('', body).replace('<section class="seite" data-dicht-ok></section>', fall);
+		const html = (body: string) => blatt('', body).replace('<section class="seite" data-dicht-ok></section>', fall);
 		const schau = async (body: string, ...zusatz: string[]) =>
-			codes(await pruefeMit(html(body), ...zusatz), 'kontrast-sw-schau', 'kontrast-sw').map(([stufe, code]) => `${stufe} ${code}`);
+			codes(await pruefeMit(html(body), ...zusatz), 'kontrast-sw-schau', 'kontrast-sw').map(
+				([stufe, code]) => `${stufe} ${code}`,
+			);
 		assert.deepEqual(await schau('kl2 farbe', '--profil', 'sw'), ['HINWEIS kontrast-sw']);
 		assert.deepEqual((await schau('kl2 farbe', '--profil', 'sw', '--sw-druck')).sort(), [
 			'HINWEIS kontrast-sw',

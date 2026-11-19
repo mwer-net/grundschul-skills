@@ -228,7 +228,7 @@ const cm = (mm: number) => (mm / 10).toFixed(1).replace('.', ',');
 const mass = (b: number, h: number) => `${cm(b)} × ${cm(h)} cm`;
 const massVon = (m: readonly number[]) => mass(m[0] ?? 0, m[1] ?? 0);
 
-const motivText = ({ klein, gross }: NonNullable<PruefFeld['motiv']>) => {
+const motivText = ({ gross, klein }: NonNullable<PruefFeld['motiv']>) => {
 	if (!gross) {
 		return 'ohne Motiv';
 	}
@@ -1083,7 +1083,11 @@ const MAX_BILDER_LISTE = 12;
 export const bestandteileText = (
 	plan: EinheitPlan,
 	steckbriefe: Record<string, Steckbrief>,
-	o: { formate?: FormateDerEinheit; profile: Readonly<Record<string, Druckprofil | null>>; bilder: readonly PaketBild[] },
+	o: {
+		formate?: FormateDerEinheit;
+		profile: Readonly<Record<string, Druckprofil | null>>;
+		bilder: readonly PaketBild[];
+	},
 ) => {
 	const z = zaehlung(plan, steckbriefe, o.formate ?? {});
 	const strich = o.bilder.filter((b) => b.strich).map((b) => b.datei);

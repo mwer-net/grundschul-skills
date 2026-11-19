@@ -7,9 +7,7 @@ import type { EinheitPlan } from './einheit';
 import { lesePlan, niveausImAuftrag } from './einheit';
 import { aufgabenFuerBau } from './einheit-aufgaben';
 import { nenntNamen } from './einheit-kanon';
-import type { PlanPunkt, PlanPruefStand } from './einheit-plan-pruefung';
-import { PRUEF_ARTEN } from './einheit-pruefung';
-import { WURZEL } from './konfig';
+import type { PlanPruefStand, PlanPunkt } from './einheit-plan-pruefung';
 import {
 	lesePlanAntwort,
 	nachAenderung,
@@ -18,6 +16,8 @@ import {
 	planRueckrunde,
 	rechnePlan,
 } from './einheit-plan-pruefung';
+import { PRUEF_ARTEN } from './einheit-pruefung';
+import { WURZEL } from './konfig';
 
 const plan = (roh: object) => lesePlan(roh) as EinheitPlan;
 
@@ -216,14 +216,20 @@ describe('Plan-Prüfung: die Rechnung (247)', () => {
 			plan({
 				titel: 'Strom',
 				ziele: [
-					{ nr: 1, text: 'Ich kann einen Stromkreis aufbauen.', ...(handlung === undefined ? {} : { handlung }) },
+					{
+						nr: 1,
+						text: 'Ich kann einen Stromkreis aufbauen.',
+						...(handlung === undefined ? {} : { handlung }),
+					},
 				],
 				stunden: [
 					{
 						nr: 1,
 						ziel: 1,
 						handlung: 'Zu zweit mit Batterie, Kabel und Lämpchen einen Stromkreis bauen.',
-						aufgaben: [auf('kapitel-1', 'legen-bauen-falten', 'Stromkreis bauen und zeichnen', { ziel: 1 })],
+						aufgaben: [
+							auf('kapitel-1', 'legen-bauen-falten', 'Stromkreis bauen und zeichnen', { ziel: 1 }),
+						],
 					},
 					{
 						nr: 2,
@@ -465,9 +471,9 @@ describe('Plan-Prüfung: Auftrag, Rückrunde und Stand (247)', () => {
 			[],
 		);
 		assert.doesNotMatch(vorlage, /Glöckchen|Ella|Hanne|Willi|Wilma|Achsensymmetr|Faltschnitt|Spiegel/);
-		const plan = readFileSync(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit.md'), 'utf8');
-		assert.match(plan, /"ziele": \[\{"nr": 1, "text": "Ich kann …", "handlung": true\}\]/);
-		assert.match(plan, /"phasen": \[\{"was": "…", "minuten": 10, "arbeit": false\}\]/);
+		const einheitMd = readFileSync(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit.md'), 'utf8');
+		assert.match(einheitMd, /"ziele": \[\{"nr": 1, "text": "Ich kann …", "handlung": true\}\]/);
+		assert.match(einheitMd, /"phasen": \[\{"was": "…", "minuten": 10, "arbeit": false\}\]/);
 		const skill = readFileSync(path.join(WURZEL, 'skills', 'unterrichtsplanung', 'SKILL.md'), 'utf8');
 		assert.match(skill, /^### Richtwerte für Minuten \(Kl\. 1–4\)$/m);
 	});

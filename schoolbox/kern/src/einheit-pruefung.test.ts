@@ -5,6 +5,7 @@ import { describe, it } from 'node:test';
 
 import type { EinheitPlan, PlanDokument } from './einheit';
 import type { Steckbrief } from './einheit-bau';
+import type { PruefFeld } from './einheit-pruefung';
 import {
 	abbildungenIn,
 	befundeDerTeile,
@@ -33,7 +34,6 @@ import {
 	zahlenBefunde,
 	zahlenText,
 } from './einheit-pruefung';
-import type { PruefFeld } from './einheit-pruefung';
 import { WURZEL } from './konfig';
 
 const dok = (
@@ -257,7 +257,15 @@ describe('Nachricht an den Prüflauf (229)', () => {
 				hoehe: 48,
 				motiv: { klein: [6, 16], gross: [17, 18] },
 			},
-			{ seite: 1, aufgabe: null, art: 'teil', anzahl: 1, breite: 80, hoehe: 95, motiv: { klein: null, gross: [26, 61] } },
+			{
+				seite: 1,
+				aufgabe: null,
+				art: 'teil',
+				anzahl: 1,
+				breite: 80,
+				hoehe: 95,
+				motiv: { klein: null, gross: [26, 61] },
+			},
 			{ seite: 1, aufgabe: 'A4', art: 'linien', anzahl: 1, breite: 140, hoehe: 9 },
 			{ seite: 1, aufgabe: 'A5', art: 'linien', anzahl: 3, breite: 160, hoehe: 30, fuer: 'begruendung' },
 			{ seite: 2, aufgabe: 'A1', art: 'leer', anzahl: 2, breite: 1, hoehe: 26 },
@@ -266,7 +274,10 @@ describe('Nachricht an den Prüflauf (229)', () => {
 		it('ohne felder, mit leerer Liste oder nur fremden Seiten Byte für Byte wie vorher', () => {
 			assert.equal(pruefText({ ...AUFTRAG, felder: [] }), TEIL_1.join('\n\n'));
 			assert.equal(pruefText({ ...AUFTRAG, felder: [{ ...DREI, seite: 2 }] }), TEIL_1.join('\n\n'));
-			assert.equal(pruefText({ ...AUFTRAG, kind: false, felder: FELDER }), pruefText({ ...AUFTRAG, kind: false }));
+			assert.equal(
+				pruefText({ ...AUFTRAG, kind: false, felder: FELDER }),
+				pruefText({ ...AUFTRAG, kind: false }),
+			);
 		});
 
 		it('nennt die Maße der eigenen Seiten in cm nach den Seiten, mit Motiv bei Teilen', () => {

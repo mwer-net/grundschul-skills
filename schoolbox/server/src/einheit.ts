@@ -209,7 +209,12 @@ const VORSCHAU_SLUG = 44;
  * Deckblatt nennt. Welche Seiten, wählt der Server (`vorschauSeiten`, 250): nur Kinderseiten ohne eingetragene Lösung.
  * Bilder eines früheren Baus bleiben liegen, weil ein schon gebautes Deckblatt sie nennen kann.
  */
-const legeVorschauAb = async (arbeit: string, d: Pick<PlanDokument, 'slug' | 'art'>, html: string, bilder: string[]) => {
+const legeVorschauAb = async (
+	arbeit: string,
+	d: Pick<PlanDokument, 'slug' | 'art'>,
+	html: string,
+	bilder: string[],
+) => {
 	const seiten = bilder.map((b) => SEITENBILD.exec(b)).filter((t): t is RegExpExecArray => t !== null);
 	const kurz = d.slug.slice(0, VORSCHAU_SLUG).replace(/-+$/, '');
 	const ablage = path.join(arbeit, 'bilder');
@@ -1288,7 +1293,7 @@ export const erstelleEinheiten = (
 			}
 			const punkte: PlanPunkt[] = [
 				...vorher.map((t): PlanPunkt => ({ von: 'rechnung', text: t })),
-				...(pruefung?.befunde ?? []).map((befund): PlanPunkt => ({ von: 'pruefung', befund })),
+				...(pruefung?.befunde ?? []).map((b): PlanPunkt => ({ von: 'pruefung', befund: b })),
 			];
 			let runde: Awaited<ReturnType<typeof rueckrunde>> | null = null;
 			if (weiter() && punkte.length && s.sitzung) {
@@ -1369,7 +1374,10 @@ export const erstelleEinheiten = (
 		return [
 			bilderAbsatz(zeilen, s.bilder),
 			rolle === 'bilder'
-				? bilderKanonText(s.plan?.kanon, (s.plan?.geschichte?.kapitel ?? []).map((k) => k.nr))
+				? bilderKanonText(
+						s.plan?.kanon,
+						(s.plan?.geschichte?.kapitel ?? []).map((k) => k.nr),
+					)
 				: '',
 			vorschau.length
 				? `Seitenbilder der fertigen Materialien für die Vorschau: ${vorschau.map((n) => `../../bilder/${n}`).join(', ')}`
