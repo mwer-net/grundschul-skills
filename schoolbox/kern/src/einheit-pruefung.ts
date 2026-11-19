@@ -62,6 +62,8 @@ export const PRUEF_GRENZEN = {
 	ungeteilt: 24,
 	seiten: 16,
 	ausschnitte: 40,
+	/** Zeilen mit Maßen aus dem Bau (249) je Lauf; der Rest steht als Zahl darunter. */
+	felder: 12,
 };
 
 /** Der Stand der Prüfung eines Materials, für Stand und Oberfläche. */
@@ -197,9 +199,76 @@ export interface PruefAuftrag {
 	teil?: PruefTeil;
 	/** 246: Was im Kapitel des Materials noch geheim ist (`pruefKanon`); fehlt ohne Kanon. */
 	geheim?: string;
+	/** 249: `felder` aus dem Bericht des Prüfbaus; nur Kinderaugen nennen sie, je Lauf nur für seine Seiten. */
+	felder?: readonly PruefFeld[];
+}
+
+/** Ein Eintrag aus `felder` im Prüfbericht (249, `FeldMass` in `bauen.ts`), Maße in mm. */
+export interface PruefFeld {
+	seite: number;
+	aufgabe: string | null;
+	art: 'leer' | 'teil' | 'linien';
+	anzahl: number;
+	breite: number;
+	hoehe: number;
+	motiv?: { klein: readonly number[] | null; gross: readonly number[] | null };
+	fuer?: 'satz' | 'begruendung';
 }
 
 const seiteVon = (datei: string) => Number(/seite-(\d+)/.exec(datei)?.[1] ?? 0);
+
+const ZAHLWORT = ['', 'ein', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht', 'neun', 'zehn', 'elf', 'zwölf'];
+const SCHREIBEN_FUER = { satz: 'für einen Satz', begruendung: 'für eine Begründung' } as const;
+const cm = (mm: number) => (mm / 10).toFixed(1).replace('.', ',');
+const mass = (b: number, h: number) => `${cm(b)} × ${cm(h)} cm`;
+const massVon = (m: readonly number[]) => mass(m[0] ?? 0, m[1] ?? 0);
+
+const motivText = ({ klein, gross }: NonNullable<PruefFeld['motiv']>) => {
+	if (!gross) {
+		return 'ohne Motiv';
+	}
+	if (!klein) {
+		return `Motiv bis ${massVon(gross)}, manche ohne Motiv`;
+	}
+	const g = massVon(gross);
+	const k = massVon(klein);
+	return k === g ? `Motiv ${g}` : `Motiv ${k.replace(/ cm$/, '')} bis ${g}`;
+};
+
+/**
+ * „S. 4, A3: drei leere Felder je 1,1 × 2,4 cm“, „S. 2: sechs Teile je 4,8 × 4,8 cm zum Ausschneiden, Motiv …“ oder
+ * „S. 5, A3: eine Schreiblinie, 14,0 cm breit, zum Begründen oder Erklären“.
+ */
+export const feldText = (f: PruefFeld) => {
+	const wo = `S. ${f.seite}${f.aufgabe ? `, ${f.aufgabe}` : ''}`;
+	const zahl = ZAHLWORT[f.anzahl] ?? String(f.anzahl);
+	const groesse = mass(f.breite, f.hoehe);
+	if (f.art === 'linien') {
+		const linien = f.anzahl === 1 ? 'eine Schreiblinie' : `${f.anzahl === 0 ? 'keine' : zahl} Schreiblinien`;
+		const fuer = f.fuer ? SCHREIBEN_FUER[f.fuer] : 'zum Begründen oder Erklären';
+		return `${wo}: ${linien}${f.anzahl ? `, ${cm(f.breite)} cm breit` : ''}, ${fuer}`;
+	}
+	if (f.art === 'leer') {
+		return `${wo}: ${f.anzahl === 1 ? `ein leeres Feld ${groesse}` : `${zahl} leere Felder je ${groesse}`}`;
+	}
+	const teile = f.anzahl === 1 ? `ein Teil ${groesse}` : `${zahl} Teile je ${groesse}`;
+	return `${wo}: ${teile} zum Ausschneiden${f.motiv ? `, ${motivText(f.motiv)}` : ''}`;
+};
+
+/** Die Maße der Seiten dieses Laufs, höchstens `PRUEF_GRENZEN.felder` Zeilen; leer, wenn es keine gibt. */
+const felderText = (o: Pick<PruefAuftrag, 'seiten' | 'felder'>) => {
+	const eigene = new Set(o.seiten.map(seiteVon));
+	const felder = (o.felder ?? []).filter((f) => eigene.has(f.seite));
+	if (!felder.length) {
+		return '';
+	}
+	const rest = felder.length - PRUEF_GRENZEN.felder;
+	return [
+		'Gemessen beim Bau (Breite × Höhe): leere Felder mit Rahmen, Teile zum Ausschneiden und Schreiblinien für Sätze und Begründungen auf deinen Seiten.',
+		...felder.slice(0, PRUEF_GRENZEN.felder).map((f) => `- ${feldText(f)}`),
+		...(rest > 0 ? [`- und ${rest} weitere`] : []),
+	].join('\n');
+};
 
 /**
  * Verteilt ein langes Material auf getrennte Prüfläufe (241): Bis `PRUEF_GRENZEN.ungeteilt` Seiten bleibt es ein Lauf,
@@ -270,6 +339,7 @@ export const pruefText = (o: PruefAuftrag) =>
 			'Die Seiten liegen in deinem Arbeitsordner. Sieh dir jede mit Read an:',
 			...o.seiten.map((s) => `- ${s}`),
 		].join('\n'),
+		o.kind ? felderText(o) : '',
 		o.ausschnitte.length
 			? `Ausschnitte je Aufgabe, wenn du etwas genauer sehen willst: ${o.ausschnitte.slice(0, PRUEF_GRENZEN.ausschnitte).join(', ')}${o.ausschnitte.length > PRUEF_GRENZEN.ausschnitte ? '; weitere Ausschnitte im Ordner' : ''}`
 			: '',

@@ -37,17 +37,20 @@ export const VORSCHAU_DATEI = 'material-s1.png';
 
 /**
  * Maße aus dem Bau für den Prüflauf (249, `pruefung.js` Abschnitt 9c), in mm: leere Felder (Rahmen ohne Text und
- * Abbildung) und Teile zum Ausschneiden mit dem größten und kleinsten Motiv (`null`: ohne Motiv). Gleich große einer
+ * Abbildung), Teile zum Ausschneiden mit dem größten und kleinsten Motiv (`null`: ohne Motiv) und Schreibplätze
+ * für einen Satz oder eine Begründung (`linien`: `anzahl` Linien, `breite` der längsten, `hoehe` von oben bis unten). Gleich große einer
  * Aufgabe stehen zusammen; `aufgabe` ist „A3“, außerhalb einer Aufgabe `null`.
  */
 export interface FeldMass {
 	seite: number;
 	aufgabe: string | null;
-	art: 'leer' | 'teil';
+	art: 'leer' | 'teil' | 'linien';
 	anzahl: number;
 	breite: number;
 	hoehe: number;
 	motiv?: { klein: [number, number] | null; gross: [number, number] | null };
+	/** Bei `linien`: `data-antwort` der Aufgabe; fehlt, wenn nur ihr Text nach einer Begründung fragt. */
+	fuer?: 'satz' | 'begruendung';
 }
 
 export interface Pruefbericht {

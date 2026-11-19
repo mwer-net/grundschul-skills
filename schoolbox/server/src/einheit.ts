@@ -1468,6 +1468,7 @@ export const erstelleEinheiten = (
 					auftrag: s.auftrag,
 					figuren: plan.figuren ?? [],
 					...kanon.kind,
+					felder: ansicht.bericht.felder,
 				}).map((a) => ({ text: pruefText(a), teil: a.teil }))
 			: [];
 		if (!o.fach) {

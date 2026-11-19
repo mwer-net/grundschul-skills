@@ -31,6 +31,7 @@ import {
 	zahlenBefunde,
 	zahlenText,
 } from './einheit-pruefung';
+import type { PruefFeld } from './einheit-pruefung';
 import { WURZEL } from './konfig';
 
 const dok = (
@@ -238,6 +239,68 @@ describe('Nachricht an den Prüflauf (229)', () => {
 			'Figuren der Geschichte laut Plan: Luna (neu); Leitfigur, gibt die Tipps; Aussehen: braune Eule · Pelle (aus der Bibliothek); Postbote · Ella, Eichhörnchen mit Glöckchen',
 		);
 		assert.deepEqual(teile.slice(3), TEIL_1.slice(1));
+	});
+
+	describe('Maße aus dem Bau (249)', () => {
+		const DREI: PruefFeld = { seite: 1, aufgabe: 'A3', art: 'leer', anzahl: 3, breite: 11, hoehe: 24 };
+		const FELDER: PruefFeld[] = [
+			DREI,
+			{ seite: 1, aufgabe: null, art: 'leer', anzahl: 1, breite: 89, hoehe: 66 },
+			{
+				seite: 1,
+				aufgabe: null,
+				art: 'teil',
+				anzahl: 6,
+				breite: 48,
+				hoehe: 48,
+				motiv: { klein: [6, 16], gross: [17, 18] },
+			},
+			{ seite: 1, aufgabe: null, art: 'teil', anzahl: 1, breite: 80, hoehe: 95, motiv: { klein: null, gross: [26, 61] } },
+			{ seite: 1, aufgabe: 'A4', art: 'linien', anzahl: 1, breite: 140, hoehe: 9 },
+			{ seite: 1, aufgabe: 'A5', art: 'linien', anzahl: 3, breite: 160, hoehe: 30, fuer: 'begruendung' },
+			{ seite: 2, aufgabe: 'A1', art: 'leer', anzahl: 2, breite: 1, hoehe: 26 },
+		];
+
+		it('ohne felder, mit leerer Liste oder nur fremden Seiten Byte für Byte wie vorher', () => {
+			assert.equal(pruefText({ ...AUFTRAG, felder: [] }), TEIL_1.join('\n\n'));
+			assert.equal(pruefText({ ...AUFTRAG, felder: [{ ...DREI, seite: 2 }] }), TEIL_1.join('\n\n'));
+			assert.equal(pruefText({ ...AUFTRAG, kind: false, felder: FELDER }), pruefText({ ...AUFTRAG, kind: false }));
+		});
+
+		it('nennt die Maße der eigenen Seiten in cm nach den Seiten, mit Motiv bei Teilen', () => {
+			const teile = pruefText({ ...AUFTRAG, felder: FELDER }).split('\n\n');
+			assert.deepEqual(teile.slice(0, 3), TEIL_1.slice(0, 3));
+			assert.equal(
+				teile[3],
+				[
+					'Gemessen beim Bau (Breite × Höhe): leere Felder mit Rahmen, Teile zum Ausschneiden und Schreiblinien für Sätze und Begründungen auf deinen Seiten.',
+					'- S. 1, A3: drei leere Felder je 1,1 × 2,4 cm',
+					'- S. 1: ein leeres Feld 8,9 × 6,6 cm',
+					'- S. 1: sechs Teile je 4,8 × 4,8 cm zum Ausschneiden, Motiv 0,6 × 1,6 bis 1,7 × 1,8 cm',
+					'- S. 1: ein Teil 8,0 × 9,5 cm zum Ausschneiden, Motiv bis 2,6 × 6,1 cm, manche ohne Motiv',
+					'- S. 1, A4: eine Schreiblinie, 14,0 cm breit, zum Begründen oder Erklären',
+					'- S. 1, A5: drei Schreiblinien, 16,0 cm breit, für eine Begründung',
+				].join('\n'),
+			);
+			assert.equal(teile[4], TEIL_1[3]);
+		});
+
+		it('höchstens zwölf Zeilen, der Rest als Zahl; getrennte Läufe nennen nur ihre Seiten', () => {
+			const viele = Array.from({ length: 15 }, (_, i) => ({ ...DREI, aufgabe: `A${i + 1}` }));
+			const text = pruefText({ ...AUFTRAG, felder: viele });
+			assert.equal((text.match(/^- S\. 1, A\d+: /gm) ?? []).length, 12);
+			assert.match(text, /\n- und 3 weitere\n/);
+			const seiten = Array.from({ length: 30 }, (_, i) => `seite-${i + 1}.png`);
+			const felder = [
+				{ ...DREI, seite: 4 },
+				{ ...DREI, seite: 20, aufgabe: 'A1' },
+			];
+			const [eins, zwei] = pruefTeile({ ...AUFTRAG, seiten, ausschnitte: [], felder }).map(pruefText);
+			assert.match(eins ?? '', /- S\. 4, A3: /);
+			assert.doesNotMatch(eins ?? '', /S\. 20/);
+			assert.match(zwei ?? '', /- S\. 20, A1: /);
+			assert.doesNotMatch(zwei ?? '', /S\. 4,/);
+		});
 	});
 
 	describe('lange Materialien in getrennten Läufen (241)', () => {

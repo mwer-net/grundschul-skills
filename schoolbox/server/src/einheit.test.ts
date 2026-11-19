@@ -871,6 +871,24 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.match(e?.befunde[0] ?? '', /Was mit den Uhren/);
 		});
 
+		it('Maße aus dem Bau gehen an den Prüflauf mit Kinderaugen, nicht an den Fachblick (249)', async () => {
+			pruefbericht = {
+				seiten: [],
+				meldungen: [],
+				fehler: 0,
+				felder: [{ seite: 1, aufgabe: 'A3', art: 'leer', anzahl: 3, breite: 11, hoehe: 24 }],
+			};
+			const vorher = (await prompts()).length;
+			const { id } = await starte();
+			await bis(id, 'fertig');
+			const neu = (await prompts()).slice(vorher);
+			const kind = neu.find((x) => x.startsWith('Prüfung von „Fall 1“')) ?? '';
+			assert.match(kind, /\n\nGemessen beim Bau \(Breite × Höhe\): [^\n]+\n- S\. 1, A3: drei leere Felder je 1,1 × 2,4 cm\n\n/);
+			const fach = neu.find((x) => x.startsWith('Fachblick auf „Fall 1“')) ?? '';
+			assert.ok(fach);
+			assert.doesNotMatch(fach, /Gemessen beim Bau/);
+		});
+
 		it('Ein Material über 24 Seiten prüfen zwei Läufe nacheinander, je mit Eintrag im Protokoll (241)', async () => {
 			ansichtSeiten = 30;
 			const vorher = (await prompts()).length;

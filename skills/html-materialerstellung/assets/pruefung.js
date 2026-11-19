@@ -547,12 +547,21 @@
     // 9b. Schreiblinien nach Antwort: data-antwort an der Aufgabe oder an einer Gruppe von Linien
     const LINIE = ".schreiblinie,.zeile-frei";
     const zeigt = (e) => sichtbar(e) && !ausgeblendet(e) && !e.closest(".nur-loesung");
+    // Für die Messung (9c): Schreibplätze, an denen das Kind einen Satz oder eine Begründung schreibt
+    const schreibOrte = [];
+    const schreibOrt = (e, linien, fuer) => {
+      const rs = linien.map((l) => l.getBoundingClientRect());
+      const breite = rs.length ? Math.round(Math.max(...rs.map((r) => r.width)) / PX_MM) : 0;
+      const hoehe = rs.length ? Math.round((Math.max(...rs.map((r) => r.bottom)) - Math.min(...rs.map((r) => r.top))) / PX_MM) : 0;
+      schreibOrte.push({ seite: nr, aufgabe: aufgabeVon(e), art: "linien", anzahl: linien.length, breite, hoehe, ...(fuer ? { fuer } : {}) });
+    };
     [...S.querySelectorAll("[data-antwort]")].filter((e) => !ausgeblendet(e)).forEach((e) => {
       const art = e.getAttribute("data-antwort"), wo = vorn(aufgabeVon(e));
       if (!ANTWORTEN.includes(art)) return melde("FEHLER", nr, "antwort-menge", `${wo}data-antwort="${art}" gibt es nicht → ${ANTWORTEN.join(", ")}`, [ziel(e)]);
       const min = LINIEN_MIN[art]?.[kl] ?? LINIEN_MIN[art]?.[2];
       const linien = (e.matches(LINIE) ? [e] : [...e.querySelectorAll(LINIE)]).filter((l) => zeigt(l) && l.closest("[data-antwort]") === e);
       if (!min || (!linien.length && e.querySelector("[data-antwort]"))) return;
+      schreibOrt(e, linien, art);
       const name = art === "satz" ? "einen Satz" : "eine Begründung";
       if (linien.length < min) melde("WARNUNG", nr, "linien-wenig", `${wo}${linien.length} ${linien.length === 1 ? "Schreiblinie" : "Schreiblinien"} für ${name}, Klasse ${kl} braucht mindestens ${min} → weitere .schreiblinie`, [ziel(e)]);
     });
@@ -567,6 +576,7 @@
       }
       return false;
     });
+    offen.forEach((a) => schreibOrt(a, [...a.querySelectorAll(`${LINIE},.antwort`)].filter(zeigt)));
     if (offen.length) melde("HINWEIS", nr, "antwort-menge", `${offen.map(aufgabeVon).join(", ")}: Begründen oder Erklären, aber wie viel schreibt das Kind? → data-antwort="satz" oder "begruendung" an die Aufgabe, dann zählt blatt.py die Schreiblinien`, offen.slice(0, 3).map(ziel));
     // 9c. Messung für den Prüflauf: leere Felder (Rahmen ohne Text und ohne Abbildung, auch als Rechteck in eigenem
     // SVG) und Teile zum Ausschneiden mit ihrem Motiv. Kästchen unter LEERFELD_MIN, Schreiblinien (nur ein Strich
@@ -626,6 +636,7 @@
       .sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1)).forEach((e) => sammle("leer", e));
     zumSchneiden.forEach((e) => sammle("teil", e, { motiv: motiv(e) }));
     felder.push(...gruppen.values());
+    felder.push(...schreibOrte);
 
     seiten.push({ nr, rest, breite: Math.round(P.width), aufgaben: auf.map((a) => rel(a.getBoundingClientRect())), ...(seitenLeer === null ? {} : { leer: seitenLeer }) });
   });

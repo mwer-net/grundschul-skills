@@ -478,6 +478,7 @@ const teileFuer = async (k: Kontext, v: Vorhaben, ordner: string): Promise<Auftr
 		auftrag: k.p.auftrag,
 		figuren: k.p.plan.figuren ?? [],
 		...kanon.kind,
+		felder: ansicht.bericht.felder,
 	}).map((t) => ({ text: pruefText(t), teil: t.teil, zahlen: zahlenText(t, `${t.bilder.length} KI-Bilder`) }));
 };
 
