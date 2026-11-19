@@ -24,6 +24,7 @@ import type {
 	EinheitPlan,
 	EinheitStand,
 	Fach,
+	FachblickAuftrag,
 	Format,
 	FormateDerEinheit,
 	LaufArt,
@@ -33,7 +34,9 @@ import type {
 	PruefAuftrag,
 	PruefBefund,
 	Pruefbericht,
+	PruefRolle,
 	PruefStand,
+	PruefTeil,
 	SchlussStand,
 } from '@schoolbox/kern';
 import {
@@ -47,6 +50,7 @@ import {
 	beendeLaufEintrag,
 	befundeDerTeile,
 	befundZeile,
+	berechneteElemente,
 	BILDER_SCHRITT,
 	blickLektuere,
 	blickRegeln,
@@ -59,6 +63,9 @@ import {
 	EINHEIT_THEMA,
 	einheitAuftragAus,
 	FACH_NAME,
+	fachblickStunden,
+	fachblickText,
+	fachSkillVon,
 	fertigText,
 	figurenDopplungen,
 	folgeBefund,
@@ -80,6 +87,7 @@ import {
 	lesePruefung,
 	leseSteckbrief,
 	mappenDir,
+	messungAus,
 	namenIn,
 	neueFunde,
 	neueMappe,
@@ -134,11 +142,17 @@ import {
 	kiArgumente,
 	kiPfad,
 	kiUmgebung,
+	FACHBLICK_AUFTRAG,
 	legeAblageAn,
+	legeFremdeLoesungenAb,
+	lesePids,
+	merkeKind,
+	PRUEF_AUFTRAG,
 	pruefeLauf,
 	rechercheStand,
 	recherchiere,
 	richtePruefOrdnerEin,
+	trennePruefOrdner,
 	VERBRAUCH_DATEI,
 	werteAus,
 } from './ki';
@@ -331,7 +345,8 @@ export const erstelleEinheiten = (
 	let aktiv: {
 		stand: EinheitStand;
 		stufe: Stufe;
-		kind: ChildProcessWithoutNullStreams | null;
+		/** Die laufenden Claude-Prozesse; im Prüfen zwei zugleich, Kinderaugen und Fachblick (244). */
+		kinder: Set<ChildProcessWithoutNullStreams>;
 		abbruch: boolean;
 		takt: ReturnType<typeof setInterval> | null;
 		/** Ein Abgleich zur Zeit; der Takt wartet sonst auf sich selbst. */
@@ -355,6 +370,11 @@ export const erstelleEinheiten = (
 		/** Im Schlusslauf: die Materialien, die er mit `bauen` neu gebaut hat; sonst `null`. */
 		schlussGebaut: Set<string> | null;
 		verbraucht: { kostenUsd: number; runden: number };
+		/**
+		 * Was laufende Prüfläufe höchstens noch verbrauchen dürfen (244): Laufen zwei gleichzeitig, zählt der zweite das
+		 * Budget des ersten schon mit, damit beide zusammen nie über die Grenze des Durchgangs gehen.
+		 */
+		reserviert: { kostenUsd: number; runden: number };
 		/** Modell und Gründlichkeit, beim Start der Handlung gelesen (232): Alle Läufe des Durchgangs nehmen sie. */
 		ki: KiLauf;
 		/** Die Bildwerkzeuge des laufenden Laufs (237) und die Zahl der Bilder vor ihm, für den Stand der Einheit. */
@@ -581,8 +601,8 @@ export const erstelleEinheiten = (
 		if (aktiv && !aktiv.abbruch) {
 			aktiv.abbruch = true;
 			aktiv.stand.grund = grund;
-			if (aktiv.kind) {
-				beendeKind(aktiv.kind);
+			for (const kind of aktiv.kinder) {
+				beendeKind(kind);
 			}
 		}
 	};
@@ -751,12 +771,13 @@ export const erstelleEinheiten = (
 		const ueber = ueberGuthaben();
 		const seit = aktiv?.seit ?? Date.now();
 		const verbraucht = aktiv?.verbraucht ?? { kostenUsd: 0, runden: 0 };
+		const reserviert = aktiv?.reserviert ?? { kostenUsd: 0, runden: 0 };
 		return {
 			zeitMs: Math.min(g.zeitMs, seit + e.zeitMs - Date.now()),
-			runden: Math.min(g.runden, e.runden - verbraucht.runden),
+			runden: Math.min(g.runden, e.runden - verbraucht.runden - reserviert.runden),
 			budgetUsd: Math.min(
 				ueber ? g.budgetGuthabenUsd : g.budgetUsd,
-				(ueber ? e.budgetGuthabenUsd : e.budgetUsd) - verbraucht.kostenUsd,
+				(ueber ? e.budgetGuthabenUsd : e.budgetUsd) - verbraucht.kostenUsd - reserviert.kostenUsd,
 			),
 		};
 	};
@@ -966,10 +987,7 @@ export const erstelleEinheiten = (
 				bilder: bilder?.stand,
 			});
 			if (aktiv) {
-				aktiv.kind = kind;
-			}
-			if (kind.pid) {
-				writeFileSync(path.join(dir(s.id), PID), String(kind.pid));
+				merkeKind(aktiv.kinder, kind, path.join(dir(s.id), PID));
 			}
 			let grund: string | null = null;
 			let bytes = 0;
@@ -1056,10 +1074,7 @@ export const erstelleEinheiten = (
 			},
 			gestartet: (kind) => {
 				if (aktiv) {
-					aktiv.kind = kind;
-				}
-				if (kind.pid) {
-					writeFileSync(path.join(dir(s.id), PID), String(kind.pid));
+					merkeKind(aktiv.kinder, kind, path.join(dir(s.id), PID));
 				}
 			},
 			abgebrochen: () => aktiv?.abbruch === true,
@@ -1369,21 +1384,27 @@ export const erstelleEinheiten = (
 			.filter((d) => d.slug !== slug && s.importiert[d.slug] && s.steckbriefe?.[d.slug]?.formate.length)
 			.map((d) => `„${d.titel}“: ${s.steckbriefe?.[d.slug]?.formate.join('; ') ?? ''}`);
 
+	/** Fertige Materialien, deren Lösungsseiten der Fachblick der Hinweise bekommt: ohne Rahmen und ohne die Hinweise. */
+	const OHNE_FREMDE_LOESUNG = new Set(['deckblatt', 'quellen', 'angebot', 'hinweise', 'bilder']);
+
 	/**
-	 * Der Prüflauf für ein Material: neue Sitzung, nur Read, frisch gebaute Seiten in einem eigenen Ordner, mit `kind`
-	 * die Lösungsseiten unter `loesung/` für den Teil nach dem Lösen. Den Bau, die Quelle und den Plan sieht er nicht;
-	 * Klasse, Fach, den Auftrag der Lehrkraft, die Figuren und die Formate der Reihe nennt die Nachricht. Ein langes
-	 * Material prüfen getrennte Läufe nacheinander (`pruefTeile`, 241), jeder mit eigenem Eintrag im Protokoll und eigener
-	 * Zählung der Kosten; die Befunde kommen zusammen. Scheitert ein Teil, ist die Prüfung gescheitert.
+	 * Die Prüfläufe für ein Material: neue Sitzungen, nur Read, frisch gebaute Seiten in einem eigenen Ordner. Der Lauf
+	 * mit Kinderaugen (mit dem zweiten Blick, `mitKind`) und der Fachblick (`fach`, 244) laufen gleichzeitig im selben
+	 * Ordner; die Lösungsseiten liegen unter `loesung/`, der Lauf mit Kinderaugen sieht sie erst nach dem Lösen. Den Bau,
+	 * die Quelle und den Plan sehen sie nicht; Klasse, Fach, den Auftrag der Lehrkraft, die Figuren, die Formate der Reihe
+	 * und dem Fachblick die Prüfpunkte, die Stunden und die Messung des Baus nennt die Nachricht. Ein langes Material
+	 * prüfen je Rolle getrennte Läufe nacheinander (`pruefTeile`, 241), jeder mit eigenem Eintrag im Protokoll und eigener
+	 * Zählung der Kosten; die Befunde kommen zusammen. Scheitert ein Lauf, ist die Prüfung gescheitert. Den Ordner löscht
+	 * der Server erst, wenn beide Rollen fertig sind; Abbruch beendet beide (`stoppe`).
 	 */
 	const pruefeMaterial = async (
 		s: EinheitStand,
 		plan: EinheitPlan,
 		d: PlanDokument,
-		kind: boolean,
-		bilder: boolean,
+		o: { mitKind: boolean; kind: boolean; bilder: boolean; fach: boolean },
 	): Promise<{ befunde: PruefBefund[]; lesbar: boolean; fehler: string | null }> => {
 		const ordner = path.join(dir(s.id), 'pruefung');
+		const fachOrdner = `${ordner}-fach`;
 		const html = (await materialHtml(s, d.slug)) ?? '';
 		const gescheitert = (grund: string) => ({ befunde: [] as PruefBefund[], lesbar: true, fehler: grund });
 		if (!html || sperreVon(html).length) {
@@ -1395,45 +1416,59 @@ export const erstelleEinheiten = (
 		}
 		await rm(ordner, { recursive: true, force: true });
 		await mkdir(ordner, { recursive: true });
-		const regeln = blickRegeln(rolleVon(d), bilder);
+		const rolle = rolleVon(d);
+		const regeln = blickRegeln(rolle, o.bilder);
 		const ablage = ablageDir(s.id);
-		/** Ein Lauf über einen Teil; ohne `auftrag` nur der Eintrag für eine Ansicht, die sich nicht bauen ließ. */
-		const einTeil = async (auftrag: PruefAuftrag | null) => {
-			const eintrag = neuerEintrag('pruefung', d.slug, blickLektuere(regeln));
+		const skill = fachSkillVon(fach(s));
+		const pruefpunkte = pruefpunkteText(s.recherche?.text, plan.berichtigungen);
+		const fachSkill = pruefpunkte || !skill ? null : `${skill}/SKILL.md`;
+		/** Ein Lauf über einen Teil; ohne `text` nur der Eintrag für eine Ansicht, die sich nicht bauen ließ. */
+		const einTeil = async (pruefRolle: PruefRolle, text: string | null, teil: PruefTeil | undefined) => {
+			const pflicht = pruefRolle === 'fach' ? (fachSkill ? blickLektuere([fachSkill]) : []) : blickLektuere(regeln);
+			const eintrag: LaufEintrag = { ...neuerEintrag('pruefung', d.slug, pflicht), rolle: pruefRolle };
 			const lauf = { eintrag, gelesen: new Set<string>() };
 			const beginn = Date.now();
 			aktiv?.protokoll.laeufe.push(eintrag);
 			await schreibeProtokoll();
 			const grenzen = grenzenFuer(KI_GRENZEN.einheit.pruefung);
-			const ergebnis: PruefErgebnis = auftrag
-				? await pruefeLauf({
+			// Der andere Prüflauf dieses Materials läuft womöglich gleichzeitig: seine Grenzen sind bis zum Ende vergeben.
+			const vergeben = { kostenUsd: Math.max(0, grenzen.budgetUsd), runden: Math.max(0, grenzen.runden) };
+			if (aktiv) {
+				aktiv.reserviert.kostenUsd += vergeben.kostenUsd;
+				aktiv.reserviert.runden += vergeben.runden;
+			}
+			const ergebnis: PruefErgebnis = await (text
+				? pruefeLauf({
 						bin,
 						...kiJetzt(),
-						ordner,
+						ordner: pruefRolle === 'fach' ? fachOrdner : ordner,
 						ablage,
-						text: pruefText(auftrag),
+						text,
 						grenzen,
+						auftragDatei: pruefRolle === 'fach' ? FACHBLICK_AUFTRAG : PRUEF_AUFTRAG,
 						gestartet: (k) => {
 							if (aktiv) {
-								aktiv.kind = k;
-							}
-							if (k.pid) {
-								writeFileSync(path.join(dir(s.id), PID), String(k.pid));
+								merkeKind(aktiv.kinder, k, path.join(dir(s.id), PID));
 							}
 						},
 						werkzeug: (name, eingabe) => notiereGelesen(lauf, name, eingabe),
-						mitschrift: mitschrift(s, 'pruefung', d.slug),
+						mitschrift: mitschrift(s, pruefRolle === 'fach' ? 'fachblick' : 'pruefung', d.slug),
 					})
-				: { ...gescheitert('Die Seiten ließen sich für die Prüfung nicht bauen.'), verbrauch: {} };
+				: Promise.resolve({
+						...gescheitert('Die Seiten ließen sich für die Prüfung nicht bauen.'),
+						verbrauch: {},
+					})
+			).finally(() => {
+				if (aktiv) {
+					aktiv.reserviert.kostenUsd -= vergeben.kostenUsd;
+					aktiv.reserviert.runden -= vergeben.runden;
+				}
+			});
 			const fehler = aktiv?.abbruch ? 'Abgebrochen.' : fehlerText(ergebnis.fehler);
 			eintrag.befunde = ergebnis.befunde.map(befundZeile);
 			const hinweis = [
-				auftrag?.teil
-					? `Prüflauf ${auftrag.teil.nr} von ${auftrag.teil.von}, Seiten ${auftrag.teil.erste}–${auftrag.teil.letzte} von ${auftrag.teil.gesamt}.`
-					: '',
-				ergebnis.lesbar
-					? ''
-					: 'Die Antwort hatte keinen lesbaren Block mit Befunden: keine Befunde übernommen.',
+				teil ? `Prüflauf ${teil.nr} von ${teil.von}, Seiten ${teil.erste}–${teil.letzte} von ${teil.gesamt}.` : '',
+				ergebnis.lesbar ? '' : 'Die Antwort hatte keinen lesbaren Block mit Befunden: keine Befunde übernommen.',
 			]
 				.filter(Boolean)
 				.join(' ');
@@ -1445,12 +1480,33 @@ export const erstelleEinheiten = (
 			await notiereVerbrauch(s, fehler ? 'unvollstaendig' : 'fertig', beginn, {
 				...ergebnis.verbrauch,
 				lauf: 'pruefung',
+				rolle: pruefRolle,
 			});
 			return { ...ergebnis, fehler };
 		};
+		/** Die Läufe einer Rolle nacheinander, Teil für Teil; nach einem gescheiterten Teil keiner mehr. */
+		const strecke = async (pruefRolle: PruefRolle, laeufe: { text: string; teil?: PruefTeil }[] | null) => {
+			const ergebnisse: { befunde: PruefBefund[]; lesbar: boolean; fehler: string | null }[] = [];
+			for (const l of laeufe ?? [null]) {
+				const zuEnde = erschoepft(grenzenFuer(KI_GRENZEN.einheit.pruefung));
+				if (!aktiv || aktiv.abbruch || zuEnde) {
+					ergebnisse.push(
+						gescheitert(aktiv?.abbruch ? 'Abgebrochen.' : (fehlerText(zuEnde) ?? 'Abgebrochen.')),
+					);
+					break;
+				}
+				const e = await einTeil(pruefRolle, l?.text ?? null, l?.teil);
+				ergebnisse.push(e);
+				if (e.fehler) {
+					break;
+				}
+			}
+			return ergebnisse;
+		};
 		const ergebnisse: { befunde: PruefBefund[]; lesbar: boolean; fehler: string | null }[] = [];
 		try {
-			let auftraege: PruefAuftrag[] | null = null;
+			let kindLaeufe: { text: string; teil?: PruefTeil }[] | null = null;
+			let fachLaeufe: { text: string; teil?: PruefTeil }[] | null = null;
 			try {
 				const ansicht = await baueAnsicht(
 					path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html'),
@@ -1459,38 +1515,80 @@ export const erstelleEinheiten = (
 						sw: false,
 					},
 				);
-				const teile = await richtePruefOrdnerEin(ordner, ansicht.bilder, html, arbeitDir(s.id), kind);
-				auftraege = pruefTeile({
+				const teile = await richtePruefOrdnerEin(
+					ordner,
+					ansicht.bilder,
+					html,
+					arbeitDir(s.id),
+					o.kind || o.fach,
+				);
+				if (o.fach) {
+					await trennePruefOrdner(ordner, fachOrdner, o.kind);
+				}
+				const kopf = {
 					titel: d.titel,
 					artName: ART_NAME[d.art],
 					klasse: klasseText(s.rechercheAnfrage?.klasse),
 					fach: FACH_NAME[fach(s)],
-					...teile,
-					formate: formateDerReihe(s, plan, d.slug),
-					kind,
-					regeln: regeln.map((r) => path.join(ablage, '.claude', 'skills', r)),
-					auftrag: s.auftrag,
-					figuren: plan.figuren ?? [],
-				});
+				};
+				kindLaeufe = o.mitKind
+					? pruefTeile<PruefAuftrag>({
+							...kopf,
+							...teile,
+							loesungen: o.kind ? teile.loesungen : [],
+							formate: formateDerReihe(s, plan, d.slug),
+							kind: o.kind,
+							regeln: regeln.map((r) => path.join(ablage, '.claude', 'skills', r)),
+							auftrag: s.auftrag,
+							figuren: plan.figuren ?? [],
+						}).map((a) => ({ text: pruefText(a), teil: a.teil }))
+					: [];
+				const andere =
+					o.fach && rolle === 'hinweise'
+						? await legeFremdeLoesungenAb(
+								fachOrdner,
+								plan.dokumente
+									.filter(
+										(x) =>
+											x.slug !== d.slug &&
+											s.importiert[x.slug] &&
+											!OHNE_FREMDE_LOESUNG.has(rolleVon(x)),
+									)
+									.map((x) => ({
+										slug: x.slug,
+										titel: x.titel,
+										quelle: path.join(arbeitDir(s.id), ANSICHT_ORDNER, x.slug),
+									})),
+							)
+						: [];
+				fachLaeufe = o.fach
+					? pruefTeile<FachblickAuftrag>({
+							...kopf,
+							seiten: teile.seiten,
+							ausschnitte: teile.ausschnitte,
+							loesungen: teile.loesungen,
+							auftrag: s.auftrag,
+							pruefpunkte,
+							fachSkill: fachSkill ? path.join(ablage, '.claude', 'skills', fachSkill) : null,
+							ziele: s.rechercheAnfrage?.ziele ?? [],
+							stunden: fachblickStunden(plan, d.slug),
+							berechnet: berechneteElemente(html),
+							andere,
+							messung: messungAus(ansicht.bericht.meldungen),
+						}).map((a) => ({ text: fachblickText(a), teil: a.teil }))
+					: [];
 			} catch (fehler) {
 				console.error('Prüflauf der Einheit:', (fehler as Error).message);
 			}
-			for (const auftrag of auftraege ?? [null]) {
-				const zuEnde = erschoepft(grenzenFuer(KI_GRENZEN.einheit.pruefung));
-				if (!aktiv || aktiv.abbruch || zuEnde) {
-					ergebnisse.push(
-						gescheitert(aktiv?.abbruch ? 'Abgebrochen.' : (fehlerText(zuEnde) ?? 'Abgebrochen.')),
-					);
-					break;
-				}
-				const e = await einTeil(auftrag);
-				ergebnisse.push(e);
-				if (e.fehler) {
-					break;
-				}
-			}
+			const gebaut = kindLaeufe !== null;
+			const beide = await Promise.all([
+				o.mitKind ? strecke('kind', gebaut ? kindLaeufe : null) : [],
+				o.fach ? strecke('fach', gebaut ? fachLaeufe : null) : [],
+			]);
+			ergebnisse.push(...beide.flat());
 		} finally {
 			await rm(ordner, { recursive: true, force: true });
+			await rm(fachOrdner, { recursive: true, force: true });
 		}
 		return {
 			befunde: befundeDerTeile(ergebnisse.map((e) => e.befunde)),
@@ -1531,14 +1629,19 @@ export const erstelleEinheiten = (
 			s.pruefung = { ...s.pruefung, [d.slug]: { ...stand } };
 			await merke(s);
 		};
-		const mitPruefLauf = weise.kind || weise.blick;
+		const mitPruefLauf = weise.kind || weise.blick || weise.fach;
 		/** Ein Prüflauf, wenn das Material einen bekommt; `null`, wenn er gescheitert ist. */
 		const pruefe = async (runde: number, server: string[]): Promise<PruefBefund[] | null> => {
 			if (!mitPruefLauf) {
 				return [];
 			}
 			await zeige();
-			const p = await pruefeMaterial(s, plan, d, weise.kind, weise.blick && (await mitKiBildern(s, html)));
+			const p = await pruefeMaterial(s, plan, d, {
+				mitKind: weise.kind || weise.blick,
+				kind: weise.kind,
+				bilder: weise.blick && (await mitKiBildern(s, html)),
+				fach: weise.fach,
+			});
 			stand.runden += 1;
 			if (p.fehler) {
 				stand.status = aktiv?.abbruch ? 'abgebrochen' : 'gescheitert';
@@ -1956,7 +2059,7 @@ export const erstelleEinheiten = (
 		aktiv = {
 			stand: s,
 			stufe,
-			kind: null,
+			kinder: new Set(),
 			abbruch: false,
 			takt: null,
 			abgleich: Promise.resolve(),
@@ -1971,6 +2074,7 @@ export const erstelleEinheiten = (
 			loesungen: new Map(),
 			schlussGebaut: null,
 			verbraucht: { kostenUsd: 0, runden: 0 },
+			reserviert: { kostenUsd: 0, runden: 0 },
 			ki,
 			bilder: null,
 			bilderGesperrt: false,
@@ -2292,13 +2396,21 @@ export const erstelleEinheiten = (
 	/** Ein Prozess eines abgestürzten Servers läuft sonst weiter und verbraucht Limit. */
 	const beendeReste = async () => {
 		for (const name of await readdir(wurzel).catch(() => [] as string[])) {
+			let pids: number[] = [];
 			try {
-				const pid = Number(readFileSync(path.join(wurzel, name, PID), 'utf8'));
-				if (readFileSync(`/proc/${pid}/cmdline`, 'utf8').includes(wurzel)) {
-					process.kill(pid, 'SIGTERM');
-				}
+				pids = lesePids(path.join(wurzel, name, PID));
 			} catch {
-				// Keine Datei oder kein Prozess.
+				// Keine Datei.
+			}
+			// Seit 244 bis zu zwei: Kinderaugen und Fachblick liefen gleichzeitig.
+			for (const pid of pids) {
+				try {
+					if (readFileSync(`/proc/${pid}/cmdline`, 'utf8').includes(wurzel)) {
+						process.kill(pid, 'SIGTERM');
+					}
+				} catch {
+					// Kein Prozess mehr.
+				}
 			}
 		}
 		await raeumeAuf();
@@ -2331,7 +2443,9 @@ export const erstelleEinheiten = (
 			if (aktiv) {
 				const s = aktiv.stand;
 				aktiv.abbruch = true;
-				aktiv.kind?.kill('SIGTERM');
+				for (const kind of aktiv.kinder) {
+					kind.kill('SIGTERM');
+				}
 				if (aktiv.takt) {
 					clearInterval(aktiv.takt);
 				}

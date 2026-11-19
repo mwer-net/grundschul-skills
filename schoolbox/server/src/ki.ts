@@ -13,6 +13,7 @@ import type {
 	Art,
 	Bausteine,
 	BauVersuch,
+	FremdeLoesung,
 	Fund,
 	KiAktion,
 	Konfig,
@@ -22,6 +23,7 @@ import type {
 	PruefBefund,
 	Pruefbericht,
 	PruefBild,
+	PruefRolle,
 	RechercheAnfrage,
 	RechercheErgebnis,
 	RechercheStand,
@@ -32,11 +34,17 @@ import {
 	ART_NAME,
 	bausteinVerstoesse,
 	beendeLaufEintrag,
+	befundeDerTeile,
 	befundZeile,
+	berechneteElemente,
 	blickLektuere,
 	blickRegeln,
 	dokumentDir,
 	FACH_NAME,
+	fachblickStunden,
+	fachblickText,
+	FACHLICH_PRUEFEN,
+	fachSkillVon,
 	formatBefund,
 	hatSatz,
 	ID_MUSTER,
@@ -49,6 +57,7 @@ import {
 	leseMeta,
 	lesePruefung,
 	mappenDir,
+	messungAus,
 	neueFunde,
 	neuerLaufEintrag,
 	notiereLektuere,
@@ -56,6 +65,7 @@ import {
 	pflichtFuer,
 	pruefeRecherche,
 	pruefKorrektur,
+	pruefpunkteText,
 	pruefText,
 	pruefWeise,
 	quelleVon,
@@ -67,6 +77,7 @@ import {
 	satzBefund,
 	schreibeAtomar,
 	tausender,
+	verteileLoesungen,
 	WURZEL,
 	zerlege,
 } from '@schoolbox/kern';
@@ -937,10 +948,26 @@ const LEKTUERE_WARTEN_MS = 500;
 const MAX_BLATT_LAEUFE = 50;
 
 export const PRUEF_AUFTRAG = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit-pruefung.md');
+/** Der Fachblick (244): eigener Lauf neben dem mit Kinderaugen, in einer Kopie des Prüfordners. */
+export const FACHBLICK_AUFTRAG = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit-fachblick.md');
+/** Im Prüfordner des Fachblicks der Hinweise: die Lösungsseiten der anderen Materialien, je Material ein Ordner. */
+export const ANDERE_ORDNER = 'andere';
 const BILD_IM_MATERIAL = /\.\.\/\.\.\/bilder\/([a-z0-9][a-z0-9-]{0,59}\.(?:png|jpg))/g;
 const MAX_VERTRAG = 1500;
 const LOESUNGSSEITE = /^loesung-seite-\d+\.png$/;
 const LOESUNG_ORDNER = 'loesung';
+
+/**
+ * Der Fachblick (244) bekommt eine Kopie des eingerichteten Prüfordners mit den Lösungsseiten. Der Lauf mit
+ * Kinderaugen behält sie nur mit `kindMitLoesung` (229): Ein Arbeitsblatt prüft er ohne Lösung.
+ */
+export const trennePruefOrdner = async (ordner: string, fachOrdner: string, kindMitLoesung: boolean) => {
+	await rm(fachOrdner, { recursive: true, force: true });
+	await cp(ordner, fachOrdner, { recursive: true });
+	if (!kindMitLoesung) {
+		await rm(path.join(ordner, LOESUNG_ORDNER), { recursive: true, force: true });
+	}
+};
 
 /**
  * Richtet den Ordner des Prüflaufs ein, nachdem `ansicht` die Seiten frisch hineingebaut hat: Lösungsseiten gehen
@@ -1006,6 +1033,76 @@ export const richtePruefOrdnerEin = async (
 	return { seiten, ausschnitte, bilder, loesungen };
 };
 
+/**
+ * Legt die Lösungsseiten anderer fertiger Materialien in den Prüfordner (244, Hinweise): je Material die ganzen
+ * Lösungsseiten aus seiner Ansicht (`quelle`), reihum verteilt und gekappt (`verteileLoesungen`). Fehlt eine Ansicht,
+ * fehlt das Material in der Liste.
+ */
+export const legeFremdeLoesungenAb = async (
+	ordner: string,
+	materialien: readonly { slug: string; titel: string; quelle: string }[],
+): Promise<FremdeLoesung[]> => {
+	const listen = [];
+	for (const m of materialien) {
+		const dateien = (await readdir(m.quelle).catch(() => [] as string[]))
+			.filter((n) => LOESUNGSSEITE.test(n))
+			.sort((a, b) => Number(/\d+/.exec(a)?.[0]) - Number(/\d+/.exec(b)?.[0]));
+		if (dateien.length) {
+			listen.push({ ...m, dateien });
+		}
+	}
+	const liste = verteileLoesungen(listen);
+	for (const l of liste) {
+		await mkdir(path.join(ordner, ANDERE_ORDNER, l.slug), { recursive: true });
+		await cp(
+			path.join(listen.find((m) => m.slug === l.slug)?.quelle ?? '', l.datei),
+			path.join(ordner, ANDERE_ORDNER, l.slug, l.datei),
+		);
+	}
+	return liste.map((l) => ({ ...l, datei: `${ANDERE_ORDNER}/${l.slug}/${l.datei}` }));
+};
+
+/**
+ * Merkt sich einen laufenden Prozess unter mehreren (244: Kinderaugen und Fachblick gleichzeitig) und schreibt alle PIDs
+ * in `pidDatei`, eine je Zeile. Endet er, fällt er aus der Menge; die Datei behält zuletzt den letzten, wie vorher.
+ */
+export const merkeKind = (
+	kinder: Set<ChildProcessWithoutNullStreams>,
+	kind: ChildProcessWithoutNullStreams,
+	pidDatei: string,
+) => {
+	kinder.add(kind);
+	const schreibe = () => {
+		try {
+			writeFileSync(
+				pidDatei,
+				[...kinder]
+					.map((k) => k.pid)
+					.filter(Boolean)
+					.join('\n'),
+			);
+		} catch {
+			// Der Ordner ist schon weg: Dann gibt es nichts aufzuräumen.
+		}
+	};
+	if (kind.pid) {
+		schreibe();
+	}
+	kind.once('close', () => {
+		kinder.delete(kind);
+		if (kinder.size) {
+			schreibe();
+		}
+	});
+};
+
+/** Die PIDs aus einer Datei von `merkeKind`; ältere Dateien haben genau eine. */
+export const lesePids = (pidDatei: string) =>
+	readFileSync(pidDatei, 'utf8')
+		.split('\n')
+		.map(Number)
+		.filter((n) => Number.isInteger(n) && n > 0);
+
 export interface PruefErgebnis {
 	befunde: PruefBefund[];
 	/** Die Antwort enthielt keinen lesbaren Block: keine Befunde, im Protokoll vermerkt. */
@@ -1026,12 +1123,14 @@ export const pruefeLauf = (o: {
 	gestartet?: (kind: ChildProcessWithoutNullStreams) => void;
 	werkzeug?: (name: string, eingabe: Record<string, unknown>) => void;
 	mitschrift?: MitschriftZiel;
+	/** Ohne: der Prüflauf mit Kinderaugen; der Fachblick nimmt `FACHBLICK_AUFTRAG` (244). */
+	auftragDatei?: string;
 }) =>
 	new Promise<PruefErgebnis>((resolve) => {
 		const stand: LaufStand = { sitzung: null, fehlerCode: null, ergebnis: {} };
 		const argumente = pruefArgumente({
 			ablage: o.ablage,
-			auftragDatei: PRUEF_AUFTRAG,
+			auftragDatei: o.auftragDatei ?? PRUEF_AUFTRAG,
 			budgetUsd: Math.round(o.grenzen.budgetUsd * 100) / 100,
 			runden: o.grenzen.runden,
 			modell: o.modell,
@@ -1726,7 +1825,8 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 	let aktiv: {
 		auftrag: KiAuftrag;
 		gespraech: string | null;
-		kind: ChildProcessWithoutNullStreams | null;
+		/** Die laufenden Prozesse; beim Prüflauf des Blatts zwei zugleich (244). */
+		kinder: Set<ChildProcessWithoutNullStreams>;
 		abbruch: boolean;
 	} | null = null;
 	/** Beendet, während noch ein Auftrag dazu läuft oder wartet: Gelöscht wird nach dem letzten. */
@@ -1810,12 +1910,17 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 	/** Reste eines abgestürzten Servers: Der Prozess läuft sonst weiter und verbraucht Limit. */
 	const beendeReste = async () => {
 		try {
-			const pid = Number(readFileSync(pidDatei, 'utf8'));
-			if (readFileSync(`/proc/${pid}/cmdline`, 'utf8').includes(wurzelTmp)) {
-				process.kill(pid, 'SIGTERM');
+			for (const pid of lesePids(pidDatei)) {
+				try {
+					if (readFileSync(`/proc/${pid}/cmdline`, 'utf8').includes(wurzelTmp)) {
+						process.kill(pid, 'SIGTERM');
+					}
+				} catch {
+					// Kein Prozess mehr.
+				}
 			}
 		} catch {
-			// Keine Datei oder kein Prozess: nichts zu tun.
+			// Keine Datei: nichts zu tun.
 		}
 		await rm(wurzelTmp, { recursive: true, force: true });
 		await raeumeSitzungenAuf();
@@ -1932,10 +2037,7 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 			const kind = spawn(bin, argumente, { cwd: arbeit, env: kiUmgebung(bin) });
 			schreibeMitschrift(mitschrift, kind, { argumente, auftrag: text, cwd: arbeit, bilder });
 			if (aktiv) {
-				aktiv.kind = kind;
-			}
-			if (kind.pid) {
-				writeFileSync(pidDatei, String(kind.pid));
+				merkeKind(aktiv.kinder, kind, pidDatei);
 			}
 			let grund: string | null = null;
 			let bytes = 0;
@@ -2385,10 +2487,7 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 				},
 				gestartet: (kind) => {
 					if (aktiv) {
-						aktiv.kind = kind;
-					}
-					if (kind.pid) {
-						writeFileSync(pidDatei, String(kind.pid));
+						merkeKind(aktiv.kinder, kind, pidDatei);
 					}
 				},
 				abgebrochen: () => aktiv?.abbruch === true,
@@ -2483,89 +2582,155 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 			}
 			return { neu, funde, bericht, antwort, sitzung };
 		};
-		/** Ein Prüflauf mit Kinderaugen am fertigen Blatt (220, Teil 2): Lösung nach Teil 1, nur Read, ohne Sitzung. */
-		const pruefeEinmal = async (html: string) => {
+		/**
+		 * Die Prüfläufe am fertigen Blatt (220, Teil 2; 244): mit Kinderaugen (Lösung nach Teil 1) und gleichzeitig der
+		 * Fachblick (Lösung von Anfang an, Prüfpunkte der Recherche oder der Fach-Skill), je nur Read, ohne Sitzung und
+		 * mit eigenem Eintrag im Protokoll. Die Befunde kommen zusammen; scheitert einer, ist die Prüfung gescheitert.
+		 */
+		const pruefeEinmal = async (html: string): Promise<PruefErgebnis | null> => {
 			const ordner = path.join(path.dirname(arbeit), 'pruefung');
-			const eintrag = neuerLaufEintrag('pruefung', null, []);
-			const l = { eintrag, gelesen: new Set<string>() };
-			const beginn = Date.now();
-			let ergebnis: PruefErgebnis | null = null;
-			try {
-				await rm(ordner, { recursive: true, force: true });
-				await mkdir(ordner, { recursive: true });
-				const ganz = await mitBildern(ausschnitt.einsetzen(html));
-				const gebaut = await ansicht(dir, ganz, ordner, { sw: false });
-				const mitLoesung = pruefWeise(rolle, false).kind;
-				const teile = await richtePruefOrdnerEin(ordner, gebaut.bilder, ganz, arbeit, mitLoesung);
-				const weise = pruefWeise(rolle, teile.bilder.length > 0);
-				if (!weise.kind && !weise.blick) {
-					return null;
-				}
-				const regeln = blickRegeln(rolle, teile.bilder.length > 0);
-				eintrag.pflicht = blickLektuere(regeln);
-				const g = KI_GRENZEN.einheit.pruefung;
-				a.schritte.push('Prüft mit Kinderaugen');
-				melde(a);
-				ergebnis = await pruefeLauf({
-					bin,
-					modell: ki.modell,
-					effort: ki.effort,
-					ordner,
-					ablage,
-					text: pruefText({
-						titel: meta.titel,
-						artName: ART_NAME[meta.art],
-						klasse: klasseText(w.rechercheAnfrage?.klasse),
-						fach: FACH_NAME[fach],
-						...teile,
-						formate: [],
-						kind: weise.kind,
-						regeln: regeln.map((r) => path.join(ablage, '.claude', 'skills', r)),
-					}),
-					grenzen: {
-						zeitMs: g.zeitMs,
-						runden: g.runden,
-						budgetUsd: ueberGuthaben() ? g.budgetGuthabenUsd : g.budgetUsd,
-					},
-					gestartet: (kind) => {
-						if (aktiv) {
-							aktiv.kind = kind;
-						}
-						if (kind.pid) {
-							writeFileSync(pidDatei, String(kind.pid));
-						}
-					},
-					werkzeug: (name, eingabe) => notiereLektuere(l, name, eingabe),
-					mitschrift: mitschrift('pruefung'),
-				});
-				eintrag.befunde = ergebnis.befunde.map(befundZeile);
-				if (!ergebnis.lesbar) {
-					eintrag.hinweis = 'Die Antwort hatte keinen lesbaren Block mit Befunden: keine Befunde übernommen.';
-				}
-				return ergebnis;
-			} catch (fehler) {
-				console.error('Prüflauf des Blatts:', (fehler as Error).message);
-				ergebnis = {
-					befunde: [],
-					lesbar: true,
-					fehler: 'Die Seiten ließen sich für die Prüfung nicht bauen.',
-					verbrauch: {},
-				};
-				return ergebnis;
-			} finally {
-				await rm(ordner, { recursive: true, force: true });
-				if (ergebnis) {
+			const fachOrdner = `${ordner}-fach`;
+			const g = KI_GRENZEN.einheit.pruefung;
+			const einLauf = async (
+				rolle: PruefRolle,
+				text: string,
+				pflicht: string[],
+				auftragDatei: string,
+			): Promise<PruefErgebnis> => {
+				const eintrag: LaufEintrag = { ...neuerLaufEintrag('pruefung', null, pflicht), rolle };
+				const l = { eintrag, gelesen: new Set<string>() };
+				const beginn = Date.now();
+				protokoll.push(eintrag);
+				let ergebnis: PruefErgebnis = { befunde: [], lesbar: true, fehler: 'Abgebrochen.', verbrauch: {} };
+				try {
+					ergebnis = await pruefeLauf({
+						bin,
+						modell: ki.modell,
+						effort: ki.effort,
+						ordner: rolle === 'fach' ? fachOrdner : ordner,
+						ablage,
+						text,
+						auftragDatei,
+						grenzen: {
+							zeitMs: g.zeitMs,
+							runden: g.runden,
+							budgetUsd: ueberGuthaben() ? g.budgetGuthabenUsd : g.budgetUsd,
+						},
+						gestartet: (kind) => {
+							if (aktiv) {
+								merkeKind(aktiv.kinder, kind, pidDatei);
+							}
+						},
+						werkzeug: (name, eingabe) => notiereLektuere(l, name, eingabe),
+						mitschrift: mitschrift(rolle === 'fach' ? 'fachblick' : 'pruefung'),
+					});
+					eintrag.befunde = ergebnis.befunde.map(befundZeile);
+					if (!ergebnis.lesbar) {
+						eintrag.hinweis = 'Die Antwort hatte keinen lesbaren Block mit Befunden: keine Befunde übernommen.';
+					}
+					return ergebnis;
+				} finally {
 					beendeLaufEintrag(eintrag, beginn, {
 						fehler: ergebnis.fehler,
 						abgebrochen: aktiv?.abbruch === true,
 						verbrauch: ergebnis.verbrauch,
 					});
-					protokoll.push(eintrag);
 					await notiereVerbrauch(a, ergebnis.fehler ? 'fehler' : 'fertig', 'pruefung', beginn, {
 						...ergebnis.verbrauch,
 						...ki,
+						rolle,
 					});
 				}
+			};
+			try {
+				await rm(ordner, { recursive: true, force: true });
+				await mkdir(ordner, { recursive: true });
+				const ganz = await mitBildern(ausschnitt.einsetzen(html));
+				const gebaut = await ansicht(dir, ganz, ordner, { sw: false });
+				const ohneBilder = pruefWeise(rolle, false);
+				const teile = await richtePruefOrdnerEin(
+					ordner,
+					gebaut.bilder,
+					ganz,
+					arbeit,
+					ohneBilder.kind || ohneBilder.fach,
+				);
+				const weise = pruefWeise(rolle, teile.bilder.length > 0);
+				const mitKind = weise.kind || weise.blick;
+				if (!mitKind && !weise.fach) {
+					return null;
+				}
+				if (weise.fach) {
+					await trennePruefOrdner(ordner, fachOrdner, weise.kind);
+				}
+				const regeln = blickRegeln(rolle, teile.bilder.length > 0);
+				const skill = fachSkillVon(fach);
+				const pruefpunkte = pruefpunkteText(w.recherche?.ok ? w.recherche.text : null);
+				const fachSkill = pruefpunkte || !skill ? null : `${skill}/SKILL.md`;
+				a.schritte.push(
+					mitKind && weise.fach ? 'Prüft mit Kinderaugen und fachlich' : mitKind ? 'Prüft mit Kinderaugen' : 'Prüft fachlich',
+				);
+				melde(a);
+				const kopf = {
+					titel: meta.titel,
+					artName: ART_NAME[meta.art],
+					klasse: klasseText(w.rechercheAnfrage?.klasse),
+					fach: FACH_NAME[fach],
+				};
+				const laeufe = await Promise.all([
+					mitKind
+						? einLauf(
+								'kind',
+								pruefText({
+									...kopf,
+									...teile,
+									loesungen: weise.kind ? teile.loesungen : [],
+									formate: [],
+									kind: weise.kind,
+									regeln: regeln.map((r) => path.join(ablage, '.claude', 'skills', r)),
+								}),
+								blickLektuere(regeln),
+								PRUEF_AUFTRAG,
+							)
+						: null,
+					weise.fach
+						? einLauf(
+								'fach',
+								fachblickText({
+									...kopf,
+									seiten: teile.seiten,
+									ausschnitte: teile.ausschnitte,
+									loesungen: teile.loesungen,
+									pruefpunkte,
+									fachSkill: fachSkill ? path.join(ablage, '.claude', 'skills', fachSkill) : null,
+									ziele: w.rechercheAnfrage?.ziele ?? [],
+									stunden: null,
+									berechnet: berechneteElemente(ganz),
+									andere: [],
+									messung: messungAus(gebaut.bericht.meldungen),
+								}),
+								fachSkill ? blickLektuere([fachSkill]) : [],
+								FACHBLICK_AUFTRAG,
+							)
+						: null,
+				]);
+				const fertig = laeufe.filter((e): e is PruefErgebnis => e !== null);
+				return {
+					befunde: befundeDerTeile(fertig.map((e) => e.befunde)),
+					lesbar: fertig.every((e) => e.lesbar),
+					fehler: fertig.find((e) => e.fehler)?.fehler ?? null,
+					verbrauch: {},
+				};
+			} catch (fehler) {
+				console.error('Prüflauf des Blatts:', (fehler as Error).message);
+				const eintrag = neuerLaufEintrag('pruefung', null, []);
+				const grund = 'Die Seiten ließen sich für die Prüfung nicht bauen.';
+				beendeLaufEintrag(eintrag, Date.now(), { fehler: grund, abgebrochen: aktiv?.abbruch === true, verbrauch: {} });
+				protokoll.push(eintrag);
+				return { befunde: [], lesbar: true, fehler: grund, verbrauch: {} };
+			} finally {
+				await rm(ordner, { recursive: true, force: true });
+				await rm(fachOrdner, { recursive: true, force: true });
 			}
 		};
 		/**
@@ -2604,7 +2769,7 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 			const warnungen: Meldung[] = offen.map((b) => ({
 				stufe: 'WARNUNG',
 				seite: b.seite ?? 1,
-				text: `Prüfung mit Kinderaugen: ${befundZeile(b)}`,
+				text: `${b.art === 'fach' ? `Fachblick, ${FACHLICH_PRUEFEN}` : 'Prüfung mit Kinderaugen'}: ${befundZeile(b)}`,
 			}));
 			return { neu, antwort, bericht: { ...bericht, meldungen: [...bericht.meldungen, ...warnungen] } };
 		};
@@ -2773,7 +2938,7 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 			return;
 		}
 		const { auftrag: a, ki, wunsch } = eintrag;
-		aktiv = { auftrag: a, gespraech: wunsch.gespraechId ?? null, kind: null, abbruch: false };
+		aktiv = { auftrag: a, gespraech: wunsch.gespraechId ?? null, kinder: new Set(), abbruch: false };
 		a.status = 'laeuft';
 		a.seit = new Date().toISOString();
 		melde(a);
@@ -3015,8 +3180,8 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 			}
 			if (aktiv?.auftrag.id === id) {
 				aktiv.abbruch = true;
-				if (aktiv.kind) {
-					beendeKind(aktiv.kind);
+				for (const kind of aktiv.kinder) {
+					beendeKind(kind);
 				}
 				return true;
 			}
@@ -3027,9 +3192,11 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 			if (takt) {
 				clearInterval(takt);
 			}
-			if (aktiv?.kind) {
+			if (aktiv?.kinder.size) {
 				aktiv.abbruch = true;
-				aktiv.kind.kill('SIGTERM');
+				for (const kind of aktiv.kinder) {
+					kind.kill('SIGTERM');
+				}
 			}
 			warteschlange.length = 0;
 			rmSync(wurzelTmp, { recursive: true, force: true });

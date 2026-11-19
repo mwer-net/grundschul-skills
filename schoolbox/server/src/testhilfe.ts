@@ -159,11 +159,15 @@ process.stdin.on('end', () => {
 		const seiten = fs.readdirSync('.').filter((n) => /^seite-\d+\.png$/.test(n)).sort();
 		sag({ type: 'assistant', message: { content: seiten.map((n) => ({ type: 'tool_use', name: 'Read', input: { file_path: path.resolve(n) } })) } });
 		const text = seiten.map((n) => fs.readFileSync(n, 'utf8')).join('\n');
-		fs.appendFileSync(path.join(__dirname, 'pruefungen.jsonl'), JSON.stringify({ titel: /^Prüfung von „([^“]*)“/.exec(eingabe)?.[1] ?? '', loesung: fs.readdirSync('.').some((n) => n.startsWith('loesung-')), kind: eingabe.includes('mit Kinderaugen') }) + '\n');
+		// 244: Der Fachblick („Fachblick auf …“) läuft gleichzeitig; er meldet „FACHFEHLER“ auf einer Seite als fach.
+		// „einheit-pruefung-haenger“ bleibt in beiden Läufen stehen, bis der Server sie beendet.
+		const rolle = eingabe.startsWith('Fachblick auf') ? 'fach' : 'kind';
+		fs.appendFileSync(path.join(__dirname, 'pruefungen.jsonl'), JSON.stringify({ titel: /^(?:Prüfung von|Fachblick auf) „([^“]*)“/.exec(eingabe)?.[1] ?? '', rolle, loesung: fs.readdirSync('.').some((n) => n.startsWith('loesung-')) || fs.existsSync('loesung'), kind: eingabe.includes('mit Kinderaugen') }) + '\n');
 		const fertig = (result, extra = {}) => sag({ type: 'result', subtype: 'success', is_error: false, result, num_turns: 3, total_cost_usd: 0.02, usage: { output_tokens: 5 }, permission_denials: [], ...extra });
+		if (fall === 'einheit-pruefung-haenger') { setInterval(() => {}, 1000); return; }
 		if (fall === 'einheit-pruefung-scheitert') { fertig('', { subtype: 'error_during_execution', is_error: true }); process.exit(1); }
 		if (fall === 'einheit-pruefung-unlesbar') { fertig('Ich habe mir alles angesehen, es passt.'); return; }
-		const befunde = text.includes('Mach was mit den Uhren') ? [{ seite: 1, aufgabe: '1', art: 'unklar', text: 'Was mit den Uhren zu tun ist, steht nicht da.' }] : [];
+		const befunde = rolle === 'fach' ? (text.includes('FACHFEHLER') ? [{ seite: 1, aufgabe: '1', art: 'fach', text: 'Die Uhr zeigt nicht halb drei, sondern drei.' }] : []) : text.includes('Mach was mit den Uhren') ? [{ seite: 1, aufgabe: '1', art: 'unklar', text: 'Was mit den Uhren zu tun ist, steht nicht da.' }] : [];
 		fertig('Geprüft.\n\x60\x60\x60json\n' + JSON.stringify({ befunde }) + '\n\x60\x60\x60');
 		return;
 	}

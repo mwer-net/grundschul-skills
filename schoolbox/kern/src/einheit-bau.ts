@@ -193,6 +193,9 @@ const FACH_SKILL: Partial<Record<Fach, string>> = {
 	musik: 'fach-musik',
 };
 
+/** Der Fach-Skill eines Fachs; der Fachblick (244) liest ihn, wenn es keine Prüfpunkte gibt. */
+export const fachSkillVon = (fach: Fach) => FACH_SKILL[fach] ?? null;
+
 /** Die Zeile der Pflichtlektüre für ein Material der Einheit. Feste Slugs aus dem Plan-Auftrag gehen vor der Art. */
 export const rolleVon = (d: Pick<PlanDokument, 'slug' | 'art'>): string => {
 	const fest: Record<string, string> = {
@@ -467,7 +470,10 @@ export const fertigText = (plan: EinheitPlan, fertig: readonly string[], steckbr
 
 // ——— Protokoll ———
 
-/** `pruefung`: Prüflauf „mit Kinderaugen“, `schluss`: Abgleich über alle Materialien (220, Teil 2). */
+/**
+ * `pruefung`: Prüflauf „mit Kinderaugen“ oder Fachblick (`rolle`, 244), `schluss`: Abgleich über alle Materialien (220,
+ * Teil 2).
+ */
 export type LaufArt = 'recherche' | 'plan' | 'bilder' | 'bau' | 'korrektur' | 'pruefung' | 'schluss';
 
 export interface BauVersuch {
@@ -502,7 +508,12 @@ export interface LaufEintrag {
 	befunde: string[];
 	/** Was der Server zum Lauf festhält, etwa eine unlesbare Antwort eines Prüflaufs. */
 	hinweis?: string;
+	/** Nur bei `pruefung` (244): der Lauf mit Kinderaugen (mit zweitem Blick) oder der Fachblick. */
+	rolle?: PruefRolle;
 }
+
+/** Die zwei Prüfläufe eines Materials, die gleichzeitig laufen (244). */
+export type PruefRolle = 'kind' | 'fach';
 
 /** Je Einheit in der Mappe, je neuem Blatt im Ordner des Dokuments (`dokument` statt `einheit`). */
 export interface LaufProtokoll {

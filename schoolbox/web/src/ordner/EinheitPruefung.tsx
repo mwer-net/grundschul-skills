@@ -1,6 +1,6 @@
 import type { EinheitStand } from '@schoolbox/kern/src/einheit';
 import type { PruefBefund, PruefStand, SchlussStand } from '@schoolbox/kern/src/einheit-pruefung';
-import { befundZeile } from '@schoolbox/kern/src/einheit-pruefung';
+import { befundZeile, FACHLICH_PRUEFEN, fachlichOffen } from '@schoolbox/kern/src/einheit-pruefung';
 
 import { Aufklapp } from './EinheitPlanDetails';
 
@@ -27,10 +27,12 @@ const pruefZeile = (p: PruefStand) => {
 		return 'Prüfung gescheitert, das Material bleibt';
 	}
 	const offen = offenVon(p);
+	const fachlich = fachlichOffen(p).length;
 	return [
 		p.gefunden.length ? `${anzahl(p.gefunden.length, 'Befund', 'Befunde')}` : 'ohne Befund',
 		p.korrekturen ? anzahl(p.korrekturen, 'Korrekturrunde', 'Korrekturrunden') : '',
 		offenText(offen, p.gefunden.length),
+		fachlich ? `davon ${fachlich} ${FACHLICH_PRUEFEN}` : '',
 	]
 		.filter(Boolean)
 		.join(' · ');
@@ -68,8 +70,28 @@ const Liste = ({ titel, zeilen }: { titel: string; zeilen: string[] }) =>
 	);
 
 /**
- * Was die Prüfläufe mit Kinderaugen und der Schlusslauf gefunden haben (220, Teil 2): je Material eine Zeile, die
- * Befunde zum Aufklappen. Während des Baus wächst die Liste mit.
+ * Fachliche Befunde, die nach der letzten Korrekturrunde offen blieben (244): Sie stehen über der Prüfung, nicht
+ * zugeklappt, je Befund eine Zeile mit dem Material. Die Lehrkraft prüft sie selbst, bevor das Material in die Klasse
+ * geht.
+ */
+const FachlichPruefen = ({ zeilen }: { zeilen: string[] }) =>
+	zeilen.length > 0 && (
+		<div className="text-sm" data-fachlich-pruefen>
+			<p className="text-warnung">
+				{zeilen.length === 1 ? 'Ein fachlicher Befund' : `${zeilen.length} fachliche Befunde`} nach den
+				Korrekturrunden offen: bitte {FACHLICH_PRUEFEN}.
+			</p>
+			<ul className="list-disc pl-4">
+				{zeilen.map((z) => (
+					<li key={z}>{z}</li>
+				))}
+			</ul>
+		</div>
+	);
+
+/**
+ * Was die Prüfläufe mit Kinderaugen, der Fachblick und der Schlusslauf gefunden haben (220, Teil 2; 244): je Material
+ * eine Zeile, die Befunde zum Aufklappen; fachlich Offenes steht darüber. Während des Baus wächst die Liste mit.
  */
 export const PruefungDetails = ({ s }: { s: EinheitStand }) => {
 	const titel = (slug: string) => s.plan?.dokumente.find((d) => d.slug === slug)?.titel ?? slug;
@@ -81,8 +103,20 @@ export const PruefungDetails = ({ s }: { s: EinheitStand }) => {
 		return null;
 	}
 	const offen = geprueft.reduce((n, { p }) => n + offenVon(p), 0) + (s.schluss ? offenVon(s.schluss) : 0);
+	const fachlich = [
+		...geprueft.flatMap(({ d, p }) => fachlichOffen(p).map((b) => `„${d.titel}“, ${befundZeile(b)}`)),
+		...(s.schluss && s.schluss.status !== 'laeuft'
+			? s.schluss.offen
+					.filter((b) => b.art === 'fach')
+					.map(({ material, ...b }) => (material ? `„${titel(material)}“, ${befundZeile(b)}` : befundZeile(b)))
+			: []),
+	];
 	return (
-		<Aufklapp titel={`Prüfung der Materialien (${offen ? `${offen} offen` : 'nichts offen'})`}>
+		<>
+			<FachlichPruefen zeilen={fachlich} />
+			<Aufklapp
+				titel={`Prüfung der Materialien (${offen ? `${offen} offen` : 'nichts offen'}${fachlich.length ? `, davon ${fachlich.length} ${FACHLICH_PRUEFEN}` : ''})`}
+			>
 			<ul className="flex flex-col gap-1" data-einheit-pruefung>
 				{geprueft.map(({ d, p }) => (
 					<li key={d.slug}>
@@ -115,6 +149,7 @@ export const PruefungDetails = ({ s }: { s: EinheitStand }) => {
 					</li>
 				)}
 			</ul>
-		</Aufklapp>
+			</Aufklapp>
+		</>
 	);
 };

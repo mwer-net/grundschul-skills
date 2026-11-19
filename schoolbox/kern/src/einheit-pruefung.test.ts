@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
@@ -8,18 +8,25 @@ import type { Steckbrief } from './einheit-bau';
 import {
 	abbildungenIn,
 	befundeDerTeile,
+	berechneteElemente,
 	blickLektuere,
 	blickRegeln,
+	fachblickStunden,
+	fachblickText,
+	fachlichOffen,
 	figurenDopplungen,
 	folgeBefund,
+	fremdeGrenze,
 	istFolgekorrektur,
 	leseFolgen,
 	gepruefteZahl,
 	lesePruefung,
+	messungAus,
 	pruefKorrektur,
 	pruefTeile,
 	pruefText,
 	pruefWeise,
+	verteileLoesungen,
 	zahlenBefunde,
 	zahlenText,
 } from './einheit-pruefung';
@@ -296,16 +303,26 @@ describe('Nachricht an den Prüflauf (229)', () => {
 });
 
 describe('Wer geprüft wird und gegen welche Regeln', () => {
-	it('Aufgaben mit Kinderaugen, Schauseiten mit dem zweiten Blick, Hinweise gar nicht', () => {
-		assert.deepEqual(pruefWeise('arbeitsblatt', false), { kind: true, blick: false });
-		assert.deepEqual(pruefWeise('lernspiel', false), { kind: true, blick: true });
-		assert.deepEqual(pruefWeise('karten', false), { kind: false, blick: true });
-		assert.deepEqual(pruefWeise('hinweise', false), { kind: false, blick: false });
-		assert.deepEqual(pruefWeise('hinweise', true), { kind: false, blick: true });
+	it('Aufgaben mit Kinderaugen, Schauseiten mit dem zweiten Blick, Hinweise nur mit dem Fachblick', () => {
+		assert.deepEqual(pruefWeise('arbeitsblatt', false), { kind: true, blick: false, fach: true });
+		assert.deepEqual(pruefWeise('lernspiel', false), { kind: true, blick: true, fach: true });
+		assert.deepEqual(pruefWeise('karten', false), { kind: false, blick: true, fach: true });
+		assert.deepEqual(pruefWeise('hinweise', false), { kind: false, blick: false, fach: true });
+		assert.deepEqual(pruefWeise('hinweise', true), { kind: false, blick: true, fach: true });
 		assert.equal(
 			gepruefteZahl([dok('a'), dok('b', 'unterrichtsplanung'), dok('deckblatt'), dok('c', 'karten')]),
-			3,
+			4,
 		);
+	});
+
+	it('Fachblick für Hinweise, Vorleseheft, Karten und Auftakt, nicht für Deckblatt, Angebot und Quellen (244)', () => {
+		for (const rolle of ['hinweise', 'vorleseheft', 'karten', 'praesentation', 'lernzielkontrolle', 'sonstiges']) {
+			assert.equal(pruefWeise(rolle, false).fach, true, rolle);
+		}
+		for (const rolle of ['deckblatt', 'angebot', 'quellen']) {
+			assert.equal(pruefWeise(rolle, true).fach, false, rolle);
+		}
+		assert.equal(gepruefteZahl([dok('vorleseheft', 'lesetext'), dok('quellen'), dok('eduki-angebot')]), 1);
 	});
 
 	it('jede Regeldatei des zweiten Blicks existiert; SKILL.md steht im Protokoll als skill:', () => {
@@ -435,5 +452,152 @@ describe('Zahlen auf Deckblatt und Angebot (220, Punkt 4)', () => {
 		assert.match(text, /- Seiten: 7 gesamt, dazu 3 Lösungsseiten;/);
 		assert.doesNotMatch(text, /Folien/);
 		assert.match(text, /ab-2/);
+	});
+});
+
+describe('Fachblick (244)', () => {
+	const FACH = {
+		titel: 'Kapitel 4',
+		artName: 'Arbeitsblatt',
+		klasse: 'Klasse 2',
+		fach: 'Mathematik',
+		seiten: ['seite-1.png', 'seite-2.png'],
+		ausschnitte: [],
+		loesungen: ['loesung/loesung-seite-1.png'],
+		auftrag: 'Erstelle eine Einheit zur Achsensymmetrie.',
+		pruefpunkte: 'Fachliche Prüfpunkte aus der Recherche: …\n- Wahr: Jede Achse zählt.',
+		fachSkill: null,
+		ziele: ['Ich kann Achsen finden.'],
+		stunden: null,
+		berechnet: [],
+		andere: [],
+		messung: [],
+	};
+
+	it('nennt Auftrag, Ich-kann-Ziele, Prüfpunkte, Seiten und Lösungsseiten von Anfang an', () => {
+		const text = fachblickText(FACH);
+		assert.match(text, /^Fachblick auf „Kapitel 4“ \(Arbeitsblatt\), Klasse 2, Mathematik\./);
+		assert.match(text, /Auftrag der Lehrkraft \(aus dem Assistenten\):\nErstelle eine Einheit/);
+		assert.match(text, /Ich-kann-Ziele der Lehrkraft: „Ich kann Achsen finden\.“/);
+		assert.match(text, /- Wahr: Jede Achse zählt\./);
+		assert.match(text, /- seite-2\.png/);
+		assert.match(text, /gleich mit den Seiten anzusehen:\n- loesung\/loesung-seite-1\.png/);
+		assert.doesNotMatch(text, /Fach-Skill|Kinderaugen|erst nach/);
+	});
+
+	it('ohne Prüfpunkte liest er den Fach-Skill; ohne beides die Definition; ohne Ziele das Ziel der Seite', () => {
+		const mitSkill = fachblickText({ ...FACH, pruefpunkte: null, fachSkill: '/ablage/fach-mathematik/SKILL.md', ziele: [] });
+		assert.match(mitSkill, /Lies zuerst den Fach-Skill ganz mit Read[^\n]*\n- \/ablage\/fach-mathematik\/SKILL\.md/);
+		assert.match(mitSkill, /Ich-kann-Ziele: Die Lehrkraft hat keine genannt/);
+		assert.match(fachblickText({ ...FACH, pruefpunkte: null }), /gegen die fachliche Definition/);
+	});
+
+	it('Vorlage: Prüfpunkte, Auftrag, Fach-Skill, berechnete Elemente, Art `fach` vor dem JSON-Block', () => {
+		const vorlage = readFileSync(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit-fachblick.md'), 'utf8');
+		for (const wort of ['Prüfpunkte', 'Auftrag der Lehrkraft', 'Fach-Skill', 'berechnen ihre Lösung selbst', '"art": "fach"']) {
+			assert.ok(vorlage.includes(wort), wort);
+		}
+		const schluss = readFileSync(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit-schluss.md'), 'utf8');
+		assert.match(schluss, /ein fachlicher Fehler ist `fach`/);
+	});
+
+	it('Art `fach` mit Synonymen; die Korrektur bekommt den Satz zur Sache (243, Punkt 4)', () => {
+		const { befunde } = lesePruefung(
+			'{"befunde": [{"seite": 4, "art": "Fachlich falsch", "text": "Das Dreieck hat eine waagerechte Achse."}, {"art": "fachlich", "text": "B ist symmetrisch."}]}',
+		);
+		assert.deepEqual(
+			befunde.map((b) => b.art),
+			['fach', 'fach'],
+		);
+		const text = pruefKorrektur(befunde, []);
+		assert.match(text, /Seite 4, Fachlich falsch: Das Dreieck/);
+		assert.match(text, /der Fachblick, hat jede Aussage/);
+		assert.match(text, /Ein fachlicher Befund wird an der Sache behoben/);
+		assert.doesNotMatch(pruefKorrektur([{ seite: 1, aufgabe: '', art: 'unklar', text: 'x' }], []), /Fachblick/);
+	});
+
+	it('offen nach der letzten Runde: nur `fach`, und erst, wenn die Prüfung nicht mehr läuft', () => {
+		const offen = [
+			{ seite: 3, aufgabe: '', art: 'fach' as const, text: 'B gilt als nicht symmetrisch.' },
+			{ seite: 1, aufgabe: '', art: 'unklar' as const, text: 'x' },
+		];
+		assert.deepEqual(
+			fachlichOffen({ status: 'fertig', offen }).map((b) => b.seite),
+			[3],
+		);
+		assert.deepEqual(fachlichOffen({ status: 'laeuft', offen }), []);
+	});
+
+	it('Lösungsseiten anderer Materialien reihum, gekappt; mit den eigenen nie mehr als 48 Bilder', () => {
+		const liste = verteileLoesungen(
+			[
+				{ slug: 'k1', titel: 'K1', dateien: ['a1', 'a2', 'a3'] },
+				{ slug: 'k2', titel: 'K2', dateien: ['b1'] },
+				{ slug: 'k3', titel: 'K3', dateien: ['c1', 'c2'] },
+			],
+			4,
+		);
+		assert.deepEqual(
+			liste.map((l) => l.datei),
+			['a1', 'b1', 'c1', 'a2'],
+		);
+		assert.equal(fremdeGrenze({ seiten: Array(6).fill('s'), loesungen: [] }), 24);
+		assert.equal(fremdeGrenze({ seiten: Array(16).fill('s'), loesungen: Array(16).fill('l') }), 16);
+		const andere = verteileLoesungen([{ slug: 'k1', titel: 'K1', dateien: Array.from({ length: 30 }, (_, i) => `l${i}`) }]);
+		assert.equal(andere.length, 24);
+		const text = fachblickText({
+			...FACH,
+			seiten: Array.from({ length: 16 }, (_, i) => `seite-${i + 1}.png`),
+			loesungen: Array.from({ length: 16 }, (_, i) => `loesung/loesung-seite-${i + 1}.png`),
+			andere: andere.map((a) => ({ ...a, datei: `andere/k1/${a.datei}` })),
+		});
+		assert.match(text, /Lösungsseiten der fertigen Materialien, auf die die Hinweise zeigen/);
+		assert.match(text, /„K1“ \(dokumente\/k1\): andere\/k1\/l0, /);
+		assert.match(text, /andere\/k1\/l15\n|andere\/k1\/l15$/);
+		assert.doesNotMatch(text, /andere\/k1\/l16/);
+	});
+
+	it('Messung des Baus (245) als Daten, je Teil nur seine Seiten; berechnete Elemente mit ihrer Frage', () => {
+		const messung = messungAus([
+			{ stufe: 'WARNUNG', seite: 4, code: 'symmetrie', text: 'S. 4, A2: Dreieck deckungsgleich an der waagerechten Mitte (100 %).' },
+			{ stufe: 'HINWEIS', seite: 20, code: 'symmetrie-motive', text: 'S. 20: mehrere Motive.' },
+			{ stufe: 'FEHLER', seite: 1, code: 'zahlenraum', text: 'ragt' },
+		]);
+		assert.deepEqual(
+			messung.map((m) => m.seite),
+			[4, 20],
+		);
+		const text = fachblickText({ ...FACH, messung, teil: { nr: 1, von: 2, erste: 1, letzte: 16, gesamt: 30 } });
+		assert.match(text, /Messung des Baus[^\n]*Daten, kein Urteil[^\n]*\n- Seite 4: S\. 4, A2: Dreieck/);
+		assert.doesNotMatch(text, /Seite 20/);
+		assert.deepEqual(
+			berechneteElemente(
+				'<x-gitter aufgabe="pruefen" frage="ja-nein" figur="1,1"></x-gitter><x-gitter aufgabe="pruefen" frage="ja-nein" figur="2,2"></x-gitter><x-symmetrie-sortieren zeichen="B D"></x-symmetrie-sortieren><x-lineatur></x-lineatur>',
+			),
+			['<x-gitter aufgabe="pruefen" frage="ja-nein"> (2-mal)', '<x-symmetrie-sortieren>'],
+		);
+	});
+
+	it('Stunden: mit Aufgaben des Materials und Anforderungsbereich, sonst jede Stunde in einer Zeile', () => {
+		const plan = {
+			stunden: [
+				{
+					nr: 4,
+					handlung: 'Am Geobrett spannen.',
+					begriffe: ['gleich weit'],
+					kontrolle: false,
+					aufgaben: [
+						{ dokument: 'k4', format: 'malen-nach-ergebnis', inhalt: 'Symmetrische Felder ausmalen', bereich: 'I' as const, zweitesMal: false },
+						{ dokument: 'k5', format: 'ins-heft', inhalt: 'anderes', bereich: 'II' as const, zweitesMal: false },
+					],
+				},
+				{ nr: 5, handlung: 'Lernspiel.', begriffe: [], kontrolle: false, aufgaben: [] },
+			],
+		};
+		const eigen = fachblickStunden(plan, 'k4') ?? '';
+		assert.match(eigen, /- Stunde 4: Am Geobrett spannen\. Fachwörter: gleich weit\.\n  - malen-nach-ergebnis \(AB I\): Symmetrische Felder ausmalen/);
+		assert.doesNotMatch(eigen, /anderes|Stunde 5/);
+		assert.match(fachblickStunden(plan, 'hinweise') ?? '', /- Stunde 4: .*\n- Stunde 5: Lernspiel\./);
+		assert.equal(fachblickStunden({}, 'k4'), null);
 	});
 });

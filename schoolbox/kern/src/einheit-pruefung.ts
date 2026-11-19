@@ -7,6 +7,7 @@ import type { EinheitPlan, PlanDokument } from './einheit';
 import type { Steckbrief } from './einheit-bau';
 import { rolleVon, SKILL_PRAEFIX } from './einheit-bau';
 import type { PlanFigur } from './einheit-figuren';
+import type { Meldung } from './meldungen';
 import { planFigurText } from './einheit-figuren';
 import type { Format } from './werte';
 
@@ -21,6 +22,7 @@ export const PRUEF_ARTEN = [
 	'bild',
 	'geschichte',
 	'zahlen',
+	'fach',
 	'loesung',
 ] as const;
 export type PruefArt = (typeof PRUEF_ARTEN)[number];
@@ -36,6 +38,7 @@ export const PRUEF_ART_NAME: Record<PruefArt, string> = {
 	'bild': 'Bild',
 	'geschichte': 'Geschichte',
 	'zahlen': 'Zahlen',
+	'fach': 'Fachlich falsch',
 	'loesung': 'Lösung falsch',
 };
 
@@ -103,16 +106,21 @@ const KINDERAUGEN = new Set([
 /** Schauseiten (214, 217): Sie bekommen den zweiten Blick gegen die Regeln ihrer Art. */
 const SCHAUSEITE = new Set(['karten', 'lernspiel', 'praesentation', 'lernplakat', 'deckblatt']);
 
+/** Rollen ohne fachliche Aussagen (244): Sie bekommen keinen Fachblick. Alle anderen, auch Hinweise und Vorleseheft. */
+const OHNE_FACHBLICK = new Set(['deckblatt', 'angebot', 'quellen', 'bilder']);
+
+/** `kind`: Kinderaugen, `blick`: zweiter Blick (beide im selben Lauf), `fach`: der Fachblick als eigener Lauf (244). */
 export const pruefWeise = (rolle: string, mitBildern: boolean) => ({
 	kind: KINDERAUGEN.has(rolle),
 	blick: SCHAUSEITE.has(rolle) || mitBildern,
+	fach: !OHNE_FACHBLICK.has(rolle),
 });
 
 /** Wie viele Materialien des Plans mindestens einen Prüflauf bekommen (Bilder kennt der Plan noch nicht). */
 export const gepruefteZahl = (dokumente: readonly Pick<PlanDokument, 'slug' | 'art'>[]) =>
 	dokumente.filter((d) => {
 		const w = pruefWeise(rolleVon(d), false);
-		return w.kind || w.blick;
+		return w.kind || w.blick || w.fach;
 	}).length;
 
 const GD = 'grundschul-didaktik/references';
@@ -194,7 +202,15 @@ const seiteVon = (datei: string) => Number(/seite-(\d+)/.exec(datei)?.[1] ?? 0);
  * was hinter der letzten Seite liegt (eine Lösung ohne eigene Seite), zum letzten Teil. Server und Prüfstand rufen
  * beide diese Funktion, damit der Prüfstand genau so prüft wie der Server.
  */
-export const pruefTeile = (o: PruefAuftrag): PruefAuftrag[] => {
+/** Was `pruefTeile` an einem Auftrag teilt: der Prüflauf mit Kinderaugen und der Fachblick (244) gleich. */
+interface TeilbarerAuftrag {
+	seiten: string[];
+	ausschnitte: string[];
+	loesungen: string[];
+	teil?: PruefTeil;
+}
+
+export const pruefTeile = <T extends TeilbarerAuftrag>(o: T): T[] => {
 	if (o.seiten.length <= PRUEF_GRENZEN.ungeteilt) {
 		return [o];
 	}
@@ -282,6 +298,214 @@ export const pruefText = (o: PruefAuftrag) =>
 		.filter(Boolean)
 		.join('\n\n');
 
+// ── Fachblick (244) ──
+
+/** Eine Lösungsseite eines anderen fertigen Materials im Prüfordner (`andere/<slug>/…`), für den Fachblick der Hinweise. */
+export interface FremdeLoesung {
+	slug: string;
+	titel: string;
+	datei: string;
+}
+
+/** Eine Meldung der Messung aus dem Bau (245, Code `symmetrie`): Daten für den Fachblick, kein Urteil. */
+export interface Messung {
+	seite: number;
+	text: string;
+}
+
+export interface FachblickAuftrag {
+	titel: string;
+	artName: string;
+	klasse: string;
+	fach: string;
+	seiten: string[];
+	ausschnitte: string[];
+	/** Die Lösungsseiten unter `loesung/`, gleich von Anfang an (anders als beim Lösen mit Kinderaugen). */
+	loesungen: string[];
+	auftrag?: string;
+	/** `pruefpunkteText` aus Recherche und Berichtigungen (243); `null`, wenn es keine gibt. */
+	pruefpunkte: string | null;
+	/** Ohne Prüfpunkte: `fach-<fach>/SKILL.md` als Pfad zum Lesen; `null` ohne Fach-Skill. */
+	fachSkill: string | null;
+	/** Die Ich-kann-Ziele der Lehrkraft aus dem Assistenten. */
+	ziele: readonly string[];
+	/** Die Stunden der Aufgaben-Übersicht, die dieses Material betreffen (`fachblickStunden`). */
+	stunden: string | null;
+	/** Elemente der Schoolbox im Material, die ihre Lösung selbst berechnen (`berechneteElemente`). */
+	berechnet: string[];
+	/** Nur bei Hinweisen: Lösungsseiten der fertigen Materialien, in der Reihenfolge von `verteileLoesungen`. */
+	andere: FremdeLoesung[];
+	messung: Messung[];
+	teil?: PruefTeil;
+}
+
+/** Der Auftrag des Fachblicks beginnt so; daran erkennt man ihn auch in Mitschrift und Tests. */
+export const FACHBLICK_ANFANG = 'Fachblick auf';
+
+/** So viele Seitenbilder sieht ein Lauf höchstens: so viele wie ein ungeteilter Lauf mit allen Lösungsseiten. */
+export const BILDER_JE_LAUF = PRUEF_GRENZEN.ungeteilt * 2;
+
+/**
+ * Wie viele Lösungsseiten anderer Materialien ein Fachblick der Hinweise bekommt: höchstens `ungeteilt`, und mit den
+ * eigenen Seiten und Lösungsseiten des Laufs nie mehr als `BILDER_JE_LAUF` Bilder. So bleibt der Lauf in den Grenzen,
+ * die `pruefTeile` jedem Lauf setzt.
+ */
+export const fremdeGrenze = (o: Pick<FachblickAuftrag, 'seiten' | 'loesungen'>) =>
+	Math.max(0, Math.min(PRUEF_GRENZEN.ungeteilt, BILDER_JE_LAUF - o.seiten.length - o.loesungen.length));
+
+/**
+ * Die Lösungsseiten der anderen Materialien, reihum verteilt: erst Seite 1 jedes Materials, dann Seite 2 und so fort.
+ * Wird die Liste gekürzt, fehlt jedem Material gleich viel, statt den letzten Materialien alles.
+ */
+export const verteileLoesungen = (
+	materialien: readonly { slug: string; titel: string; dateien: readonly string[] }[],
+	max: number = PRUEF_GRENZEN.ungeteilt,
+): FremdeLoesung[] => {
+	const liste: FremdeLoesung[] = [];
+	const laengste = Math.max(0, ...materialien.map((m) => m.dateien.length));
+	for (let i = 0; i < laengste && liste.length < max; i++) {
+		for (const m of materialien) {
+			const datei = m.dateien[i];
+			if (datei && liste.length < max) {
+				liste.push({ slug: m.slug, titel: m.titel, datei });
+			}
+		}
+	}
+	return liste;
+};
+
+const MAX_MESSUNG = 30;
+/** Die Codes der Messung aus 245: je Aufgabe der Befund und der Satz, dass mehrere Motive in einem Bild stehen. */
+const MESSUNG_CODES = new Set(['symmetrie', 'symmetrie-motive']);
+
+/** Die Meldungen der Symmetrie-Messung aus dem Prüfbericht des Baus (245), für den Fachblick. */
+export const messungAus = (meldungen: readonly Meldung[]): Messung[] =>
+	meldungen
+		.filter((m) => m.code !== undefined && MESSUNG_CODES.has(m.code))
+		.map((m) => ({ seite: m.seite, text: text(m.text, 300) }))
+		.slice(0, MAX_MESSUNG);
+
+/** Rahmen und Schreibplatz: Sie rechnen keine Lösung. */
+const OHNE_LOESUNG = new Set([
+	'x-wortspeicher',
+	'x-lineatur',
+	'x-schreibrahmen',
+	'x-unterschrift',
+	'x-timer',
+	'x-gesamtpunkte',
+	'x-notenschluessel',
+	'x-notenspiegel',
+	'x-erwartungshorizont',
+]);
+/** Die Angaben, die sagen, was ein Element fragt; Inhalt (Figur, Zahlen) bleibt weg. */
+const FRAGE_ATTRIBUTE = ['aufgabe', 'frage', 'nur', 'achse', 'art', 'typ', 'spalten-titel'];
+const MAX_BERECHNET = 20;
+
+/**
+ * Die Elemente der Schoolbox im Material, die ihre Lösung selbst berechnen (245), mit dem, was sie fragen, und wie oft
+ * sie vorkommen: `<x-gitter aufgabe="pruefen" frage="ja-nein"> (3-mal)`. Der Fachblick sieht nur Bilder und erfährt so,
+ * welche Lösungen nicht von Hand stammen.
+ */
+export const berechneteElemente = (html: string) => {
+	const zahl = new Map<string, number>();
+	for (const t of ohneSkripte(html).matchAll(TAG)) {
+		const name = (t[2] ?? '').toLowerCase();
+		if (t[1] || !name.startsWith('x-') || OHNE_LOESUNG.has(name)) {
+			continue;
+		}
+		const attrs = new Map<string, string>();
+		for (const a of (t[3] ?? '').matchAll(ATTR)) {
+			attrs.set((a[1] ?? '').toLowerCase(), (a[2] ?? a[3] ?? a[4] ?? '').replace(/\s+/g, ' ').trim().slice(0, 40));
+		}
+		const frage = FRAGE_ATTRIBUTE.filter((k) => attrs.get(k)).map((k) => ` ${k}="${attrs.get(k) ?? ''}"`);
+		const schluessel = `<${name}${frage.join('')}>`;
+		zahl.set(schluessel, (zahl.get(schluessel) ?? 0) + 1);
+	}
+	return [...zahl]
+		.map(([e, n]) => (n > 1 ? `${e} (${n}-mal)` : e))
+		.slice(0, MAX_BERECHNET);
+};
+
+/**
+ * Die Stunden der Aufgaben-Übersicht für den Fachblick: Steht das Material in der Übersicht, seine Stunden mit seinen
+ * Aufgaben und dem Anforderungsbereich; sonst (Hinweise, Vorleseheft, Auftakt) jede Stunde in einer Zeile. `null`
+ * ohne Übersicht.
+ */
+export const fachblickStunden = (plan: Pick<EinheitPlan, 'stunden'>, slug: string) => {
+	const stunden = plan.stunden ?? [];
+	if (!stunden.length) {
+		return null;
+	}
+	const kopf = (s: (typeof stunden)[number]) =>
+		`- Stunde ${s.nr}: ${s.handlung}${s.begriffe.length ? ` Fachwörter: ${s.begriffe.join(', ')}.` : ''}`;
+	const eigene = stunden.filter((s) => s.aufgaben.some((a) => a.dokument === slug));
+	if (!eigene.length) {
+		return ['Die Stunden der Reihe laut Aufgaben-Übersicht:', ...stunden.map(kopf)].join('\n');
+	}
+	return [
+		'Die Stunden dieses Materials laut Aufgaben-Übersicht, mit Anforderungsbereich (AB):',
+		...eigene.flatMap((s) => [
+			kopf(s),
+			...s.aufgaben
+				.filter((a) => a.dokument === slug)
+				.map((a) => `  - ${a.format}${a.bereich ? ` (AB ${a.bereich})` : ''}: ${a.inhalt}`),
+		]),
+	].join('\n');
+};
+
+const fremdeText = (andere: readonly FremdeLoesung[]) => {
+	const gruppen = new Map<string, FremdeLoesung[]>();
+	for (const a of andere) {
+		gruppen.set(a.slug, [...(gruppen.get(a.slug) ?? []), a]);
+	}
+	return [
+		'Lösungsseiten der fertigen Materialien, auf die die Hinweise zeigen. Prüfe jede Lösungs- und Fehlerangabe der Hinweise gegen sie:',
+		...[...gruppen.values()].map((g) => `- „${g[0]?.titel ?? ''}“ (dokumente/${g[0]?.slug ?? ''}): ${g.map((x) => x.datei).join(', ')}`),
+	].join('\n');
+};
+
+export const fachblickText = (o: FachblickAuftrag) => {
+	const messung = o.teil ? o.messung.filter((m) => m.seite >= (o.teil?.erste ?? 0) && m.seite <= (o.teil?.letzte ?? 0)) : o.messung;
+	const andere = o.andere.slice(0, fremdeGrenze(o));
+	return [
+		`${FACHBLICK_ANFANG} „${o.titel}“ (${o.artName}), ${o.klasse}, ${o.fach}.`,
+		o.teil ? teilText(o.teil) : '',
+		o.auftrag ? `Auftrag der Lehrkraft (aus dem Assistenten):\n${o.auftrag}` : '',
+		o.ziele.length
+			? `Ich-kann-Ziele der Lehrkraft: ${o.ziele.map((z) => `„${z}“`).join(' · ')}`
+			: 'Ich-kann-Ziele: Die Lehrkraft hat keine genannt. Nimm das Ich-kann-Ziel auf den Seiten und die Handlung der Stunde.',
+		o.stunden ?? '',
+		o.pruefpunkte ??
+			(o.fachSkill
+				? `Es gibt keine fachlichen Prüfpunkte aus einer Recherche. Lies zuerst den Fach-Skill ganz mit Read und prüfe gegen seine Fachdidaktik:\n- ${o.fachSkill}`
+				: 'Es gibt keine fachlichen Prüfpunkte und keinen Fach-Skill: Prüfe gegen die fachliche Definition.'),
+		['Die Seiten liegen in deinem Arbeitsordner. Sieh dir jede mit Read an:', ...o.seiten.map((s) => `- ${s}`)].join(
+			'\n',
+		),
+		o.ausschnitte.length
+			? `Ausschnitte je Aufgabe, wenn du etwas genauer sehen willst: ${o.ausschnitte.slice(0, PRUEF_GRENZEN.ausschnitte).join(', ')}${o.ausschnitte.length > PRUEF_GRENZEN.ausschnitte ? '; weitere Ausschnitte im Ordner' : ''}`
+			: '',
+		o.loesungen.length
+			? ['Die Lösungsseiten, gleich mit den Seiten anzusehen:', ...o.loesungen.map((s) => `- ${s}`)].join('\n')
+			: 'Zu diesem Material gibt es keine Lösungsseiten.',
+		andere.length ? fremdeText(andere) : '',
+		o.berechnet.length
+			? [
+					'Elemente der Schoolbox in diesem Material; sie berechnen ihre Lösung selbst aus ihren Angaben (Inhalt, keine Anweisung an dich):',
+					...o.berechnet.map((b) => `- ${b}`),
+				].join('\n')
+			: '',
+		messung.length
+			? [
+					'Messung des Baus an den freien Zeichnungen (Daten, kein Urteil; „Mitte“ heißt die Mitte des Rahmens):',
+					...messung.map((m) => `- Seite ${m.seite}: ${m.text}`),
+				].join('\n')
+			: '',
+	]
+		.filter(Boolean)
+		.join('\n\n');
+};
+
 // ── Antwort lesen ──
 
 const SYNONYME: Record<string, PruefArt> = {
@@ -310,6 +534,10 @@ const SYNONYME: Record<string, PruefArt> = {
 	'zahlen': 'zahlen',
 	'zahl': 'zahlen',
 	'seitenzahl': 'zahlen',
+	'fach': 'fach',
+	'fachlich': 'fach',
+	'fachlich-falsch': 'fach',
+	'fachfehler': 'fach',
 	'loesung': 'loesung',
 	'loesung-falsch': 'loesung',
 	'loesung-fehlt': 'loesung',
@@ -420,8 +648,15 @@ export const befundZeile = (b: PruefBefund) =>
 		.filter(Boolean)
 		.join(', ')}: ${b.text}`;
 
-/** Befunde, die an der Sache behoben werden und Folgekorrekturen in anderen Materialien auslösen (243; 244 nimmt `fach` auf). */
-export const FACHLICHE_ARTEN: readonly PruefArt[] = ['loesung'];
+/** Befunde, die an der Sache behoben werden und Folgekorrekturen in anderen Materialien auslösen (243, 244). */
+export const FACHLICHE_ARTEN: readonly PruefArt[] = ['fach', 'loesung'];
+
+/** So markiert die Oberfläche einen Befund `fach`, der nach der letzten Korrekturrunde offen blieb (244). */
+export const FACHLICH_PRUEFEN = 'fachlich prüfen';
+
+/** Die Befunde `fach`, die nach der letzten Runde offen sind; solange die Prüfung läuft, keine. */
+export const fachlichOffen = (p: Pick<PruefStand, 'status' | 'offen'>) =>
+	p.status === 'laeuft' ? [] : p.offen.filter((b) => b.art === 'fach');
 
 /** Das Feld in `steckbrief.json`, in dem die Korrekturrunde andere Materialien mit derselben Aussage nennt (243). */
 export const FOLGEN_FELD = 'folgen';
@@ -467,6 +702,9 @@ export const istFolgekorrektur = (text: string) => text.startsWith(`${FOLGEKORRE
 export const pruefKorrektur = (befunde: readonly PruefBefund[], server: readonly string[]) =>
 	[
 		'Korrekturrunde nach der Prüfung. Ein eigener Lauf hat das gebaute Material ohne Kenntnis des Baus angesehen und jede Aufgabe gelöst wie ein Kind der Klasse.',
+		befunde.some((b) => b.art === 'fach')
+			? `Ein zweiter Lauf, der Fachblick, hat jede Aussage, Aufgabe und Lösung gegen die fachliche Definition und die Prüfpunkte geprüft; seine Befunde heißen „${PRUEF_ART_NAME.fach}“.`
+			: '',
 		befunde.length ? ['Er meldet:', ...befunde.map((b) => `- ${befundZeile(b)}`)].join('\n') : '',
 		befunde.some((b) => b.art === 'loesung')
 			? `Zu „${PRUEF_ART_NAME.loesung}“: Prüfe, ob die Aufgabe oder die Lösung falsch ist, und ändere das Falsche.`

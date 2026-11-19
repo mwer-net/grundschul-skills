@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { chmod, mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import { chmod, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, afterEach, before, describe, it } from 'node:test';
@@ -340,7 +341,8 @@ describe('Lauf einer Einheit (139)', () => {
 			einheitAnsicht: async (quelle, ziel) => {
 				await mkdir(ziel, { recursive: true });
 				// Die Quelle als „Seitenbild“: So sieht der Prüflauf der Attrappe, was auf der Seite steht.
-				const bilder = Array.from({ length: ansichtSeiten }, (_, i) => `seite-${i + 1}.png`);
+				// 244: dazu eine Lösungsseite; nur der Fachblick (und Rollen mit Kind) bekommt sie in seinen Ordner.
+				const bilder = [...Array.from({ length: ansichtSeiten }, (_, i) => `seite-${i + 1}.png`), 'loesung-seite-1.png'];
 				for (const b of bilder) {
 					await writeFile(path.join(ziel, b), await readFile(quelle));
 				}
@@ -671,7 +673,7 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.equal(p.einheit, id);
 			assert.deepEqual(
 				p.laeufe.map((e) => e.art).filter((a) => a !== 'recherche'),
-				['plan', 'bau', 'pruefung', 'bau', 'pruefung', 'schluss'],
+				['plan', 'bau', 'pruefung', 'pruefung', 'bau', 'pruefung', 'pruefung', 'schluss'],
 			);
 			for (const e of await baulaeufe(mappe)) {
 				assert.equal(e.ergebnis, 'fertig');
@@ -685,6 +687,10 @@ describe('Lauf einer Einheit (139)', () => {
 				assert.equal(e.bauen.at(-1)?.seiten, 1);
 				assert.equal(typeof e.sekunden, 'number');
 			}
+			assert.deepEqual(
+				p.laeufe.filter((e) => e.art === 'pruefung').map((e) => e.rolle),
+				['kind', 'fach', 'kind', 'fach'],
+			);
 			assert.doesNotMatch(roh, /Auftrag der Lehrkraft|Schritt 2|Uhrzeit|Zur Klasse/);
 		});
 
@@ -785,9 +791,12 @@ describe('Lauf einer Einheit (139)', () => {
 				'plan:',
 				'bau:fall-1',
 				'pruefung:fall-1',
+				'pruefung:fall-1',
 				'korrektur:fall-1',
 				'pruefung:fall-1',
+				'pruefung:fall-1',
 				'bau:fall-2',
+				'pruefung:fall-2',
 				'pruefung:fall-2',
 				'schluss:_schluss',
 			]);
@@ -807,18 +816,31 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.match(runde[0] ?? '', /- Seite 1, Aufgabe 1, [^:]+: Was mit den Uhren zu tun ist, steht nicht da\./);
 			const laeufe = (await jsonl<{ erste: string; resume: boolean }>('laeufe.jsonl')).slice(laeufeVorher);
 			assert.equal(laeufe.find((l) => l.erste.startsWith('Korrekturrunde nach der Prüfung.'))?.resume, true);
-			// Der Prüflauf sieht weder Lösung noch Bau: nur die Seiten, Klasse, Fach und den Auftrag (241).
+			// Der Prüflauf sieht den Bau nicht: nur die Seiten, Klasse, Fach und den Auftrag (241), beim Arbeitsblatt die
+			// Lösung nach Teil 1 (229). Der Fachblick daneben sieht die Lösung, in seinem eigenen Ordner (244).
 			const pruefungen = (
-				await jsonl<{ titel: string; loesung: boolean; kind: boolean }>('pruefungen.jsonl')
+				await jsonl<{ titel: string; rolle: string; loesung: boolean; kind: boolean }>('pruefungen.jsonl')
 			).slice(pruefVorher);
 			assert.deepEqual(
-				pruefungen.map((x) => [x.titel, x.loesung, x.kind]),
+				pruefungen.filter((x) => x.rolle === 'kind').map((x) => [x.titel, x.loesung, x.kind]),
 				[
-					['Fall 1', false, true],
-					['Fall 1', false, true],
-					['Fall 2', false, true],
+					['Fall 1', true, true],
+					['Fall 1', true, true],
+					['Fall 2', true, true],
 				],
 			);
+			assert.deepEqual(
+				pruefungen.filter((x) => x.rolle === 'fach').map((x) => [x.titel, x.loesung]),
+				[
+					['Fall 1', true],
+					['Fall 1', true],
+					['Fall 2', true],
+				],
+			);
+			const fachPrompt = neu.find((x) => x.startsWith('Fachblick auf „Fall 1“')) ?? '';
+			assert.match(fachPrompt, /Klasse 2, Mathematik/);
+			assert.match(fachPrompt, /- loesung\/loesung-seite-1\.png/);
+			assert.match(fachPrompt, /Ich-kann-Ziele/);
 			const pruefPrompt = neu.find((x) => x.startsWith('Prüfung von „Fall 1“')) ?? '';
 			assert.match(pruefPrompt, /Klasse 2, Mathematik/);
 			assert.match(
@@ -846,9 +868,10 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.doesNotMatch(neu[1] ?? '', /- seite-16\.png/);
 			const e = (await protokoll(mappe)).laeufe.filter((x) => x.art === 'pruefung' && x.material === 'fall-1');
 			assert.deepEqual(
-				e.map((x) => x.hinweis),
+				e.filter((x) => x.rolle === 'kind').map((x) => x.hinweis),
 				['Prüflauf 1 von 2, Seiten 1–16 von 30.', 'Prüflauf 2 von 2, Seiten 17–30 von 30.'],
 			);
+			assert.ok(e.filter((x) => x.rolle === 'fach').length >= 2);
 			assert.ok(e.every((x) => x.ergebnis === 'fertig' && x.kostenUsd !== null));
 		});
 
@@ -863,7 +886,7 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.equal(p?.offen.length, 1);
 			assert.equal(p?.offen[0]?.art, 'unklar');
 			assert.equal(nachPruefung((await prompts()).slice(vorher)).length, 2);
-			assert.equal((await arten(mappe)).filter((a) => a === 'pruefung:fall-1').length, 3);
+			assert.equal((await arten(mappe)).filter((a) => a === 'pruefung:fall-1').length, 6);
 			assert.match(await quelle(s, mappe, 'fall-1'), /Mach was mit den Uhren/);
 		});
 
@@ -876,8 +899,8 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.deepEqual(s.pruefung?.['fall-1']?.offen, []);
 			assert.deepEqual(nachPruefung((await prompts()).slice(vorher)), []);
 			const e = (await protokoll(mappe)).laeufe.filter((x) => x.art === 'pruefung');
-			assert.equal(e.length, 2);
-			assert.match(e[0]?.hinweis ?? '', /keinen lesbaren Block/);
+			assert.equal(e.length, 4);
+			assert.ok(e.every((x) => /keinen lesbaren Block/.test(x.hinweis ?? '')));
 		});
 
 		it('Scheitert der Prüflauf, bleibt das Material und der Bau geht weiter', async () => {
@@ -889,8 +912,8 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.ok(s.pruefung?.['fall-1']?.grund);
 			assert.equal(s.schluss?.status, 'fertig');
 			const e = (await protokoll(mappe)).laeufe.filter((x) => x.art === 'pruefung');
-			assert.equal(e.length, 2);
-			assert.notEqual(e[0]?.ergebnis, 'fertig');
+			assert.equal(e.length, 4);
+			assert.ok(e.every((x) => x.ergebnis !== 'fertig'));
 		});
 
 		it('Doppelte Abbildung: der Server meldet sie dem zweiten Material und dem Schlusslauf', async () => {
@@ -977,6 +1000,47 @@ describe('Lauf einer Einheit (139)', () => {
 			const neu = (await prompts()).slice(vorher);
 			assert.equal(neu.length, 1);
 			assert.match(neu[0] ?? '', /^Schritt 3: der Schlusslauf/);
+		});
+
+		const lebt = (pid: number) => existsSync(`/proc/${pid}`) && !/^State:\s+Z/m.test(readFileSync(`/proc/${pid}/status`, 'utf8'));
+
+		it('Kinderaugen und Fachblick gleichzeitig: Abbrechen beendet beide, beide Prüfordner sind weg (244)', async () => {
+			await fall('einheit-pruefung-haenger');
+			const { id } = await starte();
+			const einheit = path.join(einheitenWurzel(server.materialDir), `einheit-${id}`);
+			const pidDatei = path.join(einheit, 'pid');
+			let pids: number[] = [];
+			await warte(() => {
+				pids = existsSync(pidDatei) ? readFileSync(pidDatei, 'utf8').split('\n').filter(Boolean).map(Number) : [];
+				return pids.length === 2;
+			});
+			assert.ok(pids.every(lebt));
+			assert.ok(existsSync(path.join(einheit, 'pruefung')));
+			assert.ok(existsSync(path.join(einheit, 'pruefung-fach', 'loesung')));
+			await api(`/einheiten/${id}/abbrechen`, { method: 'POST' });
+			const s = await bis(id, 'unvollstaendig');
+			await warte(() => !pids.some(lebt));
+			assert.ok(!existsSync(path.join(einheit, 'pruefung')));
+			assert.ok(!existsSync(path.join(einheit, 'pruefung-fach')));
+			assert.equal(s.pruefung?.['fall-1']?.status, 'abgebrochen');
+		});
+
+		it('Beim Start: beide verwaisten Prüfläufe aus der PID-Datei werden beendet (244)', async () => {
+			const einheit = path.join(einheitenWurzel(server.materialDir), 'einheit-verwaist244');
+			await mkdir(einheit, { recursive: true });
+			const kinder = [0, 1].map(() =>
+				spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)', einheit], { stdio: 'ignore' }),
+			);
+			const pids = kinder.map((k) => k.pid ?? 0);
+			await writeFile(path.join(einheit, 'pid'), pids.join('\n') + '\n');
+			assert.ok(pids.every(lebt));
+			await server.kontext.einheiten.beendeReste();
+			await warte(() => kinder.every((k) => k.exitCode !== null || k.signalCode !== null));
+			assert.deepEqual(
+				kinder.map((k) => k.signalCode),
+				['SIGTERM', 'SIGTERM'],
+			);
+			await rm(einheit, { recursive: true, force: true });
 		});
 	});
 
