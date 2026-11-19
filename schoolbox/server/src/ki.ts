@@ -397,6 +397,8 @@ export interface KiWunsch {
 	recherche?: RechercheErgebnis;
 	/** 253: Neues Blatt: die Kennungen der Leitfigur aus der Bibliothek; ihre Posen liegen im Bau in `bilder/`. */
 	leitfigur?: string[];
+	/** 253: Neues Blatt: die Angaben der Lehrkraft (Thema, Ziel, Titel …), nach denen der Bau Requisiten sucht. */
+	requisitenSuche?: string;
 }
 
 export type KiPruefer = (dokDir: string, html: string) => Promise<Pruefbericht>;
@@ -2392,10 +2394,9 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 			}
 			figuren.push({ ...f, posen });
 		}
-		const auftrag = `${w.eingabe ?? ''} ${w.anhang ?? ''}`;
 		const alle = await sammleRequisiten(konfig, konfig.materialDir, w.mappe).catch(() => []);
 		const requisiten = [];
-		for (const r of requisitenFuer(alle, auftrag)) {
+		for (const r of requisitenFuer(alle, w.requisitenSuche ?? '')) {
 			const datei = path.join(ziel, r.datei);
 			await mkdir(ziel, { recursive: true });
 			if (!existsSync(datei) && (await copyFile(r.pfad, datei).then(() => true, () => false))) {

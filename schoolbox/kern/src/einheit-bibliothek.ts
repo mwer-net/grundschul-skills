@@ -236,14 +236,31 @@ export interface Requisit {
 export const istRequisit = (e: BildAngabe) =>
 	e.datei.endsWith('.png') && !e.datei.startsWith('v-') && Boolean(e.motiv.trim()) && bildFigur(e) === null;
 
+/** Wörter, die in fast jedem Auftrag und Motiv stehen und nie ein Requisit treffen sollen. */
+const STOPPWOERTER = new Set(
+	'nicht keine keinen keiner einer eines einem einen immer wieder kapitel lehrkraft schon diese dieser dieses seine seinen ihren haben werden wird sollen soll durch unter über nach zwischen alle allen jeder jede jedes etwas gegen'.split(
+		' ',
+	),
+);
+
 const woerter = (t: string) =>
 	new Set(
 		t
 			.toLocaleLowerCase('de')
 			.split(/[^\p{L}]+/u)
-			.filter((w) => w.length >= 5)
+			.filter((w) => w.length >= 5 && !STOPPWOERTER.has(w))
 			.map((w) => w.slice(0, 6)),
 	);
+
+/** Die Textwerte eines Objekts, ohne seine Schlüssel: Danach sucht `requisitenFuer`, nicht nach Feldnamen aus JSON. */
+export const textWerte = (wert: unknown): string[] =>
+	typeof wert === 'string'
+		? [wert]
+		: Array.isArray(wert)
+			? wert.flatMap(textWerte)
+			: wert && typeof wert === 'object'
+				? Object.values(wert).flatMap(textWerte)
+				: [];
 
 export const MAX_REQUISITEN = 8;
 
@@ -267,7 +284,7 @@ export const requisitenFuer = <R extends Requisit>(alle: readonly R[], auftrag: 
 export const requisitenText = (liste: readonly Requisit[], ordner: string) =>
 	liste.length
 		? [
-				'Requisiten aus früheren Einheiten (liegen schon in bilder/; passt eins, nimm es, statt ein neues zu erzeugen):',
+				'Requisiten aus früheren Einheiten (liegen schon in bilder/). Sieh dir ein Requisit vorher mit Read an und nimm es nur, wenn es dem Kanon (falls es einen gibt) und dem Vertrag des Bildes entspricht, dann statt ein neues zu erzeugen:',
 				...liste.map((r) => `- ${ordner}${r.datei}: ${r.motiv.slice(0, 160)} (aus „${r.mappe}“)`),
 			].join('\n')
 		: '';

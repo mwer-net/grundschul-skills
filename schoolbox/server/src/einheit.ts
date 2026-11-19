@@ -168,6 +168,7 @@ import {
 	requisitenFuer,
 	requisitenText,
 	steckbriefAus,
+	textWerte,
 	VERMERK_GEGENSTAND,
 } from '@schoolbox/kern/src/einheit-bibliothek';
 import type { BibliotheksFigur } from '@schoolbox/kern/src/figuren';
@@ -1064,10 +1065,16 @@ export const erstelleEinheiten = (
 	/** 253: Passende Requisiten früherer Einheiten für den Bilderlauf, als Kopie in `bilder/`. */
 	const legeRequisitenBereit = async (s: EinheitStand, plan: EinheitPlan) => {
 		const ziel = path.join(arbeitDir(s.id), 'bilder');
-		const auftrag = [s.titel, ...(plan.dokumente ?? []).map((d) => d.titel)].join(' ');
+		// Nur Textwerte: Titel, die Geschichte und die Gegenstände des Kanons, keine Feldnamen aus dem Plan.
+		const auftrag = [
+			s.titel,
+			...(plan.dokumente ?? []).map((d) => d.titel),
+			...textWerte(plan.geschichte),
+			...(plan.kanon?.dinge ?? []).map((d) => d.name),
+		].join(' ');
 		const alle = await sammleRequisiten(kontext.konfig, materialDir, s.mappe).catch(() => []);
 		const liste = [];
-		for (const r of requisitenFuer(alle, `${auftrag} ${JSON.stringify(plan.geschichte ?? '')}`)) {
+		for (const r of requisitenFuer(alle, auftrag)) {
 			const datei = path.join(ziel, r.datei);
 			if (existsSync(datei)) {
 				continue;

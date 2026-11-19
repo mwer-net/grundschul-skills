@@ -12,6 +12,7 @@ import {
 	posenText,
 	requisitenFuer,
 	steckbriefAus,
+	textWerte,
 } from './einheit-bibliothek';
 import { EINGEBAUTE } from './figuren';
 
@@ -99,6 +100,13 @@ describe('einheit-bibliothek (253)', () => {
 			['laterne.png A'],
 		);
 		assert.deepEqual(requisitenFuer(alle, 'Zahlen bis 20'), []);
+		// Stoppwörter und Feldnamen treffen nichts: „nicht“ und „Kapitel“ stehen in fast jedem Auftrag.
+		const allgemein = [
+			{ datei: 'schild.png', motiv: 'Schild: Bitte nicht stören', mappe: 'A' },
+			{ datei: 'buch.png', motiv: 'Buch, aufgeschlagen bei Kapitel 3', mappe: 'A' },
+		];
+		assert.deepEqual(requisitenFuer(allgemein, 'Luna findet den Schlüssel nicht. Kapitel 2: die Brücke'), []);
+		assert.deepEqual(textWerte({ kurz: 'Die Laterne', kapitel: [{ nr: 1, text: 'Brücke' }] }), ['Die Laterne', 'Brücke']);
 	});
 
 	it('leseHerkunft: fünf oder acht Spalten, die letzte Zeile je Datei gilt', () => {

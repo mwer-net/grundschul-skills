@@ -90,6 +90,7 @@ const eingabeVon = (body: Record<string, unknown>, dokument: Pick<Antworten, 'ar
 		bausteine,
 		recherche,
 		leitfigur: leitfigurIds(antworten.leitfigur),
+		requisitenSuche: [antworten.thema, antworten.ziel, antworten.titel, antworten.sonst].join(' '),
 	};
 };
 
@@ -152,6 +153,7 @@ export const kiApi = (router: RouterTyp, kontext: Kontext) => {
 						eingabe: eingabe.text,
 						bausteine: eingabe.bausteine,
 						leitfigur: eingabe.leitfigur,
+						requisitenSuche: eingabe.requisitenSuche,
 						...(eingabe.recherche ? { rechercheAnfrage: eingabe.recherche } : {}),
 					}
 				: {}),
