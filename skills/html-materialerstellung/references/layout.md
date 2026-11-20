@@ -1,6 +1,6 @@
 # Layout-Regeln für HTML-Material
 
-Ziel: übersichtlich, ohne Darstellungsfehler (abgeschnitten, überlappend, verrutscht), druckfertig in Farbe und in der s/w-Ansicht (`grundschul-didaktik/references/druck-und-platz.md`). `blatt.css` setzt die meisten Regeln schon um; diese Datei sagt, was beim Schreiben des HTML zu beachten ist.
+Ziel: übersichtlich, ohne Darstellungsfehler (abgeschnitten, überlappend, verrutscht), druckfertig in Farbe und in der s/w-Ansicht (`grundschul-didaktik/references/druck-und-platz.md`). `blatt.css` setzt die meisten Regeln schon um; diese Datei sagt, was beim Schreiben des HTML zu beachten ist. `blatt.css` liest du nicht: Die Klassen stehen in [klassen.md](klassen.md).
 
 Maße in CSS-px (96 dpi): A4 = 794 × 1123 px, 1 cm ≈ 38 px.
 

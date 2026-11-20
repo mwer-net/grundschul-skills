@@ -20,6 +20,7 @@ import { pflichtTabelle } from './einheit-bau';
 import { figurenListe } from './figuren';
 import { formenTabelle } from './formen';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
+import { klassenIndex } from './klassen-index';
 import { HINWEIS_OHNE } from './meldungen';
 import { symmetrieTabelle } from './symmetrie';
 import type { ArtAngaben } from './werte';
@@ -38,6 +39,7 @@ const PFLICHTLEKTUERE_MD = 'skills/html-materialerstellung/references/pflichtlek
 const AELTERER_SATZ = 'skills/html-materialerstellung/references/aelterer-satz.md';
 const ABBILDUNGEN = 'skills/html-materialerstellung/references/abbildungen.md';
 const GEOMETRIE = 'skills/html-materialerstellung/references/abbildungen/mathe-geometrie.md';
+const KLASSEN = 'skills/html-materialerstellung/references/klassen.md';
 
 const tabelle = (kopf: string[], zeilen: string[][]) =>
 	[
@@ -462,6 +464,8 @@ export const ABSCHNITTE: Abschnitt[] = [
 	{ datei: ABBILDUNGEN, marke: 'abbildungen-index', inhalt: abbildungenIndex },
 	// Symmetrie (245): Achsen der Buchstaben und Ziffern für x-symmetrie-sortieren
 	{ datei: GEOMETRIE, marke: 'symmetrie-zeichen', inhalt: symmetrieTabelle },
+	// Klassen (252): der Index von blatt.css, damit der Bau die CSS nicht liest
+	{ datei: KLASSEN, marke: 'klassen-index', inhalt: (wurzel) => klassenIndex(readFileSync(path.join(wurzel, BLATT_CSS), 'utf8')) },
 ];
 
 /** Setzt den Inhalt zwischen `<!-- erzeugt: marke -->` und `<!-- /erzeugt: marke -->`. */

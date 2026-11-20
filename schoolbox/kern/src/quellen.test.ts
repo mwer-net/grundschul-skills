@@ -5,7 +5,7 @@
 
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, describe, it } from 'node:test';
@@ -24,6 +24,7 @@ import { leseAbbildungsKatalog } from './abbildungen-katalog';
 import { browserSkip } from './browsertest';
 import { LAUF_MELDUNGEN } from './einheit';
 import { ABBILDUNGEN_DATEIEN } from './einheit-bau';
+import { klassenIndex } from './klassen-index';
 import { ASSETS, BLATT_PY, SKILL_DIR, WURZEL } from './konfig';
 import { MELDUNG_CODES } from './meldungen';
 import { abgleichen, ABSCHNITTE, katalogFehler, setzeAbschnitt } from './quellen';
@@ -577,5 +578,54 @@ describe('Assistent (045)', () => {
 		assert.deepEqual(mini, ['lesetext']);
 		const tabelle = readFileSync(path.join(WURZEL, 'skills/grundschul-didaktik/references/rueckfragen.md'), 'utf8');
 		assert.equal(tabelle.split('Mini-Book').length - 1, 1);
+	});
+});
+
+describe('Klassen von blatt.css (252)', () => {
+	const KLASSEN_MD = readFileSync(path.join(SKILL_DIR, 'references', 'klassen.md'), 'utf8');
+	const imIndex = new Set([...KLASSEN_MD.matchAll(/`\.([\w-]+)`/g)].map((t) => t[1]));
+	/** Steht im Muster, hat aber keine Regel: das Muster setzt alles im style. */
+	const OHNE_REGEL = new Set(['zellen']);
+
+	it('jede Klasse aus Vorlagen, Beispielen und Mustern steht in klassen.md', () => {
+		const dateien = readdirSync(ASSETS, { recursive: true, encoding: 'utf8' }).filter((d) => d.endsWith('.html'));
+		assert.ok(dateien.length > 10);
+		const fehlt = new Set<string>();
+		for (const datei of dateien) {
+			const html = readFileSync(path.join(ASSETS, datei), 'utf8')
+				.replace(/<svg[\s\S]*?<\/svg>/g, '')
+				.replace(/<(script|style)[\s\S]*?<\/\1>/g, '');
+			for (const [, liste] of html.matchAll(/class="([^"]*)"/g)) {
+				for (const k of liste?.split(/\s+/).filter(Boolean) ?? []) {
+					if (!imIndex.has(k) && !OHNE_REGEL.has(k)) {
+						fehlt.add(`${k} (${datei})`);
+					}
+				}
+			}
+		}
+		assert.deepEqual([...fehlt], []);
+	});
+
+	it('bleibt unter dem Lesen in einem Stück (Ziel unter 6000 Token)', () => {
+		assert.ok(KLASSEN_MD.length <= 11_000, `${KLASSEN_MD.length} Zeichen`);
+	});
+
+	it('Probe: Klassen nur in einem x-Element fehlen, der erste Satz zählt, ein fehlender Schlüssel scheitert', () => {
+		const probe = [
+			'/* Weniger Rand oben und unten. */',
+			'/* Schulziffern: 1 ohne Fuß, offene 4, 7 mit Querstrich, wie die Kinder sie schreiben */',
+			'/* Schlägt das font-family-Attribut am SVG-Text: Vorlage, Vorbild und Lösung in Schreibschrift */',
+			'',
+			'/* == Rätsel == */',
+			'/* Karten mit Ecke. Mehr dazu in Kl. 2 */',
+			'.karte,x-domino .stein{color:red}',
+			'x-sortieren .sortier:is(.woerter,.zahlen){gap:1px}',
+			'@media print{.karte .ecke{color:blue}}',
+		].join('\n');
+		const index = klassenIndex(probe);
+		assert.match(index, /^### Rätsel$/m);
+		assert.match(index, /^- Karten mit Ecke: `\.karte` `\.ecke`$/m);
+		assert.doesNotMatch(index, /stein|woerter|zahlen/);
+		assert.throws(() => klassenIndex('.a{}'), /hat den Kommentar nicht mehr/);
 	});
 });
