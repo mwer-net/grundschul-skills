@@ -68,7 +68,7 @@ In einer Reihe gibt es eine Lernlandkarte oder einen Selbsteinschätzungsbogen n
 ## Umsetzung (`html-materialerstellung`)
 
 - Erwartungshorizont über die Lösungs-Markierungen (`data-l`, `nur-loesung`) als eigenes PDF (`-loesung.pdf`), nie auf dem Blatt der Kinder.
-- Auflösung und Erwartungshorizont als eigenes Material oder eigene Datei (`*-loesung.pdf`), nie als Seite hinter den Kinderseiten im selben PDF. Das gilt auch für die Auflösung einer Geschichte, die die Kontrolle abschließt: Sie steht im Vorleseheft, auf den Folien oder in einem eigenen Material.
+- Auflösung und Erwartungshorizont als eigenes Material oder eigene Datei (`*-loesung.pdf`), nie als Seite hinter den Kinderseiten im selben PDF. Das gilt auch für die Auflösung einer Geschichte, die die Kontrolle abschließt: Sie steht im Vorleseheft, auf den Folien, in einem eigenen Material oder im selben HTML auf einer eigenen Seite `class="seite … aufloesung nur-loesung"` (nur im Lösungs-PDF). Steht eine `.aufloesung` im PDF der Kinder, meldet `blatt.py` einen FEHLER (`aufloesung-sichtbar`).
 - Aufgaben ohne Kasten mit hängender Nummer (`grundschul-didaktik/references/druck-und-platz.md`); die gewonnene Höhe geht an die Schreibflächen, nicht an mehr Aufgaben.
 
 **Aufgabenformate:** Lückentext, Wortspeicher, Ankreuzen und Richtig/Falsch sind fertige Elemente, siehe `html-materialerstellung/references/abbildungen.md`, Abschnitt „Aufgabenformate“.
