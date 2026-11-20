@@ -9,7 +9,10 @@ import { rolleVon } from './einheit-bau';
 import type { BildAngabe } from './einheit-bibliothek';
 import { istGrundpose as istGrundposeBild } from './einheit-bibliothek';
 
-/** Grenzen beim Lesen, wie `kurz` und `kurzListe` für die übrigen Felder des Plans. */
+/**
+ * Grenzen des Kanons. Der Planlauf muss sie einhalten (`kanonMeldungen`, 263); beim Lesen eines alten Plans kürzt
+ * `leseKanon` darauf, wie `kurz` und `kurzListe` für die übrigen Felder des Plans.
+ */
 export const KANON_GRENZEN = {
 	figuren: 8,
 	merkmale: 5,
@@ -65,7 +68,13 @@ export interface EinheitKanon {
 	figuren: KanonFigur[];
 	dinge: KanonDing[];
 	geheim: KanonGeheim[];
+	/** Alle Regeln der Welt, mit und ohne Bildbezug: Bau-, Prüf- und Schlusslauf bekommen jede. */
 	regeln: string[];
+	/**
+	 * Die Regeln aus `regeln`, die der Plan mit `bild: false` kennzeichnet (263): Sie gehören in keinen Bildvertrag.
+	 * Fehlt, wenn jede Regel Bildbezug hat, und bei Plänen davor.
+	 */
+	regelnOhneBild?: string[];
 	begriffe: KanonBegriff[];
 }
 
@@ -77,8 +86,19 @@ export interface KanonNachtrag {
 	von: string;
 }
 
-const kurz = (wert: unknown, max: number) =>
-	typeof wert === 'string' ? wert.replace(/\s+/g, ' ').trim().slice(0, max) : '';
+const einzeilig = (wert: unknown) => (typeof wert === 'string' ? wert.replace(/\s+/g, ' ').trim() : '');
+
+/** Kürzt auf höchstens `max` Zeichen, am Ende eines Worts und mit „…“ statt eines halben Worts (263). */
+export const kuerze = (text: string, max: number) => {
+	if (text.length <= max) {
+		return text;
+	}
+	const vorn = text.slice(0, max - 1);
+	const ganz = /\s/.test(text.charAt(max - 1)) ? vorn : vorn.replace(/\s+\S*$/, '');
+	return `${(ganz.length >= max / 2 ? ganz : vorn).replace(/[\s,;:–-]+$/, '')}…`;
+};
+
+const kurz = (wert: unknown, max: number) => kuerze(einzeilig(wert), max);
 
 const kurzListe = (wert: unknown, max: number, laenge: number) =>
 	(Array.isArray(wert) ? wert : [])
@@ -145,17 +165,36 @@ const leseBegriffe = (roh: unknown) =>
 		.filter((b) => b.wort && b.bedeutung)
 		.slice(0, KANON_GRENZEN.begriffe);
 
-/** Liest `kanon` aus dem Plan; Ungültiges fällt heraus, ein leerer Kanon ist `undefined`. */
+/** Eine Regel im Plan: ein Satz (gilt als `bild: true`) oder `{"text": "…", "bild": false}` (263). */
+const regelVon = (r: unknown) => {
+	const x = typeof r === 'string' ? { text: r } : objekt(r);
+	return { text: einzeilig(x.text), bild: x.bild !== false };
+};
+
+const leseRegeln = (roh: unknown) =>
+	(Array.isArray(roh) ? roh : [])
+		.map(regelVon)
+		.filter((r) => r.text)
+		.slice(0, KANON_GRENZEN.regeln)
+		.map((r) => ({ ...r, text: kuerze(r.text, KANON_GRENZEN.regel) }));
+
+/**
+ * Liest `kanon` aus dem Plan tolerant, für alte Pläne: Ungültiges fällt heraus, zu Langes wird gekürzt, ein leerer
+ * Kanon ist `undefined`. Einen neuen Plan prüft vorher `kanonMeldungen`.
+ */
 export const leseKanon = (roh: unknown): EinheitKanon | undefined => {
 	if (typeof roh !== 'object' || roh === null) {
 		return undefined;
 	}
 	const x = roh as Record<string, unknown>;
+	const regeln = leseRegeln(x.regeln);
+	const ohneBild = regeln.filter((r) => !r.bild).map((r) => r.text);
 	const kanon: EinheitKanon = {
 		figuren: leseFiguren(x.figuren),
 		dinge: leseDinge(x.dinge),
 		geheim: leseGeheim(x.geheim),
-		regeln: kurzListe(x.regeln, KANON_GRENZEN.regel, KANON_GRENZEN.regeln),
+		regeln: regeln.map((r) => r.text),
+		...(ohneBild.length ? { regelnOhneBild: ohneBild } : {}),
 		begriffe: leseBegriffe(x.begriffe),
 	};
 	const listen: readonly (readonly unknown[])[] = [
@@ -166,6 +205,166 @@ export const leseKanon = (roh: unknown): EinheitKanon | undefined => {
 		kanon.begriffe,
 	];
 	return listen.some((l) => l.length > 0) ? kanon : undefined;
+};
+
+// ── Strenge Prüfung für den Planlauf (263) ──
+
+const GANZER_KANON = 'Der Kanon';
+const liste = (wert: unknown) => (Array.isArray(wert) ? wert : []);
+const zitat = (text: string) => `„${kuerze(text, 40)}“`;
+
+const zuLang = (wer: string, wert: unknown, max: number, rat: string) => {
+	const n = einzeilig(wert).length;
+	return n > max ? [`${wer} hat ${n} Zeichen, höchstens ${max}: ${rat}.`] : [];
+};
+
+const zuViele = (wer: string, n: number, was: string, max: number, rat: string) =>
+	n > max ? [`${wer} hat ${n} ${was}, höchstens ${max}: ${rat}.`] : [];
+
+/** `Figur „Luna“`, ohne brauchbaren Namen `Figur 2`. */
+const benannt = (art: string, wert: unknown, nr: number, max: number) => {
+	const name = einzeilig(wert);
+	return name && name.length <= max ? `${art} ${zitat(name)}` : `${art} ${nr}`;
+};
+
+const eintraege = (wer: string, feld: string, wert: unknown, anzahl: number, max: number) => {
+	const texte = liste(wert).map(einzeilig).filter(Boolean);
+	return [
+		...zuViele(wer, texte.length, `Einträge in „${feld}“`, anzahl, 'fasse zusammen, was zusammengehört'),
+		...texte.flatMap((t, i) =>
+			zuLang(`${wer}, „${feld}“ ${i + 1} (${zitat(t)})`, t, max, 'teile den Eintrag in zwei oder kürze ihn'),
+		),
+	];
+};
+
+const figurMeldungen = (roh: unknown) => {
+	const figuren = liste(roh).map(objekt);
+	return [
+		...zuViele(
+			GANZER_KANON,
+			figuren.length,
+			'Figuren',
+			KANON_GRENZEN.figuren,
+			'nimm nur Figuren auf, die in Materialien oder Bildern vorkommen',
+		),
+		...figuren.flatMap((f, i) => {
+			const wer = benannt('Figur', f.name, i + 1, KANON_GRENZEN.name);
+			return [
+				...zuLang(`Figur ${i + 1}, „name“`, f.name, KANON_GRENZEN.name, 'kürze ihn'),
+				...eintraege(wer, 'fest', f.fest, KANON_GRENZEN.merkmale, KANON_GRENZEN.merkmal),
+				...eintraege(wer, 'nie', f.nie, KANON_GRENZEN.nie, KANON_GRENZEN.merkmal),
+			];
+		}),
+	];
+};
+
+const dingMeldungen = (roh: unknown) => {
+	const dinge = liste(roh).map(objekt);
+	return [
+		...zuViele(
+			GANZER_KANON,
+			dinge.length,
+			'Gegenstände',
+			KANON_GRENZEN.dinge,
+			'nimm nur Gegenstände auf, an denen die Handlung hängt',
+		),
+		...dinge.flatMap((d, i) => {
+			const wer = benannt('Gegenstand', d.name, i + 1, KANON_GRENZEN.name);
+			return [
+				...zuLang(`Gegenstand ${i + 1}, „name“`, d.name, KANON_GRENZEN.name, 'kürze ihn'),
+				...Object.entries(objekt(d.kapitel)).flatMap(([k, z]) =>
+					zuLang(`${wer}, Kapitel ${k}`, z, KANON_GRENZEN.zustand, 'kürze den Zustand'),
+				),
+			];
+		}),
+	];
+};
+
+const geheimMeldungen = (roh: unknown) => {
+	const geheim = liste(roh).map(objekt);
+	return [
+		...zuViele(
+			GANZER_KANON,
+			geheim.length,
+			'Geheimnisse',
+			KANON_GRENZEN.geheim,
+			'fasse zusammen, was zusammen enthüllt wird',
+		),
+		...geheim.flatMap((g, i) =>
+			zuLang(`Geheimnis ${i + 1} (${zitat(einzeilig(g.was))})`, g.was, KANON_GRENZEN.was, 'kürze es'),
+		),
+	];
+};
+
+const TEILE_REGEL = 'teile sie in zwei Regeln oder kürze sie';
+
+const regelMeldungen = (roh: unknown) => {
+	const regeln = liste(roh);
+	const gueltig = regeln.filter((r) => regelVon(r).text);
+	return [
+		...zuViele(
+			GANZER_KANON,
+			gueltig.length,
+			'Regeln',
+			KANON_GRENZEN.regeln,
+			'fasse verwandte Regeln zusammen oder streiche, was kein Material braucht',
+		),
+		...regeln.flatMap((r, i) => {
+			const { text } = regelVon(r);
+			const bild = objekt(r).bild;
+			if (typeof r === 'string') {
+				return text ? zuLang(`Regel ${i + 1} (${zitat(text)})`, text, KANON_GRENZEN.regel, TEILE_REGEL) : [];
+			}
+			if (!text) {
+				return [`Regel ${i + 1} hat keinen Text: Schreibe sie als {"text": "…", "bild": true} oder als Satz.`];
+			}
+			return [
+				...zuLang(`Regel ${i + 1} (${zitat(text)})`, text, KANON_GRENZEN.regel, TEILE_REGEL),
+				...(bild === undefined || typeof bild === 'boolean'
+					? []
+					: [`Regel ${i + 1} (${zitat(text)}): „bild“ ist true oder false.`]),
+			];
+		}),
+	];
+};
+
+const begriffMeldungen = (roh: unknown) => {
+	const begriffe = liste(roh).map(objekt);
+	return [
+		...zuViele(
+			GANZER_KANON,
+			begriffe.length,
+			'Fachwörter',
+			KANON_GRENZEN.begriffe,
+			'nimm nur Fachwörter auf, die eine Stunde einführt',
+		),
+		...begriffe.flatMap((b, i) => {
+			const wer = benannt('Fachwort', b.wort, i + 1, KANON_GRENZEN.wort);
+			return [
+				...zuLang(`Fachwort ${i + 1}, „wort“`, b.wort, KANON_GRENZEN.wort, 'kürze es'),
+				...zuLang(`${wer}, „bedeutung“`, b.bedeutung, KANON_GRENZEN.bedeutung, 'sag sie kürzer'),
+			];
+		}),
+	];
+};
+
+/**
+ * Prüft `kanon` aus einem neuen Plan streng (263), wie das Werkzeug „pruefen“ der Recherche (236): je zu langem Feld
+ * und je Liste mit zu vielen Einträgen ein Satz mit Stelle, Länge, Grenze und was zu tun ist. Leer, wenn alles passt
+ * oder es keinen Kanon gibt. Was hier gemeldet wird, würde `leseKanon` sonst kürzen oder weglassen.
+ */
+export const kanonMeldungen = (roh: unknown): string[] => {
+	if (typeof roh !== 'object' || roh === null) {
+		return [];
+	}
+	const x = roh as Record<string, unknown>;
+	return [
+		...figurMeldungen(x.figuren),
+		...dingMeldungen(x.dinge),
+		...geheimMeldungen(x.geheim),
+		...regelMeldungen(x.regeln),
+		...begriffMeldungen(x.begriffe),
+	].map((m) => (m.startsWith(GANZER_KANON) ? m : `Kanon, ${m}`));
 };
 
 // ── Wo ein Material in der Geschichte steht ──
@@ -394,6 +593,12 @@ const trifft = (nomen: string, wort: string) =>
 const regelImBild = (regel: string, woerter: ReadonlySet<string>, figuren: readonly string[]) =>
 	nomenDerRegel(regel, figuren).some((n) => [...woerter].some((w) => trifft(n, w)));
 
+/** Die Regeln, die ein Bildvertrag tragen kann: ohne die mit `bild: false` (263). */
+const regelnFuerBild = (kanon: EinheitKanon) => {
+	const ohne = new Set(kanon.regelnOhneBild ?? []);
+	return kanon.regeln.filter((r) => !ohne.has(r));
+};
+
 const figurPflicht = (f: KanonFigur) => `${f.name}: ${f.fest.map(ohnePunkt).join('; ')}`;
 /** Ohne doppelte Verneinung: „nie: keine Brille“ wird „nie: Brille“. */
 const ohneKein = (text: string) => ohnePunkt(text).replace(/^(?:kein|keine|keinen|keinem|keiner|nie)\s+/i, '');
@@ -439,7 +644,9 @@ export const bildVorschlag = (kanon: EinheitKanon, kapitel: number | null, text:
 						return z ? [dingZustand(d, z.zustand)] : [];
 					}),
 			),
-			...kanon.regeln.filter((r) => regelImBild(r, woerter, namen)).map(ohnePunkt),
+			...regelnFuerBild(kanon)
+				.filter((r) => regelImBild(r, woerter, namen))
+				.map(ohnePunkt),
 		],
 		verboten: [
 			...kanon.geheim.filter((g) => nochGeheim(g, kapitel ?? 0)).map(geheimZeile),
@@ -576,14 +783,22 @@ export const bilderKanonText = (kanon: EinheitKanon | undefined, kapitel: readon
 		].join(''),
 	);
 	const je = nummern.flatMap((nr) => kapitelZeilen(kanon, nr));
+	const mitBild = regelnFuerBild(kanon);
+	const ohneBild = kanon.regeln.filter((r) => !mitBild.includes(r));
 	return [
 		'Kanon für die Bilder (aus dem freigegebenen Plan). Ein Bild gehört zum Kapitel seiner Fall-Karte oder Bildfolie („3.1“ zu Kapitel 3).',
 		`Bildvertrag aus dem Kanon: Übernimm jede Zeile, die zu einem Bild passt, wörtlich als eigenen Eintrag in „pflicht“ oder „verboten“ seines Vertrags und ergänze, was das Bild sonst braucht. bild_erzeugen lehnt einen Vertrag ab, dem eine dieser Zeilen fehlt, und nennt sie. ${GRUNDPOSE_SATZ} Grundposen, Posen und das Deckblatt haben kein Kapitel: Für sie gelten Figuren, Regeln und die Geheimnisse von Kapitel 0. Eine Pose, die erst ab einem Kapitel vorkommt, nennt es am Anfang des Motivs („Kapitel 6: …“); die Grundpose nie.`,
 		figuren.length ? ['Je Figur, in jedem Bild:', ...figuren].join('\n') : '',
-		kanon.regeln.length
+		mitBild.length
 			? [
 					'Regeln der Welt. Handelt eine von einem Werkzeug oder Gegenstand im Bild, steht sie in „pflicht“; sie sagt, wie er aussieht und benutzt wird:',
-					...kanon.regeln.map((r) => `- „${ohnePunkt(r)}“`),
+					...mitBild.map((r) => `- „${ohnePunkt(r)}“`),
+				].join('\n')
+			: '',
+		ohneBild.length
+			? [
+					'Regeln der Welt ohne Bildbezug: nicht in den Vertrag, aber kein Bild widerspricht ihnen:',
+					...ohneBild.map((r) => `- „${ohnePunkt(r)}“`),
 				].join('\n')
 			: '',
 		je.length

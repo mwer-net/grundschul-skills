@@ -15,8 +15,10 @@ import {
 	geheimText,
 	GRUNDPOSE_SATZ,
 	KANON_GRENZEN,
+	kanonMeldungen,
 	kanonText,
 	kapitelVon,
+	kuerze,
 	leseKanon,
 	pruefeBildVertrag,
 	pruefKanon,
@@ -170,14 +172,14 @@ describe('Kanon der Einheit (246)', () => {
 		assert.ok(k);
 		assert.equal(k.figuren.length, KANON_GRENZEN.figuren);
 		assert.equal(k.figuren[0]?.fest.length, KANON_GRENZEN.merkmale);
-		assert.equal(k.figuren[0]?.fest[0]?.length, KANON_GRENZEN.merkmal);
+		assert.equal(k.figuren[0]?.fest[0], `${'x'.repeat(KANON_GRENZEN.merkmal - 1)}…`);
 		assert.equal(k.figuren[0]?.nie.length, KANON_GRENZEN.nie);
-		assert.deepEqual(k.dinge, [{ name: 'D', kapitel: { 2: 'x'.repeat(KANON_GRENZEN.zustand) } }]);
+		assert.deepEqual(k.dinge, [{ name: 'D', kapitel: { 2: `${'x'.repeat(KANON_GRENZEN.zustand - 1)}…` } }]);
 		assert.deepEqual(k.geheim, [
 			{ was: 'G', bis: 4 },
 			{ was: 'ohne bis', bis: null },
 		]);
-		assert.deepEqual(k.regeln, ['x'.repeat(KANON_GRENZEN.regel)]);
+		assert.deepEqual(k.regeln, [`${'x'.repeat(KANON_GRENZEN.regel - 1)}…`]);
 		assert.deepEqual(k.begriffe, [
 			{ wort: 'W', bedeutung: 'B', ab: 2 },
 			{ wort: 'X', bedeutung: 'Y', ab: null },
@@ -580,5 +582,130 @@ describe('Kanon der Einheit (246)', () => {
 		]) {
 			assert.doesNotMatch(vorlage(name), /Glöckchen|Ella|Hanne|Fridolin|Achsensymmetrie/, name);
 		}
+	});
+});
+
+describe('Kanon: melden statt kürzen, Bildvertrag nur mit Regeln fürs Bild (263)', () => {
+	/** Die Regel vom 20.11. in der Länge, die `kurz` mitten im Wort abschnitt. */
+	const LANG =
+		'Das Geobrett ist ein quadratisches Holzbrett mit 5 × 5 Nägeln in gleichen Abständen und bunten Gummis um die Nägel, die Spiegelachse ist ein Gummi über der mittleren Nagelspalte; keine Fäden, keine unregelmäßigen Nägel, auf Papier Punktefeld.';
+	const vier = (regel: unknown) => ({ ...ROH, regeln: ['Eins.', 'Zwei.', 'Drei.', regel] });
+
+	it('eine Regel mit 263 Zeichen: Meldung mit Nummer, Länge und Grenze; ein Kanon in den Grenzen meldet nichts', () => {
+		const regel = `${LANG} Dazu noch ein Satz von genau passender Länge.`.slice(0, 263);
+		assert.equal(regel.length, 263);
+		assert.deepEqual(kanonMeldungen(ROH), []);
+		assert.deepEqual(kanonMeldungen(undefined), []);
+		assert.deepEqual(kanonMeldungen(vier(regel)), [
+			'Kanon, Regel 4 („Das Geobrett ist ein quadratisches…“) hat 263 Zeichen, höchstens 200: teile sie in zwei Regeln oder kürze sie.',
+		]);
+		assert.deepEqual(kanonMeldungen(vier({ text: regel, bild: true })), kanonMeldungen(vier(regel)));
+	});
+
+	it('jedes Feld mit Grenze und jede zu lange Liste wird gemeldet, Leerraum zählt einfach', () => {
+		const n = (max: number) => 'x'.repeat(max + 1);
+		const meldungen = kanonMeldungen({
+			figuren: [
+				{ name: 'Luna', fest: [n(KANON_GRENZEN.merkmal), 'a', 'b', 'c', 'd', 'e'], nie: [n(KANON_GRENZEN.merkmal)] },
+				{ name: n(KANON_GRENZEN.name), fest: ['ein Schwanz'] },
+			],
+			dinge: [{ name: 'der Spiegel', kapitel: { 3: n(KANON_GRENZEN.zustand), 4: 'bei Hanne' } }],
+			geheim: [{ was: n(KANON_GRENZEN.was), bis: 6 }],
+			regeln: [...Array.from({ length: KANON_GRENZEN.regeln + 1 }, (_, i) => `Regel ${i}.`), { bild: false }, ''],
+			begriffe: [{ wort: 'Achse', bedeutung: n(KANON_GRENZEN.bedeutung), ab: 1 }, { wort: n(KANON_GRENZEN.wort), bedeutung: 'b' }],
+		});
+		const erwartet = [
+			'Kanon, Figur „Luna“ hat 6 Einträge in „fest“, höchstens 5',
+			'Kanon, Figur „Luna“, „fest“ 1 („xxx',
+			'101 Zeichen, höchstens 100: teile den Eintrag in zwei oder kürze ihn.',
+			'Kanon, Figur „Luna“, „nie“ 1',
+			'Kanon, Figur 2, „name“ hat 61 Zeichen, höchstens 60',
+			'Kanon, Gegenstand „der Spiegel“, Kapitel 3 hat 141 Zeichen, höchstens 140',
+			'Kanon, Geheimnis 1',
+			'Der Kanon hat 9 Regeln, höchstens 8',
+			'Kanon, Regel 10 hat keinen Text',
+			'Kanon, Fachwort „Achse“, „bedeutung“ hat 161 Zeichen, höchstens 160',
+			'Kanon, Fachwort 2, „wort“ hat 41 Zeichen, höchstens 40',
+		];
+		for (const teil of erwartet) {
+			assert.ok(
+				meldungen.some((m) => m.includes(teil)),
+				`${teil}\n${meldungen.join('\n')}`,
+			);
+		}
+		assert.equal(meldungen.length, 10);
+		assert.deepEqual(kanonMeldungen({ regeln: [`  ${'x '.repeat(100)}  `] }), []);
+		assert.deepEqual(kanonMeldungen({ regeln: [{ text: 'Eine Regel.', bild: 'ja' }] }), [
+			'Kanon, Regel 1 („Eine Regel.“): „bild“ ist true oder false.',
+		]);
+	});
+
+	it('alter Plan: lesePlan kürzt weiter, aber am Ende eines Worts und mit „…“', () => {
+		const regel = leseKanon(vier(LANG))?.regeln[3] ?? '';
+		assert.ok(regel.length <= KANON_GRENZEN.regel, String(regel.length));
+		assert.ok(regel.endsWith('…'), regel);
+		const vorn = regel.slice(0, -1);
+		assert.ok(LANG.startsWith(vorn));
+		assert.match(LANG.charAt(vorn.length), /[\s,;]/);
+		assert.equal(kuerze('kurz genug', 20), 'kurz genug');
+		assert.equal(kuerze('eins zwei drei vier', 12), 'eins zwei…');
+		assert.equal(kuerze('eins, zwei drei', 7), 'eins…');
+		assert.equal(kuerze('x'.repeat(30), 10), `${'x'.repeat(9)}…`);
+	});
+
+	describe('bild: true | false je Regel', () => {
+		const MIT_BILD = 'Lunas Spiegel ist ein Taschenspiegel mit Rahmen, kein Glas im Fenster.';
+		const OHNE_BILD = 'Die Buchstaben B, C, D und E sind symmetrisch, auch mit querer Spiegelachse.';
+		const kanon = leseKanon({ ...ROH, regeln: [MIT_BILD, { text: OHNE_BILD, bild: false }] }) as EinheitKanon;
+		const plan = {
+			kanon,
+			geschichte: {
+				kapitel: [1, 2, 3, 4, 5, 6].map((nr) => ({ nr, titel: '', inhalt: '', bildfolien: [`${nr}.1 Szene`] })),
+			},
+		} as unknown as Parameters<typeof pruefeBildVertrag>[0];
+		const motiv = 'Luna hält den Spiegel an die Buchstaben, die Spiegelachse liegt quer';
+		const vertrag = (pflicht: string[]) => ({
+			datei: 'fall-1.jpg',
+			motiv,
+			vertrag: {
+				pflicht: ['Luna: zwei Flügel; eine kleine Brille', 'der Spiegel: Luna bekommt ihn', ...pflicht],
+				verboten: ['erkennbar vor Kapitel 6: Ella ist die Täterin', 'das Glöckchen bei Luna'],
+			},
+		});
+
+		it('ein String gilt als bild: true, ein Objekt mit bild: false steht in regelnOhneBild', () => {
+			assert.deepEqual(kanon.regeln, [MIT_BILD, OHNE_BILD]);
+			assert.deepEqual(kanon.regelnOhneBild, [OHNE_BILD]);
+			assert.equal('regelnOhneBild' in KANON, false);
+			assert.equal('regelnOhneBild' in (leseKanon({ regeln: [{ text: MIT_BILD, bild: true }] }) ?? {}), false);
+		});
+
+		it('Bildvertrag ohne die Regel mit bild: false angenommen, ohne die mit bild: true abgelehnt', () => {
+			assert.deepEqual(bildVorschlag(kanon, 1, motiv).pflicht.slice(-1), [MIT_BILD.slice(0, -1)]);
+			assert.equal(pruefeBildVertrag(plan, vertrag([MIT_BILD])), null);
+			const grund = pruefeBildVertrag(plan, vertrag([OHNE_BILD]));
+			assert.ok(grund?.includes(`„${MIT_BILD.slice(0, -1)}“`), grund ?? '');
+			assert.ok(!grund?.includes('Buchstaben B'), grund ?? '');
+			const ohneKennzeichen = { ...plan, kanon: leseKanon({ ...ROH, regeln: [MIT_BILD, OHNE_BILD] }) };
+			assert.match(pruefeBildVertrag(ohneKennzeichen, vertrag([MIT_BILD])) ?? '', /Buchstaben B, C, D und E/);
+		});
+
+		it('Bau und Prüfung bekommen alle Regeln, der Bilderlauf beide getrennt', () => {
+			const bau = kanonText(kanon, { kapitel: 5 });
+			assert.ok(bau.includes(`- ${MIT_BILD}`) && bau.includes(`- ${OHNE_BILD}`));
+			const fach = pruefKanon({ ...PLAN, kanon }, { slug: 'kapitel-5', art: 'arbeitsblatt' }).fach.kanon ?? '';
+			assert.ok(fach.includes(OHNE_BILD));
+			const bilder = bilderKanonText(kanon, [6]);
+			const [mit, ohne] = bilder.split('Regeln der Welt ohne Bildbezug');
+			assert.ok(mit?.includes(MIT_BILD.slice(0, -1)) && !mit.includes('Buchstaben B'));
+			assert.ok(ohne?.includes(OHNE_BILD.slice(0, -1)));
+		});
+	});
+
+	it('Vorlagen: der Plan kennt bild je Regel, die Plan-Prüfung liest den Kanon fachlich', () => {
+		const vorlage = (name: string) => readFileSync(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', name), 'utf8');
+		assert.match(vorlage('einheit.md'), /\{"text": "…", "bild": (true|false)\}/);
+		assert.match(vorlage('einheit-plan-pruefung.md'), /Kanon fachlich/);
+		assert.doesNotMatch(vorlage('einheit-plan-pruefung.md'), /Geobrett|Nagel|Gummi/);
 	});
 });
