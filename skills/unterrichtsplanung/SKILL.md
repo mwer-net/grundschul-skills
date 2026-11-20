@@ -43,6 +43,7 @@ Für die Zeit je Phase und Aufgabe im Plan *(Erfahrungsregel)*; Kl. 1/2 am obere
 | Ankommen, Ich-kann-Ziel nennen | 2–3 |
 | Vorlesen | 1 je 100 Wörter; Auftakt 4–5, Kapitel 2–3 |
 | Bildfolie im Kreis besprechen | 0,5–1 je Folie; Impulsfolien rund 2 |
+| Mitmach-Stelle im Kreis (aufstehen, nachspielen, Wette mit Zeigen) | 1–2 je Stelle |
 | Kreisinput mit gemeinsamem Beispiel | 10–12 |
 | Material austeilen, Arbeitsplätze einrichten | 2–3 |
 | Schneiden und Kleben eines Bastelbogens | Kl. 1/2: 15–20, Kl. 3/4: 10 |

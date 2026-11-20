@@ -20,11 +20,13 @@ import {
 	fachlichOffen,
 	figurenDopplungen,
 	folgeBefund,
+	folienNotizen,
 	fremdeGrenze,
 	gepruefteZahl,
 	istFolgekorrektur,
 	leseFolgen,
 	lesePruefung,
+	PRUEF_GRENZEN,
 	PRUEF_VORGABE_ART,
 	pruefKorrektur,
 	pruefTeile,
@@ -898,5 +900,66 @@ describe('Fachblick (244)', () => {
 		assert.doesNotMatch(eigen, /anderes|Stunde 5/);
 		assert.match(fachblickStunden(plan, 'hinweise') ?? '', /- Stunde 4: .*\n- Stunde 5: Lernspiel\./);
 		assert.equal(fachblickStunden({}, 'k4'), null);
+	});
+
+	it('Stunden mit den geplanten Minuten und dem Ablauf, wenn der Plan sie hat (272)', () => {
+		const plan = {
+			stunden: [
+				{
+					nr: 1,
+					handlung: 'Falten.',
+					begriffe: [],
+					kontrolle: false,
+					aufgaben: [],
+					minuten: 45,
+					phasen: [
+						{ was: 'Auftakt, zwei Vermutungsfragen', minuten: 10, arbeit: false },
+						{ was: 'Lernaufgaben', minuten: 30, arbeit: true },
+					],
+				},
+				{ nr: 2, handlung: 'Spiegeln.', begriffe: [], kontrolle: false, aufgaben: [], minuten: 45 },
+			],
+		};
+		const text = fachblickStunden(plan, 'auftakt') ?? '';
+		assert.match(
+			text,
+			/- Stunde 1: Falten\. Geplant: 45 min: Auftakt, zwei Vermutungsfragen 10 min; Lernaufgaben 30 min\.\n- Stunde 2: Spiegeln\. Geplant: 45 min\./,
+		);
+	});
+
+	const FOLIEN = [
+		'<body class="kl2 folie">',
+		'<section class="seite"><h1>Wald</h1><aside class="notiz"><p>2 min. Stille.</p><p>Alle stehen auf.</p></aside></section>',
+		'<section class="seite"><h1>Kiste</h1></section>',
+		'<section class="seite"><h1>Stern</h1><aside class="notiz">Wette: Daumen hoch.</aside></section>',
+		'</body>',
+	].join('');
+
+	it('liest die Notizen der Folien mit der Nummer ihres Seitenbilds', () => {
+		assert.deepEqual(folienNotizen(FOLIEN), [
+			{ seite: 1, text: '2 min. Stille. Alle stehen auf.' },
+			{ seite: 3, text: 'Wette: Daumen hoch.' },
+		]);
+		assert.deepEqual(folienNotizen('<body><section class="seite"><p>A</p></section></body>'), []);
+	});
+
+	it('nennt die Notizen der Folien seines Laufs, ohne die Notizen fehlt der Absatz', () => {
+		const notizen = folienNotizen(FOLIEN);
+		const text = fachblickText({ ...FACH, seiten: ['seite-1.png', 'seite-2.png'], notizen });
+		assert.match(text, /Notizen der Lehrkraft zu den Folien[^\n]*\n- Folie 1: 2 min\. Stille\. Alle stehen auf\./);
+		assert.doesNotMatch(text, /Folie 3/);
+		assert.match(fachblickText({ ...FACH, seiten: ['seite-3.png'], notizen }), /- Folie 3: Wette/);
+		assert.doesNotMatch(fachblickText(FACH), /Notizen der Lehrkraft/);
+		const lang = fachblickText({ ...FACH, seiten: ['seite-1.png'], notizen: [{ seite: 1, text: 'x'.repeat(900) }] });
+		assert.match(lang, new RegExp(`- Folie 1: x{${PRUEF_GRENZEN.notiz}}$`, 'm'));
+	});
+
+	it('Korrekturrunde zu einem Befund zur Zeit: die Minuten des Plans gelten', () => {
+		const text = pruefKorrektur(
+			[{ seite: null, aufgabe: 'Stunde 1', art: 'zeit', text: 'Die Folien 1 bis 12 dauern etwa 17 min, geplant sind 10.' }],
+			[],
+		);
+		assert.match(text, /Zu „Zeit der Stunde“: Die Minuten des Plans gelten\./);
+		assert.equal(lesePruefung('{"befunde":[{"art":"länger als geplant","text":"zu lang"}]}', 'fach').befunde[0]?.art, 'zeit');
 	});
 });
