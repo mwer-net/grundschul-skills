@@ -179,11 +179,12 @@ import {
 	bilderKanonText,
 	fuehreKanonNach,
 	kanonRueckrunde,
+	kanonKapitel,
 	kanonText,
-	kapitelVon,
 	planKanonMeldungen,
 	pruefeBildVertrag,
 	pruefKanon,
+	widerspruchBefunde,
 	widerspruchText,
 } from '@schoolbox/kern/src/einheit-kanon';
 import type { BibliotheksFigur } from '@schoolbox/kern/src/figuren';
@@ -1875,7 +1876,7 @@ export const erstelleEinheiten = (
 			pflichtAbschnitt(pflicht, 'vor dem ersten Aufruf von bauen; bauen nimmt das Material sonst nicht an'),
 			KOPF(s),
 			planFuerBau(plan),
-			kanonText(plan.kanon, { kapitel: kapitelVon(plan, d.slug), nachtrag: s.kanonNachtrag }),
+			kanonText(plan.kanon, { ...kanonKapitel(plan, d), nachtrag: s.kanonNachtrag }),
 			aufgabenFuerBau(plan, d.slug),
 			fertigText(plan, fertigeMaterialien(s), s.steckbriefe ?? {}),
 			await bilderText(s, rolleVon(d)),
@@ -2427,6 +2428,8 @@ export const erstelleEinheiten = (
 			return { sitzung: k.sitzung ?? von, weiter };
 		};
 		let sitz = sitzung;
+		/** 264: Abweichungen vom Kanon, die der Steckbrief meldet, gehen je einmal in eine Korrekturrunde. */
+		const gemeldet = new Set<string>();
 		for (let runde = 0; ; runde += 1) {
 			const server = [
 				...dopplungTexte(await dopplungen(s, plan, d.slug), d.slug, titelVon(s)),
@@ -2443,14 +2446,19 @@ export const erstelleEinheiten = (
 				}
 				break;
 			}
-			const befunde = await pruefe(runde, server);
-			if (befunde === null) {
+			const gefunden = await pruefe(runde, server);
+			if (gefunden === null) {
 				break;
 			}
+			const abweichung = (s.steckbriefe?.[d.slug]?.widerspruch ?? []).filter((w) => !gemeldet.has(w));
+			const befunde = [...gefunden, ...widerspruchBefunde(abweichung)];
 			stand.offen = befunde;
 			stand.server = server;
 			if (genug(runde, befunde, server, sitz)) {
 				break;
+			}
+			for (const w of abweichung) {
+				gemeldet.add(w);
 			}
 			const k = await korrigiere(befunde, server, sitz);
 			sitz = k.sitzung;

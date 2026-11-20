@@ -211,12 +211,14 @@ process.stdin.on('end', () => {
 		const figuren = fall === 'einheit-figur' ? { figuren: [{ name: 'Luna', rolle: 'Leitfigur', aussehen: 'Eule mit roter Brille und Laterne', herkunft: 'neu' }, { name: 'Kiki', rolle: 'Freundin', aussehen: '', herkunft: 'bibliothek:kiki' }] } : {};
 		// 263: „einheit-kanon-lang“ plant eine Regel mit 263 Zeichen und teilt sie in der Rückrunde, „einheit-kanon-stur“ nie.
 		const LANGE_REGEL = 'Die Uhr im Rathaus hat ein rundes Zifferblatt mit den Ziffern von 1 bis 12, einen kurzen Stundenzeiger und einen langen Minutenzeiger, und um zwölf Uhr schlägt sie zwölfmal; sie geht nie rückwärts, hat keinen Sekundenzeiger und zeigt nur volle oder halbe Stunden.';
-		const kanonGeteilt = fall === 'einheit-kanon-lang' && !eingabe.includes('Schritt 1');
+		// 264: „einheit-kanon-widerspruch“: kurzer Kanon, fall-1 meldet im Steckbrief eine Abweichung und behält sie.
+		const kanonGeteilt = (fall === 'einheit-kanon-lang' && !eingabe.includes('Schritt 1')) || fall === 'einheit-kanon-widerspruch';
 		const kanon = fall.startsWith('einheit-kanon') ? { kanon: { regeln: kanonGeteilt ? ['Die Uhr im Rathaus hat ein rundes Zifferblatt mit den Ziffern 1 bis 12, einen kurzen und einen langen Zeiger.', 'Sie geht nie rückwärts und hat keinen Sekundenzeiger.'] : [LANGE_REGEL] } } : {};
 		const plan = () => fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Uhrzeit', annahmen: ['Klasse 2'], ...uebersicht, ...figuren, ...kanon, dokumente: [{ slug: 'fall-1', titel: 'Fall 1', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Einstieg', fertig: false }, zweitesDok] }));
 		// „einheit-unklar“ und „einheit-stur“: fall-1 mit einer unklaren Anweisung, „-stur“ behebt sie nie. „einheit-dopplung“:
 		// dieselbe Abbildung in beiden Materialien.
 		const UNKLAR = '<p>Mach was mit den Uhren.</p>';
+		const KANON_WIDERSPRUCH = 'Kapitel 1: Willi trägt die Uhr nach Hause, laut Kanon hängt sie bis Kapitel 2 im Rathaus.';
 		const GITTER = '<x-gitter art="geobrett" spalten="6" zeilen="4" linien="3,0 0,2 3,4" achse="senkrecht"></x-gitter>';
 		const warte = (ms) => new Promise((r) => setTimeout(r, ms));
 		const neben = (name) => args[args.indexOf(name) + 1] ?? '';
@@ -369,7 +371,7 @@ process.stdin.on('end', () => {
 			await warte(200);
 			if (spaeter.length) { await bauen(slug); lies(spaeter); await warte(200); }
 			await bauen(slug);
-			fs.writeFileSync('dokumente/' + slug + '/steckbrief.json', JSON.stringify({ figuren: ['Willi mit Uhr'], loesung: zweites ? 'liefert das R' : 'liefert das U', merken: 'führt den Minutenzeiger ein' }));
+			fs.writeFileSync('dokumente/' + slug + '/steckbrief.json', JSON.stringify({ figuren: ['Willi mit Uhr'], loesung: zweites ? 'liefert das R' : 'liefert das U', merken: 'führt den Minutenzeiger ein', ...(fall === 'einheit-kanon-widerspruch' && !zweites ? { kanon: { widerspruch: [KANON_WIDERSPRUCH] } } : {}) }));
 			await warte(zweites ? 1500 : 0);
 			ende({ result: titelVon(slug) + ' gebaut.' });
 		})();

@@ -990,6 +990,40 @@ describe('Lauf einer Einheit (139)', () => {
 			}
 		});
 
+		it('Abweichung vom Kanon im Steckbrief: einmal ein Befund kanon in der Korrekturrunde, der Rest an den Schluss (264)', async () => {
+			await fall('einheit-kanon-widerspruch');
+			const vorher = (await prompts()).length;
+			const { id, mappe } = await starte();
+			const s = await bis(id, 'fertig');
+			assert.ok(s.plan?.kanon);
+			assert.deepEqual(await arten(mappe), [
+				'plan:',
+				'pruefung:',
+				'bau:fall-1',
+				'pruefung:fall-1',
+				'pruefung:fall-1',
+				'korrektur:fall-1',
+				'pruefung:fall-1',
+				'pruefung:fall-1',
+				'bau:fall-2',
+				'pruefung:fall-2',
+				'pruefung:fall-2',
+				'schluss:_schluss',
+			]);
+			const satz = 'Kapitel 1: Willi trägt die Uhr nach Hause, laut Kanon hängt sie bis Kapitel 2 im Rathaus.';
+			const neu = (await prompts()).slice(vorher);
+			const runde = nachPruefung(neu);
+			assert.equal(runde.length, 1);
+			assert.ok(runde[0]?.includes(`- Widerspricht der Geschichte: Dein Steckbrief meldet: ${satz}`));
+			assert.match(runde[0] ?? '', /Es gilt der Kanon aus deinem Auftrag/);
+			assert.equal(s.pruefung?.['fall-1']?.korrekturen, 1);
+			assert.equal(s.pruefung?.['fall-2']?.korrekturen, 0);
+			// Die Korrektur behält die Abweichung: Sie kommt nicht noch einmal, der Schlusslauf sieht sie.
+			assert.deepEqual(s.steckbriefe?.['fall-1']?.widerspruch, [satz]);
+			const schluss = neu.find((p) => p.startsWith('Schritt 3: der Schlusslauf')) ?? '';
+			assert.ok(schluss.includes(`- dokumente/fall-1: ${satz}`));
+		});
+
 		it('Unklare Anweisung: der Prüflauf meldet sie, eine Korrekturrunde in der Sitzung des Baus, dann sauber', async () => {
 			await fall('einheit-unklar');
 			const vorher = (await prompts()).length;
