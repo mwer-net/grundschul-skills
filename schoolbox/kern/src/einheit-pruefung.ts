@@ -323,7 +323,8 @@ export const pruefTeile = <T extends TeilbarerAuftrag>(o: T): T[] => {
 			von: gruppen.length,
 			erste: anfaenge[i] ?? 0,
 			letzte: seiteVon(seiten.at(-1) ?? ''),
-			gesamt: o.seiten.length,
+			// Mit ausgeblendeter Seite (256) fehlt ihre Nummer unter den Bildern: gezählt wird bis zur letzten
+			gesamt: Math.max(o.seiten.length, seiteVon(o.seiten.at(-1) ?? '')),
 		},
 	}));
 };
@@ -1159,34 +1160,39 @@ const AUFGABE = KLASSE('aufgabe');
 /**
  * Welche Seiten eines Materials Vorschaubild für Deckblatt und Eduki werden dürfen (250): nur Kinderseiten ohne
  * eingetragene Lösung. Rollen in `OHNE_VORSCHAU` und Slugs mit `loesung` keine; bei Lernzielkontrolle und
- * Klassenarbeit nur Seiten mit Aufgaben (nicht Fall-Karte und Auflösung). Gezählt wird wie `seite-N.png`: jede
- * `.seite`, die nicht ausgeblendet oder nur Lösung ist. Stimmt diese Zahl nicht mit `seiten` (den Bildern des Baus)
- * überein, entscheidet nur die Rolle: dann alle Seiten.
+ * Klassenarbeit nur Seiten mit Aufgaben (nicht Fall-Karte und Auflösung). `seiten` sind die Nummern der Seitenbilder
+ * (`seite-N.png`): Sie zählen jede `.seite` im HTML, auch eine ausgeblendete, von der es kein Bild gibt (256). Nennt
+ * das HTML andere sichtbare Seiten als die Bilder, entscheidet nur die Rolle: dann alle Seiten.
  */
-export const vorschauSeiten = (d: Pick<PlanDokument, 'slug' | 'art'>, html: string, seiten: number): number[] => {
+export const vorschauSeiten = (
+	d: Pick<PlanDokument, 'slug' | 'art'>,
+	html: string,
+	seiten: readonly number[],
+): number[] => {
 	const rolle = rolleVon(d);
 	if (OHNE_VORSCHAU.has(rolle) || /loesung/.test(d.slug)) {
 		return [];
 	}
-	const alle = Array.from({ length: seiten }, (_, i) => i + 1);
 	const auf = [...html.matchAll(SEITE_AUF)].filter((t) => /(?:^|\s)seite(?:\s|$)/.test(t[1] ?? ''));
 	const stuecke = auf
 		.map((t, i) => ({
+			nr: i + 1,
 			kopf: t[0],
 			klassen: t[1] ?? '',
 			inhalt: html.slice(t.index ?? 0, auf[i + 1]?.index ?? html.length),
 		}))
 		.filter((x) => !/(?:^|\s)nur-loesung(?:\s|$)/.test(x.klassen) && !/\sdata-aus\b/.test(x.kopf));
-	if (stuecke.length !== seiten) {
-		return alle;
+	if (stuecke.map((x) => x.nr).join(',') !== seiten.join(',')) {
+		return [...seiten];
 	}
-	return alle.filter((nr) => {
-		const inhalt = stuecke[nr - 1]?.inhalt ?? '';
-		if (LOESUNG_AUF_SEITE.some((m) => m.test(inhalt))) {
-			return false;
-		}
-		return !KONTROLL_ROLLEN.has(rolle) || AUFGABE.test(inhalt);
-	});
+	return stuecke
+		.filter(({ inhalt }) => {
+			if (LOESUNG_AUF_SEITE.some((m) => m.test(inhalt))) {
+				return false;
+			}
+			return !KONTROLL_ROLLEN.has(rolle) || AUFGABE.test(inhalt);
+		})
+		.map((x) => x.nr);
 };
 
 /** Alle Teilmengen der Rahmen-Teile: Jede ist eine Zählung, die ein Deckblatt meinen kann. */

@@ -12,7 +12,8 @@ bauen erzeugt in ausgabe/ (Standard: Ordner der Quelle):
     NAME.pdf              druckfertiges A4-PDF
     NAME-loesung.pdf      Lösungsblatt (wenn die Quelle data-l / loesung= enthält)
     NAME-s1.png …         Vorschau je Seite, NAME-s1-a1.png … Ausschnitt je Aufgabe
-                          (für die visuelle Endkontrolle), NAME-loesung-s1.png
+                          (für die visuelle Endkontrolle), NAME-loesung-s1.png; die Nummer ist die der Seite im
+                          HTML wie im Prüfbericht, eine Seite nur für die Lösung fehlt in der Kinderansicht
 und gibt den Prüfbericht aus (FEHLER / WARNUNG / HINWEIS). Exit-Code 1 bei FEHLER.
 --profil sw stellt ein farbiges Blatt in Graustufen dar (assets/graustufen.js), ohne die Quelle zu ändern; ohne Angabe
 gilt die Klasse am <body> der Quelle.
@@ -528,6 +529,22 @@ def pngs(pdf_pfad, praefix, skala=2.0):
     return []
 
 
+def nach_seiten(seiten_png, bericht, praefix):
+    """Ist eine Seite ausgeblendet (nur-loesung, data-aus), heißen die Seitenbilder nach der Seite im HTML wie Meldungen
+    und Ausschnitte: Bei ausgeblendeter Seite 2 von 3 folgt auf praefix-s1.png praefix-s3.png. Sonst bleibt alles,
+    auch wenn Seite 1 ausgeblendet ist: praefix-s1.png ist die Vorschau des Materials (Schoolbox, Entwürfe)."""
+    nummern = [s["nr"] for s in bericht["seiten"] if s.get("breite", 794)]
+    if len(nummern) != len(seiten_png) or nummern[:1] != [1] or nummern == list(range(1, len(nummern) + 1)):
+        return seiten_png
+    neu = [f"{praefix}-s{nr}.png" for nr in nummern]
+    for alt, ziel in reversed(list(zip(seiten_png, neu))):  # die Nummern wachsen nur, also von hinten
+        os.replace(alt, ziel)
+    for s in bericht["seiten"]:  # Bild eines früheren Baus unter der Nummer der ausgeblendeten Seite
+        if s["nr"] not in nummern:
+            Path(f"{praefix}-s{s['nr']}.png").unlink(missing_ok=True)
+    return neu
+
+
 def ausschnitte(seiten_png, bericht, praefix):
     try:
         from PIL import Image
@@ -645,6 +662,8 @@ def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=Fal
         if ist_folie(text):  # Offline-Präsentation; das PDF oben ist aus der Fassung ohne Laufzeit entstanden
             fertig.write_text(einbetten(text, quelle.parent, modus="start", profil=profil, cache=cache), encoding="utf-8")
         bilder = pngs(aus / f"{name}.pdf", str(aus / name))
+        if not hat_format(text, "minibuch"):  # Im Mini-Book ist ein Bild ein Druckbogen, keine Seite
+            bilder = nach_seiten(bilder, bericht, str(aus / name))
         # Im Mini-Book liegen acht Felder auf einem Blatt, die Maße aus der Prüfung passen nicht zum Druckbild
         teile = [] if hat_format(text, "minibuch") else ausschnitte(bilder, bericht, str(aus / name))
         erzeugt = [fertig, aus / f"{name}.pdf", *bilder, *teile]
@@ -661,7 +680,10 @@ def bauen(quelle, ausgabe=None, ohne_loesung=False, nur_pruefen=False, still=Fal
             lh = Path(tmp) / f"{name}-loesung.html"
             lh.write_text(einbetten(text, quelle.parent, loesung=True, profil=profil, cache=cache), encoding="utf-8")
             pdf(lh, aus / f"{name}-loesung.pdf", grau=grau)
-            erzeugt += [aus / f"{name}-loesung.pdf", *pngs(aus / f"{name}-loesung.pdf", str(aus / f"{name}-loesung"))]
+            loesung_png = pngs(aus / f"{name}-loesung.pdf", str(aus / f"{name}-loesung"))
+            if not hat_format(text, "minibuch"):
+                loesung_png = nach_seiten(loesung_png, lb, str(aus / f"{name}-loesung"))
+            erzeugt += [aus / f"{name}-loesung.pdf", *loesung_png]
         if schritte or notizen:
             mehr, zusatz, zfehler = folien_ausgaben(text, quelle, aus, tmp, schritte, notizen, still, profil)
             erzeugt += mehr

@@ -153,8 +153,13 @@ describe('baueAnsichtAus mit ausgeblendeter Seite (257)', () => {
 			assert.equal(bericht.seiten.length, 3);
 			assert.deepEqual(
 				bilder.filter((b) => !b.startsWith('loesung-')),
-				['seite-1.png', 'seite-1-aufgabe-1.png', 'seite-2.png', 'seite-3-aufgabe-1.png'],
-				'zwei Seiten im PDF der Kinder, Ausschnitte unter der Nummer ihrer Seite',
+				['seite-1.png', 'seite-1-aufgabe-1.png', 'seite-3.png', 'seite-3-aufgabe-1.png'],
+				'zwei Seiten im PDF der Kinder, Bilder und Ausschnitte unter der Nummer ihrer Seite im HTML (256)',
+			);
+			assert.deepEqual(
+				bilder.filter((b) => b.startsWith('loesung-')),
+				['loesung-seite-1.png', 'loesung-seite-2.png', 'loesung-seite-3.png'],
+				'die Lösung zeigt alle drei Seiten, dieselben Nummern',
 			);
 			const mitte = async (datei: string) =>
 				(await promisify(execFile)('python3', ['-c', MITTE_PY, path.join(ziel, datei)])).stdout.trim();

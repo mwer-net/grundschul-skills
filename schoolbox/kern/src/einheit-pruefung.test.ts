@@ -428,6 +428,13 @@ describe('Nachricht an den Prüflauf (229)', () => {
 			);
 		});
 
+		it('ausgeblendete Seite 2 (256): Seiten nach ihrer Nummer im HTML, gezählt bis zur letzten', () => {
+			const ohne2 = seiten.filter((s) => s !== 'seite-2.png');
+			const [eins, zwei] = pruefTeile({ ...AUFTRAG, seiten: ohne2 }).map(pruefText);
+			assert.match(eins ?? '', /Das Material hat 30 Seiten, du prüfst die Seiten 1–17\. Die Seiten 18–30 prüft/);
+			assert.match(zwei ?? '', /du prüfst die Seiten 18–30\. Die Seiten 1–17 prüft/);
+		});
+
 		it('24 Seiten bleiben ein Lauf, alle Seiten genannt', () => {
 			const vier = Array.from({ length: 24 }, (_, i) => `seite-${i + 1}.png`);
 			const teile = pruefTeile({ ...AUFTRAG, seiten: vier });
@@ -638,7 +645,7 @@ describe('Verkauf gegen das Paket (250)', () => {
 			seite('seite', '<div class="karten rueckseiten"><div class="karte rueckseite">7</div></div>'),
 			seite('seite nur-loesung', 'Lösung'),
 		].join('');
-		assert.deepEqual(vorschauSeiten(dok('kapitel-1'), html, 4), [1, 3]);
+		assert.deepEqual(vorschauSeiten(dok('kapitel-1'), html, [1, 2, 3, 4]), [1, 3]);
 	});
 
 	it('Vorschau: Lernzielkontrolle nur Seiten mit Aufgaben, also ohne Fall-Karte und Auflösung', () => {
@@ -647,16 +654,27 @@ describe('Verkauf gegen das Paket (250)', () => {
 			seite('seite', AUFGABE),
 			seite('seite fall', '<div class="fall-band">Auflösung</div>'),
 		].join('');
-		assert.deepEqual(vorschauSeiten(dok('kapitel-6', 'lernzielkontrolle'), html, 3), [2]);
+		assert.deepEqual(vorschauSeiten(dok('kapitel-6', 'lernzielkontrolle'), html, [1, 2, 3]), [2]);
+	});
+
+	it('Vorschau: Nummern der Seiten im HTML, auch hinter einer ausgeblendeten Auflösung (256)', () => {
+		const html = [
+			seite('seite fall', '<h1>Fall</h1>'),
+			seite('seite fall aufloesung nur-loesung', '<h1>Auflösung</h1>'),
+			seite('seite', AUFGABE),
+		].join('');
+		assert.deepEqual(vorschauSeiten(dok('kapitel-6', 'lernzielkontrolle'), html, [1, 3]), [3]);
+		assert.deepEqual(vorschauSeiten(dok('kapitel-1'), html, [1, 3]), [1, 3]);
+		assert.deepEqual(vorschauSeiten(dok('kapitel-1'), html, [1, 2]), [1, 2], 'Bilder passen nicht: alle');
 	});
 
 	it('Vorschau: Hinweise, Vorleseheft, Rahmen und Lösungsmaterial nie; Zählung passt nicht: alle Seiten', () => {
 		const html = seite('seite', AUFGABE);
-		assert.deepEqual(vorschauSeiten(dok('hinweise', 'unterrichtsplanung'), html, 1), []);
-		assert.deepEqual(vorschauSeiten(dok('vorleseheft', 'lesetext'), html, 1), []);
-		assert.deepEqual(vorschauSeiten(dok('deckblatt', 'sonstiges'), html, 1), []);
-		assert.deepEqual(vorschauSeiten(dok('kapitel-1-loesung'), html, 1), []);
-		assert.deepEqual(vorschauSeiten(dok('kapitel-1'), html, 2), [1, 2]);
+		assert.deepEqual(vorschauSeiten(dok('hinweise', 'unterrichtsplanung'), html, [1]), []);
+		assert.deepEqual(vorschauSeiten(dok('vorleseheft', 'lesetext'), html, [1]), []);
+		assert.deepEqual(vorschauSeiten(dok('deckblatt', 'sonstiges'), html, [1]), []);
+		assert.deepEqual(vorschauSeiten(dok('kapitel-1-loesung'), html, [1]), []);
+		assert.deepEqual(vorschauSeiten(dok('kapitel-1'), html, [1, 2]), [1, 2]);
 	});
 });
 
