@@ -186,6 +186,9 @@ export const KI_GRENZEN = {
 	 * Lauf mit Prüfschleife (238: 15 Materialien, zwei Durchgänge): Bau im Mittel 4,2 USD (bis 7,1), Prüfung 1,1,
 	 * Korrektur 1,3 (bis 3,7), Bilder 5,8, Schluss 5,0; zusammen nach Freigabe 125 USD, 2740 Runden und 6,3 h. Bis 240
 	 * zählte jede Korrektur die Kosten ihrer ganzen Sitzung mit, der Durchgang brach deshalb bei echten 77 USD ab.
+	 * Mit dem Fachblick (244) kostete der Lauf vom 2026-11-20 (261) nach der Freigabe 154,14 USD, davon Fachblick
+	 * 21,22; der Schlusslauf fand bei 149,79 nur noch 0,21 USD vor (262). Das Budget bleibt 150 (Admin, 2026-11-20):
+	 * Die Pakete M und N aus 261 senken die Kosten, und der Schluss hat seither eine eigene Reserve.
 	 * Zeit und Runden reichen seit 2026-11-20 (Admin) für diesen Lauf in einem Durchgang mit Abstand (vorher 5 h und
 	 * 3000, enger als das Budget); das Budget bleibt der Schutz gegen einen Lauf, der aus dem Ruder läuft.
 	 */
@@ -208,14 +211,38 @@ export const KI_GRENZEN = {
 		 * Ein Prüflauf „mit Kinderaugen“ (220, Teil 2): nur Read, Seitenbilder ansehen, jede Aufgabe lösen, beim zweiten
 		 * Blick dazu zwei bis vier Regeldateien. Klein gegenüber dem Bau; gemessen 0,7 bis 1,4 USD (238).
 		 */
-		pruefung: { zeitMs: 10 * 60_000, runden: 40, budgetUsd: 3, budgetGuthabenUsd: 1, cacheTtl: KURZER_CACHE },
+		pruefung: {
+			zeitMs: 10 * 60_000,
+			runden: 40,
+			budgetUsd: 3,
+			budgetGuthabenUsd: 1,
+			cacheTtl: KURZER_CACHE,
+			/**
+			 * Was eine Prüfrunde je Material kostet (262), aus `_lauf.json` des Laufs vom 2026-11-20 (261): Runde 3
+			 * kostete 17,60 USD, Kinderaugen 11,20 an 10 Materialien, Fachblick 6,40 an 10. Bleibt dem Durchgang
+			 * weniger als eine Runde für die übrigen Materialien, entfällt ihre letzte Runde.
+			 */
+			rundeUsd: { kind: 1.12, fach: 0.64 },
+		},
 		/** So oft gehen Befunde des Prüflaufs als Korrekturrunde an den Baulauf zurück; danach prüft er ein letztes Mal. */
 		pruefRunden: 2,
 		/**
 		 * Der Schlusslauf über alle Materialien: Auftrag, Plan, Steckbriefe, Zahlen und Dopplungen gegen das Gebaute, dazu
 		 * die Pflichtlektüre jedes Materials, das er neu baut. Höchstens `neubau` Materialien.
 		 */
-		schluss: { zeitMs: 45 * 60_000, runden: 250, budgetUsd: 25, budgetGuthabenUsd: 5, neubau: 4 },
+		schluss: {
+			zeitMs: 45 * 60_000,
+			runden: 250,
+			budgetUsd: 25,
+			budgetGuthabenUsd: 5,
+			neubau: 4,
+			/**
+			 * Was der Durchgang für den Schluss zurückhält, solange er aussteht (262): gemessen 4,35 und 5,03 USD, die
+			 * Hälfte als Puffer, dazu Platz für einen Neubau. Über das Guthaben höchstens das Budget des Schlusses.
+			 */
+			reserveUsd: 10,
+			reserveGuthabenUsd: 5,
+		},
 		/** Die Planung vor der Freigabe: Geschichte und Plan, noch kein Material. */
 		planZeitMs: 15 * 60_000,
 		/**

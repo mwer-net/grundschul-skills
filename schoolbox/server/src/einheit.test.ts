@@ -1267,6 +1267,91 @@ describe('Lauf einer Einheit (139)', () => {
 			}
 		});
 
+		/** Je Lauf mit dieser Auftragsdatei das Budget, das er per `--max-budget-usd` bekam. */
+		const budgets = async (auftrag: string, vorher: number) =>
+			(await jsonl<{ args: string[] }>('aufrufe.jsonl'))
+				.slice(vorher)
+				.map((a) => a.args)
+				.filter((a) => path.basename(a[a.indexOf('--append-system-prompt-file') + 1] ?? '') === auftrag)
+				.map((a) => Number(a[a.indexOf('--max-budget-usd') + 1]));
+
+		it('Knappes Budget: der Schluss startet mit mindestens der Reserve, der Bau davor bekommt sie weniger (262)', async () => {
+			const e = KI_GRENZEN.einheit;
+			const alt = { budget: e.budgetUsd, reserve: e.schluss.reserveUsd };
+			e.budgetUsd = 10;
+			e.schluss.reserveUsd = 4;
+			try {
+				const vorher = (await jsonl('aufrufe.jsonl')).length;
+				const { id } = await starte();
+				const s = await bis(id, 'fertig');
+				assert.equal(s.schluss?.status, 'fertig');
+				const bau = await budgets('einheit-material.md', vorher);
+				const schluss = await budgets('einheit-schluss.md', vorher);
+				assert.ok(bau.length >= 2, bau.join(', '));
+				assert.ok(
+					bau.every((b) => b > 5 && b <= 6),
+					`Bau ohne die Reserve: ${bau.join(', ')}`,
+				);
+				assert.equal(schluss.length, 1);
+				assert.ok((schluss[0] ?? 0) >= 9, `Schluss mit der Reserve: ${schluss.join(', ')}`);
+			} finally {
+				e.budgetUsd = alt.budget;
+				e.schluss.reserveUsd = alt.reserve;
+			}
+		});
+
+		it('Restbudget unter einer Prüfrunde: die letzte entfällt, die Befunde der Runde davor im Schlussauftrag (262)', async () => {
+			const k = KI_GRENZEN.einheit.pruefung;
+			const alt = k.rundeUsd;
+			k.rundeUsd = { kind: 1000, fach: 1000 };
+			try {
+				await fall('einheit-stur');
+				const vorher = (await prompts()).length;
+				const { id, mappe } = await starte();
+				const s = await bis(id, 'fertig');
+				const p = s.pruefung?.['fall-1'];
+				assert.equal(p?.runden, 2);
+				assert.equal(p?.korrekturen, 2);
+				assert.equal(p?.ohneLetzteRunde, true);
+				assert.equal(p?.offen[0]?.art, 'unklar');
+				assert.equal((await arten(mappe)).filter((a) => a === 'pruefung:fall-1').length, 4);
+				const korrektur = (await protokoll(mappe)).laeufe.filter((x) => x.art === 'korrektur').at(-1);
+				assert.match(korrektur?.hinweis ?? '', /letzte Prüfrunde entfiel/);
+				const schluss = (await prompts()).slice(vorher).find((t) => t.startsWith('Schritt 3: der Schlusslauf'));
+				assert.match(
+					schluss ?? '',
+					/Was die Prüfläufe offen ließen:\n- fall-1 \(vor der letzten Korrektur gefunden, nicht mehr geprüft\): Seite 1, Aufgabe 1/,
+				);
+			} finally {
+				k.rundeUsd = alt;
+			}
+		});
+
+		it('Am Budget des Durchgangs: der Hinweis nennt, was fehlt, ohne Beträge; Weiterbauen baut es (262)', async () => {
+			const e = KI_GRENZEN.einheit;
+			const alt = { budget: e.budgetUsd, reserve: e.schluss.reserveUsd };
+			e.budgetUsd = 3.4;
+			e.schluss.reserveUsd = 3;
+			let id = '';
+			try {
+				id = (await starte()).id;
+				const s = await bis(id, 'unvollstaendig');
+				assert.deepEqual(s.importiert, {});
+				assert.equal(
+					s.grund,
+					'Das Budget der Einheit ist aufgebraucht. Noch offen: 2 Materialien und der Abgleich der ganzen Einheit. ‚Weiterbauen‘ startet einen neuen Durchgang mit eigenem Budget.',
+				);
+				assert.doesNotMatch(s.grund ?? '', /USD|\$|\d+,\d/);
+			} finally {
+				e.budgetUsd = alt.budget;
+				e.schluss.reserveUsd = alt.reserve;
+			}
+			assert.equal((await api(`/einheiten/${id}/weiter`, { method: 'POST' })).status, 200);
+			const t = await bis(id, 'fertig');
+			assert.equal(t.grund, null);
+			assert.equal(t.schluss?.status, 'fertig');
+		});
+
 		const lebt = (pid: number) =>
 			existsSync(`/proc/${pid}`) && !/^State:\s+Z/m.test(readFileSync(`/proc/${pid}/status`, 'utf8'));
 

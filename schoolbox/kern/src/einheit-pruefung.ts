@@ -87,6 +87,11 @@ export interface PruefStand {
 	grund: string | null;
 	/** 244: Ein Prüfer der letzten Runde scheiterte, der andere zählte, etwa „Fachblick gescheitert: …“. */
 	luecke?: string | null;
+	/**
+	 * 262: Die letzte Runde entfiel, weil das Budget knapp wurde. `offen` ist dann der Stand vor der letzten Korrektur;
+	 * der Schlusslauf sieht nach, was davon noch gilt.
+	 */
+	ohneLetzteRunde?: boolean;
 }
 
 /** Der Schlusslauf über alle Materialien (220, Teil 2). */

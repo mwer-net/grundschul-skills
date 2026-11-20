@@ -831,6 +831,22 @@ export const erstelleEinheiten = (
 		);
 	};
 
+	/**
+	 * Was dem Durchgang an Budget bleibt. Steht im Bau der Schlusslauf noch aus, hält jeder andere Lauf dessen Reserve
+	 * zurück (262): Ohne Schluss blieben die Befunde der letzten Prüfrunde offen.
+	 */
+	const restUsd = (fuerSchluss: boolean, ueber = ueberGuthaben()) => {
+		const e = KI_GRENZEN.einheit;
+		const verbraucht = (aktiv?.verbraucht.kostenUsd ?? 0) + (aktiv?.reserviert.kostenUsd ?? 0);
+		const reserve =
+			!fuerSchluss && aktiv?.stufe === 'bau' && !schlussErledigt(aktiv.stand)
+				? ueber
+					? e.schluss.reserveGuthabenUsd
+					: e.schluss.reserveUsd
+				: 0;
+		return (ueber ? e.budgetGuthabenUsd : e.budgetUsd) - verbraucht - reserve;
+	};
+
 	/** Die Grenzen eines Laufs: seine eigenen, höchstens was dem Durchgang noch bleibt. */
 	const grenzenFuer = (g: LaufGrenzen) => {
 		const e = KI_GRENZEN.einheit;
@@ -843,7 +859,7 @@ export const erstelleEinheiten = (
 			runden: Math.min(g.runden, e.runden - verbraucht.runden - reserviert.runden),
 			budgetUsd: Math.min(
 				ueber ? g.budgetGuthabenUsd : g.budgetUsd,
-				(ueber ? e.budgetGuthabenUsd : e.budgetUsd) - verbraucht.kostenUsd - reserviert.kostenUsd,
+				restUsd(g === e.schluss, ueber),
 			),
 			...(g.cacheTtl ? { cacheTtl: g.cacheTtl } : {}),
 		};
@@ -2191,6 +2207,24 @@ export const erstelleEinheiten = (
 	};
 
 	/**
+	 * Wird das Budget knapp, entfällt die letzte Prüfrunde (262): Bleibt dem Durchgang weniger, als eine Runde für dieses
+	 * und die noch ungebauten Materialien kostet. Die Befunde der Runde davor bleiben in `s.pruefung` und gehen so an den
+	 * Schluss wie sonst die der letzten Runde. Die Reserve des Schlusses ist dabei schon abgezogen.
+	 */
+	const letzteRundeEntfaellt = (
+		s: EinheitStand,
+		plan: EinheitPlan,
+		d: PlanDokument,
+		weise: ReturnType<typeof pruefWeise>,
+	) => {
+		const k = KI_GRENZEN.einheit.pruefung.rundeUsd;
+		const kosten = (w: ReturnType<typeof pruefWeise>) => (w.kind || w.blick ? k.kind : 0) + (w.fach ? k.fach : 0);
+		const uebrige = plan.dokumente.filter((x) => x.slug !== d.slug && !s.importiert[x.slug]);
+		const runde = uebrige.reduce((n, x) => n + kosten(pruefWeise(rolleVon(x), false)), kosten(weise));
+		return restUsd(false) < runde;
+	};
+
+	/**
 	 * Prüflauf „mit Kinderaugen“ und Serverprüfung auf Dopplung nach dem Bau (Punkte 3 und 5): Befunde gehen als
 	 * Korrekturrunde an den Baulauf desselben Materials zurück, danach prüft ein neuer Prüflauf. Höchstens
 	 * `KI_GRENZEN.einheit.pruefRunden` Runden; was bleibt, steht in `s.pruefung` und im Protokoll. Scheitert ein
@@ -2283,6 +2317,17 @@ export const erstelleEinheiten = (
 		let sitz = sitzung;
 		for (let runde = 0; ; runde += 1) {
 			const server = dopplungTexte(await dopplungen(s, plan, d.slug), d.slug, titelVon(s));
+			const letzte = runde > 0 && runde === KI_GRENZEN.einheit.pruefRunden;
+			if (letzte && mitPruefLauf && letzteRundeEntfaellt(s, plan, d, weise)) {
+				stand.server = server;
+				stand.ohneLetzteRunde = true;
+				const eintrag = aktiv?.protokoll.laeufe.at(-1);
+				if (eintrag?.art === 'korrektur') {
+					eintrag.hinweis = 'Die letzte Prüfrunde entfiel, das Budget wurde knapp; die Befunde gehen an den Schluss.';
+					await schreibeProtokoll();
+				}
+				break;
+			}
 			const befunde = await pruefe(runde, server);
 			if (befunde === null) {
 				break;
@@ -2456,8 +2501,9 @@ export const erstelleEinheiten = (
 		const offen = plan.dokumente.flatMap((d) => {
 			const p = s.pruefung?.[d.slug];
 			const folgen = (s.befunde.find((b) => b.slug === d.slug)?.texte ?? []).filter(istFolgekorrektur);
+			const vorher = p?.ohneLetzteRunde ? ' (vor der letzten Korrektur gefunden, nicht mehr geprüft)' : '';
 			return [
-				...(p?.offen ?? []).map((b) => `- ${d.slug}: ${befundZeile(b)}`),
+				...(p?.offen ?? []).map((b) => `- ${d.slug}${vorher}: ${befundZeile(b)}`),
 				...(p?.server ?? []).map((t) => `- ${d.slug}: ${t}`),
 				...folgen.map((t) => `- ${d.slug}: ${t}`),
 			];
@@ -2675,6 +2721,27 @@ export const erstelleEinheiten = (
 		return letzter;
 	};
 
+	/**
+	 * Endet der Durchgang an seinem Budget, sagt der Hinweis, was noch fehlt (262), ohne Beträge: „Weiterbauen“ startet
+	 * einen neuen Durchgang mit eigenem Budget und soll eine bewusste Entscheidung sein.
+	 */
+	const amEnde = (s: EinheitStand, fehler: string | null) => {
+		if (fehler !== 'error_max_budget_usd' || aktiv?.abbruch) {
+			return null;
+		}
+		const fehlen = (s.plan?.dokumente ?? []).filter((d) => !s.importiert[d.slug]).length;
+		const offen = [
+			fehlen ? `${fehlen} ${fehlen === 1 ? 'Material' : 'Materialien'}` : '',
+			s.bilder && !s.bilderFertig ? 'die Bilder' : '',
+			schlussErledigt(s) ? '' : 'der Abgleich der ganzen Einheit',
+		].filter(Boolean);
+		if (!offen.length) {
+			return null;
+		}
+		const liste = offen.length > 1 ? `${offen.slice(0, -1).join(', ')} und ${offen.at(-1)}` : offen[0];
+		return `${FEHLER_TEXT.error_max_budget_usd} Noch offen: ${liste}. ‚Weiterbauen‘ startet einen neuen Durchgang mit eigenem Budget.`;
+	};
+
 	/** Schritt 2: die Schritte der Reihenfolge nacheinander, jeder in einer neuen Sitzung. Fertiges überspringt er. */
 	const fuehreAus = async (s: EinheitStand) => {
 		const takt = setInterval(() => void abgleich(), TAKT_MS);
@@ -2701,7 +2768,10 @@ export const erstelleEinheiten = (
 		s.grund =
 			s.status === 'fertig'
 				? null
-				: (s.grund ?? fehlerText(letzter) ?? 'Claude hat nicht alle geplanten Materialien fertig gebaut.');
+				: (s.grund ??
+					amEnde(s, letzter) ??
+					fehlerText(letzter) ??
+					'Claude hat nicht alle geplanten Materialien fertig gebaut.');
 		s.ende = new Date().toISOString();
 		aktiv = null;
 		await merke(s);
