@@ -655,6 +655,62 @@ describe('pruefung.js: Ausschneide- und Legematerial (214)', { skip: browserSkip
 	});
 });
 
+describe('pruefung.js: Inhalt bleibt in der Karte (266)', { skip: browserSkip() }, () => {
+	const SATZ = 'Eine Figur ist symmetrisch, wenn beim Falten an einer Linie beide Hälften genau aufeinanderliegen.';
+	const blatt = (karten: string) =>
+		[
+			'<!doctype html><html lang="de"><head><meta charset="utf-8"><title>266</title>',
+			'<link rel="stylesheet" href="blatt.css"><script src="abbildungen.js"></script></head>',
+			`<body class="kl2 farbe" data-satz="2"><section class="seite">${karten}</section></body></html>`,
+		].join('\n');
+	const karte = (bild: string, mehr = '') =>
+		`<div class="karte"${mehr}><div style="height:${bild};flex:none"></div><div class="kartentext">symmetrisch</div><div>${SATZ}</div></div>`;
+	const melde = async (html: string) => {
+		const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-266-'));
+		try {
+			const datei = path.join(tmp, 'blatt.html');
+			await writeFile(datei, html);
+			return (await pruefe(datei))
+				.filter((m) => ['ueberlauf', 'abgeschnitten', 'rand'].includes(m.code ?? ''))
+				.map(({ stufe, seite, code, text }) => ({ stufe, seite, code, text }));
+		} finally {
+			await rm(tmp, { recursive: true, force: true });
+		}
+	};
+
+	it('Karte wächst mit zu viel Inhalt aus der Seite: FEHLER „ueberlauf“ mit Seite und Text', async () => {
+		const meldungen = await melde(
+			blatt(`<div class="karten" style="--spalten:1;--zeilen:2">${karte('60mm')}${karte('110mm')}</div>`),
+		);
+		assert.equal(meldungen.length, 1);
+		assert.equal(meldungen[0]?.code, 'ueberlauf');
+		assert.equal(meldungen[0]?.seite, 1);
+		assert.match(meldungen[0]?.text ?? '', /^„Eine Figur ist symmetrisch, wenn beim Fa“ ragt aus der Seite/);
+	});
+
+	it('Karte mit fester Höhe: Inhalt ragt aus der Karte; schneidet die Karte ab, „abgeschnitten“', async () => {
+		const fest = (mehr = '') =>
+			blatt(`<div class="karten" style="--spalten:2;--zeilen:2;--karte-h:60mm">${karte('40mm', mehr).repeat(4)}</div>`);
+		const ueber = await melde(fest());
+		assert.deepEqual(
+			ueber.map((m) => m.code),
+			['ueberlauf', 'ueberlauf', 'ueberlauf', 'ueberlauf'],
+		);
+		assert.match(ueber[0]?.text ?? '', /ragt aus der Karte \(\d+ px\)/);
+		const ab = await melde(fest(' style="overflow:hidden"'));
+		assert.deepEqual(
+			ab.map((m) => m.code),
+			['abgeschnitten', 'abgeschnitten', 'abgeschnitten', 'abgeschnitten'],
+		);
+	});
+
+	it('was passt oder mit data-rand-ok übersteht, meldet nichts', async () => {
+		const marke = '<div data-rand-ok style="position:absolute;left:-6mm;top:-6mm;width:8mm;height:8mm;background:#000"></div>';
+		const karten = `<div class="karten" style="--spalten:2;--zeilen:2">${`<div class="karte">${marke}<div class="kartentext">Spiegel</div></div>`.repeat(4)}</div>`;
+		assert.deepEqual(await melde(blatt(karten)), []);
+	});
+});
+
 describe('pruefung.js: Auftakt (217)', { skip: browserSkip() }, () => {
 	const folien = (body: string, inhalt: string) =>
 		[

@@ -232,6 +232,52 @@
         }
       });
     });
+    // 2c. Karten (266): Abschnitt 1 nimmt .karten aus, denn Karten reichen bis an die Schnittlinie. Hier gilt: Inhalt
+    // bleibt in seiner Karte, die Karte bleibt auf der Seite (der Druckrand ist erlaubt), und eine Karte, die selbst
+    // abschneidet, schneidet keinen Text ab. Je Karte eine Meldung. Was mit Absicht übersteht, bleibt ausgenommen.
+    const KARTE = ".karte,.deckkarte", KARTE_FREI = `[data-rand-ok],${GESTALTUNG}`;
+    const ragt = (A, r) => Math.max(A.left - r.left, A.top - r.top, r.right - A.right, r.bottom - A.bottom);
+    alle.filter((k) => k.matches(KARTE) && !k.parentElement.closest(KARTE) && !k.closest(KARTE_FREI)).forEach((k) => {
+      const K = k.getBoundingClientRect(), rat = "kürzen oder Schrift der Karte kleiner";
+      const sk = getComputedStyle(k);
+      if ((sk.overflowY !== "visible" && k.scrollHeight > k.clientHeight + 2) || (sk.overflowX !== "visible" && k.scrollWidth > k.clientWidth + 2))
+        return melde("FEHLER", nr, "abgeschnitten", `„${kurz(k)}“ ist abgeschnitten (die Karte ist zu klein für ihren Inhalt) → ${rat}`, [ziel(k)]);
+      // Was ein Kasten in der Karte selbst abschneidet, zählt nur, soweit es zu sehen ist.
+      const sichtbarIn = (e, r) => {
+        let { left, top, right, bottom } = r;
+        for (let p = e.parentElement; p && p !== k; p = p.parentElement) {
+          const c = getComputedStyle(p);
+          if (c.overflowX === "visible" && c.overflowY === "visible") continue;
+          const R = p.getBoundingClientRect();
+          left = Math.max(left, R.left); top = Math.max(top, R.top); right = Math.min(right, R.right); bottom = Math.min(bottom, R.bottom);
+        }
+        return right > left && bottom > top ? { left, top, right, bottom } : null;
+      };
+      const stuecke = [];
+      alle.filter((e) => e !== k && k.contains(e) && !e.closest(KARTE_FREI)).forEach((e) => stuecke.push([e, e.getBoundingClientRect()]));
+      const leser = document.createTreeWalker(k, NodeFilter.SHOW_TEXT), bereich = document.createRange();
+      while (leser.nextNode()) {
+        const t = leser.currentNode, p = t.parentElement;
+        if (!t.textContent.trim() || !p || p === k || p.closest(`svg,${KARTE_FREI}`) || !sichtbar(p)) continue;
+        bereich.selectNodeContents(t);
+        [...bereich.getClientRects()].filter((r) => r.width > 0 && r.height > 0).forEach((r) => stuecke.push([p, r]));
+      }
+      const messen = (A) => stuecke.map(([e, r]) => [e, sichtbarIn(e, r)]).filter(([, r]) => r).map(([e, r]) => [e, ragt(A, r)]).filter(([, um]) => um > 1);
+      // Ohne eigenen Text (Zeichnung, leerer Kasten) heißt die Meldung wie die Karte.
+      const aussen = (treffer) => {
+        const els = treffer.map(([e]) => e), e = els.find((x) => !els.some((o) => o !== x && o.contains(x)));
+        return e.textContent.trim() || e.dataset.name || e.getAttribute("alt") ? e : k;
+      };
+      const ausKarte = messen(K);
+      if (ausKarte.length)
+        return melde("FEHLER", nr, "ueberlauf", `„${kurz(aussen(ausKarte))}“ ragt aus der Karte (${Math.round(Math.max(...ausKarte.map(([, um]) => um)))} px) → ${rat}`, [ziel(aussen(ausKarte))]);
+      // Über die Seite hinaus: gemeldet, sobald Inhalt fehlt oder mehr als der Farbrahmen der Karte (3 mm).
+      const um = ragt(P, K), ausSeite = um > 1 ? messen(P) : [];
+      if (ausSeite.length || um > 3 * PX_MM) {
+        const e = ausSeite.length ? aussen(ausSeite) : k;
+        melde("FEHLER", nr, "ueberlauf", `„${kurz(e)}“ ragt aus der Seite (${Math.round(um)} px samt Karte) → ${rat}, Bild kleiner oder weniger Karten je Seite`, [ziel(e)]);
+      }
+    });
 
     // 3. Überlappungen zwischen Inhalten
     const INHALT = "img,svg:not(.kl-kreis>svg),.spiel-zelle,.kreuz-hinweise li,.raetsel-liste li,.kreuz-titel,.raetsel-wort>span,.blase,.anw,h1,.ziel,.wahlhilfe,.zeile,.antwort,table,.nr,.schreiblinie,.kartentext,.item,.platzhalter,x-wortarten,x-satzglieder,x-wortbausteine,.kl-station,.kl-pfeil,x-stellentafel,x-silben,.timer-text,.leerstelle,.vermutung";

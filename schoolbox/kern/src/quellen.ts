@@ -176,6 +176,8 @@ const OHNE_SCHWELLE = new Set([
 	'minibuch-seiten',
 	'abbildung',
 	'ueberlauf, rand',
+	// 266: Inhalt aus einer Karte oder mit seiner Karte aus der Seite
+	'ueberlauf',
 	'abgeschnitten',
 	'ueberlappung',
 	'bild-fehlt',
