@@ -175,10 +175,12 @@ export const KI_GRENZEN = {
 	 * Lauf mit Prüfschleife (238: 15 Materialien, zwei Durchgänge): Bau im Mittel 4,2 USD (bis 7,1), Prüfung 1,1,
 	 * Korrektur 1,3 (bis 3,7), Bilder 5,8, Schluss 5,0; zusammen nach Freigabe 125 USD, 2740 Runden und 6,3 h. Bis 240
 	 * zählte jede Korrektur die Kosten ihrer ganzen Sitzung mit, der Durchgang brach deshalb bei echten 77 USD ab.
+	 * Zeit und Runden reichen seit 2026-11-20 (Admin) für diesen Lauf in einem Durchgang mit Abstand (vorher 5 h und
+	 * 3000, enger als das Budget); das Budget bleibt der Schutz gegen einen Lauf, der aus dem Ruder läuft.
 	 */
 	einheit: {
-		zeitMs: 5 * 60 * 60_000,
-		runden: 3000,
+		zeitMs: 8 * 60 * 60_000,
+		runden: 5000,
 		budgetUsd: 150,
 		budgetGuthabenUsd: 25,
 		dokumente: 24,
