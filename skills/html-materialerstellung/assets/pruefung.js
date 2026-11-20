@@ -281,6 +281,37 @@
       }
     });
 
+    // 2d. Zeilen eines Kartentexts (266): Bricht ein Wort oder Text in einer Karte um, stoßen bei engem line-height die
+    // Unterlängen der einen Zeile an die Oberlängen der nächsten. Gemessen wird die Tinte (canvas), nicht die Zeilenbox.
+    const ZEILEN_LUFT = 0.02; // Anteil der Schriftgröße zwischen Unterlänge und Oberlänge der nächsten Zeile
+    const tinte = document.createElement("canvas").getContext("2d");
+    const gedreht = (e) => { for (let p = e; p && p !== S; p = p.parentElement) { const c = getComputedStyle(p); if (c.transform !== "none" || c.writingMode !== "horizontal-tb") return true; } return false; };
+    alle.filter((e) => e.matches(".karte .kartentext") && !e.closest(`.deckkarte,${KARTE_FREI}`) && !gedreht(e)).forEach((e) => {
+      const c = getComputedStyle(e), groesse = parseFloat(c.fontSize), zeilen = new Map();
+      const leser = document.createTreeWalker(e, NodeFilter.SHOW_TEXT), bereich = document.createRange();
+      while (leser.nextNode()) {
+        const t = leser.currentNode;
+        if (!t.parentElement || parseFloat(getComputedStyle(t.parentElement).fontSize) !== groesse) continue;
+        for (let i = 0; i < t.length; i++) {
+          bereich.setStart(t, i); bereich.setEnd(t, i + 1);
+          const r = bereich.getBoundingClientRect();
+          if (!r.height) continue;
+          const oben = Math.round(r.top);
+          zeilen.set(oben, (zeilen.get(oben) || "") + t.data[i]);
+        }
+      }
+      const liste = [...zeilen].map(([oben, text]) => [oben, text.trim()]).filter(([, text]) => text).sort((a, b) => a[0] - b[0]);
+      if (liste.length < 2) return;
+      tinte.font = `${c.fontStyle} ${c.fontWeight} ${c.fontSize} ${c.fontFamily}`;
+      for (let i = 1; i < liste.length; i++) {
+        const [o1, t1] = liste[i - 1], [o2, t2] = liste[i];
+        const luft = o2 - o1 - tinte.measureText(t1).actualBoundingBoxDescent - tinte.measureText(t2).actualBoundingBoxAscent;
+        if (luft < ZEILEN_LUFT * groesse) {
+          melde("WARNUNG", nr, "zeilen-eng", `„${kurz(e)}“: Die Zeilen „${t1}“ und „${t2}“ berühren sich (${Math.round(luft)} px Luft) → line-height am Kartentext größer oder Schrift kleiner`, [ziel(e)]);
+          break;
+        }
+      }
+    });
     // 3. Überlappungen zwischen Inhalten
     const INHALT = "img,svg:not(.kl-kreis>svg),.spiel-zelle,.kreuz-hinweise li,.raetsel-liste li,.kreuz-titel,.raetsel-wort>span,.blase,.anw,h1,.ziel,.wahlhilfe,.zeile,.antwort,table,.nr,.schreiblinie,.kartentext,.item,.platzhalter,x-wortarten,x-satzglieder,x-wortbausteine,.kl-station,.kl-pfeil,x-stellentafel,x-silben,.timer-text,.leerstelle,.vermutung";
     const teile = alle.filter((e) => e.matches(INHALT)), paare = [];

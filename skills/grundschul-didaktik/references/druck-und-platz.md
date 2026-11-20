@@ -240,6 +240,7 @@ Mindestmaße, die höchste und die kleinste Zahl je A4 und den Abstand zur Schni
 | `zeit-fehlt` | WARNUNG | mit Zeitziel: eine Aufgabe ohne `data-min` |
 | `zeit-knapp` | WARNUNG | mit Zeitziel: das kürzeste Niveau unter 85 % des Ziels |
 | `zeit-viel` | WARNUNG | nur beim Bauen, mit Zeitziel: das längste Niveau über 125 % des Ziels |
+| `zeilen-eng` | WARNUNG | ein `.kartentext` in einer Karte bricht um, und zwischen Unterlänge der einen und Oberlänge der nächsten Zeile bleibt weniger als 2 % der Schriftgröße; nicht in der Deckkarte und nicht bei gedrehtem Text |
 | `druckrand` | WARNUNG | Gestaltung mit Text oder Bild näher als 19 px (5 mm) am Blattrand |
 | `schrift-klein` | WARNUNG | Schrift unter 80 % der Schrift der Klasse, auf Folien der Folienschrift |
 | `kontrast-sw-schau` | WARNUNG | gedruckt wird s/w (Quelle in s/w oder `blatt.py --sw-druck`): Text auf einer Schauseite (Fall-Karte, Deckblatt, A3) mit Kontrast unter 3:1 |

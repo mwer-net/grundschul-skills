@@ -104,6 +104,8 @@ describe('pruefung.js (mit blatt.py)', () => {
 					'antwort-menge',
 					// Auflösung (256) prüft „Auflösung nur in der Lösung“ unter „pruefung.js: Platz und Größe“.
 					'aufloesung-sichtbar',
+					// Zeilen in Karten (266) prüft „pruefung.js: Inhalt bleibt in der Karte“.
+					'zeilen-eng',
 				].includes(c),
 		);
 		assert.deepEqual(fehlt, [], 'jede Regel kommt in den Testdaten vor');
@@ -708,6 +710,29 @@ describe('pruefung.js: Inhalt bleibt in der Karte (266)', { skip: browserSkip() 
 		const marke = '<div data-rand-ok style="position:absolute;left:-6mm;top:-6mm;width:8mm;height:8mm;background:#000"></div>';
 		const karten = `<div class="karten" style="--spalten:2;--zeilen:2">${`<div class="karte">${marke}<div class="kartentext">Spiegel</div></div>`.repeat(4)}</div>`;
 		assert.deepEqual(await melde(blatt(karten)), []);
+	});
+
+	it('getrenntes Wort mit engem Zeilenabstand: WARNUNG „zeilen-eng“, mit Luft nicht', async () => {
+		const wort = (zeile: string) =>
+			blatt(
+				`<div class="karten" style="--spalten:1;--zeilen:3">${`<div class="karte"><div class="kartentext" style="font-size:114px;line-height:${zeile}">Spiegel-<br>bild</div></div>`.repeat(3)}</div>`,
+			);
+		const eng = async (zeile: string) => {
+			const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-266-'));
+			try {
+				const datei = path.join(tmp, 'blatt.html');
+				await writeFile(datei, wort(zeile));
+				return (await pruefe(datei)).filter((m) => m.code === 'zeilen-eng').map((m) => [m.stufe, m.seite]);
+			} finally {
+				await rm(tmp, { recursive: true, force: true });
+			}
+		};
+		assert.deepEqual(await eng('0.98'), [
+			['WARNUNG', 1],
+			['WARNUNG', 1],
+			['WARNUNG', 1],
+		]);
+		assert.deepEqual(await eng('1.3'), []);
 	});
 });
 

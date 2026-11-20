@@ -29,6 +29,8 @@ export const MELDUNG_CODES = [
 	'schnitt-knapp',
 	/** Nur neues Material: Jede Seite mit Karten trägt nur eine, ohne `data-tafel-gross` (250). */
 	'karten-einzeln',
+	/** Zwei Zeilen eines Kartentexts berühren sich, etwa ein getrenntes Wort bei engem line-height (266). */
+	'zeilen-eng',
 	/** Nur mit Zeitziel (`data-zeit`): Die geplanten Minuten der Aufgaben reichen nicht für das Ziel. */
 	'zeit-knapp',
 	/** Nur beim Bauen, mit Zeitziel: Die geplanten Minuten gehen mehr als 25 % über das Ziel hinaus (225). */
@@ -257,6 +259,10 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 	'karten-einzeln': () => ({
 		satz: 'Jede Seite trägt nur eine Karte. Das kostet viel Papier, und die Karten werden größer als nötig.',
 		tipp: 'Claude bitten, Wortkarten als Streifen zu dritt und Bildkarten zu zweit bis viert auf eine Seite zu setzen.',
+	}),
+	'zeilen-eng': ([a = 'Ein Kartentext']) => ({
+		satz: `${a}: Die Zeilen stehen so eng, dass sich die Buchstaben berühren.`,
+		tipp: 'Den Zeilenabstand vergrößern oder die Schrift etwas kleiner machen.',
 	}),
 	'zeit-knapp': (_n, text) => {
 		const [, hat, ziel] = /etwa (\d+) min, Ziel sind (\d+) min/.exec(text) ?? [];

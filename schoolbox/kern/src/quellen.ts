@@ -279,6 +279,7 @@ const pruefSchwellen = (wurzel: string) => {
 		'motiv-klein': `${satz}: das Motiv füllt weniger als ${prozent(zahl('MOTIV_MIN'))} der Karte innerhalb ihres Rands`,
 		'schnitt-knapp': `${satz}: Text oder Bild näher als ${zahl('SCHNITT_MIN')} mm an der Schnittkante`,
 		'karten-einzeln': `${satz}: jede Seite mit Karten trägt nur eine (Rückseiten und Deckkarte zählen nicht); \`data-tafel-gross\` nimmt eine Karte aus`,
+		'zeilen-eng': `ein \`.kartentext\` in einer Karte bricht um, und zwischen Unterlänge der einen und Oberlänge der nächsten Zeile bleibt weniger als ${prozent(zahl('ZEILEN_LUFT'))} der Schriftgröße; nicht in der Deckkarte und nicht bei gedrehtem Text`,
 		'kit-anteil': `nur beim Bauen: weniger als ${zahl('KIT_MINDEST')} % der Elemente mit Klasse nutzen nur Kit-Klassen`,
 		'verdeckt': `Gestaltung vorne oder am Anker verdeckt Inhalt um mehr als ${zahl('VERDECKT_MIN')} px²`,
 		'kontrast-sw': `in s/w: Text mit Kontrast unter ${zahl('KONTRAST_MIN')}:1 zu seiner Fläche`,
