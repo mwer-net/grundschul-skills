@@ -54,7 +54,11 @@ const stuecke = (sel: string) => {
 	const aus = [''];
 	let klammer = 0;
 	for (const z of sel) {
-		klammer += z === '(' ? 1 : z === ')' ? -1 : 0;
+		if (z === '(') {
+			klammer += 1;
+		} else if (z === ')') {
+			klammer -= 1;
+		}
 		if (z === ',' && klammer === 0) {
 			aus.push('');
 		} else {
@@ -123,5 +127,8 @@ export const klassenIndex = (css: string) => {
 			zeilen.push(g.titel ? `- ${g.titel}: ${liste}` : `- ${liste}`);
 		}
 	}
-	return zeilen.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+	return zeilen
+		.join('\n')
+		.replace(/\n{3,}/g, '\n\n')
+		.trim();
 };

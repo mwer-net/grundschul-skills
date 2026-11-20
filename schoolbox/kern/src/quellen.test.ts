@@ -611,7 +611,10 @@ describe('Klassen von blatt.css (252)', () => {
 	});
 
 	it('Probe: Klassen nur in einem x-Element fehlen, der erste Satz zählt, ein fehlender Schlüssel scheitert', () => {
-		assert.equal(ersterSatz('/* == Satz 2 (212): neu ==\n   data-satz="2" am <body>. Mehr */'), 'Satz 2 (212): neu: data-satz="2" am <body>');
+		assert.equal(
+			ersterSatz('/* == Satz 2 (212): neu ==\n   data-satz="2" am <body>. Mehr */'),
+			'Satz 2 (212): neu: data-satz="2" am <body>',
+		);
 		assert.equal(ersterSatz('/* Bild mit Ebenen. .bild-lagen füllt */'), 'Bild mit Ebenen');
 		const probe = [
 			'/* Blätter mit Zeitziel (data-zeit, Menge nach Arbeitszeit): Lesetext ab Kl. 2 am unteren Rand der Spanne aus',

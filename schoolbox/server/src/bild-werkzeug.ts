@@ -269,16 +269,20 @@ const eintragAus = (roh: Record<string, unknown>): Record<string, unknown> | nul
 	return e;
 };
 
+/** Was `bild_pruefung` zu `offen` antwortet: eingetragen, gelöscht oder nichts. */
+const offenAntwort = (offen: unknown) => {
+	if (typeof offen !== 'string') {
+		return null;
+	}
+	return offen.trim() ? 'Offen eingetragen.' : 'Offen gelöscht.';
+};
+
 /** Eine Liste von Prüfpunkten für `bild_pruefung` (252). */
 const punkteAus = (wert: unknown, name: string): string[] => {
 	if (wert === undefined) {
 		return [];
 	}
-	if (
-		!Array.isArray(wert) ||
-		wert.length > MAX_PRUEF_PUNKTE ||
-		!wert.every((w) => istText(w, MAX_PRUEF_PUNKT))
-	) {
+	if (!Array.isArray(wert) || wert.length > MAX_PRUEF_PUNKTE || !wert.every((w) => istText(w, MAX_PRUEF_PUNKT))) {
 		throw new Abgelehnt(`„${name}“ ist eine Liste von höchstens ${MAX_PRUEF_PUNKTE} Sätzen.`);
 	}
 	return wert.map((w: string) => tsvFeld(w));
@@ -558,7 +562,9 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 			const eintrag = { ...(alt ?? {}), datei, ...e };
 			const v = vertragAus(eintrag);
 			if (!v) {
-				throw new Abgelehnt(`„motiv“ fehlt: Der Vertrag von ${datei} braucht ein Motiv, höchstens 300 Zeichen.`);
+				throw new Abgelehnt(
+					`„motiv“ fehlt: Der Vertrag von ${datei} braucht ein Motiv, höchstens 300 Zeichen.`,
+				);
 			}
 			const grund = o.pruefeVertrag?.(v);
 			if (grund) {
@@ -698,8 +704,9 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 		}
 		const versuch = Math.max(
 			1,
-			((await leseVersuche(herkunft)).get(datei) ?? []).filter((v) => v.art === 'erzeugt' || v.art === 'bearbeitet')
-				.length,
+			((await leseVersuche(herkunft)).get(datei) ?? []).filter(
+				(v) => v.art === 'erzeugt' || v.art === 'bearbeitet',
+			).length,
 		);
 		await aendereListe(datei, (alt) => {
 			if (!alt) {
@@ -707,7 +714,8 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 			}
 			const neu: Record<string, unknown> = { ...alt };
 			if (mitPruefung) {
-				neu.pruefung = [...(Array.isArray(alt.pruefung) ? alt.pruefung : []), { versuch, ok, fehlt, verboten }];
+				const bisher: unknown[] = Array.isArray(alt.pruefung) ? alt.pruefung : [];
+				neu.pruefung = [...bisher, { versuch, ok, fehlt, verboten }];
 			}
 			if (typeof offen === 'string') {
 				if (offen.trim()) {
@@ -723,7 +731,7 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 			mitPruefung ? `Eingetragen: Prüfung von Versuch ${versuch} für bilder/${datei}.` : null,
 			mitPruefung && !nicht.length ? 'Abgenommen.' : null,
 			mitPruefung && nicht.length ? `Nicht abgenommen: ${nicht.join(' · ')}. ${FLICKEN_SATZ}` : null,
-			typeof offen === 'string' ? (offen.trim() ? 'Offen eingetragen.' : 'Offen gelöscht.') : null,
+			offenAntwort(offen),
 		]
 			.filter(Boolean)
 			.join('\n');

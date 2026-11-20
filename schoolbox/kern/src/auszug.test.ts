@@ -26,10 +26,16 @@ describe('Auszug eines Materials (252)', () => {
 		assert.match(auszug, /^## Seite 1 \(fall\)$/m);
 		assert.match(auszug, /^\[Bild \.\.\/\.\.\/bilder\/fall-5\.jpg: Ida hält das Glöckchen unter der Tanne\]$/m);
 		assert.match(auszug, /^\[Abbildung: Zettel in Spiegelschrift; Text: BALD HELL\]$/m);
-		assert.match(auszug, /^## Seite 2 · Niveau 1\nTitel: Spurensuche mit dem Spiegel\nZiel: Ich kann mit dem Spiegel prüfen\.$/m);
+		assert.match(
+			auszug,
+			/^## Seite 2 · Niveau 1\nTitel: Spurensuche mit dem Spiegel\nZiel: Ich kann mit dem Spiegel prüfen\.$/m,
+		);
 		assert.match(auszug, /^### Aufgabe 1 \(7 Min\.\)\nAnweisung: Prüfe mit dem Spiegel\. Kreuze an\.\nTipp: /m);
 		assert.match(auszug, /^nicht symmetrisch \| \| \[Lösung: X\]$/m);
-		assert.doesNotMatch(auszug, /Name:|Datum:|Vorlagen|Kapitel5|color: red|Seite 1: Fall-Karte|^Lösung$|Kapitel 5$/m);
+		assert.doesNotMatch(
+			auszug,
+			/Name:|Datum:|Vorlagen|Kapitel5|color: red|Seite 1: Fall-Karte|^Lösung$|Kapitel 5$/m,
+		);
 		assert.ok(auszug.length < KAPITEL.length / 2);
 	});
 

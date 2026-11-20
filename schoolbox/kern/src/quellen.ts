@@ -39,7 +39,7 @@ const PFLICHTLEKTUERE_MD = 'skills/html-materialerstellung/references/pflichtlek
 const AELTERER_SATZ = 'skills/html-materialerstellung/references/aelterer-satz.md';
 const ABBILDUNGEN = 'skills/html-materialerstellung/references/abbildungen.md';
 const GEOMETRIE = 'skills/html-materialerstellung/references/abbildungen/mathe-geometrie.md';
-const KLASSEN = 'skills/html-materialerstellung/references/klassen.md';
+const KLASSEN_MD = 'skills/html-materialerstellung/references/klassen.md';
 
 const tabelle = (kopf: string[], zeilen: string[][]) =>
 	[
@@ -465,7 +465,11 @@ export const ABSCHNITTE: Abschnitt[] = [
 	// Symmetrie (245): Achsen der Buchstaben und Ziffern für x-symmetrie-sortieren
 	{ datei: GEOMETRIE, marke: 'symmetrie-zeichen', inhalt: symmetrieTabelle },
 	// Klassen (252): der Index von blatt.css, damit der Bau die CSS nicht liest
-	{ datei: KLASSEN, marke: 'klassen-index', inhalt: (wurzel) => klassenIndex(readFileSync(path.join(wurzel, BLATT_CSS), 'utf8')) },
+	{
+		datei: KLASSEN_MD,
+		marke: 'klassen-index',
+		inhalt: (wurzel) => klassenIndex(readFileSync(path.join(wurzel, BLATT_CSS), 'utf8')),
+	},
 ];
 
 /** Setzt den Inhalt zwischen `<!-- erzeugt: marke -->` und `<!-- /erzeugt: marke -->`. */

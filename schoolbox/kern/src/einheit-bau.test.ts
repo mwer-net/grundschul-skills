@@ -291,6 +291,8 @@ describe('Satz zu neuen Bildern (252)', () => {
 		assert.equal(bilderSatzIn(alt, true), `Auftrag. ${EINHEIT_BILDER_SATZ.mit} Ende.`);
 		assert.equal(bilderSatzIn(alt, false), `Auftrag. ${EINHEIT_BILDER_SATZ.ohne} Ende.`);
 		assert.equal(bilderSatzIn(`A ${EINHEIT_BILDER_SATZ.mit}`, false), `A ${EINHEIT_BILDER_SATZ.ohne}`);
-		assert.ok(erlaubtBilder(alt) && erlaubtBilder(EINHEIT_BILDER_SATZ.mit) && !erlaubtBilder(EINHEIT_BILDER_SATZ.ohne));
+		assert.ok(
+			erlaubtBilder(alt) && erlaubtBilder(EINHEIT_BILDER_SATZ.mit) && !erlaubtBilder(EINHEIT_BILDER_SATZ.ohne),
+		);
 	});
 });

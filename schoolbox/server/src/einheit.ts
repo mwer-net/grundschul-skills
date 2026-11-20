@@ -373,8 +373,7 @@ export const erstelleEinheiten = (
 
 	const dir = (id: string) => path.join(wurzel, `einheit-${id}`);
 	const arbeitDir = (id: string) => path.join(dir(id), 'arbeit');
-	const auszugDatei = (s: EinheitStand, slug: string) =>
-		path.join(arbeitDir(s.id), 'dokumente', slug, AUSZUG_DATEI);
+	const auszugDatei = (s: EinheitStand, slug: string) => path.join(arbeitDir(s.id), 'dokumente', slug, AUSZUG_DATEI);
 	const ablageDir = (id: string) => path.join(dir(id), 'ablage');
 	/** Jeder Lauf der Einheit wird mitgeschrieben (233). */
 	const mitschrift = (s: EinheitStand, art: string, dok: string | null): MitschriftZiel => ({

@@ -524,8 +524,7 @@ describe('Bildwerkzeuge (237)', () => {
 	});
 	const liste = async () => {
 		const roh = JSON.parse(await readFile(path.join(arbeit, 'bilder.json'), 'utf8')) as
-			| Record<string, unknown>[]
-			| { bilder: Record<string, unknown>[] };
+			Record<string, unknown>[] | { bilder: Record<string, unknown>[] };
 		return Array.isArray(roh) ? roh : roh.bilder;
 	};
 
@@ -609,7 +608,8 @@ describe('Bildwerkzeuge (237)', () => {
 		await vertrag({ datei: 'fall-1.jpg', motiv: 'Szene' });
 		const w = await werkzeug({
 			vertragWerkzeuge: true,
-			pruefeVertrag: (v) => (JSON.stringify(v.vertrag ?? {}).includes('Luna') ? null : 'Dem Bildvertrag fehlt: „Luna“.'),
+			pruefeVertrag: (v) =>
+				JSON.stringify(v.vertrag ?? {}).includes('Luna') ? null : 'Dem Bildvertrag fehlt: „Luna“.',
 		});
 		const abgelehnt = await w.aufruf('bild_erzeugen', {
 			datei: 'fall-1.jpg',

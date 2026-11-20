@@ -62,7 +62,7 @@ const teile = (z: Zerlegung, k: Knoten, kind: (c: Knoten) => string) => {
 	return aus + text(z.quelle.slice(pos, k.schliesserStart));
 };
 
-const zeile = (t: string) => t.replace(/[\s ]+/g, ' ').trim();
+const zeile = (t: string) => t.replace(/[\s\u00a0]+/g, ' ').trim();
 
 /** Die Schrift einer Zeichnung: `<text>` und `<tspan>`, getrennt nach Arbeitsblatt und Lösung. */
 const svgSchrift = (z: Zerlegung, k: Knoten, loesung: boolean, aus: { blatt: string[]; loesung: string[] }) => {
@@ -83,11 +83,8 @@ const abbildung = (z: Zerlegung, k: Knoten) => {
 		return '';
 	}
 	const titelKind = k.kinder.find((c) => c.tag === 'title');
-	const titel = zeile(
-		attribut(k, 'data-frei-titel')?.wert ??
-			attribut(k, 'aria-label')?.wert ??
-			(titelKind ? text(z.quelle.slice(titelKind.oeffnerEnde, titelKind.schliesserStart)) : ''),
-	);
+	const titelText = titelKind ? text(z.quelle.slice(titelKind.oeffnerEnde, titelKind.schliesserStart)) : '';
+	const titel = zeile(attribut(k, 'data-frei-titel')?.wert ?? attribut(k, 'aria-label')?.wert ?? titelText);
 	const schrift = { blatt: [] as string[], loesung: [] as string[] };
 	svgSchrift(z, k, false, schrift);
 	const teil = [
@@ -104,17 +101,15 @@ const abbildung = (z: Zerlegung, k: Knoten) => {
 /** Eine Leerzeile im Auszug; `zeilen` entfernt sonst jede leere Zeile. */
 const ABSATZ = '\u0001';
 
-const element = (z: Zerlegung, k: Knoten): string => {
-	const klassen = klassenVon(k);
-	if (
-		k.tag === 'head' ||
-		ROHTEXT.has(k.tag) ||
-		k.tag === 'template' ||
-		attribut(k, 'data-aus') ||
-		klassen.some((c) => WEG.has(c))
-	) {
-		return '';
-	}
+const fehltImAuszug = (k: Knoten, klassen: string[]) =>
+	k.tag === 'head' ||
+	ROHTEXT.has(k.tag) ||
+	k.tag === 'template' ||
+	attribut(k, 'data-aus') !== undefined ||
+	klassen.some((c) => WEG.has(c));
+
+/** Zeichnung, Bild, Umbruch und Eingabefeld stehen für sich; sonst `null`. */
+const fuerSich = (z: Zerlegung, k: Knoten): string | null => {
 	if (k.tag === 'svg') {
 		return abbildung(z, k);
 	}
@@ -128,31 +123,32 @@ const element = (z: Zerlegung, k: Knoten): string => {
 	if (k.tag === 'input') {
 		return attribut(k, 'type')?.wert === 'checkbox' ? ' [ ] ' : ' [___] ';
 	}
-	if (klassen.includes('aufgabe')) {
-		return `\n${ABSATZ}\n${aufgabe(z, k).join('\n')}\n${ABSATZ}\n`;
-	}
-	const innen = teile(z, k, (c) => element(z, c));
-	if (k.tag.startsWith('x-')) {
-		const angaben = k.attribute
-			.filter((a) => !OHNE_INHALT.has(a.name))
-			.map((a) => (a.wert === null ? a.name : `${a.name}="${zeile(a.wert)}"`));
-		const rest = zeile(innen);
-		return ` [${k.tag}${angaben.length ? ` ${angaben.join(' ')}` : ''}${rest ? `: ${rest}` : ''}] `;
-	}
-	const l = attribut(k, 'data-l')?.wert;
-	if (klassen.includes('antwort')) {
-		const rest = zeile(innen);
-		return ` ${rest ? `${rest} ` : ''}[___${l?.trim() ? ` Lösung: ${zeile(l)}` : ''}] `;
-	}
-	let aus = innen;
-	if (l?.trim()) {
-		aus = `${aus} [Lösung: ${zeile(l)}]`;
-	}
+	return null;
+};
+
+const xElement = (k: Knoten, innen: string) => {
+	const angaben = k.attribute
+		.filter((a) => !OHNE_INHALT.has(a.name))
+		.map((a) => (a.wert === null ? a.name : `${a.name}="${zeile(a.wert)}"`));
+	const rest = zeile(innen);
+	return ` [${k.tag}${angaben.length ? ` ${angaben.join(' ')}` : ''}${rest ? `: ${rest}` : ''}] `;
+};
+
+/** `data-l` als Lösung, `.nur-loesung` und `.nicht-loesung` als Hinweis, auf welchem Blatt der Inhalt steht. */
+const mitLoesung = (innen: string, l: string | null | undefined, klassen: string[]) => {
+	const aus = l?.trim() ? `${innen} [Lösung: ${zeile(l)}]` : innen;
 	if (klassen.includes('nur-loesung')) {
-		aus = zeile(aus) ? ` [nur Lösung: ${zeile(aus)}] ` : '';
-	} else if (klassen.includes('nicht-loesung')) {
-		aus = zeile(aus) ? ` [nur Arbeitsblatt: ${zeile(aus)}] ` : '';
+		return zeile(aus) ? ` [nur Lösung: ${zeile(aus)}] ` : '';
 	}
+	if (klassen.includes('nicht-loesung')) {
+		return zeile(aus) ? ` [nur Arbeitsblatt: ${zeile(aus)}] ` : '';
+	}
+	return aus;
+};
+
+/** Titel, Ziel und Tipp bekommen ihr Wort davor; Zelle, Listenpunkt und Block ihre Trennung. */
+const gerahmt = (k: Knoten, klassen: string[], inhalt: string) => {
+	let aus = inhalt;
 	if (k.tag === 'h1') {
 		aus = `Titel: ${aus}`;
 	} else if (klassen.includes('ziel')) {
@@ -167,6 +163,30 @@ const element = (z: Zerlegung, k: Knoten): string => {
 		return `\n- ${aus}\n`;
 	}
 	return BLOCK.has(k.tag) ? `\n${aus}\n` : aus;
+};
+
+const element = (z: Zerlegung, k: Knoten): string => {
+	const klassen = klassenVon(k);
+	if (fehltImAuszug(k, klassen)) {
+		return '';
+	}
+	const einzeln = fuerSich(z, k);
+	if (einzeln !== null) {
+		return einzeln;
+	}
+	if (klassen.includes('aufgabe')) {
+		return `\n${ABSATZ}\n${aufgabe(z, k).join('\n')}\n${ABSATZ}\n`;
+	}
+	const innen = teile(z, k, (c) => element(z, c));
+	if (k.tag.startsWith('x-')) {
+		return xElement(k, innen);
+	}
+	const l = attribut(k, 'data-l')?.wert;
+	if (klassen.includes('antwort')) {
+		const rest = zeile(innen);
+		return ` ${rest ? `${rest} ` : ''}[___${l?.trim() ? ` Lösung: ${zeile(l)}` : ''}] `;
+	}
+	return gerahmt(k, klassen, mitLoesung(innen, l, klassen));
 };
 
 const zeilen = (t: string) =>
@@ -221,5 +241,8 @@ export const auszugAus = (html: string, titel: string): string => {
 	seiten.forEach((k, i) => {
 		aus.push('', seitenKopf(z, k, i + 1), ...zeilen(teile(z, k, (c) => element(z, c))));
 	});
-	return `${aus.join('\n').replace(/\n{3,}/g, '\n\n').trim()}\n`;
+	return `${aus
+		.join('\n')
+		.replace(/\n{3,}/g, '\n\n')
+		.trim()}\n`;
 };

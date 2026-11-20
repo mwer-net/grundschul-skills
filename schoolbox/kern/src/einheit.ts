@@ -213,15 +213,15 @@ export const EINHEIT_BILDER_SATZ = {
 };
 
 /** Der Auftrag mit dem heutigen Satz zu neuen Bildern, oder mit `ohne`, wenn der Lauf keine Bildwerkzeuge hat. */
-export const bilderSatzIn = (text: string, mitBildern: boolean) =>
+export const bilderSatzIn = (auftrag: string, mitBildern: boolean) =>
 	[EINHEIT_BILDER_SATZ.mit, ...EINHEIT_BILDER_SATZ.frueher].reduce(
 		(t, satz) => t.replaceAll(satz, mitBildern ? EINHEIT_BILDER_SATZ.mit : EINHEIT_BILDER_SATZ.ohne),
-		text,
+		auftrag,
 	);
 
 /** Erlaubt der Auftrag neue KI-Bilder, im heutigen oder früheren Wortlaut? */
-export const erlaubtBilder = (text: string) =>
-	[EINHEIT_BILDER_SATZ.mit, ...EINHEIT_BILDER_SATZ.frueher].some((satz) => text.includes(satz));
+export const erlaubtBilder = (auftrag: string) =>
+	[EINHEIT_BILDER_SATZ.mit, ...EINHEIT_BILDER_SATZ.frueher].some((satz) => auftrag.includes(satz));
 
 /**
  * Was ein Baustein in der Einheit bewirkt, an wie aus (`grundschul-didaktik/references/rueckfragen.md`). Ohne den
@@ -474,7 +474,8 @@ export const planFuerBau = (plan: EinheitPlan) => {
 			? [
 					'Ich-kann-Ziele der Reihe:',
 					...plan.ziele.map(
-						(z) => `- Ziel ${z.nr}: ${z.text}${z.handlung ? ' (verlangt eine Handlung mit Material oder Werkzeug)' : ''}`,
+						(z) =>
+							`- Ziel ${z.nr}: ${z.text}${z.handlung ? ' (verlangt eine Handlung mit Material oder Werkzeug)' : ''}`,
 					),
 				].join('\n')
 			: '',

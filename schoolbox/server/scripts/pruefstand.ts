@@ -333,8 +333,7 @@ const vorhabenFuer = async (p: Pruefstand, d: PlanDokument, teile: Teil[]): Prom
 	const { dok, html, quelle } = q;
 	const rolle = rolleVon(d);
 	const mitKiBildern =
-		erlaubtBilder(p.auftrag) &&
-		[...html.matchAll(BILD_IM_DOKUMENT)].some((t) => p.bilderListe.has(t[1] ?? ''));
+		erlaubtBilder(p.auftrag) && [...html.matchAll(BILD_IM_DOKUMENT)].some((t) => p.bilderListe.has(t[1] ?? ''));
 	const kindTeil = teile.includes('kind');
 	const blickTeil = teile.includes('blick');
 	let kind: boolean;

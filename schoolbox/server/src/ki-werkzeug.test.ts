@@ -164,11 +164,15 @@ describe('mcp.mjs: mehrere Werkzeuge je Prozess (237)', () => {
 	const mitVertrag = {
 		...bildWerkzeug,
 		namen: ['bild_erzeugen', 'bild_bearbeiten', 'bild_vertrag', 'bild_pruefung'],
-	} as unknown as BildWerkzeug;
+	};
+	const bilderFuer = (mitBildern: boolean, vertrag: boolean) => {
+		if (!mitBildern) {
+			return null;
+		}
+		return vertrag ? mitVertrag : bildWerkzeug;
+	};
 	const starte = (art: WerkzeugArt, mitBildern: boolean, vertrag = false) =>
-		starteWerkzeug(dir, art === 'bilder' ? null : baue, art, {
-			bilder: mitBildern ? (vertrag ? mitVertrag : bildWerkzeug) : null,
-		});
+		starteWerkzeug(dir, art === 'bilder' ? null : baue, art, { bilder: bilderFuer(mitBildern, vertrag) });
 
 	before(async () => {
 		dir = await mkdtemp(path.join(tmpdir(), 'mcp-'));
