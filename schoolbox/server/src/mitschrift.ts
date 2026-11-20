@@ -10,8 +10,8 @@ import { ID_MUSTER } from '@schoolbox/kern';
 
 /**
  * Die Mitschrift jedes Laufs von `claude` (233): `_ki-mitschrift/<mappe>/<zeit>-<art>[-<dok>].jsonl.gz` in der Ablage. Die
- * erste Zeile (`typ: 'kopf'`) hält Auftrag, Systemauftrag und Argumente, dann folgt jede Zeile von `stream-json`
- * (Nachrichten, Werkzeugaufrufe und ihre Ergebnisse), die letzte (`typ: 'ende'`) zählt die Werkzeuge und nennt die
+ * erste Zeile (`typ: 'kopf'`) hält Auftrag, Systemauftrag, Argumente und `cacheTtl` (265: die Dauer des Prompt-Caches
+ * aus der Umgebung, `null`: von der CLI gewählt), dann folgt jede Zeile von `stream-json` (Nachrichten, Werkzeugaufrufe und ihre Ergebnisse), die letzte (`typ: 'ende'`) zählt die Werkzeuge und nennt die
  * fehlgeschlagenen, mit Bildwerkzeugen (237) dazu Aufrufe und Kosten der Bild-API in diesem Lauf. Während des Laufs ist die Datei ungepackt; bleibt sie das, endete der Server mitten im Lauf.
  */
 export const MITSCHRIFT_ORDNER = '_ki-mitschrift';
@@ -105,7 +105,7 @@ const bilderImLauf = (vorher: ReturnType<BildZaehler>, nachher: ReturnType<BildZ
 export const schreibeMitschrift = (
 	ziel: MitschriftZiel | undefined,
 	kind: ChildProcessWithoutNullStreams,
-	lauf: { argumente: string[]; auftrag: string; cwd: string; bilder?: BildZaehler | null },
+	lauf: { argumente: string[]; auftrag: string; cwd: string; bilder?: BildZaehler | null; cacheTtl?: string },
 ) => {
 	if (!ziel) {
 		return;
@@ -139,6 +139,7 @@ export const schreibeMitschrift = (
 		mappe: ziel.mappe ?? null,
 		dok: ziel.dok ?? null,
 		cwd: lauf.cwd,
+		cacheTtl: lauf.cacheTtl ?? null,
 		argumente: lauf.argumente.map((a) => gekuerzt(a, MITSCHRIFT_TEXT_ZEICHEN)),
 		systemAuftrag: systemAuftrag(lauf.argumente),
 		auftrag: gekuerzt(lauf.auftrag, AUFTRAG_ZEICHEN),

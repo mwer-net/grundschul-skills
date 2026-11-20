@@ -195,7 +195,7 @@ import {
 } from './bild-zugang';
 import { schreibeQuelle } from './dokumente';
 import { HttpFehler } from './fehler';
-import type { Ergebnis, KiPruefer, LaufStand, PruefErgebnis } from './ki';
+import type { Ergebnis, KiCacheTtl, KiPruefer, LaufStand, PruefErgebnis } from './ki';
 import {
 	beendeKind,
 	EINHEIT_PLAN_RECHTE,
@@ -288,6 +288,8 @@ export interface LaufGrenzen {
 	runden: number;
 	budgetUsd: number;
 	budgetGuthabenUsd: number;
+	/** Ohne: Die CLI wählt die Dauer des Prompt-Caches (265). */
+	cacheTtl?: KiCacheTtl;
 }
 
 /** Ein Lauf der Einheit (220), für `starteLauf`. Teil 2 (Prüflauf, Schlusslauf) setzt Art, Auftrag und Werkzeuge selbst. */
@@ -843,6 +845,7 @@ export const erstelleEinheiten = (
 				ueber ? g.budgetGuthabenUsd : g.budgetUsd,
 				(ueber ? e.budgetGuthabenUsd : e.budgetUsd) - verbraucht.kostenUsd - reserviert.kostenUsd,
 			),
+			...(g.cacheTtl ? { cacheTtl: g.cacheTtl } : {}),
 		};
 	};
 
@@ -1324,12 +1327,13 @@ export const erstelleEinheiten = (
 				rechte: o.rechte,
 				...(o.werkzeuge ? { werkzeuge: o.werkzeuge } : {}),
 			});
-			const kind = spawn(bin, argumente, { cwd: arbeitDir(s.id), env: kiUmgebung(bin) });
+			const kind = spawn(bin, argumente, { cwd: arbeitDir(s.id), env: kiUmgebung(bin, o.grenzen.cacheTtl) });
 			schreibeMitschrift(mitschrift(s, o.art, o.material), kind, {
 				argumente,
 				auftrag: o.text,
 				cwd: arbeitDir(s.id),
 				bilder: bilder?.stand,
+				cacheTtl: o.grenzen.cacheTtl,
 			});
 			if (aktiv) {
 				merkeKind(aktiv.kinder, kind, path.join(dir(s.id), PID), aktiv.abbruch);

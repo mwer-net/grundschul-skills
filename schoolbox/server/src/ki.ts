@@ -123,6 +123,17 @@ import {
 import type { BildZaehler, MitschriftZiel } from './mitschrift';
 import { schreibeMitschrift } from './mitschrift';
 
+/** Die Dauer des Prompt-Caches, den ein Lauf schreibt; ohne Angabe wählt die CLI (im Abo 1 h). */
+export type KiCacheTtl = '5m' | '1h';
+/**
+ * Für Läufe ohne `--resume` mit Runden im Abstand von Sekunden bis wenigen Minuten (265). Gemessen am Lauf vom
+ * 2026-11-20: Kinderaugen und Fachblick schrieben 41 USD in den 1-h-Cache, der Bilderlauf 9 USD; 5 min kosten beim
+ * Schreiben 1,25 statt 2 × Eingabe, etwa −15,5 und −3,4 USD. Der geteilte Anfang der Prüfläufe wird dafür öfter neu
+ * geschrieben, geschätzt 1–2 USD. Bau und Korrektur bleiben bei der CLI: Die Korrektur setzt den Bau 3–6 Minuten
+ * nach dem Prüflauf per `--resume` fort und liest dessen Cache.
+ */
+const KURZER_CACHE: KiCacheTtl = '5m';
+
 /**
  * Grenzen eines Auftrags. Aus den Messungen in Issue 056: Ein ganzes Blatt differenzieren brauchte 16 Runden und 2 min.
  * Seit Claude selbst baut und die Seiten ansieht, braucht jede Änderung einige Runden mehr.
@@ -190,14 +201,14 @@ export const KI_GRENZEN = {
 		 */
 		material: { zeitMs: 30 * 60_000, runden: 200, budgetUsd: 20, budgetGuthabenUsd: 5 },
 		/** Der Schritt „Bilder“: Leitfigur, Posen und die Szenen aller Kapitel, je Bild bis zu drei Versuche. */
-		bilder: { zeitMs: 60 * 60_000, runden: 300, budgetUsd: 25, budgetGuthabenUsd: 5 },
+		bilder: { zeitMs: 60 * 60_000, runden: 300, budgetUsd: 25, budgetGuthabenUsd: 5, cacheTtl: KURZER_CACHE },
 		/** So oft geht ein Material mit Sperre oder Prüf-FEHLER an seinen Lauf zurück. */
 		korrekturen: 1,
 		/**
 		 * Ein Prüflauf „mit Kinderaugen“ (220, Teil 2): nur Read, Seitenbilder ansehen, jede Aufgabe lösen, beim zweiten
 		 * Blick dazu zwei bis vier Regeldateien. Klein gegenüber dem Bau; gemessen 0,7 bis 1,4 USD (238).
 		 */
-		pruefung: { zeitMs: 10 * 60_000, runden: 40, budgetUsd: 3, budgetGuthabenUsd: 1 },
+		pruefung: { zeitMs: 10 * 60_000, runden: 40, budgetUsd: 3, budgetGuthabenUsd: 1, cacheTtl: KURZER_CACHE },
 		/** So oft gehen Befunde des Prüflaufs als Korrekturrunde an den Baulauf zurück; danach prüft er ein letztes Mal. */
 		pruefRunden: 2,
 		/**
@@ -211,7 +222,7 @@ export const KI_GRENZEN = {
 		 * Die Prüfung des Plans vor der Freigabe (247): nur Read, Plan und Recherche (zusammen rund 40.000 Zeichen), zwei
 		 * Skills, keine Bilder. Geschätzt 0,5 bis 1 USD; die Grenzen sind die eines Prüflaufs.
 		 */
-		planPruefung: { zeitMs: 10 * 60_000, runden: 40, budgetUsd: 3, budgetGuthabenUsd: 1 },
+		planPruefung: { zeitMs: 10 * 60_000, runden: 40, budgetUsd: 3, budgetGuthabenUsd: 1, cacheTtl: KURZER_CACHE },
 		/**
 		 * Über diesem Anteil am 5-Stunden-Fenster sagt der Start es vorher (Entscheidung 35: gesperrt wird nicht). Seit 220
 		 * braucht eine Einheit eher mehr als ein ganzes Fenster; die Warnung kommt deshalb früher.
@@ -1184,7 +1195,7 @@ export const pruefeLauf = (o: {
 	ordner: string;
 	ablage: string;
 	text: string;
-	grenzen: { zeitMs: number; runden: number; budgetUsd: number };
+	grenzen: { zeitMs: number; runden: number; budgetUsd: number; cacheTtl?: KiCacheTtl };
 	gestartet?: (kind: ChildProcessWithoutNullStreams) => void;
 	werkzeug?: (name: string, eingabe: Record<string, unknown>) => void;
 	mitschrift?: MitschriftZiel;
@@ -1205,8 +1216,13 @@ export const pruefeLauf = (o: {
 			modell: o.modell,
 			effort: o.effort,
 		});
-		const kind = spawn(o.bin, argumente, { cwd: o.ordner, env: kiUmgebung(o.bin) });
-		schreibeMitschrift(o.mitschrift, kind, { argumente, auftrag: o.text, cwd: o.ordner });
+		const kind = spawn(o.bin, argumente, { cwd: o.ordner, env: kiUmgebung(o.bin, o.grenzen.cacheTtl) });
+		schreibeMitschrift(o.mitschrift, kind, {
+			argumente,
+			auftrag: o.text,
+			cwd: o.ordner,
+			cacheTtl: o.grenzen.cacheTtl,
+		});
 		o.gestartet?.(kind);
 		let grund: string | null = null;
 		let bytes = 0;
@@ -1262,15 +1278,19 @@ export const kiPfad = (konfig: Pick<Konfig, 'claudeBin'>) => {
 	return existsSync(ueblich) ? ueblich : 'claude';
 };
 
+/** Hat in der CLI Vorrang vor der Einstellung `promptCacheTtl` (geprüft an 2.1.325). */
+export const CACHE_TTL_VARIABLE = 'CLAUDE_CODE_PROMPT_CACHE_TTL';
+
 /**
  * Nur was `claude` braucht: das echte HOME wegen der Anmeldung, kein Schlüssel und kein Geheimnis aus der `.env`, auch
  * nicht `OPENAI_API_KEY` (237): Die Bild-API ruft der Server, nicht Claude. `MCP_TOOL_TIMEOUT` bleibt ungesetzt: Ohne
  * Angabe begrenzt Claude Code einen MCP-Aufruf nur durch 30 min ohne Antwort, mehr als `KI_GRENZEN.bild.gesamtMs`.
  */
-export const kiUmgebung = (bin: string): Record<string, string> => ({
+export const kiUmgebung = (bin: string, cacheTtl?: KiCacheTtl): Record<string, string> => ({
 	PATH: [path.isAbsolute(bin) ? path.dirname(bin) : '', process.env.PATH ?? ''].filter(Boolean).join(path.delimiter),
 	HOME: homedir(),
 	LANG: 'C.UTF-8',
+	...(cacheTtl ? { [CACHE_TTL_VARIABLE]: cacheTtl } : {}),
 });
 
 /** Der kleinste Aufruf, der den Stand des Kontos liefert: Am Limit abgelehnt kostet er nichts, sonst Bruchteile eines Cents. */
@@ -2757,6 +2777,7 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 							zeitMs: g.zeitMs,
 							runden: g.runden,
 							budgetUsd: ueberGuthaben() ? g.budgetGuthabenUsd : g.budgetUsd,
+							cacheTtl: g.cacheTtl,
 						},
 						gestartet: (kind) => {
 							if (aktiv) {

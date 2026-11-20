@@ -26,6 +26,7 @@ import { BILDER_AUS } from './bild-zugang';
 import type { LaufStand } from './ki';
 import {
 	BLATT_BILD_RECHTE,
+	CACHE_TTL_VARIABLE,
 	KI_GRENZEN,
 	kiArgumente,
 	kiTempWurzel,
@@ -243,6 +244,23 @@ describe('Aufträge an Claude', () => {
 			[],
 		);
 		assert.equal(env.includes('HOME'), true);
+		assert.equal(env.includes(CACHE_TTL_VARIABLE), false);
+	});
+
+	it('Prompt-Cache 5 min nur für Prüfläufe, Plan-Prüfung und Bilder der Einheit (265)', () => {
+		const e = KI_GRENZEN.einheit;
+		for (const g of [e.pruefung, e.planPruefung, e.bilder]) {
+			assert.equal(kiUmgebung('/x/claude', g.cacheTtl)[CACHE_TTL_VARIABLE], '5m');
+		}
+		for (const g of [e.material, e.schluss, KI_GRENZEN.blatt, KI_GRENZEN.recherche]) {
+			assert.equal('cacheTtl' in g, false);
+		}
+		assert.deepEqual(Object.keys(kiUmgebung('/x/claude', '5m')).sort(), [
+			'CLAUDE_CODE_PROMPT_CACHE_TTL',
+			'HOME',
+			'LANG',
+			'PATH',
+		]);
 	});
 
 	it('Umgebung ohne Geheimnisse, auch wenn der Server welche hat', () => {
@@ -253,6 +271,7 @@ describe('Aufträge an Claude', () => {
 			assert.equal(kiUmgebung('/x/claude').ANTHROPIC_API_KEY, undefined);
 			assert.equal(kiUmgebung('/x/claude').OPENAI_API_KEY, undefined);
 			assert.equal(Object.keys(kiUmgebung('/x/claude')).sort().join(), 'HOME,LANG,PATH');
+			assert.equal(Object.keys(kiUmgebung('/x/claude', undefined)).sort().join(), 'HOME,LANG,PATH');
 			assert.equal(Object.values(kiUmgebung('/x/claude')).join('\n').includes('nie-weitergeben'), false);
 		} finally {
 			delete process.env.ANTHROPIC_API_KEY;

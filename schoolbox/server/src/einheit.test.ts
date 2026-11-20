@@ -30,7 +30,7 @@ import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
 import { BILD_HERKUNFT } from './bild-werkzeug';
 import { BILDER_GESPERRT, grundposeReferenz } from './bild-zugang';
 import { einheitenWurzel } from './einheit';
-import { KI_GRENZEN, VERBRAUCH_DATEI } from './ki';
+import { CACHE_TTL_VARIABLE, KI_GRENZEN, VERBRAUCH_DATEI } from './ki';
 import { WERKZEUG_BILD_BEARBEITEN, WERKZEUG_BILD_ERZEUGEN } from './ki-werkzeug';
 import { leseMitschrift, MITSCHRIFT_ORDNER } from './mitschrift';
 import { CSRF_HEADER } from './schutz';
@@ -330,6 +330,28 @@ describe('Lauf einer Einheit (139)', () => {
 	const bis = async (id: string, status: EinheitStand['status']) => {
 		await warte(async () => (await stand(id)).status === status);
 		return stand(id);
+	};
+	/** Je Lauf der Mappe: Art und `cacheTtl` aus dem Kopf der Mitschrift, dazu ob die Umgebung die Variable hatte (265). */
+	const cacheJeLauf = async (mappe: string) => {
+		const ordner = path.join(server.materialDir, MITSCHRIFT_ORDNER, mappe);
+		const roh = await readFile(path.join(mappenDir(server.materialDir, mappe), LAUF_DATEI), 'utf8');
+		const zahl = (JSON.parse(roh) as LaufProtokoll).laeufe.length;
+		let dateien: string[] = [];
+		await warte(async () => {
+			dateien = await readdir(ordner).catch(() => []);
+			return dateien.length === zahl && dateien.every((n) => n.endsWith('.jsonl.gz'));
+		});
+		const aufrufe = await jsonl<{ args: string[]; env: string[] }>('aufrufe.jsonl');
+		return Promise.all(
+			dateien.map(async (n) => {
+				const kopf = (await leseMitschrift(path.join(ordner, n)))[0] ?? {};
+				const args = JSON.stringify(kopf.argumente);
+				const env = aufrufe
+					.filter((a) => JSON.stringify(a.args) === args)
+					.map((a) => a.env.includes(CACHE_TTL_VARIABLE));
+				return { art: String(kopf.art), cacheTtl: kopf.cacheTtl, env: [...new Set(env)] };
+			}),
+		);
 	};
 
 	before(async () => {
@@ -917,6 +939,25 @@ describe('Lauf einer Einheit (139)', () => {
 				'utf8',
 			);
 
+		it('Prompt-Cache 5 min nur für Kinderaugen, Fachblick und Plan-Prüfung, nicht für Bau und Korrektur (265)', async () => {
+			await fall('einheit-unklar');
+			const { id, mappe } = await starte();
+			await bis(id, 'fertig');
+			const laeufe = await cacheJeLauf(mappe);
+			const kurz = ['einheit-pruefung', 'einheit-fachblick', 'einheit-plan-pruefung'];
+			for (const art of [...kurz, 'einheit-plan', 'einheit-bau', 'einheit-korrektur', 'einheit-schluss']) {
+				assert.ok(
+					laeufe.some((l) => l.art === art),
+					`${art} fehlt in ${laeufe.map((l) => l.art).join(', ')}`,
+				);
+			}
+			for (const l of laeufe) {
+				const mit = kurz.includes(l.art);
+				assert.equal(l.cacheTtl, mit ? '5m' : null, l.art);
+				assert.deepEqual(l.env, [mit], l.art);
+			}
+		});
+
 		it('Unklare Anweisung: der Prüflauf meldet sie, eine Korrekturrunde in der Sitzung des Baus, dann sauber', async () => {
 			await fall('einheit-unklar');
 			const vorher = (await prompts()).length;
@@ -1319,6 +1360,13 @@ describe('Lauf einer Einheit (139)', () => {
 				return false;
 			});
 			assert.deepEqual(bilderZeile?.bilder, { aufrufe: 2, kostenUsd: 0.02, gesperrt: false });
+			// 265: Der Bilder-Lauf schreibt den Prompt-Cache mit 5 min, der Bau danach nicht.
+			const laeufe = await cacheJeLauf(mappe);
+			assert.deepEqual(
+				laeufe.filter((l) => l.art === 'einheit-bilder').map((l) => [l.cacheTtl, l.env]),
+				[['5m', [true]]],
+			);
+			assert.ok(laeufe.some((l) => l.art === 'einheit-bau' && l.cacheTtl === null && l.env.join() === 'false'));
 		});
 
 		it('Nach zwei neuen Bildern für denselben Befund: kein dritter, der Hinweis steht im Stand (248)', async () => {
