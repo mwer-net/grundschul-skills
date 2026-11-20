@@ -13,7 +13,8 @@ bauen erzeugt in ausgabe/ (Standard: Ordner der Quelle):
     NAME-loesung.pdf      Lösungsblatt (wenn die Quelle data-l / loesung= enthält)
     NAME-s1.png …         Vorschau je Seite, NAME-s1-a1.png … Ausschnitt je Aufgabe
                           (für die visuelle Endkontrolle), NAME-loesung-s1.png; die Nummer ist die der Seite im
-                          HTML wie im Prüfbericht, eine Seite nur für die Lösung fehlt in der Kinderansicht
+                          HTML wie im Prüfbericht (bei ausgeblendeter Seite 1 nach der Seite im PDF), eine
+                          Seite nur für die Lösung fehlt in der Kinderansicht
 und gibt den Prüfbericht aus (FEHLER / WARNUNG / HINWEIS). Exit-Code 1 bei FEHLER.
 --profil sw stellt ein farbiges Blatt in Graustufen dar (assets/graustufen.js), ohne die Quelle zu ändern; ohne Angabe
 gilt die Klasse am <body> der Quelle.

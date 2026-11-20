@@ -1161,8 +1161,9 @@ const AUFGABE = KLASSE('aufgabe');
  * Welche Seiten eines Materials Vorschaubild für Deckblatt und Eduki werden dürfen (250): nur Kinderseiten ohne
  * eingetragene Lösung. Rollen in `OHNE_VORSCHAU` und Slugs mit `loesung` keine; bei Lernzielkontrolle und
  * Klassenarbeit nur Seiten mit Aufgaben (nicht Fall-Karte und Auflösung). `seiten` sind die Nummern der Seitenbilder
- * (`seite-N.png`): Sie zählen jede `.seite` im HTML, auch eine ausgeblendete, von der es kein Bild gibt (256). Nennt
- * das HTML andere sichtbare Seiten als die Bilder, entscheidet nur die Rolle: dann alle Seiten.
+ * (`seite-N.png`), in der Reihenfolge der Seiten. Gepaart wird über die Reihenfolge: Das i-te Bild zeigt die i-te
+ * sichtbare Seite im HTML, ob die Bilder nach der Seite im HTML heißen (256) oder nach der im PDF (ausgeblendete
+ * Seite 1). Sind es mehr oder weniger sichtbare Seiten als Bilder, entscheidet nur die Rolle: dann alle Seiten.
  */
 export const vorschauSeiten = (
 	d: Pick<PlanDokument, 'slug' | 'art'>,
@@ -1176,23 +1177,21 @@ export const vorschauSeiten = (
 	const auf = [...html.matchAll(SEITE_AUF)].filter((t) => /(?:^|\s)seite(?:\s|$)/.test(t[1] ?? ''));
 	const stuecke = auf
 		.map((t, i) => ({
-			nr: i + 1,
 			kopf: t[0],
 			klassen: t[1] ?? '',
 			inhalt: html.slice(t.index ?? 0, auf[i + 1]?.index ?? html.length),
 		}))
 		.filter((x) => !/(?:^|\s)nur-loesung(?:\s|$)/.test(x.klassen) && !/\sdata-aus\b/.test(x.kopf));
-	if (stuecke.map((x) => x.nr).join(',') !== seiten.join(',')) {
+	if (stuecke.length !== seiten.length) {
 		return [...seiten];
 	}
-	return stuecke
-		.filter(({ inhalt }) => {
-			if (LOESUNG_AUF_SEITE.some((m) => m.test(inhalt))) {
-				return false;
-			}
-			return !KONTROLL_ROLLEN.has(rolle) || AUFGABE.test(inhalt);
-		})
-		.map((x) => x.nr);
+	return seiten.filter((_, i) => {
+		const inhalt = stuecke[i]?.inhalt ?? '';
+		if (LOESUNG_AUF_SEITE.some((m) => m.test(inhalt))) {
+			return false;
+		}
+		return !KONTROLL_ROLLEN.has(rolle) || AUFGABE.test(inhalt);
+	});
 };
 
 /** Alle Teilmengen der Rahmen-Teile: Jede ist eine Zählung, die ein Deckblatt meinen kann. */

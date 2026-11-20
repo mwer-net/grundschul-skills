@@ -665,7 +665,20 @@ describe('Verkauf gegen das Paket (250)', () => {
 		].join('');
 		assert.deepEqual(vorschauSeiten(dok('kapitel-6', 'lernzielkontrolle'), html, [1, 3]), [3]);
 		assert.deepEqual(vorschauSeiten(dok('kapitel-1'), html, [1, 3]), [1, 3]);
-		assert.deepEqual(vorschauSeiten(dok('kapitel-1'), html, [1, 2]), [1, 2], 'Bilder passen nicht: alle');
+		assert.deepEqual(
+			vorschauSeiten(dok('kapitel-1'), html, [1, 2]),
+			[1, 2],
+			'gleich viele Bilder wie sichtbare Seiten: gepaart über die Reihenfolge, beide Seiten erlaubt',
+		);
+	});
+
+	it('Vorschau: ausgeblendete Seite 1, Bilder nach der Seite im PDF (256): gepaart über die Reihenfolge', () => {
+		const html = [
+			seite('seite fall aufloesung nur-loesung', '<h1>Auflösung</h1>'),
+			seite('seite', `${AUFGABE}<div class="zelle beispiel">gelöst</div>`),
+			seite('seite', AUFGABE),
+		].join('');
+		assert.deepEqual(vorschauSeiten(dok('kapitel-1'), html, [1, 2]), [2]);
 	});
 
 	it('Vorschau: Hinweise, Vorleseheft, Rahmen und Lösungsmaterial nie; Zählung passt nicht: alle Seiten', () => {
