@@ -264,7 +264,8 @@ const legeVorschauAb = async (
 	const seiten = bilder.map((b) => SEITENBILD.exec(b)).filter((t): t is RegExpExecArray => t !== null);
 	const kurz = d.slug.slice(0, VORSCHAU_SLUG).replace(/-+$/, '');
 	const ablage = path.join(arbeit, 'bilder');
-	const erlaubt = new Set(vorschauSeiten(d, html, seiten.map((t) => Number(t[1]))));
+	const nummern = seiten.map((t) => Number(t[1]));
+	const erlaubt = new Set(vorschauSeiten(d, html, nummern));
 	const gewaehlt = seiten.filter((t) => erlaubt.has(Number(t[1])));
 	if (gewaehlt.length === 0) {
 		return null;

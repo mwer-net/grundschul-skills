@@ -877,7 +877,9 @@ describe('pruefung.js: Platz und Größe (249)', { skip: browserSkip() }, () => 
 				const bericht = path.join(tmp, 'bericht.json');
 				await writeFile(datei, html);
 				try {
-					execFileSync('python3', [BLATT_PY, 'bauen', datei, '-o', tmp, '--bericht', bericht], { stdio: 'ignore' });
+					execFileSync('python3', [BLATT_PY, 'bauen', datei, '-o', tmp, '--bericht', bericht], {
+						stdio: 'ignore',
+					});
 				} catch {
 					// Exit-Code 1 bei FEHLER
 				}
@@ -902,8 +904,13 @@ describe('pruefung.js: Platz und Größe (249)', { skip: browserSkip() }, () => 
 					`<section class="seite" data-dicht-ok>${aufgabe(1, 'Male.', '<div class="schreiblinie"></div>')}${huelle}</section>`,
 				);
 			const sichtbar = await pruefeMit(teil('<p class="aufloesung">Es war Ella.</p>'));
-			assert.deepEqual(codes(sichtbar, 'aufloesung-sichtbar').map(([stufe]) => stufe), ['FEHLER']);
-			const versteckt = await pruefeMit(teil('<div class="nur-loesung"><p class="aufloesung">Es war Ella.</p></div>'));
+			assert.deepEqual(
+				codes(sichtbar, 'aufloesung-sichtbar').map(([stufe]) => stufe),
+				['FEHLER'],
+			);
+			const versteckt = await pruefeMit(
+				teil('<div class="nur-loesung"><p class="aufloesung">Es war Ella.</p></div>'),
+			);
 			assert.deepEqual(codes(versteckt, 'aufloesung-sichtbar'), []);
 		});
 

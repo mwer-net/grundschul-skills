@@ -135,14 +135,15 @@ describe('baueAnsichtAus mit ausgeblendeter Seite (257)', () => {
 			const vorlage = await readFile(path.join(ASSETS, 'vorlage-arbeitsblatt.html'), 'utf8');
 			const seite = (klasse: string, farbe: string) =>
 				`<section class="${klasse}" data-dicht-ok><div class="aufgabe"><span class="nr">1</span>` +
-				`<div class="anw"><span class="text">Male.</span></div>` +
+				'<div class="anw"><span class="text">Male.</span></div>' +
 				`<div class="koerper"><div style="height:300px;background:${farbe}"></div></div></div></section>`;
-			const html =
-				vorlage.slice(0, vorlage.indexOf('<section')) +
-				seite('seite', '#ff0000') +
-				seite('seite nur-loesung', '#00ff00') +
-				seite('seite', '#0000ff') +
-				'</body></html>';
+			const html = [
+				vorlage.slice(0, vorlage.indexOf('<section')),
+				seite('seite', '#ff0000'),
+				seite('seite nur-loesung', '#00ff00'),
+				seite('seite', '#0000ff'),
+				'</body></html>',
+			].join('');
 			const dir = await mkdtemp(path.join(tmpdir(), 'schoolbox-257-'));
 			const quelle = path.join(dir, 'material.html');
 			await writeFile(quelle, html);

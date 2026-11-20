@@ -116,7 +116,9 @@ describe('blatt.py auf im Editor bearbeiteten Dateien', () => {
 				const pdf = path.join(ordner, 'umsortiert', `${name}.pdf`);
 				const { stdout } = await ausfuehren('pdftotext', ['-layout', pdf, '-']);
 				const text = stdout.replace(/\s+/g, ' ');
-				const stellen = [dritte, erste, zweite].map((a, i) => text.indexOf(`${i + 1} ${anfangDerAnweisung(z, a)}`));
+				const stellen = [dritte, erste, zweite].map((a, i) =>
+					text.indexOf(`${i + 1} ${anfangDerAnweisung(z, a)}`),
+				);
 				const [vorn, mitte, hinten] = stellen as [number, number, number];
 				assert.ok(vorn >= 0 && vorn < mitte && mitte < hinten, `${name}: ${stellen.join(', ')}: ${text}`);
 			}
