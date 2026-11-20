@@ -206,9 +206,22 @@ export type Bausteine = EinheitAngaben['bausteine'];
  * Schlüssel mehr nach einem Neustart), tauscht der Server `mit` gegen `ohne`.
  */
 export const EINHEIT_BILDER_SATZ = {
-	mit: 'Neue KI-Bilder sind erlaubt (`bild_erzeugen`, `bilder.json`).',
+	mit: 'Neue KI-Bilder sind erlaubt (`bild_erzeugen` mit dem Bildvertrag als Parameter).',
 	ohne: 'Keine neuen Bilder: nur Willi, Wilma und berechnete Abbildungen.',
+	/** Der Wortlaut vor 252 steht noch in gespeicherten Aufträgen; der Server tauscht ihn wie `mit`. */
+	frueher: ['Neue KI-Bilder sind erlaubt (`bild_erzeugen`, `bilder.json`).'] as readonly string[],
 };
+
+/** Der Auftrag mit dem heutigen Satz zu neuen Bildern, oder mit `ohne`, wenn der Lauf keine Bildwerkzeuge hat. */
+export const bilderSatzIn = (text: string, mitBildern: boolean) =>
+	[EINHEIT_BILDER_SATZ.mit, ...EINHEIT_BILDER_SATZ.frueher].reduce(
+		(t, satz) => t.replaceAll(satz, mitBildern ? EINHEIT_BILDER_SATZ.mit : EINHEIT_BILDER_SATZ.ohne),
+		text,
+	);
+
+/** Erlaubt der Auftrag neue KI-Bilder, im heutigen oder früheren Wortlaut? */
+export const erlaubtBilder = (text: string) =>
+	[EINHEIT_BILDER_SATZ.mit, ...EINHEIT_BILDER_SATZ.frueher].some((satz) => text.includes(satz));
 
 /**
  * Was ein Baustein in der Einheit bewirkt, an wie aus (`grundschul-didaktik/references/rueckfragen.md`). Ohne den

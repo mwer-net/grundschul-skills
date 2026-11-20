@@ -5,7 +5,7 @@ import { describe, it } from 'node:test';
 
 import { leseAbbildungsKatalog } from './abbildungen-katalog';
 import type { EinheitPlan } from './einheit';
-import { lesePlan } from './einheit';
+import { bilderSatzIn, EINHEIT_BILDER_SATZ, erlaubtBilder, lesePlan } from './einheit';
 import {
 	ABBILDUNGEN_DATEIEN,
 	bauReihenfolge,
@@ -280,5 +280,17 @@ describe('Berichtigungen der Lehrkraft im Plan (243)', () => {
 		const mit = lesePlan({ ...roh, berichtigungen: ['  Wahr: B ist symmetrisch. ', '', 3] });
 		assert.deepEqual(mit?.berichtigungen, ['Wahr: B ist symmetrisch.']);
 		assert.equal('berichtigungen' in (lesePlan(roh) ?? {}), false);
+	});
+});
+
+describe('Satz zu neuen Bildern (252)', () => {
+	const alt = `Auftrag. ${EINHEIT_BILDER_SATZ.frueher[0]} Ende.`;
+
+	it('der heutige Satz nennt bilder.json nicht; ein gespeicherter alter wird getauscht', () => {
+		assert.doesNotMatch(EINHEIT_BILDER_SATZ.mit, /bilder\.json/);
+		assert.equal(bilderSatzIn(alt, true), `Auftrag. ${EINHEIT_BILDER_SATZ.mit} Ende.`);
+		assert.equal(bilderSatzIn(alt, false), `Auftrag. ${EINHEIT_BILDER_SATZ.ohne} Ende.`);
+		assert.equal(bilderSatzIn(`A ${EINHEIT_BILDER_SATZ.mit}`, false), `A ${EINHEIT_BILDER_SATZ.ohne}`);
+		assert.ok(erlaubtBilder(alt) && erlaubtBilder(EINHEIT_BILDER_SATZ.mit) && !erlaubtBilder(EINHEIT_BILDER_SATZ.ohne));
 	});
 });

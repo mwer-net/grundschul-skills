@@ -58,6 +58,7 @@ import {
 	bestandteileText,
 	BILDER_SCHRITT,
 	bilderMitBefund,
+	bilderSatzIn,
 	blickLektuere,
 	blickRegeln,
 	dokKnotenSchluessel,
@@ -65,7 +66,6 @@ import {
 	dopplungTexte,
 	dopplungUebersicht,
 	druckprofilAusHtml,
-	EINHEIT_BILDER_SATZ,
 	EINHEIT_PLAN,
 	EINHEIT_THEMA,
 	einheitAuftragAus,
@@ -889,15 +889,16 @@ export const erstelleEinheiten = (
 	 */
 	const laufText = (o: LaufOptionen, bilder: LaufBilder | null) => {
 		if (bilder) {
-			return bilder.referenzen.length ? `${o.text}\n\n${referenzZeile(bilder)}` : o.text;
+			const text = bilderSatzIn(o.text, true);
+			return bilder.referenzen.length ? `${text}\n\n${referenzZeile(bilder)}` : text;
 		}
 		const keineBilder = o.mitBildern || !bilderStand(kontext.konfig).verfuegbar;
-		return keineBilder ? o.text.replace(EINHEIT_BILDER_SATZ.mit, EINHEIT_BILDER_SATZ.ohne) : o.text;
+		return bilderSatzIn(o.text, !keineBilder);
 	};
 
 	/**
 	 * Ehrlich, wenn ein Bild nicht gelingt (248): Lehnt das Bildwerkzeug nach zwei neuen Bildern einen weiteren Versuch
-	 * ab, oder trägt Claude `offen` beim Eintrag in `bilder.json` ein, steht ein Hinweis im Stand. Ein Bild, das der Lauf
+	 * ab, oder trägt Claude `offen` mit `bild_pruefung` ein (252), steht ein Hinweis im Stand. Ein Bild, das der Lauf
 	 * danach doch gespeichert hat und das kein `offen` mehr trägt, verliert ihn.
 	 */
 	const merkeBildHinweise = async (s: EinheitStand, st: BildWerkzeugStand, von: string) => {

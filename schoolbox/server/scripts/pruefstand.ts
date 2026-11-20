@@ -48,7 +48,7 @@ import {
 	befundeDerTeile,
 	berechneteElemente,
 	blickRegeln,
-	EINHEIT_BILDER_SATZ,
+	erlaubtBilder,
 	FACH_NAME,
 	fachblickStunden,
 	fachblickText,
@@ -333,7 +333,7 @@ const vorhabenFuer = async (p: Pruefstand, d: PlanDokument, teile: Teil[]): Prom
 	const { dok, html, quelle } = q;
 	const rolle = rolleVon(d);
 	const mitKiBildern =
-		p.auftrag.includes(EINHEIT_BILDER_SATZ.mit) &&
+		erlaubtBilder(p.auftrag) &&
 		[...html.matchAll(BILD_IM_DOKUMENT)].some((t) => p.bilderListe.has(t[1] ?? ''));
 	const kindTeil = teile.includes('kind');
 	const blickTeil = teile.includes('blick');
