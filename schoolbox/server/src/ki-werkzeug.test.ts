@@ -150,6 +150,7 @@ describe('mcp.mjs: mehrere Werkzeuge je Prozess (237)', () => {
 	const bilder: { werkzeug: string; argumente: Record<string, unknown> }[] = [];
 	const bildWerkzeug = {
 		referenzen: [],
+		namen: ['bild_erzeugen', 'bild_bearbeiten'],
 		aufruf: (werkzeug: string, argumente: Record<string, unknown>) => {
 			bilder.push({ werkzeug, argumente });
 			return Promise.resolve({ text: `Bild ${werkzeug}` });
@@ -160,8 +161,14 @@ describe('mcp.mjs: mehrere Werkzeuge je Prozess (237)', () => {
 		bauen.push({ dokument });
 		return Promise.resolve({ text: `Gebaut ${dokument ?? '-'}` });
 	};
-	const starte = (art: WerkzeugArt, mitBildern: boolean) =>
-		starteWerkzeug(dir, art === 'bilder' ? null : baue, art, { bilder: mitBildern ? bildWerkzeug : null });
+	const mitVertrag = {
+		...bildWerkzeug,
+		namen: ['bild_erzeugen', 'bild_bearbeiten', 'bild_vertrag', 'bild_pruefung'],
+	} as unknown as BildWerkzeug;
+	const starte = (art: WerkzeugArt, mitBildern: boolean, vertrag = false) =>
+		starteWerkzeug(dir, art === 'bilder' ? null : baue, art, {
+			bilder: mitBildern ? (vertrag ? mitVertrag : bildWerkzeug) : null,
+		});
 
 	before(async () => {
 		dir = await mkdtemp(path.join(tmpdir(), 'mcp-'));
@@ -171,16 +178,18 @@ describe('mcp.mjs: mehrere Werkzeuge je Prozess (237)', () => {
 	});
 
 	it('tools/list je art', async () => {
-		const faelle: [WerkzeugArt, boolean, string[]][] = [
+		const faelle: [WerkzeugArt, boolean, string[], boolean?][] = [
 			['blatt', false, ['bauen']],
 			['blatt', true, ['bauen', 'bild_erzeugen', 'bild_bearbeiten']],
 			['einheit', false, ['bauen']],
 			['einheit', true, ['bauen', 'bild_erzeugen', 'bild_bearbeiten']],
+			['einheit', true, ['bauen', 'bild_erzeugen', 'bild_bearbeiten', 'bild_vertrag', 'bild_pruefung'], true],
 			['bilder', true, ['bild_erzeugen', 'bild_bearbeiten']],
+			['bilder', true, ['bild_erzeugen', 'bild_bearbeiten', 'bild_vertrag', 'bild_pruefung'], true],
 			['recherche', true, ['pruefen']],
 		];
-		for (const [art, mitBildern, erwartet] of faelle) {
-			const werkzeug = await starte(art, mitBildern);
+		for (const [art, mitBildern, erwartet, vertrag] of faelle) {
+			const werkzeug = await starte(art, mitBildern, vertrag);
 			try {
 				const [liste] = await sprich(werkzeug, [{ method: 'tools/list' }]);
 				assert.deepEqual(namenVon(liste), erwartet, `${art} ${mitBildern}`);
@@ -214,6 +223,31 @@ describe('mcp.mjs: mehrere Werkzeuge je Prozess (237)', () => {
 			assert.match(text, /nur aus bilder\/, referenzen\/ und den Vorversionen in ansicht\/bilder\/versuche\//);
 			assert.match(text, /Ändere nur/);
 			assert.doesNotMatch(text, /keine Schrift|ohne Schrift|kein Text/i);
+			assert.equal(erzeugen?.inputSchema.properties.motiv, undefined);
+		} finally {
+			await werkzeug.ende();
+		}
+	});
+
+	it('mit Vertrag nehmen die Bildwerkzeuge den Bildvertrag als Parameter (252)', async () => {
+		const werkzeug = await starte('einheit', true, true);
+		try {
+			const [liste] = await sprich(werkzeug, [{ method: 'tools/list' }]);
+			const schema = (name: string) => liste?.result?.tools?.find((t) => t.name === name)?.inputSchema;
+			for (const name of ['bild_erzeugen', 'bild_bearbeiten']) {
+				for (const feld of ['motiv', 'platz', 'blickpunkt', 'vertrag', 'figur', 'pose']) {
+					assert.ok(schema(name)?.properties[feld], `${name} ${feld}`);
+				}
+			}
+			assert.deepEqual(schema('bild_erzeugen')?.required, ['datei', 'prompt', 'format']);
+			assert.deepEqual(Object.keys(schema('bild_pruefung')?.properties ?? {}), [
+				'datei',
+				'ok',
+				'fehlt',
+				'verboten',
+				'offen',
+			]);
+			assert.deepEqual(schema('bild_vertrag')?.required, ['datei']);
 		} finally {
 			await werkzeug.ende();
 		}

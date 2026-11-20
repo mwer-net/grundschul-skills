@@ -525,7 +525,7 @@ export const pruefeBildVertrag = (
 	if (istGrundpose(kanon, e)) {
 		const dinge = kanon.dinge.filter((d) => nenntNamen(text, d.name)).map((d) => d.name);
 		if (dinge.length) {
-			return `${GRUNDPOSE_SATZ} Nimm ${zitiert(dinge)} aus „motiv“ und „pflicht“ von ${e.datei} in bilder.json und erzeuge die Grundpose dann.`;
+			return `${GRUNDPOSE_SATZ} Nimm ${zitiert(dinge)} aus „motiv“ und „pflicht“ von ${e.datei} und erzeuge die Grundpose dann.`;
 		}
 	}
 	const kapitel = istGrundpose(kanon, e) ? null : bildKapitel(plan, e.datei, e.motiv);
@@ -534,7 +534,7 @@ export const pruefeBildVertrag = (
 		return null;
 	}
 	return [
-		`Dem Bildvertrag von ${e.datei} in bilder.json fehlen Zeilen aus dem Kanon${kapitel === null ? '' : ` (Kapitel ${kapitel})`}. Übernimm jede wörtlich als eigenen Eintrag in ihr Feld von „vertrag“ und erzeuge das Bild dann:`,
+		`Dem Bildvertrag von ${e.datei} fehlen Zeilen aus dem Kanon${kapitel === null ? '' : ` (Kapitel ${kapitel})`}. Übernimm jede wörtlich als eigenen Eintrag in ihr Feld von „vertrag“ und erzeuge das Bild dann:`,
 		fehlt.pflicht.length ? `- pflicht: ${zitiert(fehlt.pflicht)}` : '',
 		fehlt.verboten.length ? `- verboten: ${zitiert(fehlt.verboten)}` : '',
 	]

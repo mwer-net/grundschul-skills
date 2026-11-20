@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { inflateSync } from 'node:zlib';
 
-import { ANSICHT_ORDNER, BLATT_PY, fuehreAus } from '@schoolbox/kern';
+import { ANSICHT_ORDNER, BLATT_PY, fuehreAus, schreibeAtomar } from '@schoolbox/kern';
 
 export const BILDER_LISTE = 'bilder.json';
 /** Wo Claude die Viertel und den Ausschnitt jedes Bilds findet, relativ zum Arbeitsordner (215). */
@@ -262,36 +262,94 @@ export const leseBildListe = async (arbeit: string): Promise<unknown[]> => {
 	}
 };
 
+/** Ein Eintrag aus `bilder.json` als Vertrag; `null` ohne gültigen Dateinamen oder Motiv. */
+export const vertragAus = (e: unknown): BildVertrag | null => {
+	if (typeof e !== 'object' || e === null) {
+		return null;
+	}
+	const { datei, figur, motiv, offen, pose, pruefung, vertrag } = e as {
+		datei?: unknown;
+		figur?: unknown;
+		motiv?: unknown;
+		offen?: unknown;
+		pose?: unknown;
+		pruefung?: unknown;
+		vertrag?: unknown;
+	};
+	if (!istDateiname(datei) || !istText(motiv, 300)) {
+		return null;
+	}
+	return {
+		datei,
+		motiv,
+		...platzAus(e),
+		...(vertrag === undefined ? {} : { vertrag }),
+		...(istText(offen, 300) ? { offen: offen.trim() } : {}),
+		...(istText(figur, 60) ? { figur: figur.trim() } : {}),
+		...(istText(pose, 40) ? { pose: pose.trim() } : {}),
+		geprueft: istAbgenommen(pruefung),
+	};
+};
+
 /** Die Verträge mit gültigem Dateinamen und Motiv; bei mehreren Einträgen für dieselbe Datei gilt der letzte. */
 export const leseBildVertraege = async (arbeit: string): Promise<BildVertrag[]> => {
 	const vertraege = new Map<string, BildVertrag>();
 	for (const e of (await leseBildListe(arbeit)).slice(0, MAX_VERTRAEGE)) {
-		if (typeof e !== 'object' || e === null) {
-			continue;
-		}
-		const { datei, figur, motiv, offen, pose, pruefung, vertrag } = e as {
-			datei?: unknown;
-			figur?: unknown;
-			motiv?: unknown;
-			offen?: unknown;
-			pose?: unknown;
-			pruefung?: unknown;
-			vertrag?: unknown;
-		};
-		if (istDateiname(datei) && istText(motiv, 300)) {
-			vertraege.set(datei, {
-				datei,
-				motiv,
-				...platzAus(e),
-				...(vertrag === undefined ? {} : { vertrag }),
-				...(istText(offen, 300) ? { offen: offen.trim() } : {}),
-				...(istText(figur, 60) ? { figur: figur.trim() } : {}),
-				...(istText(pose, 40) ? { pose: pose.trim() } : {}),
-				geprueft: istAbgenommen(pruefung),
-			});
+		const v = vertragAus(e);
+		if (v) {
+			vertraege.set(v.datei, v);
 		}
 	}
 	return [...vertraege.values()];
+};
+
+/** `bilder.json` lässt sich nicht ändern (kaputt, zu groß, zu viele Einträge); der Satz geht an Claude. */
+export class BildListeFehler extends Error {}
+
+/**
+ * Ändert den Eintrag einer Datei in `bilder.json` (252: im Einheit-Lauf schreiben die Bildwerkzeuge die Liste, nicht
+ * Claude). `aendere` bekommt den letzten Eintrag der Datei oder `null` und gibt den neuen zurück; er ersetzt den alten
+ * an seiner Stelle. Die Form der Datei (Liste oder `{bilder: […]}`) bleibt. Wirft `aendere`, bleibt die Datei, wie sie ist.
+ */
+export const aendereBildEintrag = async (
+	arbeit: string,
+	datei: string,
+	aendere: (alt: Record<string, unknown> | null) => Record<string, unknown>,
+) => {
+	const listenDatei = path.join(arbeit, BILDER_LISTE);
+	let roh: unknown = [];
+	const text = await readFile(listenDatei, 'utf8').catch(() => null);
+	if (text !== null && text.trim()) {
+		try {
+			roh = JSON.parse(text) as unknown;
+		} catch {
+			throw new BildListeFehler(`${BILDER_LISTE} ist kein gültiges JSON; der Server ändert sie nicht.`);
+		}
+	}
+	const unter = !Array.isArray(roh) && typeof roh === 'object' && roh !== null;
+	const liste: unknown = unter ? (roh as { bilder?: unknown }).bilder : roh;
+	if (!Array.isArray(liste)) {
+		throw new BildListeFehler(`${BILDER_LISTE} ist keine Liste; der Server ändert sie nicht.`);
+	}
+	const eintraege = [...(liste as unknown[])];
+	const stelle = eintraege.findLastIndex(
+		(e) => typeof e === 'object' && e !== null && (e as { datei?: unknown }).datei === datei,
+	);
+	const alt = stelle >= 0 ? (eintraege[stelle] as Record<string, unknown>) : null;
+	const neu = aendere(alt);
+	if (stelle >= 0) {
+		eintraege[stelle] = neu;
+	} else if (eintraege.length >= MAX_VERTRAEGE) {
+		throw new BildListeFehler(`${BILDER_LISTE} hat schon ${MAX_VERTRAEGE} Einträge; mehr nimmt der Server nicht.`);
+	} else {
+		eintraege.push(neu);
+	}
+	const inhalt = JSON.stringify(unter ? { ...(roh as object), bilder: eintraege } : eintraege, null, '\t');
+	if (Buffer.byteLength(inhalt) > MAX_LISTE_BYTES) {
+		throw new BildListeFehler(`${BILDER_LISTE} würde zu groß; kürze den Vertrag.`);
+	}
+	await schreibeAtomar(listenDatei, inhalt);
+	return neu;
 };
 
 /**

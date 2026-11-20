@@ -25,6 +25,11 @@ export const BILD_ERZEUGEN = 'bild_erzeugen';
 export const BILD_BEARBEITEN = 'bild_bearbeiten';
 export const WERKZEUG_BILD_ERZEUGEN = `mcp__${WERKZEUG_SERVER}__${BILD_ERZEUGEN}`;
 export const WERKZEUG_BILD_BEARBEITEN = `mcp__${WERKZEUG_SERVER}__${BILD_BEARBEITEN}`;
+/** Im Einheit-Lauf (252): Vertrag eines Bildes lesen, Prüfung und `offen` eintragen; `bilder.json` schreibt der Server. */
+export const BILD_VERTRAG = 'bild_vertrag';
+export const BILD_PRUEFUNG = 'bild_pruefung';
+export const WERKZEUG_BILD_VERTRAG = `mcp__${WERKZEUG_SERVER}__${BILD_VERTRAG}`;
+export const WERKZEUG_BILD_PRUEFUNG = `mcp__${WERKZEUG_SERVER}__${BILD_PRUEFUNG}`;
 const MCP_SKRIPT = path.join(WURZEL, 'schoolbox', 'server', 'werkzeug', 'mcp.mjs');
 const MAX_MELDUNGEN = 60;
 
@@ -79,11 +84,14 @@ export interface WerkzeugOptionen {
 const MAX_DOKUMENT = 200;
 
 /** Die Namen der Werkzeuge, wie `mcp.mjs` sie anbietet. */
-export const werkzeugNamen = (art: WerkzeugArt, mitBildern: boolean): string[] => {
+export const werkzeugNamen = (art: WerkzeugArt, mitBildern: boolean, mitVertrag = false): string[] => {
 	if (art === 'recherche') {
 		return ['pruefen'];
 	}
-	const bilder = mitBildern || art === 'bilder' ? [BILD_ERZEUGEN, BILD_BEARBEITEN] : [];
+	const bilder =
+		mitBildern || art === 'bilder'
+			? [BILD_ERZEUGEN, BILD_BEARBEITEN, ...(mitVertrag ? [BILD_VERTRAG, BILD_PRUEFUNG] : [])]
+			: [];
 	return art === 'bilder' ? bilder : ['bauen', ...bilder];
 };
 
@@ -109,7 +117,8 @@ export const starteWerkzeug = async (
 	if (art !== 'bilder' && !bauen) {
 		throw new Error(`Werkzeug „${art}“ ohne bauen`);
 	}
-	const namen = werkzeugNamen(art, bilder !== null);
+	const mitVertrag = bilder?.namen.includes(BILD_VERTRAG) === true;
+	const namen = werkzeugNamen(art, bilder !== null, mitVertrag);
 	const name = `w-${randomBytes(4).toString('hex')}`;
 	const socket = path.join(dir, `${name}.sock`);
 	const mcpDatei = path.join(dir, `${name}.json`);
@@ -177,7 +186,7 @@ export const starteWerkzeug = async (
 		server.once('error', reject);
 		server.listen(socket, resolve);
 	});
-	const mitBildern = bilder !== null && art !== 'bilder' ? ['bilder'] : [];
+	const mitBildern = [...(bilder !== null && art !== 'bilder' ? ['bilder'] : []), ...(mitVertrag ? ['vertrag'] : [])];
 	await writeFile(
 		mcpDatei,
 		JSON.stringify({

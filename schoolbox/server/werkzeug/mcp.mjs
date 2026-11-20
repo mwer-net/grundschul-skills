@@ -4,14 +4,18 @@
  * (`src/ki-werkzeug.ts`), der allein weiß, welches Material gemeint ist, und die Argumente prüft. Ohne Abhängigkeiten,
  * damit `claude` ihn mit bloßem `node` starten kann. Welche Werkzeuge es gibt, hängt an der Art (237):
  * `blatt` und `einheit` bauen, mit dem Zusatz `bilder` dazu die Bildwerkzeuge; `bilder` hat nur diese; `recherche`
- * hat „pruefen“, das `recherche.md` zählt und prüft, auch das im Server.
+ * hat „pruefen“, das `recherche.md` zählt und prüft, auch das im Server. Mit dem Zusatz `vertrag` (252) nehmen die
+ * Bildwerkzeuge den Bildvertrag als Parameter, und `bild_vertrag` und `bild_pruefung` kommen dazu: `bilder.json`
+ * schreibt dann der Server.
  */
 import { connect } from 'node:net';
 import { createInterface } from 'node:readline';
 
 const socket = process.argv[2];
 const art = process.argv[3];
-const mitBildern = art === 'bilder' || process.argv[4] === 'bilder';
+const zusatz = process.argv.slice(4);
+const mitBildern = art === 'bilder' || zusatz.includes('bilder');
+const mitVertrag = mitBildern && zusatz.includes('vertrag');
 
 /** Wie `BILD_FORMATE` in `kern/src/bild-formate.ts`; ein Test hält beide gleich. */
 const FORMATE = [
@@ -67,10 +71,39 @@ const referenzen = (max) => ({
 	description: `Höchstens ${max} Bilder, relativ zum Arbeitsordner, nur aus bilder/, referenzen/ und den Vorversionen in ansicht/bilder/versuche/. Im Prompt mit Nummer und Rolle benennen („Bild 1 zeigt …“).`,
 });
 
+/** Der Bildvertrag als Parameter (252), wie ein Eintrag in bilder.json; der Server schreibt ihn vor dem Bild. */
+const VERTRAG = {
+	motiv: { type: 'string', description: 'Was das Bild zeigt, in einem Satz, höchstens 300 Zeichen.' },
+	platz: {
+		type: 'object',
+		properties: { breite: { type: 'number' }, hoehe: { type: 'number' } },
+		required: ['breite', 'hoehe'],
+		description: 'Der Platz im Material in px.',
+	},
+	blickpunkt: {
+		type: 'object',
+		properties: { x: { type: 'number' }, y: { type: 'number' } },
+		required: ['x', 'y'],
+		description: 'Wo das Wichtige liegt, in Prozent von links und oben.',
+	},
+	vertrag: {
+		type: 'object',
+		properties: {
+			pflicht: { type: 'array', description: 'Je Pflichtobjekt ein Eintrag mit was, zahl, farbe, lage.' },
+			buehne: { type: 'string' },
+			verboten: { type: 'array', items: { type: 'string' } },
+		},
+		description: 'Der Bildvertrag: pflicht, buehne, verboten, bei einem Zettel als Ebene frei.',
+	},
+	figur: { type: 'string', description: 'Nur bei einer Figur allein: ihr Name aus dem Plan.' },
+	pose: { type: 'string', description: 'Nur mit figur: „grund“ oder die Pose.' },
+};
+const VERTRAG_TEXT =
+	' Den Vertrag gibst du mit (motiv, platz, blickpunkt, vertrag, bei einer Figur allein figur und pose); der Server schreibt ihn in bilder.json, bevor das Bild entsteht. Ein Feld, das du weglässt, bleibt, wie es war.';
+
 const BILD_ERZEUGEN = {
 	name: 'bild_erzeugen',
-	description:
-		'Erzeugt ein neues Bild über die Bild-API und legt es unter bilder/<datei> ab, dazu die Prüfbilder. Vorher muss in bilder.json der Vertrag mit dieser datei und einem motiv stehen. format ist einer der Formatnamen; transparent nur bei .png. Ein Aufruf kann bis zu zwei Minuten dauern.',
+	description: `Erzeugt ein neues Bild über die Bild-API und legt es unter bilder/<datei> ab, dazu die Prüfbilder.${mitVertrag ? VERTRAG_TEXT : ' Vorher muss in bilder.json der Vertrag mit dieser datei und einem motiv stehen.'} format ist einer der Formatnamen; transparent nur bei .png. Ein Aufruf kann bis zu zwei Minuten dauern.`,
 	inputSchema: {
 		type: 'object',
 		properties: {
@@ -80,6 +113,7 @@ const BILD_ERZEUGEN = {
 			referenzen: referenzen(4),
 			transparent: { type: 'boolean', description: 'Freigestellt auf transparentem Hintergrund, nur bei .png.' },
 			befund: befund('das neue Bild'),
+			...(mitVertrag ? VERTRAG : {}),
 		},
 		required: ['datei', 'prompt', 'format'],
 	},
@@ -91,15 +125,59 @@ const BILD_BEARBEITEN = {
 		'Bearbeitet ein vorhandenes Bild in bilder/ und ersetzt es; Format und Transparenz bleiben. Die Vorversion bleibt unter ansicht/bilder/versuche/ und kann Referenz sein („stelle … wie in Bild 2 wieder her“). Im Prompt „Ändere nur …“ und aufzählen, was bleibt; eine Änderung je Aufruf, eine Bearbeitung je Fehler. Danach neue Prüfbilder.',
 	inputSchema: {
 		type: 'object',
-		properties: { datei: DATEI, prompt: PROMPT, referenzen: referenzen(3), befund: befund('diese Bearbeitung') },
+		properties: {
+			datei: DATEI,
+			prompt: PROMPT,
+			referenzen: referenzen(3),
+			befund: befund('diese Bearbeitung'),
+			...(mitVertrag ? VERTRAG : {}),
+		},
 		required: ['datei', 'prompt', 'befund'],
+	},
+};
+
+const BILD_VERTRAG = {
+	name: 'bild_vertrag',
+	description:
+		'Liefert den Eintrag eines Bildes aus bilder.json: Vertrag, figur, pose, die Prüfungen und offen. Etwa vor bild_bearbeiten oder einer Prüfung.',
+	inputSchema: { type: 'object', properties: { datei: DATEI }, required: ['datei'] },
+};
+
+const PUNKTE = (was) => ({
+	type: 'array',
+	items: { type: 'string' },
+	maxItems: 20,
+	description: `${was}, je ein Satz, höchstens 300 Zeichen.`,
+});
+
+const BILD_PRUEFUNG = {
+	name: 'bild_pruefung',
+	description:
+		'Trägt die Prüfung des letzten Versuchs in bilder.json ein (die Versuchsnummer setzt der Server) und setzt oder löscht offen. Abgenommen ist das Bild, wenn ok etwas nennt und fehlt und verboten leer sind.',
+	inputSchema: {
+		type: 'object',
+		properties: {
+			datei: DATEI,
+			ok: PUNKTE('Die Punkte aus pflicht, die das Bild erfüllt'),
+			fehlt: PUNKTE('Die Punkte aus pflicht, die fehlen oder falsch sind'),
+			verboten: PUNKTE('Was aus verboten im Bild ist'),
+			offen: {
+				type: 'string',
+				description: 'Der Fehler, der nach zwei neuen Bildern bleibt, in einem Satz; leer löscht ihn.',
+			},
+		},
+		required: ['datei'],
 	},
 };
 
 const WERKZEUGE =
 	art === 'recherche'
 		? [PRUEFEN]
-		: [...(art === 'bilder' ? [] : [BAUEN]), ...(mitBildern ? [BILD_ERZEUGEN, BILD_BEARBEITEN] : [])];
+		: [
+				...(art === 'bilder' ? [] : [BAUEN]),
+				...(mitBildern ? [BILD_ERZEUGEN, BILD_BEARBEITEN] : []),
+				...(mitVertrag ? [BILD_VERTRAG, BILD_PRUEFUNG] : []),
+			];
 
 const TEXTE = {
 	bauen: ['Der Bau ist gerade nicht erreichbar.', 'Der Bau hat nicht geantwortet.'],

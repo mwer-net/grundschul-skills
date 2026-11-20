@@ -115,6 +115,8 @@ import {
 	WERKZEUG_BAUEN,
 	WERKZEUG_BILD_BEARBEITEN,
 	WERKZEUG_BILD_ERZEUGEN,
+	WERKZEUG_BILD_PRUEFUNG,
+	WERKZEUG_BILD_VERTRAG,
 	WERKZEUG_PRUEFEN,
 	WERKZEUG_SERVER,
 } from './ki-werkzeug';
@@ -467,13 +469,13 @@ export const EINHEIT_RECHTE = [
 export const EINHEIT_PLAN_RECHTE = ['Write(./einheit.json)', 'Edit(./einheit.json)'];
 
 /**
- * Ein Lauf des Baus (220) schreibt nur sein eigenes Material, beim ersten Schritt das Thema und mit Bildern die Bildliste.
- * `einheit.json` nie: Den freigegebenen Plan hält der Server.
+ * Ein Lauf des Baus (220) schreibt nur sein eigenes Material und beim ersten Schritt das Thema. `einheit.json` nie: Den
+ * freigegebenen Plan hält der Server. `bilder.json` auch nicht (252): Vertrag, Prüfung und `offen` gehen über die
+ * Bildwerkzeuge, die die Liste schreiben.
  */
-export const einheitBauRechte = (o: { slug: string | null; thema: boolean; bilder: boolean }) => [
+export const einheitBauRechte = (o: { slug: string | null; thema: boolean }) => [
 	...(o.slug ? [`Write(./dokumente/${o.slug}/**)`, `Edit(./dokumente/${o.slug}/**)`] : []),
 	...(o.thema ? ['Write(./thema.css)', 'Edit(./thema.css)'] : []),
-	...(o.bilder ? ['Write(./bilder.json)', 'Edit(./bilder.json)'] : []),
 ];
 
 /**
@@ -1302,6 +1304,8 @@ const SCHRITT_NAMEN: Record<string, string> = {
 	[WERKZEUG_BAUEN]: 'Baut und prüft das Blatt',
 	[WERKZEUG_BILD_ERZEUGEN]: 'Erzeugt ein Bild',
 	[WERKZEUG_BILD_BEARBEITEN]: 'Bearbeitet ein Bild',
+	[WERKZEUG_BILD_VERTRAG]: 'Liest einen Bildvertrag',
+	[WERKZEUG_BILD_PRUEFUNG]: 'Trägt eine Bildprüfung ein',
 };
 
 const textSchritt = (name: string, eingabe: { skill?: unknown; file_path?: unknown }) => {

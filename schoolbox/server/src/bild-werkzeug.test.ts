@@ -522,4 +522,127 @@ describe('Bildwerkzeuge (237)', () => {
 		const antwort = await w.aufruf('bild_erzeugen', { datei: 'a.png', prompt: 'A', format: 'SQUARE_1_1' });
 		assert.match(antwort.text, new RegExp(BILD_API_GESPERRT));
 	});
+	const liste = async () => {
+		const roh = JSON.parse(await readFile(path.join(arbeit, 'bilder.json'), 'utf8')) as
+			| Record<string, unknown>[]
+			| { bilder: Record<string, unknown>[] };
+		return Array.isArray(roh) ? roh : roh.bilder;
+	};
+
+	it('Vertrag als Parameter: das Werkzeug schreibt ihn vor dem Bild in bilder.json (252)', async () => {
+		const w = await werkzeug({ vertragWerkzeuge: true });
+		assert.ok(w.namen.includes('bild_vertrag') && w.namen.includes('bild_pruefung'));
+		const ohne = await w.aufruf('bild_erzeugen', { datei: 'fall-1.jpg', prompt: 'Szene', format: 'LANDSCAPE_5_4' });
+		assert.match(ohne.text, /Vertrag, dann erzeugen/);
+		assert.doesNotMatch(ohne.text, /bilder\.json/);
+		const kaputt = await w.aufruf('bild_erzeugen', {
+			datei: 'fall-1.jpg',
+			prompt: 'Szene',
+			format: 'LANDSCAPE_5_4',
+			platz: { breite: 0, hoehe: 10 },
+		});
+		assert.match(kaputt.text, /„platz“/);
+		assert.equal(existsSync(path.join(arbeit, 'bilder.json')), false);
+		const antwort = await w.aufruf('bild_erzeugen', {
+			datei: 'fall-1.jpg',
+			prompt: 'Szene',
+			format: 'LANDSCAPE_5_4',
+			motiv: 'Luna am Fenster',
+			platz: { breite: 600, hoehe: 480 },
+			blickpunkt: { x: 50, y: 40 },
+			vertrag: { pflicht: ['Luna'], buehne: [], verboten: ['Schrift'] },
+			figur: 'Luna',
+			pose: 'grund',
+		});
+		assert.equal(antwort.fehler, undefined, antwort.text);
+		assert.match(antwort.text, /mit bild_pruefung ein/);
+		assert.deepEqual(await liste(), [
+			{
+				datei: 'fall-1.jpg',
+				motiv: 'Luna am Fenster',
+				platz: { breite: 600, hoehe: 480 },
+				blickpunkt: { x: 50, y: 40 },
+				vertrag: { pflicht: ['Luna'], buehne: [], verboten: ['Schrift'] },
+				figur: 'Luna',
+				pose: 'grund',
+			},
+		]);
+		const gelesen = await w.aufruf('bild_vertrag', { datei: 'fall-1.jpg' });
+		assert.equal((JSON.parse(gelesen.text) as { motiv: string }).motiv, 'Luna am Fenster');
+		assert.match((await w.aufruf('bild_vertrag', { datei: 'nichts.png' })).text, /keinen Bildvertrag/);
+	});
+
+	it('bild_pruefung hängt die Prüfung an, offen setzt und löscht; ein neuer Vertrag behält beides (252)', async () => {
+		await vertrag({ datei: 'a.png', motiv: 'A' }, { datei: 'b.png', motiv: 'B' });
+		const w = await werkzeug({ vertragWerkzeuge: true });
+		assert.match((await w.aufruf('bild_pruefung', { datei: 'a.png', ok: ['A'] })).text, /gibt es nicht/);
+		await w.aufruf('bild_erzeugen', { datei: 'a.png', prompt: 'A', format: 'SQUARE_1_1' });
+		const nicht = await w.aufruf('bild_pruefung', { datei: 'a.png', ok: ['A'], fehlt: ['Hut'] });
+		assert.match(nicht.text, /Versuch 1/);
+		assert.match(nicht.text, /Nicht abgenommen: Hut/);
+		await w.aufruf('bild_pruefung', { datei: 'a.png', offen: 'Der Hut fehlt.' });
+		await w.aufruf('bild_erzeugen', {
+			datei: 'a.png',
+			prompt: 'A',
+			format: 'SQUARE_1_1',
+			motiv: 'A mit Hut',
+			befund: 'Der Hut fehlt.',
+		});
+		const [a, b] = await liste();
+		assert.deepEqual(a, {
+			datei: 'a.png',
+			motiv: 'A mit Hut',
+			pruefung: [{ versuch: 1, ok: ['A'], fehlt: ['Hut'], verboten: [] }],
+			offen: 'Der Hut fehlt.',
+		});
+		assert.deepEqual(b, { datei: 'b.png', motiv: 'B' });
+		const ok = await w.aufruf('bild_pruefung', { datei: 'a.png', ok: ['A', 'Hut'], offen: '' });
+		assert.match(ok.text, /Versuch 2[^]*Abgenommen[^]*Offen gelöscht/);
+		const [neu] = await liste();
+		assert.equal(neu?.offen, undefined);
+		assert.equal((neu?.pruefung as unknown[]).length, 2);
+		assert.match((await w.aufruf('bild_pruefung', { datei: 'a.png' })).text, /Nenne die Prüfung/);
+		assert.match((await w.aufruf('bild_pruefung', { datei: 'a.png', ok: [] })).text, /leer/);
+	});
+
+	it('Vertrag als Parameter: Kanon lehnt vor dem Schreiben ab, gesperrt schreibt nur den Vertrag (248, 252)', async () => {
+		await vertrag({ datei: 'fall-1.jpg', motiv: 'Szene' });
+		const w = await werkzeug({
+			vertragWerkzeuge: true,
+			pruefeVertrag: (v) => (JSON.stringify(v.vertrag ?? {}).includes('Luna') ? null : 'Dem Bildvertrag fehlt: „Luna“.'),
+		});
+		const abgelehnt = await w.aufruf('bild_erzeugen', {
+			datei: 'fall-1.jpg',
+			prompt: 'Szene',
+			format: 'SQUARE_1_1',
+			motiv: 'Neu',
+		});
+		assert.deepEqual(abgelehnt, { text: 'Dem Bildvertrag fehlt: „Luna“.', fehler: true });
+		assert.deepEqual(await liste(), [{ datei: 'fall-1.jpg', motiv: 'Szene' }]);
+		assert.equal(anfragen.length, 0);
+		await writeFile(path.join(arbeit, 'bilder.json'), '{kaputt');
+		const kaputt = await w.aufruf('bild_erzeugen', {
+			datei: 'fall-1.jpg',
+			prompt: 'Szene',
+			format: 'SQUARE_1_1',
+			vertrag: { pflicht: ['Luna'] },
+		});
+		assert.equal(kaputt.fehler, true);
+		assert.equal(await readFile(path.join(arbeit, 'bilder.json'), 'utf8'), '{kaputt');
+		await rm(path.join(arbeit, 'bilder.json'));
+		const gesperrt = await erstelleBildWerkzeug({
+			arbeit,
+			art: 'einheit',
+			konfig: { ...KONFIG, openaiSchluessel: null },
+			vertragWerkzeuge: true,
+		});
+		const antwort = await gesperrt.aufruf('bild_erzeugen', {
+			datei: 'c.png',
+			prompt: 'C',
+			format: 'SQUARE_1_1',
+			motiv: 'C',
+		});
+		assert.match(antwort.text, new RegExp(BILD_API_GESPERRT));
+		assert.deepEqual(await liste(), [{ datei: 'c.png', motiv: 'C' }]);
+	});
 });

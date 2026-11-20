@@ -53,6 +53,7 @@ export const erstelleLaufBilder = async (o: {
 	obergrenze?: number;
 	figuren?: { name: string; datei: string }[];
 	pruefeVertrag?: (vertrag: BildVertrag) => string | null;
+	vertragWerkzeuge?: boolean;
 }): Promise<LaufBilder | null> => {
 	const { konfig } = o;
 	if (!konfig.openaiSchluessel) {
@@ -74,6 +75,7 @@ export const erstelleLaufBilder = async (o: {
 		obergrenze: o.obergrenze,
 		figuren: o.figuren,
 		pruefeVertrag: o.pruefeVertrag,
+		vertragWerkzeuge: o.vertragWerkzeuge,
 		api: async (anfrage, bis) => {
 			try {
 				return await api(anfrage, bis);

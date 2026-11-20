@@ -1261,6 +1261,7 @@ export const erstelleEinheiten = (
 					kopieGrund(v) ??
 					bibliotheksGrundIn(s, imLauf, v) ??
 					(s.plan?.kanon ? pruefeBildVertrag(s.plan, v) : null),
+				vertragWerkzeuge: true,
 			});
 			if (bilder) {
 				referenzNamen.set(bilder, new Map(figuren.map((f) => [f.pfad, f.figur])));
@@ -2286,7 +2287,7 @@ export const erstelleEinheiten = (
 				text,
 				sitzung,
 				auftragDatei: materialAuftrag,
-				rechte: einheitBauRechte({ slug: d.slug, thema, bilder: s.bilder }),
+				rechte: einheitBauRechte({ slug: d.slug, thema }),
 				mitBildern: s.bilder,
 				bauen: bauenFuer(s, d.slug),
 				grenzen: KI_GRENZEN.einheit.material,
@@ -2336,7 +2337,7 @@ export const erstelleEinheiten = (
 			text: await BILDER(s, plan, pflicht),
 			sitzung: null,
 			auftragDatei: materialAuftrag,
-			rechte: einheitBauRechte({ slug: null, thema: false, bilder: true }),
+			rechte: einheitBauRechte({ slug: null, thema: false }),
 			mitBildern: true,
 			bauen: null,
 			grenzen: KI_GRENZEN.einheit.bilder,

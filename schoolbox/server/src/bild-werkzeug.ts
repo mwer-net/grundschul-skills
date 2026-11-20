@@ -17,18 +17,22 @@ import type { BildAnfrage, BildErgebnis } from './bild-api';
 import { BILD_API_GESPERRT, BildApiFehler, erzeugeBild, MAX_REFERENZ_BYTES } from './bild-api';
 import type { BildVertrag, Zuschnitt } from './bild-datei';
 import {
+	aendereBildEintrag,
 	ANSICHT_BILDER,
 	BILDER_LISTE,
+	BildListeFehler,
 	bildMasse,
 	erstelleZuschnitt,
 	hatTransparenz,
 	istDateiname,
+	leseBildListe,
 	leseBildVertraege,
 	pruefBildPfade,
 	typAus,
+	vertragAus,
 } from './bild-datei';
 import { BILD_GRENZEN } from './bild-grenzen';
-import { BILD_BEARBEITEN, BILD_ERZEUGEN } from './ki-werkzeug';
+import { BILD_BEARBEITEN, BILD_ERZEUGEN, BILD_PRUEFUNG, BILD_VERTRAG } from './ki-werkzeug';
 import type { ServerKonfig } from './konfig';
 
 export const BILD_HERKUNFT = 'bilder-herkunft.tsv';
@@ -52,11 +56,19 @@ const MAX_PROMPT = 8000;
 const MAX_PFAD = 200;
 const FIGUR_NAME = /^[a-z0-9][a-z0-9-]{0,59}$/;
 const PRUEFEN_SATZ = 'Prüfe sie gegen den Vertrag und trage die Prüfung in `bilder.json` ein.';
+/** 252: Im Einheit-Lauf schreiben die Werkzeuge `bilder.json`; Claude gibt Vertrag und Prüfung als Parameter. */
+const PRUEFEN_SATZ_WERKZEUG = `Prüfe sie gegen den Vertrag und trage die Prüfung mit ${BILD_PRUEFUNG} ein.`;
+/** Felder des Bildvertrags, die `bild_erzeugen` und `bild_bearbeiten` als Parameter nehmen (252). */
+const VERTRAG_FELDER = ['motiv', 'platz', 'blickpunkt', 'vertrag', 'figur', 'pose'] as const;
+const MAX_VERTRAG_ZEICHEN = 8000;
+const MAX_PRUEF_PUNKTE = 20;
+const MAX_PRUEF_PUNKT = 300;
 const FLICKEN_SATZ =
 	'Eine Bearbeitung je Fehler. Bleibt der Fehler, erzeuge das Bild neu mit bild_erzeugen und einem Prompt, der den Fehler ausdrücklich ausschließt (mit „befund“).';
-const offenSatz = (datei: string) =>
-	`Zwei neue Bilder haben den Fehler nicht behoben: kein weiterer Versuch an bilder/${datei}. Lass es, wie es ist, passe den Text an, wenn er nur nennen kann, was das Bild zeigt, und trage sonst beim Eintrag in ${BILDER_LISTE} "offen": "<der Fehler in einem Satz>" ein. Die Lehrkraft sieht den Hinweis.`;
-const GESPERRT_ANWEISUNG = `${BILD_API_GESPERRT}: OpenAI erzeugt keine Bilder mehr (Guthaben, Ausgabenlimit oder Schlüssel). Frage kein Bild mehr an, auch nicht ein zweites Mal. Lass fehlende Verträge in ${BILDER_LISTE} ohne Bild und mach weiter, wie dein Auftrag es für ${BILD_API_GESPERRT} sagt.`;
+const offenSatz = (datei: string, werkzeug: boolean) =>
+	`Zwei neue Bilder haben den Fehler nicht behoben: kein weiterer Versuch an bilder/${datei}. Lass es, wie es ist, passe den Text an, wenn er nur nennen kann, was das Bild zeigt, und trage sonst ${werkzeug ? `mit ${BILD_PRUEFUNG} "offen": "<der Fehler in einem Satz>"` : `beim Eintrag in ${BILDER_LISTE} "offen": "<der Fehler in einem Satz>"`} ein. Die Lehrkraft sieht den Hinweis.`;
+const gesperrtAnweisung = (werkzeug: boolean) =>
+	`${BILD_API_GESPERRT}: OpenAI erzeugt keine Bilder mehr (Guthaben, Ausgabenlimit oder Schlüssel). Frage kein Bild mehr an, auch nicht ein zweites Mal. ${werkzeug ? 'Ein Vertrag ohne Bild bleibt stehen;' : `Lass fehlende Verträge in ${BILDER_LISTE} ohne Bild und`} mach weiter, wie dein Auftrag es für ${BILD_API_GESPERRT} sagt.`;
 
 /** Wo der Lauf hingehört; danach richtet sich die Obergrenze (`BILD_GRENZEN.aufrufe`). */
 export type BildWerkzeugArt = keyof typeof BILD_GRENZEN.aufrufe;
@@ -100,6 +112,12 @@ export interface BildWerkzeugOptionen {
 	 * Ohne Angabe prüft nur der Eintrag selbst (Datei und Motiv).
 	 */
 	pruefeVertrag?: (vertrag: BildVertrag) => string | null;
+	/**
+	 * 252: Claude gibt den Vertrag als Parameter von `bild_erzeugen` und `bild_bearbeiten`, liest ihn mit `bild_vertrag`
+	 * und trägt Prüfung und `offen` mit `bild_pruefung` ein; die Werkzeuge schreiben `bilder.json`. Ohne Angabe (Blatt,
+	 * Schubladen) schreibt Claude die Liste selbst, die Parameter gehen trotzdem.
+	 */
+	vertragWerkzeuge?: boolean;
 	/** Für Tests: statt der echten Bild-API. */
 	api?: (anfrage: BildAnfrage, bis: number) => Promise<BildErgebnis>;
 	/** Für Tests: statt `blatt.py viertel`. */
@@ -150,6 +168,8 @@ interface Argumente {
 	transparent: boolean;
 	/** 248: welchen Fehler der Versuch behebt; Pflicht beim Bearbeiten und beim neuen Erzeugen eines vorhandenen Bildes. */
 	befund: string | null;
+	/** 252: Felder des Bildvertrags aus den Parametern; `null`, wenn der Aufruf keins nennt. */
+	eintrag: Record<string, unknown> | null;
 }
 
 /** Ein Versuch aus `bilder-herkunft.tsv` (248). */
@@ -195,6 +215,75 @@ export const gleicherBefund = (a: string, b: string) => {
 	return kleiner > 0 && [...x].filter((w) => y.has(w)).length / kleiner >= 0.5;
 };
 
+const istZahl = (w: unknown, min: number, max: number): w is number =>
+	typeof w === 'number' && Number.isFinite(w) && w >= min && w <= max;
+
+const istObjekt = (w: unknown): w is Record<string, unknown> =>
+	typeof w === 'object' && w !== null && !Array.isArray(w);
+
+/** Die Felder des Bildvertrags aus den Parametern (252); wirft `Abgelehnt` bei einem ungültigen Feld. */
+const eintragAus = (roh: Record<string, unknown>): Record<string, unknown> | null => {
+	if (!VERTRAG_FELDER.some((k) => roh[k] !== undefined)) {
+		return null;
+	}
+	const { blickpunkt, figur, motiv, platz, pose, vertrag } = roh;
+	const e: Record<string, unknown> = {};
+	if (motiv !== undefined) {
+		if (!istText(motiv, 300)) {
+			throw new Abgelehnt('„motiv“ ist ein Satz, höchstens 300 Zeichen.');
+		}
+		e.motiv = motiv.trim();
+	}
+	if (platz !== undefined) {
+		if (!istObjekt(platz) || !istZahl(platz.breite, 1, 10_000) || !istZahl(platz.hoehe, 1, 10_000)) {
+			throw new Abgelehnt('„platz“ ist {"breite": …, "hoehe": …} in px, je 1 bis 10000.');
+		}
+		e.platz = { breite: platz.breite, hoehe: platz.hoehe };
+	}
+	if (blickpunkt !== undefined) {
+		if (!istObjekt(blickpunkt) || !istZahl(blickpunkt.x, 0, 100) || !istZahl(blickpunkt.y, 0, 100)) {
+			throw new Abgelehnt('„blickpunkt“ ist {"x": …, "y": …} in Prozent, je 0 bis 100.');
+		}
+		e.blickpunkt = { x: blickpunkt.x, y: blickpunkt.y };
+	}
+	if (vertrag !== undefined) {
+		if (!istObjekt(vertrag) || JSON.stringify(vertrag).length > MAX_VERTRAG_ZEICHEN) {
+			throw new Abgelehnt(
+				`„vertrag“ ist ein Objekt mit „pflicht“, „buehne“ und „verboten“, höchstens ${MAX_VERTRAG_ZEICHEN} Zeichen.`,
+			);
+		}
+		e.vertrag = vertrag;
+	}
+	if (figur !== undefined) {
+		if (!istText(figur, 60)) {
+			throw new Abgelehnt('„figur“ ist der Name der Figur aus dem Plan, höchstens 60 Zeichen.');
+		}
+		e.figur = figur.trim();
+	}
+	if (pose !== undefined) {
+		if (!istText(pose, 40)) {
+			throw new Abgelehnt('„pose“ ist „grund“ oder ein Wort, höchstens 40 Zeichen.');
+		}
+		e.pose = pose.trim();
+	}
+	return e;
+};
+
+/** Eine Liste von Prüfpunkten für `bild_pruefung` (252). */
+const punkteAus = (wert: unknown, name: string): string[] => {
+	if (wert === undefined) {
+		return [];
+	}
+	if (
+		!Array.isArray(wert) ||
+		wert.length > MAX_PRUEF_PUNKTE ||
+		!wert.every((w) => istText(w, MAX_PRUEF_PUNKT))
+	) {
+		throw new Abgelehnt(`„${name}“ ist eine Liste von höchstens ${MAX_PRUEF_PUNKTE} Sätzen.`);
+	}
+	return wert.map((w: string) => tsvFeld(w));
+};
+
 /** Prüft die Argumente je Werkzeug; wirft `Abgelehnt` mit einem Satz für Claude. */
 export const pruefeBildArgumente = (werkzeug: string, roh: Record<string, unknown>): Argumente => {
 	const erzeugen = werkzeug === BILD_ERZEUGEN;
@@ -215,11 +304,12 @@ export const pruefeBildArgumente = (werkzeug: string, roh: Record<string, unknow
 		throw new Abgelehnt(`„befund“ ist ein Satz, höchstens ${MAX_BEFUND} Zeichen.`);
 	}
 	const befund = typeof befundRoh === 'string' ? tsvFeld(befundRoh) : null;
+	const eintrag = eintragAus(roh);
 	if (!erzeugen) {
 		if (!befund) {
 			throw new Abgelehnt('„befund“ fehlt: Nenne in einem Satz den Fehler, den diese Bearbeitung behebt.');
 		}
-		return { datei, prompt, referenzen, transparent: false, befund };
+		return { datei, prompt, referenzen, transparent: false, befund, eintrag };
 	}
 	if (!istBildFormat(format)) {
 		throw new Abgelehnt(`„format“ ist einer von: ${BILD_FORMAT_NAMEN.join(', ')}.`);
@@ -230,7 +320,7 @@ export const pruefeBildArgumente = (werkzeug: string, roh: Record<string, unknow
 	if (transparent && !datei.endsWith('.png')) {
 		throw new Abgelehnt('„transparent“ geht nur bei .png.');
 	}
-	return { datei, prompt, format, referenzen, transparent, befund };
+	return { datei, prompt, format, referenzen, transparent, befund, eintrag };
 };
 
 const fehlerText = (fehler: unknown) => (fehler instanceof Error ? fehler.message : 'Unbekannter Fehler.');
@@ -255,6 +345,9 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 				{ zeitMs: grenzen.zeitMs, bis },
 			));
 	const schranke = erstelleSchranke(grenzen.gleichzeitig);
+	/** `bilder.json` ändert ein Aufruf zur Zeit: Bis zu drei Bilder laufen zugleich. */
+	const listenSchranke = erstelleSchranke(1);
+	const mitVertrag = o.vertragWerkzeuge === true;
 	const inArbeit = new Set<string>();
 	const stand: BildWerkzeugStand = {
 		gesperrt: !schluessel && !o.api,
@@ -357,7 +450,7 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 			const inhalt = await readFile(path.join(bilderDir, datei)).catch(() => Buffer.alloc(0));
 			await notiere(herkunftZeile(datei, vertrag, 'offen', befund, inhaltHash(inhalt)));
 		}
-		return new Abgelehnt(offenSatz(datei));
+		return new Abgelehnt(offenSatz(datei, mitVertrag));
 	};
 
 	/**
@@ -438,20 +531,55 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 			pruefbilder.length
 				? `Prüfbilder: ${pruefbilder.join(', ')}.`
 				: `Keine Prüfbilder: Sieh dir bilder/${datei} ganz an.`,
-			PRUEFEN_SATZ,
+			mitVertrag ? PRUEFEN_SATZ_WERKZEUG : PRUEFEN_SATZ,
 			art === 'bearbeitet' ? FLICKEN_SATZ : null,
 		]
 			.filter(Boolean)
 			.join('\n');
 	};
 
+	/** Ändert `bilder.json` über `aendereBildEintrag`, einer zur Zeit; ein Fehler der Liste geht als Satz an Claude. */
+	const aendereListe = (datei: string, aendere: (alt: Record<string, unknown> | null) => Record<string, unknown>) =>
+		listenSchranke(async () => {
+			try {
+				return await aendereBildEintrag(o.arbeit, datei, aendere);
+			} catch (fehler) {
+				throw fehler instanceof BildListeFehler ? new Abgelehnt(fehler.message) : fehler;
+			}
+		});
+
+	/**
+	 * Schreibt den Vertrag aus den Parametern in `bilder.json` (252), über den alten Eintrag derselben Datei; Prüfungen
+	 * und `offen` bleiben. Vorher prüft `pruefeVertrag` (Kanon, 248): Lehnt es ab, bleibt die Liste, wie sie war.
+	 */
+	const schreibeVertrag = async (datei: string, e: Record<string, unknown>) => {
+		let neu: BildVertrag | undefined;
+		await aendereListe(datei, (alt) => {
+			const eintrag = { ...(alt ?? {}), datei, ...e };
+			const v = vertragAus(eintrag);
+			if (!v) {
+				throw new Abgelehnt(`„motiv“ fehlt: Der Vertrag von ${datei} braucht ein Motiv, höchstens 300 Zeichen.`);
+			}
+			const grund = o.pruefeVertrag?.(v);
+			if (grund) {
+				throw new Abgelehnt(grund);
+			}
+			neu = v;
+			return eintrag;
+		});
+		return neu;
+	};
+
 	const fuehreAus = async (werkzeug: string, roh: Record<string, unknown>): Promise<string> => {
 		const beginn = Date.now();
 		const a = pruefeBildArgumente(werkzeug, roh);
+		// Vertrag, dann erzeugen (237): Der Vertrag steht in der Liste, auch wenn danach kein Bild entsteht.
+		const vertrag = a.eintrag
+			? await schreibeVertrag(a.datei, a.eintrag)
+			: (await leseBildVertraege(o.arbeit)).find((v) => v.datei === a.datei);
 		if (stand.gesperrt) {
-			throw new Abgelehnt(GESPERRT_ANWEISUNG);
+			throw new Abgelehnt(gesperrtAnweisung(mitVertrag));
 		}
-		const vertrag = (await leseBildVertraege(o.arbeit)).find((v) => v.datei === a.datei);
 		const anfrage: BildAnfrage = {
 			prompt: a.prompt,
 			format: a.format ?? 'SQUARE_1_1',
@@ -462,10 +590,12 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 		if (werkzeug === BILD_ERZEUGEN) {
 			if (!vertrag) {
 				throw new Abgelehnt(
-					`In ${BILDER_LISTE} fehlt ein Eintrag mit "datei": "${a.datei}" und einem "motiv". Vertrag, dann erzeugen: Trage zuerst den Bildvertrag ein.`,
+					mitVertrag
+						? `Für ${a.datei} gibt es keinen Bildvertrag. Vertrag, dann erzeugen: Gib ihn mit (motiv, platz, blickpunkt, vertrag, bei einer Figur allein figur und pose).`
+						: `In ${BILDER_LISTE} fehlt ein Eintrag mit "datei": "${a.datei}" und einem "motiv". Vertrag, dann erzeugen: Trage zuerst den Bildvertrag ein.`,
 				);
 			}
-			const grund = o.pruefeVertrag?.(vertrag);
+			const grund = a.eintrag ? null : o.pruefeVertrag?.(vertrag);
 			if (grund) {
 				throw new Abgelehnt(grund);
 			}
@@ -503,7 +633,7 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 			const bis = beginn + grenzen.gesamtMs;
 			const ergebnis = await schranke(async () => {
 				if (stand.gesperrt) {
-					throw new Abgelehnt(GESPERRT_ANWEISUNG);
+					throw new Abgelehnt(gesperrtAnweisung(mitVertrag));
 				}
 				return await api(anfrage, bis);
 			});
@@ -518,7 +648,7 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 		} catch (fehler) {
 			if (fehler instanceof BildApiFehler && fehler.art === 'gesperrt') {
 				stand.gesperrt = true;
-				throw new Abgelehnt(GESPERRT_ANWEISUNG);
+				throw new Abgelehnt(gesperrtAnweisung(mitVertrag));
 			}
 			throw fehler;
 		} finally {
@@ -526,14 +656,97 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 		}
 	};
 
+	/** `bild_vertrag` (252): der Eintrag eines Bildes aus `bilder.json`, etwa vor `bild_bearbeiten`. */
+	const leseVertrag = async (roh: Record<string, unknown>) => {
+		const { datei } = roh;
+		if (!istDateiname(datei)) {
+			throw new Abgelehnt('„datei“ ist ungültig: der Name eines Bildes in bilder/.');
+		}
+		const eintrag = (await leseBildListe(o.arbeit)).findLast(
+			(e) => typeof e === 'object' && e !== null && (e as { datei?: unknown }).datei === datei,
+		);
+		if (!eintrag) {
+			throw new Abgelehnt(`Für ${datei} gibt es keinen Bildvertrag.`);
+		}
+		return JSON.stringify(eintrag);
+	};
+
+	/** `bild_pruefung` (252): hängt die Prüfung eines Versuchs an und setzt oder löscht `offen`. */
+	const tragePruefungEin = async (roh: Record<string, unknown>) => {
+		const { datei, offen } = roh;
+		if (!istDateiname(datei)) {
+			throw new Abgelehnt('„datei“ ist ungültig: der Name eines Bildes in bilder/.');
+		}
+		const ok = punkteAus(roh.ok, 'ok');
+		const fehlt = punkteAus(roh.fehlt, 'fehlt');
+		const verboten = punkteAus(roh.verboten, 'verboten');
+		const mitPruefung = roh.ok !== undefined || roh.fehlt !== undefined || roh.verboten !== undefined;
+		if (offen !== undefined && typeof offen !== 'string') {
+			throw new Abgelehnt('„offen“ ist ein Satz, höchstens 300 Zeichen; leer löscht ihn.');
+		}
+		if (typeof offen === 'string' && offen.length > 300) {
+			throw new Abgelehnt('„offen“ ist ein Satz, höchstens 300 Zeichen; leer löscht ihn.');
+		}
+		if (!mitPruefung && offen === undefined) {
+			throw new Abgelehnt('Nenne die Prüfung (ok, fehlt, verboten) oder „offen“.');
+		}
+		if (mitPruefung && !ok.length && !fehlt.length && !verboten.length) {
+			throw new Abgelehnt('Die Prüfung ist leer: Hake jeden Punkt aus „pflicht“ unter ok oder fehlt ab.');
+		}
+		if (mitPruefung && !existsSync(path.join(bilderDir, datei))) {
+			throw new Abgelehnt(`bilder/${datei} gibt es nicht: Prüfe nur ein Bild, das entstanden ist.`);
+		}
+		const versuch = Math.max(
+			1,
+			((await leseVersuche(herkunft)).get(datei) ?? []).filter((v) => v.art === 'erzeugt' || v.art === 'bearbeitet')
+				.length,
+		);
+		await aendereListe(datei, (alt) => {
+			if (!alt) {
+				throw new Abgelehnt(`Für ${datei} gibt es keinen Bildvertrag.`);
+			}
+			const neu: Record<string, unknown> = { ...alt };
+			if (mitPruefung) {
+				neu.pruefung = [...(Array.isArray(alt.pruefung) ? alt.pruefung : []), { versuch, ok, fehlt, verboten }];
+			}
+			if (typeof offen === 'string') {
+				if (offen.trim()) {
+					neu.offen = tsvFeld(offen);
+				} else {
+					delete neu.offen;
+				}
+			}
+			return neu;
+		});
+		const nicht = [...fehlt, ...verboten];
+		return [
+			mitPruefung ? `Eingetragen: Prüfung von Versuch ${versuch} für bilder/${datei}.` : null,
+			mitPruefung && !nicht.length ? 'Abgenommen.' : null,
+			mitPruefung && nicht.length ? `Nicht abgenommen: ${nicht.join(' · ')}. ${FLICKEN_SATZ}` : null,
+			typeof offen === 'string' ? (offen.trim() ? 'Offen eingetragen.' : 'Offen gelöscht.') : null,
+		]
+			.filter(Boolean)
+			.join('\n');
+	};
+
+	const namen = [BILD_ERZEUGEN, BILD_BEARBEITEN, ...(mitVertrag ? [BILD_VERTRAG, BILD_PRUEFUNG] : [])];
+
 	return {
 		/** Pfade der kopierten Figuren, relativ zum Arbeitsordner, für den Auftrag. */
 		referenzen,
+		/** Die Namen der Werkzeuge, die dieses Bildwerkzeug beantwortet. */
+		namen,
 		aufruf: async (werkzeug: string, argumente: Record<string, unknown>): Promise<WerkzeugAntwort> => {
-			if (werkzeug !== BILD_ERZEUGEN && werkzeug !== BILD_BEARBEITEN) {
+			if (!namen.includes(werkzeug)) {
 				return { text: `Unbekanntes Werkzeug „${werkzeug}“.`, fehler: true };
 			}
 			try {
+				if (werkzeug === BILD_VERTRAG) {
+					return { text: await leseVertrag(argumente) };
+				}
+				if (werkzeug === BILD_PRUEFUNG) {
+					return { text: await tragePruefungEin(argumente) };
+				}
 				return { text: await fuehreAus(werkzeug, argumente) };
 			} catch (fehler) {
 				if (!(fehler instanceof Abgelehnt) && !(fehler instanceof BildApiFehler)) {

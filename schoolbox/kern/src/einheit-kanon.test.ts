@@ -351,7 +351,7 @@ describe('Kanon der Einheit (246)', () => {
 			});
 			assert.equal(
 				grund,
-				'Dem Bildvertrag von fall-3.jpg in bilder.json fehlen Zeilen aus dem Kanon (Kapitel 3). Übernimm jede wörtlich als eigenen Eintrag in ihr Feld von „vertrag“ und erzeuge das Bild dann:\n- verboten: „erkennbar vor Kapitel 6: Ella ist die Täterin“, „Ella, nie: trägt das Glöckchen“',
+				'Dem Bildvertrag von fall-3.jpg fehlen Zeilen aus dem Kanon (Kapitel 3). Übernimm jede wörtlich als eigenen Eintrag in ihr Feld von „vertrag“ und erzeuge das Bild dann:\n- verboten: „erkennbar vor Kapitel 6: Ella ist die Täterin“, „Ella, nie: trägt das Glöckchen“',
 			);
 			const mitAllem = {
 				datei: 'fall-3.jpg',
