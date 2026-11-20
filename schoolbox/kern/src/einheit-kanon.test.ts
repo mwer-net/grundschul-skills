@@ -14,14 +14,17 @@ import {
 	fuehreKanonNach,
 	geheimText,
 	GRUNDPOSE_SATZ,
+	JE_KAPITEL_KOPF,
 	KANON_GRENZEN,
 	kanonMeldungen,
+	kanonKapitel,
 	kanonText,
 	kapitelVon,
 	kuerze,
 	leseKanon,
 	pruefeBildVertrag,
 	pruefKanon,
+	widerspruchBefunde,
 	widerspruchText,
 	zustandIn,
 } from './einheit-kanon';
@@ -707,5 +710,74 @@ describe('Kanon: melden statt kürzen, Bildvertrag nur mit Regeln fürs Bild (26
 		assert.match(vorlage('einheit.md'), /\{"text": "…", "bild": (true|false)\}/);
 		assert.match(vorlage('einheit-plan-pruefung.md'), /Kanon fachlich/);
 		assert.doesNotMatch(vorlage('einheit-plan-pruefung.md'), /Geobrett|Nagel|Gummi/);
+	});
+});
+
+describe('Kanon je Kapitel für Vorleseheft und Auftakt, Abweichung wird behoben (264)', () => {
+	const dok = (slug: string, art: 'unterrichtsplanung' | 'praesentation' | 'arbeitsblatt') => ({ slug, art });
+
+	it('Vorleseheft und Auftakt: jeder Gegenstand in jedem Kapitel mit seinem Zustand dort', () => {
+		assert.deepEqual(kanonKapitel(PLAN, dok('vorleseheft', 'unterrichtsplanung')), {
+			kapitel: null,
+			jeKapitel: [0, 1, 3, 4, 5, 6],
+		});
+		const text = pruefKanon(PLAN, dok('vorleseheft', 'unterrichtsplanung')).fach.kanon ?? '';
+		assert.ok(text.includes(JE_KAPITEL_KOPF));
+		assert.doesNotMatch(text, /Zustand ab Kapitel/);
+		assert.match(text, /Kapitel 0:\n- das Glöckchen: hängt am Fenster\.\nKapitel 1:/);
+		assert.match(
+			text,
+			/Kapitel 4:\n- das Glöckchen: halb, bei Fridolin \(seit Kapitel 3\)\.\n- der Spiegel: Hanne leiht ihn aus\./,
+		);
+		assert.match(text, /Geheimnisse\./);
+		const auftakt = pruefKanon(PLAN, dok('auftakt', 'praesentation')).fach.kanon ?? '';
+		assert.ok(auftakt.includes(JE_KAPITEL_KOPF));
+		const fach = pruefKanon(PLAN, dok('vorleseheft', 'unterrichtsplanung')).fach;
+		assert.match(fachblickText({ ...FACH, ...fach }), /Hauptauftrag/);
+	});
+
+	it('Hinweise und Kapitel bleiben, wie sie waren', () => {
+		const hinweise = pruefKanon(PLAN, dok('hinweise', 'unterrichtsplanung')).fach.kanon ?? '';
+		assert.equal(hinweise, kanonText(KANON));
+		assert.ok(!hinweise.includes(JE_KAPITEL_KOPF));
+		assert.equal(pruefKanon(PLAN, dok('kapitel-5', 'arbeitsblatt')).fach.kanon, kanonText(KANON, { kapitel: 5 }));
+		assert.equal(kanonText(KANON, { kapitel: 5, jeKapitel: [0, 5] }), kanonText(KANON, { kapitel: 5 }));
+	});
+
+	it('Korrektur: der Kanon gilt, Widerspruch nur mit Grund aus Auftrag oder Sache', () => {
+		const text = pruefKorrektur([{ seite: 4, aufgabe: '', art: 'kanon', text: 'Luna trägt den Stern ins Haus.' }], []);
+		assert.match(text, /auch wenn die Geschichte dafür anders erzählt werden muss/);
+		assert.match(text, /Nur wenn der Kanon dem Auftrag der Lehrkraft oder der Sache widerspricht/);
+	});
+
+	it('Steckbrief mit kanon.widerspruch wird ein Befund kanon in der Korrekturrunde des Materials', () => {
+		const satz = 'Kapitel 1: Luna trägt den Stern ins Haus, laut Kanon liegt er bis Kapitel 2 draußen.';
+		const roh = { kanon: { widerspruch: [satz] } };
+		const { widerspruch } = fuehreKanonNach(PLAN, [], 'vorleseheft', roh);
+		const befunde = widerspruchBefunde(widerspruch);
+		assert.deepEqual(befunde, [
+			{
+				seite: null,
+				aufgabe: '',
+				art: 'kanon',
+				text: `Dein Steckbrief meldet: ${satz}`,
+			},
+		]);
+		const text = pruefKorrektur(befunde, []);
+		assert.match(text, /- Widerspricht der Geschichte: Dein Steckbrief meldet: Kapitel 1: Luna trägt den Stern/);
+		assert.match(text, /Es gilt der Kanon aus deinem Auftrag/);
+		assert.deepEqual(widerspruchBefunde([]), []);
+	});
+
+	it('Vorlagen: Fachblick gleicht je Kapitel ab, Bau meldet Abweichungen statt still anders zu erzählen', () => {
+		const vorlage = (name: string) => readFileSync(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', name), 'utf8');
+		const fach = vorlage('einheit-fachblick.md');
+		assert.match(fach, /Kapitel für Kapitel ab/);
+		assert.match(fach, /wo er liegt, wer ihn hat, wie er aussieht/);
+		assert.match(fach, /eigener Befund `kanon`/);
+		const bau = vorlage('einheit-material.md');
+		assert.match(bau, /erzählst du nicht still anders/);
+		assert.match(bau, /Befund in deiner Korrekturrunde/);
+		assert.match(bau, /Ort, Besitzer oder Aussehen/);
 	});
 });

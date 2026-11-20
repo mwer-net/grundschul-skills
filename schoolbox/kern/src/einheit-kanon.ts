@@ -8,6 +8,7 @@ import type { EinheitPlan, PlanDokument } from './einheit';
 import { rolleVon } from './einheit-bau';
 import type { BildAngabe } from './einheit-bibliothek';
 import { istGrundpose as istGrundposeBild } from './einheit-bibliothek';
+import type { PruefBefund } from './einheit-pruefung';
 
 /**
  * Grenzen des Kanons. Der Planlauf muss sie einhalten (`kanonMeldungen`, 263); beim Lesen eines alten Plans kürzt
@@ -464,6 +465,22 @@ const kapitelBlock = (k: EinheitKanon, kapitel: number) => {
 	return zeilen.length ? [`In Kapitel ${kapitel} gilt, für dieses Material zuerst:`, ...zeilen].join('\n') : '';
 };
 
+/** Kopf des Abgleichs je Kapitel (264): Vorleseheft und Auftakt erzählen alle Kapitel. */
+export const JE_KAPITEL_KOPF =
+	'Gegenstände der Handlung je Kapitel. Ein Zustand gilt, bis ein späteres Kapitel einen neuen nennt; erst dort wechselt der Gegenstand Ort, Besitzer oder Aussehen:';
+
+/** Jedes Kapitel mit dem Zustand jedes Gegenstands dort, auch dem unveränderten: Abgleich Kapitel für Kapitel. */
+const jeKapitelBlock = (k: EinheitKanon, kapitel: readonly number[]) => {
+	const bloecke = kapitel.flatMap((nr) => {
+		const zeilen = k.dinge.flatMap((d) => {
+			const z = zustandIn(d, nr);
+			return z ? [`- ${d.name}: ${ohnePunkt(z.zustand)}${z.seit < nr ? ` (seit Kapitel ${z.seit})` : ''}.`] : [];
+		});
+		return zeilen.length ? [`Kapitel ${nr}:`, ...zeilen] : [];
+	});
+	return bloecke.length ? [JE_KAPITEL_KOPF, ...bloecke].join('\n') : '';
+};
+
 const nachtragBlock = (nachtrag: readonly KanonNachtrag[]) =>
 	nachtrag.length
 		? [
@@ -474,11 +491,13 @@ const nachtragBlock = (nachtrag: readonly KanonNachtrag[]) =>
 
 /**
  * Der ganze Kanon für einen Bau-, Fach- oder Schlusslauf. Mit `kapitel` stehen die Zustände dieses Kapitels, was dort
- * noch geheim ist und welche Fachwörter noch nicht eingeführt sind, vorn. Ohne Kanon leer.
+ * noch geheim ist und welche Fachwörter noch nicht eingeführt sind, vorn. Mit `jeKapitel` (ohne Kapitel, für ein
+ * Material über alle Kapitel, `kanonKapitel`) stehen die Gegenstände Kapitel für Kapitel mit ihrem Zustand dort. Ohne
+ * Kanon leer.
  */
 export const kanonText = (
 	kanon: EinheitKanon | undefined,
-	o: { kapitel?: number | null; nachtrag?: readonly KanonNachtrag[] } = {},
+	o: { kapitel?: number | null; jeKapitel?: readonly number[]; nachtrag?: readonly KanonNachtrag[] } = {},
 ) => {
 	if (!kanon) {
 		return '';
@@ -488,7 +507,11 @@ export const kanonText = (
 		'Kanon der Einheit (Teil des freigegebenen Plans; gilt für jedes Material, nur lesen):',
 		o.kapitel === null || o.kapitel === undefined ? '' : kapitelBlock(k, o.kapitel),
 		k.figuren.length ? ['Figuren, in jedem Material gleich:', ...k.figuren.map(figurZeile)].join('\n') : '',
-		k.dinge.length ? ['Gegenstände der Handlung, Zustand ab Kapitel:', ...k.dinge.map(dingZeile)].join('\n') : '',
+		(o.kapitel === null || o.kapitel === undefined) && o.jeKapitel?.length
+			? jeKapitelBlock(k, o.jeKapitel)
+			: k.dinge.length
+				? ['Gegenstände der Handlung, Zustand ab Kapitel:', ...k.dinge.map(dingZeile)].join('\n')
+				: '',
 		k.geheim.length
 			? [`Geheimnisse. ${VERRAT}`, ...k.geheim.map((g) => `- ${ohnePunkt(g.was)}: ${geheimBis(g)}.`)].join('\n')
 			: '',
@@ -833,25 +856,55 @@ export const bilderKanonText = (kanon: EinheitKanon | undefined, kapitel: readon
 
 /** Vorleseheft und Hinweise prüft der Fachblick vor allem gegen den Kanon (Ticket 246, Punkt 6). */
 const KANON_ZUERST = new Set(['vorleseheft', 'hinweise']);
+/** Rollen, die ohne eigenes Kapitel die ganze Geschichte erzählen (264): Vorleseheft, Auftakt als Präsentation. */
+const ERZAEHLT_ALLE_KAPITEL = new Set(['vorleseheft', 'praesentation']);
+
+type KanonPlan = Pick<EinheitPlan, 'kanon' | 'stunden' | 'geschichte'> & { dokumente?: readonly PlanDokument[] };
+
+/** Die Kapitel der Geschichte: 0, jedes Kapitel der Geschichte, jede Stunde und jedes Kapitel eines Gegenstands. */
+const kapitelNummern = (plan: KanonPlan) =>
+	[
+		...new Set([
+			0,
+			...(plan.geschichte?.kapitel ?? []).map((k) => k.nr),
+			...(plan.stunden ?? []).map((s) => s.nr),
+			...(plan.kanon?.dinge ?? []).flatMap((d) => Object.keys(d.kapitel).map(Number)),
+		]),
+	].sort((a, b) => a - b);
+
+/**
+ * Wo ein Material in der Geschichte steht, für `kanonText`: sein Kapitel, oder bei Vorleseheft und Auftakt alle Kapitel
+ * (`jeKapitel`, 264), damit Bau und Fachblick jeden Gegenstand Kapitel für Kapitel abgleichen.
+ */
+export const kanonKapitel = (
+	plan: KanonPlan,
+	d: Pick<PlanDokument, 'slug' | 'art'>,
+): { kapitel: number | null; jeKapitel?: number[] } => {
+	const rolle = rolleVon(d);
+	const kapitel = GANZE_REIHE.has(rolle) ? null : kapitelVon(plan, d.slug);
+	return kapitel === null && ERZAEHLT_ALLE_KAPITEL.has(rolle)
+		? { kapitel, jeKapitel: kapitelNummern(plan) }
+		: { kapitel };
+};
 
 /**
  * Was die Prüfläufe eines Materials vom Kanon bekommen; Server und Prüfstand rufen beide diese Funktion. Kinderaugen nur
  * `geheim`, der Fachblick den ganzen Kanon. Ohne Kanon leere Objekte: Die Aufträge bleiben wie vor 246.
  */
 export const pruefKanon = (
-	plan: Pick<EinheitPlan, 'kanon' | 'stunden'> & { dokumente?: readonly PlanDokument[] },
+	plan: KanonPlan,
 	d: Pick<PlanDokument, 'slug' | 'art'>,
 	nachtrag: readonly KanonNachtrag[] = [],
 ): { kind: { geheim?: string }; fach: { kanon?: string; kanonZuerst?: boolean } } => {
 	if (!plan.kanon) {
 		return { kind: {}, fach: {} };
 	}
-	const kapitel = GANZE_REIHE.has(rolleVon(d)) ? null : kapitelVon(plan, d.slug);
-	const geheim = geheimText(plan.kanon, kapitel);
+	const stelle = kanonKapitel(plan, d);
+	const geheim = geheimText(plan.kanon, stelle.kapitel);
 	return {
 		kind: geheim ? { geheim } : {},
 		fach: {
-			kanon: kanonText(plan.kanon, { kapitel, nachtrag }),
+			kanon: kanonText(plan.kanon, { ...stelle, nachtrag }),
 			...(KANON_ZUERST.has(rolleVon(d)) ? { kanonZuerst: true } : {}),
 		},
 	};
@@ -933,6 +986,14 @@ export const fuehreKanonNach = (
 		widerspruch: widerspruch.map((w) => w.slice(0, KANON_GRENZEN.widerspruchText)),
 	};
 };
+
+/**
+ * Die Abweichungen, die ein Steckbrief unter `kanon.widerspruch` meldet (oder `fuehreKanonNach` daraus macht), als
+ * Befunde `kanon` für die Korrekturrunde des Materials (264): Der Kanon gilt, das Material wird angepasst. Was danach
+ * mit Grund stehen bleibt, sieht der Schlusslauf (`widerspruchText`).
+ */
+export const widerspruchBefunde = (widerspruch: readonly string[]): PruefBefund[] =>
+	widerspruch.map((w) => ({ seite: null, aufgabe: '', art: 'kanon', text: `Dein Steckbrief meldet: ${w}` }));
 
 /** Die Abweichungen aller Steckbriefe für den Schlusslauf, „Punkt für Punkt“. Leer ohne Kanon. */
 export const widerspruchText = (

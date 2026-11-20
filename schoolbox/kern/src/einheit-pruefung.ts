@@ -858,7 +858,7 @@ export const pruefKorrektur = (befunde: readonly PruefBefund[], server: readonly
 			? `Ein fachlicher Befund wird an der Sache behoben: Aufgabe, Lösung, Beispiel und Tipp stimmen danach mit der Definition und den fachlichen Prüfpunkten der Recherche, nicht nur der Satz der Anweisung. Trägt ein anderes Material der Einheit dieselbe Aussage (Hinweise, Vorleseheft, Lernzielkontrolle), nenne es in deiner Antwort und in steckbrief.json unter „${FOLGEN_FELD}“: {"${FOLGEN_FELD}": [{"material": "<slug>", "aussage": "Ein Satz, was dort noch nicht stimmt."}]}. Die anderen Materialien änderst du nicht; der Schlusslauf bringt sie in Einklang.`
 			: '',
 		befunde.some((b) => b.art === 'kanon')
-			? `Zu „${PRUEF_ART_NAME.kanon}“: Es gilt der Kanon aus deinem Auftrag; bringe das Material mit ihm in Einklang. Weichst du bewusst ab, schreibe es in steckbrief.json unter „kanon“ als „widerspruch“.`
+			? `Zu „${PRUEF_ART_NAME.kanon}“: Es gilt der Kanon aus deinem Auftrag; bringe das Material mit ihm in Einklang, auch wenn die Geschichte dafür anders erzählt werden muss, und streiche die behobene Abweichung aus „widerspruch“ in steckbrief.json. Nur wenn der Kanon dem Auftrag der Lehrkraft oder der Sache widerspricht, bleibt die Stelle; dann steht der Grund in steckbrief.json unter „kanon“ als „widerspruch“.`
 			: '',
 		befunde.some((b) => b.art === 'bild')
 			? `Zu „${PRUEF_ART_NAME.bild}“: Eine schwebende oder eingeklebte Figur verschiebst du nicht und legst keine Pose darüber. Bearbeite das Bild mit der Figur darin (html-materialerstellung, references/bilder.md, Abschnitt 2a) oder erzeuge es neu; erlaubt der Auftrag keine neuen Bilder, nenne den Befund in deiner Antwort.`
