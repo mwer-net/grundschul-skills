@@ -268,14 +268,16 @@
         const els = treffer.map(([e]) => e), e = els.find((x) => !els.some((o) => o !== x && o.contains(x)));
         return e.textContent.trim() || e.dataset.name || e.getAttribute("alt") ? e : k;
       };
+      // Eine Karte ohne Text (Rhythmus, Zeichnung) heißt „Karte“ statt nach ihrem Tag.
+      const name = (e) => (e.textContent.trim() || e.dataset.name || e.getAttribute("alt") ? kurz(e) : "Karte");
       const ausKarte = messen(K);
       if (ausKarte.length)
-        return melde("FEHLER", nr, "ueberlauf", `„${kurz(aussen(ausKarte))}“ ragt aus der Karte (${Math.round(Math.max(...ausKarte.map(([, um]) => um)))} px) → ${rat}`, [ziel(aussen(ausKarte))]);
+        return melde("FEHLER", nr, "ueberlauf", `„${name(aussen(ausKarte))}“ ragt aus der Karte (${Math.round(Math.max(...ausKarte.map(([, um]) => um)))} px) → ${rat}`, [ziel(aussen(ausKarte))]);
       // Über die Seite hinaus: gemeldet, sobald Inhalt fehlt oder mehr als der Farbrahmen der Karte (3 mm).
       const um = ragt(P, K), ausSeite = um > 1 ? messen(P) : [];
       if (ausSeite.length || um > 3 * PX_MM) {
         const e = ausSeite.length ? aussen(ausSeite) : k;
-        melde("FEHLER", nr, "ueberlauf", `„${kurz(e)}“ ragt aus der Seite (${Math.round(um)} px samt Karte) → ${rat}, Bild kleiner oder weniger Karten je Seite`, [ziel(e)]);
+        melde("FEHLER", nr, "ueberlauf", `„${name(e)}“ ragt aus der Seite (${Math.round(um)} px samt Karte) → ${rat}, Bild kleiner oder weniger Karten je Seite`, [ziel(e)]);
       }
     });
 
