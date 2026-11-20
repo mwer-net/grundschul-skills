@@ -948,4 +948,18 @@ describe('pruefung.js: Platz und Größe (249)', { skip: browserSkip() }, () => 
 		assert.deepEqual(await schau('#1d1d1d'), []);
 		assert.deepEqual(await schau('#c8c8c8'), ['WARNUNG kontrast-sw-schau']);
 	});
+
+	it('kontrast-sw liest color(srgb …) aus color-mix; eine unbekannte Farbform meldet nichts', async () => {
+		const seite = (flaeche: string, farbe: string) =>
+			blatt('', 'kl2 sw').replace(
+				'<section class="seite" data-dicht-ok></section>',
+				`<section class="seite"><div style="background:${flaeche};padding:4mm"><p style="color:${farbe}">Lies den Text genau.</p></div></section>`,
+			);
+		const sw = async (flaeche: string, farbe: string) =>
+			codes(await pruefeMit(seite(flaeche, farbe)), 'kontrast-sw').map(([stufe, code]) => `${stufe} ${code}`);
+		const mix = 'color-mix(in srgb,#fff 85%,#000)';
+		assert.deepEqual(await sw(mix, '#1d1d1d'), []);
+		assert.deepEqual(await sw(mix, '#c8c8c8'), ['HINWEIS kontrast-sw']);
+		assert.deepEqual(await sw('oklch(0.95 0 0)', '#c8c8c8'), []);
+	});
 });

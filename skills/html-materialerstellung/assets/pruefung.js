@@ -132,33 +132,15 @@
   const FARBWORT = /(?<!\p{L})(?:rot|blau|grün|gelb|orange|lila|violett|rosa|pink|braun|türkis|bunt|farbig)(?:e|en|er|es|em)?(?!\p{L})/giu;
   const leuchtdichte = (r, g, b) => { const k = (w) => { w /= 255; return w <= 0.03928 ? w / 12.92 : ((w + 0.055) / 1.055) ** 2.4; }; return 0.2126 * k(r) + 0.7152 * k(g) + 0.0722 * k(b); };
   const kontrast = (x, y) => (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
-  /** Kleinster Kontrast des Texts zu seiner Fläche; null, wenn ein Bild dahinter liegt. Verläufe zählen mit jedem Farbstopp. */
-  const kontrastZurFlaeche = (el) => {
-    const [tr, tg, tb, ta = 1] = rgb(getComputedStyle(el).color);
-    if (ta < 0.05) return null;
-    const schichten = [];
-    let verlauf = [];
-    for (let e = el; e; e = e.parentElement) {
-      const c = getComputedStyle(e);
-      if (/url\(/.test(c.backgroundImage)) return null;
-      if (/gradient/.test(c.backgroundImage) && !verlauf.length) verlauf = (c.backgroundImage.match(/rgba?\([^)]*\)/g) || []).map(rgb);
-      const f = rgb(c.backgroundColor);
-      if ((f[3] ?? 1) > 0) schichten.push(f);
-      if ((f[3] ?? 1) === 1) break;
-    }
-    const auf = (f, g) => { const a = f[3] ?? 1; return [0, 1, 2].map((i) => f[i] * a + g[i] * (1 - a)); };
-    const grund = schichten.reduceRight((unten, f) => auf(f, unten), [255, 255, 255]);
-    const flaechen = verlauf.length ? verlauf.map((f) => auf(f, grund)) : [grund];
-    return Math.min(...flaechen.map((f) => { const t = auf([tr, tg, tb, ta], f); return kontrast(leuchtdichte(...t), leuchtdichte(...f)); }));
-  };
-  // 249: wie kontrastZurFlaeche, liest aber auch color(srgb …), das color-mix ergibt (etwa .seite.fall). Eine Farbe in
-  // einer anderen Form (lab, oklch …) gibt null: lieber keine Meldung als eine falsche.
+  // Liest auch color(srgb …), das color-mix ergibt (etwa .seite.fall). Eine Farbe in einer anderen Form (lab, oklch …)
+  // gibt null: lieber keine Meldung als eine falsche.
   const farbeLesen = (c) => {
     const m = /^color\(srgb ([\d.e+-]+) ([\d.e+-]+) ([\d.e+-]+)(?: \/ ([\d.e+-]+))?\)$/.exec(c);
     if (m) return [m[1] * 255, m[2] * 255, m[3] * 255, m[4] === undefined ? 1 : Number(m[4])];
     return /^rgba?\(/.test(c) ? rgb(c) : null;
   };
-  const kontrastSchau = (el) => {
+  /** Kleinster Kontrast des Texts zu seiner Fläche; null, wenn ein Bild dahinter liegt oder eine Farbe unlesbar ist. Verläufe zählen mit jedem Farbstopp. */
+  const kontrastZurFlaeche = (el) => {
     const text = farbeLesen(getComputedStyle(el).color);
     if (!text || (text[3] ?? 1) < 0.05) return null;
     const schichten = [];
@@ -332,7 +314,7 @@
       while (leser.nextNode()) {
         const t = leser.currentNode, p = t.parentElement;
         if (!t.textContent.trim() || !p || p.closest("svg,.loesung-marke") || !sichtbar(p) || blass.includes(p)) continue;
-        const k = kontrastSchau(p);
+        const k = kontrastZurFlaeche(p);
         if (k !== null && k < KONTRAST_MIN) blass.push(p);
       }
       if (blass.length) melde("WARNUNG", nr, "kontrast-sw-schau", `Schauseite in s/w kaum lesbar (Kontrast unter ${KONTRAST_MIN}:1), gedruckt wird s/w: ${blass.slice(0, 3).map(kurz).join(", ")} → dunklere Schrift oder hellere Fläche`, blass.slice(0, 3).map(ziel));
