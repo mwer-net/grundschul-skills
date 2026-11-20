@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { copyFile, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
+import { promisify } from 'node:util';
 
 import { dokumentDir, leseMeta, neueMappe, neuesDokument, registriereEntwuerfe, waehleEntwurf } from './ablage';
-import { baueEntwurfsVorschauen, KI_PRUEFDATEI, ohneDoppelKontrast, pruefeFassung } from './bauen';
+import { baueAnsichtAus, baueEntwurfsVorschauen, KI_PRUEFDATEI, ohneDoppelKontrast, pruefeFassung } from './bauen';
 import { BROWSER_HINWEIS, browserFehlt } from './browsertest';
 import { ASSETS } from './konfig';
 import type { Meldung } from './meldungen';
@@ -119,4 +121,45 @@ describe('ohneDoppelKontrast (249)', () => {
 			['kontrast-sw-schau S. 1', 'farbwort-sw S. 1', 'kontrast-sw S. 2'],
 		);
 	});
+});
+
+const MITTE_PY =
+	'import sys\nfrom PIL import Image\nim = Image.open(sys.argv[1]).convert("RGB")\nprint(*im.getpixel((im.width // 2, im.height // 2)))';
+
+describe('baueAnsichtAus mit ausgeblendeter Seite (257)', () => {
+	it(
+		'baut, und jeder Ausschnitt zeigt die Aufgabe seiner Seite',
+		{ skip: browserFehlt() && BROWSER_HINWEIS },
+		async (t) => {
+			// Wie Kap. 6 der Produktion (2026-11-19): eine ganze Seite nur-loesung zwischen zwei Seiten der Kinder
+			const vorlage = await readFile(path.join(ASSETS, 'vorlage-arbeitsblatt.html'), 'utf8');
+			const seite = (klasse: string, farbe: string) =>
+				`<section class="${klasse}" data-dicht-ok><div class="aufgabe"><span class="nr">1</span>` +
+				`<div class="anw"><span class="text">Male.</span></div>` +
+				`<div class="koerper"><div style="height:300px;background:${farbe}"></div></div></div></section>`;
+			const html =
+				vorlage.slice(0, vorlage.indexOf('<section')) +
+				seite('seite', '#ff0000') +
+				seite('seite nur-loesung', '#00ff00') +
+				seite('seite', '#0000ff') +
+				'</body></html>';
+			const dir = await mkdtemp(path.join(tmpdir(), 'schoolbox-257-'));
+			const quelle = path.join(dir, 'material.html');
+			await writeFile(quelle, html);
+			const ziel = path.join(dir, 'ansicht');
+			t.after(() => rm(dir, { recursive: true, force: true }));
+
+			const { bericht, bilder } = await baueAnsichtAus({ pythonBin: 'python3' }, quelle, ziel, { sw: false });
+			assert.equal(bericht.seiten.length, 3);
+			assert.deepEqual(
+				bilder.filter((b) => !b.startsWith('loesung-')),
+				['seite-1.png', 'seite-1-aufgabe-1.png', 'seite-2.png', 'seite-3-aufgabe-1.png'],
+				'zwei Seiten im PDF der Kinder, Ausschnitte unter der Nummer ihrer Seite',
+			);
+			const mitte = async (datei: string) =>
+				(await promisify(execFile)('python3', ['-c', MITTE_PY, path.join(ziel, datei)])).stdout.trim();
+			assert.equal(await mitte('seite-1-aufgabe-1.png'), '255 0 0');
+			assert.equal(await mitte('seite-3-aufgabe-1.png'), '0 0 255', 'Bild der dritten Seite, nicht der zweiten');
+		},
+	);
 });

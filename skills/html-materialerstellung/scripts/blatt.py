@@ -534,7 +534,9 @@ def ausschnitte(seiten_png, bericht, praefix):
     except ImportError:
         return []
     dateien = []
-    for s, png in zip(bericht["seiten"], seiten_png):
+    # Eine Seite ohne Breite ist ausgeblendet (nur-loesung, data-aus) und fehlt im PDF; die Bilder folgen den übrigen
+    sichtbar = [s for s in bericht["seiten"] if s.get("breite", 794)]
+    for s, png in zip(sichtbar, seiten_png):
         im = Image.open(png)
         k = im.width / s.get("breite", 794)
         for j, (x, y, w, h) in enumerate(s["aufgaben"]):
