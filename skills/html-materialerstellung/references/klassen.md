@@ -1,12 +1,12 @@
 # Klassen von blatt.css
 
-Welche Klassen `assets/blatt.css` kennt und wofür, damit du die CSS zum Bauen nicht liest. Je Zeile der erste Satz des Kommentars in `blatt.css` und die Klassen, die danach zum ersten Mal vorkommen; Überschriften sind die großen Abschnitte der Datei. Wie die Bausteine zusammengehören, zeigen `references/layout.md` und die Vorlagen in `assets/`. Klassen, die nur innerhalb eines `x-…`-Elements stehen, setzt `abbildungen.js` selbst: Du schreibst das Element ([abbildungen.md](abbildungen.md)), nicht seine Klassen.
+Welche Klassen `assets/blatt.css` kennt und wofür, damit du die CSS zum Bauen nicht liest. Je Zeile der erste Satz des Kommentars in `blatt.css` und die Klassen, die danach zum ersten Mal vorkommen, in der Reihenfolge der Datei. Wie die Bausteine zusammengehören, zeigen `references/layout.md` und die Vorlagen in `assets/`. Klassen, die nur innerhalb eines `x-…`-Elements stehen, setzt `abbildungen.js` selbst: Du schreibst das Element ([abbildungen.md](abbildungen.md)), nicht seine Klassen.
 
 Nicht aus `blatt.css`: `.aufdecken` setzt `praesentation.js` (Antippen deckt auf, [folien.md](folien.md)).
 
 <!-- erzeugt: klassen-index -->
 - Vereinfachte Ausgangsschrift für Schreibvorlagen; die Buchstaben verbinden sich von selbst (calt): `.kl1` `.kl2` `.kl3` `.kl4`
-- Blätter mit Zeitziel (data-zeit, Menge nach Arbeitszeit): Lesetext ab Kl. 2 am unteren Rand der Spanne aus grundschul-didaktik (16, 14, 12 pt), damit …: `.folie` `.farbe` `.palette-sonnig` `.palette-himmel` `.palette-wiese` `.palette-beere`
+- Profile am `<body>`: `folie` (Format Folie 16:9), `farbe` (Farbprofil), `palette-…` (Farbwelt ohne thema.css): `.folie` `.farbe` `.palette-sonnig` `.palette-himmel` `.palette-wiese` `.palette-beere`
 - Schulziffern; die Seite (`section.seite`): `.seite`
 - Formate: Klasse am <body>; Standard A4 hoch: `.a4-quer` `.a3-hoch` `.a5-hoch`
 - Mini-Book: acht Felder in Lesereihenfolge; 16 px Rand hält den Inhalt 4 mm von der Falz: `.minibuch` `.faltanleitung`
@@ -21,10 +21,7 @@ Nicht aus `blatt.css`: `.aufdecken` setzt `praesentation.js` (Antippen deckt auf
 - Verlaufsplan (Unterrichtsplanung): Tabelle für die Lehrkraft, nicht für Kinder: `.plan`
 - Karten (Lernspiel, Wort-/Bildkarten): `.karten` `.karte` `.ecke` `.kartentext`
 - Entwürfe: Platzhalter für Bilder, die erst nach der Freigabe kommen: `.platzhalter`
-
-### Rätsel
-
-- `.raetsel-liste` `.kreuz-hinweise` `.kreuz-titel` `.raetsel-legende` `.raetsel-wort`
+- Rätsel: `.raetsel-liste` `.kreuz-hinweise` `.kreuz-titel` `.raetsel-legende` `.raetsel-wort`
 - Spiele (abbildungen.js): `.spiel-zelle` `.spiel-teil` `.spiel-joker` `.bingo-bogen` `.bingo-kopf` `.bingo-gitter` `.rufliste` `.domino-bogen` `.domino-stein` `.domino-nr` `.spiel-plan` `.spiel-pfeile` `.spiel-feld` `.spiel-ende` `.spiel-sonder` `.spiel-nr` `.land-karte` `.land-station` `.land-legende` `.ampel` `.spiel-bild`
 - Abbildungen (abbildungen.js): `.timer-text` `.stellentafel` `.plaettchen-zelle` `.l`
 - Folien (praesentation): Bühne füllt den Platz unter dem Kopf, Leerstelle für Ergebnisse der Kinder, Vermutung = Antwort zum Abstimmen mit Kästchen für …: `.buehne` `.leerstelle` `.vermutung` `.notiz`
@@ -34,10 +31,7 @@ Nicht aus `blatt.css`: `.aufdecken` setzt `praesentation.js` (Antippen deckt auf
 - Punkte und Noten (053): `.gesamt-linie` `.noten-vorschlag` `.noten-schnitt` `.unterschrift-feld` `.ohne-punkte`
 - Bausteine für ein Thema (055): Aussehen kommt aus thema.css: `.thema-band` `.thema-kopf`
 - Deckblatt für den Verkauf (references/verkauf.md): Marke, Titel, Szenenbild, Klasse, Inhalt, Seitenvorschau: `.deckblatt` `.db-rahmen` `.db-marke` `.db-titel` `.db-unter` `.db-bild` `.db-klasse` `.db-chips` `.db-chip` `.db-faecher` `.db-blatt` `.db-figur`
-
-### Reihe als Geschichte (unterrichtsplanung/references/reihe-als-geschichte.md) == Fall-Karte, Seite für die Lehrkraft, Kapitel-Marke, Beweis-Rätsel, …
-
-- `.fall` `.fall-bild` `.fall-band` `.fall-innen` `.fall-thema` `.fall-text` `.fall-frage` `.fuss-zeile` `.lk` `.lk-kopf` `.lk-marke` `.lk-leiste` `.ich-kann` `.phase` `.phase-kopf` `.kasten` `.hinweis` `.lk-spalten`
+- Reihe als Geschichte (unterrichtsplanung/references/reihe-als-geschichte.md): Fall-Karte, Seite für die Lehrkraft, Kapitel-Marke, Beweis-Rätsel, …: `.fall` `.fall-bild` `.fall-band` `.fall-innen` `.fall-thema` `.fall-text` `.fall-frage` `.fuss-zeile` `.lk` `.lk-kopf` `.lk-marke` `.lk-leiste` `.ich-kann` `.phase` `.phase-kopf` `.kasten` `.hinweis` `.lk-spalten`
 - Hinweise für die Lehrkraft (210): ein eigenes Dokument mit body.lehrkraft, nüchtern und zum Überfliegen: `.lehrkraft` `.lk-unter` `.lk-stunde`
 - 216 Vorleseheft: body.lehrkraft.vorleseheft: `.vorleseheft` `.vl-legende` `.vl-muster` `.vl-rollen` `.vl-kapitel` `.vl-kopf` `.vl-stunde` `.vl-dauer` `.vl-bild` `.vl-frage` `.vl-weiter` `.bild` `.frage` `.vl-regie` `.weiter` `.kapitel-marke` `.beweis` `.beweis-marke`
 - Pass, Ausweis, Sammelkarte: eine .karte mit farbigem Kopf und Stempelfeldern für die Stücke der Rätselkette: `.pass` `.pass-rahmen` `.pass-kopf` `.pass-innen` `.pass-zeile` `.stempel-reihe` `.stempel` `.sym`
@@ -45,7 +39,7 @@ Nicht aus `blatt.css`: `.aufdecken` setzt `praesentation.js` (Antippen deckt auf
 - Gruppe: Die Kinder erben Lage und Größe der Gruppe nicht (eigene Werte im style gehen vor): `.gruppe`
 - Seitenfläche und Seitenrahmen füllen ihre Ebene; Fläche, Muster und Rahmen-Arten: 095: `.seitenflaeche` `.seitenrahmen`
 - s/w (Briefing 4.2): Seitenfläche und Streuung sind ohne data-sw weg, alles andere grau, bis data-sw="weg": `.streuung` `.stapel`
-- Ein Band oben auf der Seite, höchstens eins je Seite, ohne data-lage. --h ist der volle Teil; Welle, Bogen und Zacken hängen darunter …: `.kopfband`
+- Ein Band oben auf der Seite, höchstens eins je Seite, ohne data-lage: `.kopfband`
 - Frei liegende Figur (Briefing 3.4): nur figur-frei, nie figur (die Leitfigur mit --figur): `.figur-frei`
 - Freies Bild: Breite in --b, Höhe aus dem Bild; mit --h auf das Seitenverhältnis zugeschnitten, Ausschnitt in --bx/--by: `.bild-frei`
 - Formen zeichnen sich in Elementgröße (viewBox = 0 0 --b --h), der Strich liegt innen: `.form`
@@ -53,10 +47,7 @@ Nicht aus `blatt.css`: `.aufdecken` setzt `praesentation.js` (Antippen deckt auf
 - Form mit Text (Sprechblase, Band): Das svg füllt die Box, der Zipfel ragt hinaus: `.form-text` `.form-inhalt`
 - Leerer Bildrahmen: grau mit Bild-Symbol in der Mitte; die Form schneidet clip-path im style zu (data-maske hat keine eigene Regel): `.bildrahmen`
 - Eine Fläche steht im Stapel wie ein Baustein; ihre Elemente liegen in ihren Koordinaten und werden am Rand abgeschnitten: `.flaeche`
-
-### Satz 2 (212, 213): neues Material, gesetzt wie ein Schulbuch == data-satz="2" am <body>
-
-- 215 Bilder (references/bilder.md, Abschnitt 4): Bild mit Ebenen. .bild-lagen füllt einen Platz mit fester Höhe wie object-fit:cover; .lagen-flaeche …: `.bild-lagen` `.lagen-flaeche` `.lage` `.lage-zettel` `.gehalten`
+- 215 Bilder (references/bilder.md, Abschnitt 4): Bild mit Ebenen: `.bild-lagen` `.lagen-flaeche` `.lage` `.lage-zettel` `.gehalten`
 - Auftakt (Skill praesentation): Folien als Schauseite ohne Schema, nur unter body.folie.auftakt: `.auftakt` `.dunkel`
 - Bildfolie zur Geschichte: die Nummer aus dem Vorleseheft klein unten links; unten rechts steht beim Präsentieren die Foliennummer: `.bildfolie` `.praesentieren` `.aktiv` `.schritt-zu`
 - Ausschneide- und Legematerial ist Schauseite (Entscheidung 64), nur mit data-satz="2": `.streifen`

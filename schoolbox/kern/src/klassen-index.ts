@@ -1,7 +1,8 @@
 /**
  * Der Index der Klassen von `blatt.css` (252) für `references/klassen.md`: Wer ein Material baut, liest ihn statt der
  * ganzen CSS. Je Kommentar am Zeilenanfang eine Zeile mit seinem ersten Satz und den Klassen, die in den Regeln danach
- * zum ersten Mal vorkommen. Kommentare mit `==` werden Überschriften, `<< …` schließt nur einen Block und zählt nicht.
+ * zum ersten Mal vorkommen. `<< …` schließt nur einen Block und zählt nicht. Kommentare mit `==` werden gewöhnliche
+ * Zeilen: In blatt.css folgen auf sie Kommentare zu anderen Themen, eine Überschrift stünde über Fremdem.
  * Klassen, die nur innerhalb eines `x-…`-Elements stehen, setzt `abbildungen.js`: Sie fehlen im Index.
  */
 
@@ -12,6 +13,8 @@ const MAX_SATZ = 150;
  * hier die Zeile des Index. Der Schlüssel ist der erste Satz; fehlt er in blatt.css, scheitert der Index.
  */
 const STATT_SATZ: Record<string, string> = {
+	'Blätter mit Zeitziel (data-zeit, Menge nach Arbeitszeit): Lesetext ab Kl. 2 am unteren Rand der Spanne aus grundschul-didaktik (16, 14, 12 pt), damit …':
+		'Profile am `<body>`: `folie` (Format Folie 16:9), `farbe` (Farbprofil), `palette-…` (Farbwelt ohne thema.css)',
 	'Schulziffern: 1 ohne Fuß, offene 4, 7 mit Querstrich, wie die Kinder sie schreiben':
 		'Schulziffern; die Seite (`section.seite`)',
 	'Weniger Rand oben und unten':
@@ -22,7 +25,6 @@ const STATT_SATZ: Record<string, string> = {
 
 interface Gruppe {
 	titel: string;
-	ueberschrift: boolean;
 	klassen: string[];
 }
 
@@ -33,9 +35,10 @@ export const ersterSatz = (kommentar: string) => {
 		.replace(/\s+/g, ' ')
 		.trim()
 		.replace(/^(?:>>|==)\s*/, '')
-		.replace(/\s*==$/, '')
+		.replace(/\s*==\s*/, ': ')
+		.replace(/:\s*$/, '')
 		.trim();
-	const satz = /^(.+?[.!?])(?=\s+[A-ZÄÖÜ„(]|$)/.exec(text)?.[1] ?? text;
+	const satz = /^(.+?[.!?])(?=\s+[A-ZÄÖÜ„(.`-]|$)/.exec(text)?.[1] ?? text;
 	if (satz.length <= MAX_SATZ) {
 		return satz.replace(/\.$/, '');
 	}
@@ -63,7 +66,7 @@ const stuecke = (sel: string) => {
 
 /** Die Gruppen aus dem Text von `blatt.css`. */
 export const klassenGruppen = (css: string): Gruppe[] => {
-	const gruppen: Gruppe[] = [{ titel: '', ueberschrift: false, klassen: [] }];
+	const gruppen: Gruppe[] = [{ titel: '', klassen: [] }];
 	const gesehen = new Set<string>();
 	let tiefe = 0;
 	let selektor = '';
@@ -73,7 +76,7 @@ export const klassenGruppen = (css: string): Gruppe[] => {
 			const zeile = css.slice(css.lastIndexOf('\n', (t.index ?? 0) - 1) + 1, t.index);
 			const inhalt = teil.slice(2).trim();
 			if (tiefe === 0 && !zeile.trim() && !inhalt.startsWith('<<')) {
-				gruppen.push({ titel: ersterSatz(teil), ueberschrift: inhalt.startsWith('=='), klassen: [] });
+				gruppen.push({ titel: ersterSatz(teil), klassen: [] });
 			}
 			continue;
 		}
@@ -106,7 +109,7 @@ export const klassenGruppen = (css: string): Gruppe[] => {
 	return gruppen;
 };
 
-/** Der erzeugte Abschnitt: Überschriften und je Gruppe mit neuen Klassen eine Zeile. */
+/** Der erzeugte Abschnitt: je Gruppe mit neuen Klassen eine Zeile. */
 export const klassenIndex = (css: string) => {
 	const gruppen = klassenGruppen(css);
 	const fehlt = Object.keys(STATT_SATZ).filter((satz) => !gruppen.some((g) => g.titel === satz));
@@ -115,12 +118,9 @@ export const klassenIndex = (css: string) => {
 	}
 	const zeilen: string[] = [];
 	for (const g of gruppen.map((x) => ({ ...x, titel: STATT_SATZ[x.titel] ?? x.titel }))) {
-		if (g.ueberschrift) {
-			zeilen.push('', `### ${g.titel}`, '');
-		}
 		if (g.klassen.length) {
 			const liste = g.klassen.map((k) => `\`.${k}\``).join(' ');
-			zeilen.push(g.titel && !g.ueberschrift ? `- ${g.titel}: ${liste}` : `- ${liste}`);
+			zeilen.push(g.titel ? `- ${g.titel}: ${liste}` : `- ${liste}`);
 		}
 	}
 	return zeilen.join('\n').replace(/\n{3,}/g, '\n\n').trim();

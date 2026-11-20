@@ -24,7 +24,7 @@ import { leseAbbildungsKatalog } from './abbildungen-katalog';
 import { browserSkip } from './browsertest';
 import { LAUF_MELDUNGEN } from './einheit';
 import { ABBILDUNGEN_DATEIEN } from './einheit-bau';
-import { klassenIndex } from './klassen-index';
+import { ersterSatz, klassenIndex } from './klassen-index';
 import { ASSETS, BLATT_PY, SKILL_DIR, WURZEL } from './konfig';
 import { MELDUNG_CODES } from './meldungen';
 import { abgleichen, ABSCHNITTE, katalogFehler, setzeAbschnitt } from './quellen';
@@ -611,6 +611,8 @@ describe('Klassen von blatt.css (252)', () => {
 	});
 
 	it('Probe: Klassen nur in einem x-Element fehlen, der erste Satz zählt, ein fehlender Schlüssel scheitert', () => {
+		assert.equal(ersterSatz('/* == Satz 2 (212): neu ==\n   data-satz="2" am <body>. Mehr */'), 'Satz 2 (212): neu: data-satz="2" am <body>');
+		assert.equal(ersterSatz('/* Bild mit Ebenen. .bild-lagen füllt */'), 'Bild mit Ebenen');
 		const probe = [
 			'/* Weniger Rand oben und unten. */',
 			'/* Schulziffern: 1 ohne Fuß, offene 4, 7 mit Querstrich, wie die Kinder sie schreiben */',
@@ -623,7 +625,7 @@ describe('Klassen von blatt.css (252)', () => {
 			'@media print{.karte .ecke{color:blue}}',
 		].join('\n');
 		const index = klassenIndex(probe);
-		assert.match(index, /^### Rätsel$/m);
+		assert.doesNotMatch(index, /^#|Rätsel/m);
 		assert.match(index, /^- Karten mit Ecke: `\.karte` `\.ecke`$/m);
 		assert.doesNotMatch(index, /stein|woerter|zahlen/);
 		assert.throws(() => klassenIndex('.a{}'), /hat den Kommentar nicht mehr/);
