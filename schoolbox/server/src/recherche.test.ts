@@ -173,7 +173,7 @@ describe('Prüfung von recherche.md (219)', () => {
 		assert.equal(rechercheAbschnitt(null), null);
 	});
 
-	it('Werkzeuge: nur Lesen, Web, recherche.md und pruefen; kein Edit, kein Bash, kein anderes MCP, keine Sitzung', () => {
+	it('Werkzeuge: nur Lesen, Web, recherche.md und pruefen; kein Edit, kein Bash, kein anderes MCP, keine Sitzung', async () => {
 		const argumente = (kuerzen: boolean) =>
 			rechercheArgumente({
 				ablage: '/tmp/a',
@@ -209,6 +209,13 @@ describe('Prüfung von recherche.md (219)', () => {
 		}
 		assert.equal(nach(args, '--permission-mode')[0], 'dontAsk');
 		assert.equal(nach(args, '--max-turns')[0], String(KI_GRENZEN.recherche.runden));
+		// 272: ~/.claude bleibt ganz gesperrt, auch der Ordner tool-results; kein --add-dir außer der Ablage.
+		assert.ok(nach(args, '--disallowedTools').includes('Read(~/.claude/**)'));
+		assert.equal(args.filter((a) => a.includes('.claude')).length, 1);
+		assert.deepEqual(nach(args, '--add-dir'), ['/tmp/a']);
+		// Ein abgerufenes PDF läge unter ~/.claude und bliebe unlesbar: Der Auftrag sucht stattdessen die Webseite.
+		const auftrag = await readFile(path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'recherche.md'), 'utf8');
+		assert.match(auftrag, /Rufe keine PDF-Datei ab/);
 		// Die Kürzungsrunde (236): dieselben Rechte ohne Web.
 		const kurz = argumente(true);
 		assert.deepEqual(nach(kurz, '--tools'), ['Read,Write']);

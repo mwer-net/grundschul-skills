@@ -53,6 +53,7 @@ import {
 	fachblickStunden,
 	fachblickText,
 	fachSkillVon,
+	folienNotizen,
 	formateDesMaterials,
 	KLASSEN,
 	klasseText,
@@ -503,6 +504,7 @@ const teileFuer = async (k: Kontext, v: Vorhaben, ordner: string): Promise<Auftr
 			stunden: fachblickStunden(k.p.plan, v.d.slug),
 			berechnet: berechneteElemente(v.html),
 			andere,
+			notizen: folienNotizen(v.html),
 			...kanon.fach,
 		}).map((t) => ({
 			text: fachblickText(t),
