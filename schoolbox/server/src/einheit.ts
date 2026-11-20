@@ -169,8 +169,10 @@ import {
 import {
 	bilderKanonText,
 	fuehreKanonNach,
+	kanonRueckrunde,
 	kanonText,
 	kapitelVon,
+	planKanonMeldungen,
 	pruefeBildVertrag,
 	pruefKanon,
 	widerspruchText,
@@ -1601,6 +1603,27 @@ export const erstelleEinheiten = (
 		};
 	};
 
+	/** Was am Kanon in `einheit.json` zu lang ist (263); `lesePlan` hat es für `s.plan` schon gekürzt. */
+	const kanonZuLang = () => {
+		try {
+			return planKanonMeldungen(JSON.parse(aktiv?.letzterPlan || 'null'));
+		} catch {
+			return [];
+		}
+	};
+
+	/**
+	 * Die kurze zweite Runde (263), wenn nach der Rückrunde noch Einträge des Kanons zu lang sind: nur die Meldungen, die
+	 * Antwort ist kein Plan. Bleibt danach etwas zu lang, gilt der gekürzte Plan, und die Meldung steht in `planBefunde`.
+	 */
+	const kanonRunde = async (s: EinheitStand, meldungen: readonly string[]) => {
+		s.planSchritt = 'rueckrunde';
+		await merke(s);
+		const lauf = await starteLauf(s, planLauf(s, kanonRueckrunde(meldungen), s.sitzung));
+		s.sitzung = lauf.sitzung ?? s.sitzung;
+		await abgleich();
+	};
+
 	/**
 	 * Schritt 1: Claude schreibt nur den Plan. Danach wartet die Einheit auf die Freigabe der Lehrkraft. Ohne `text` ist
 	 * es ein neuer Plan: erst die Recherche, dann der Plan mit ihr, dann die Plan-Prüfung (247) und eine Rückrunde mit
@@ -1624,10 +1647,12 @@ export const erstelleEinheiten = (
 			);
 			s.sitzung = ergebnis.sitzung ?? s.sitzung;
 			await abgleich();
-			const rechne = (): PlanRechnung =>
-				s.plan
+			const rechne = (): PlanRechnung => {
+				const r = s.plan
 					? rechnePlan(s.plan, { klasse: s.rechercheAnfrage?.klasse, niveaus: niveausImAuftrag(s.auftrag) })
 					: { befunde: [], ausgelassen: [] };
+				return { ...r, befunde: [...r.befunde, ...kanonZuLang()] };
+			};
 			const erste = rechne();
 			const vorher = erste.befunde;
 			const weiter = () => !ergebnis.fehler && !aktiv?.abbruch && Boolean(s.plan?.dokumente.length);
@@ -1645,6 +1670,10 @@ export const erstelleEinheiten = (
 			if (weiter() && punkte.length && s.sitzung) {
 				runde = await rueckrunde(s, ergebnis, punkte);
 				ergebnis = runde.ergebnis;
+				const kanon = kanonZuLang();
+				if (runde.lief && kanon.length && weiter()) {
+					await kanonRunde(s, kanon);
+				}
 			}
 			const nachher = rechne().befunde;
 			s.planBefunde = nachher;

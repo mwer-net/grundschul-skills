@@ -17,6 +17,7 @@ import { LAUF_MELDUNGEN, MIT_ZEITZIEL } from './einheit';
 import { formateFuerAuftrag, formateTabelle } from './einheit-aufgaben';
 import type { ElementBeschreibung } from './einheit-bau';
 import { pflichtTabelle } from './einheit-bau';
+import { kanonGrenzenText } from './einheit-kanon';
 import { figurenListe } from './figuren';
 import { formenTabelle } from './formen';
 import { GESTALTUNG_ARTEN } from './gestaltung-arten';
@@ -459,6 +460,7 @@ export const ABSCHNITTE: Abschnitt[] = [
 	// Aufgabenformate (221): eine Liste für Skill und Plan der Einheit
 	{ datei: ARBEITSBLATT, marke: 'aufgabenformate', inhalt: formateTabelle },
 	{ datei: EINHEIT_AUFTRAG, marke: 'aufgabenformate', inhalt: formateFuerAuftrag },
+	{ datei: EINHEIT_AUFTRAG, marke: 'kanon-grenzen', inhalt: kanonGrenzenText },
 	// Pflichtlektüre (220): dieselbe Liste für Harness und Schoolbox
 	{ datei: PFLICHTLEKTUERE_MD, marke: 'pflichtlektuere', inhalt: pflichtTabelle },
 	// Älterer Satz (228): nur für vorhandene Blätter ohne `data-satz="2"`

@@ -367,6 +367,28 @@ export const kanonMeldungen = (roh: unknown): string[] => {
 	].map((m) => (m.startsWith(GANZER_KANON) ? m : `Kanon, ${m}`));
 };
 
+/** `kanonMeldungen` für einen ganzen Plan aus `einheit.json`, wie Server und Prüfstand ihn lesen. */
+export const planKanonMeldungen = (plan: unknown) => kanonMeldungen(objekt(plan).kanon);
+
+export const KANON_RUNDE_ANFANG = 'Korrekturrunde zum Kanon.';
+
+/**
+ * Die kurze zweite Runde an den Planlauf (263), wenn nach der Rückrunde noch Einträge des Kanons zu lang sind: nur die
+ * Meldungen, kein ganzer Plan als Antwort.
+ */
+export const kanonRueckrunde = (meldungen: readonly string[]) =>
+	[
+		`${KANON_RUNDE_ANFANG} Diese Einträge von „kanon“ in einheit.json sind noch zu lang:`,
+		...meldungen.map((m) => `- ${m}`),
+		'Ändere in einheit.json nur diese Einträge, ohne Inhalt zu verlieren; was zu lang bleibt, kürzt die Schoolbox mit „…“. Antworte mit einem Satz, nicht mit dem Plan. Baue noch nichts.',
+	].join('\n');
+
+/** Die Grenzen, die ein Planlauf realistisch reißt, für die Vorlage `einheit.md` (erzeugt, Entscheidung 27). */
+export const kanonGrenzenText = () => {
+	const g = KANON_GRENZEN;
+	return `Höchstens ${g.figuren} Figuren, ${g.dinge} Gegenstände, ${g.geheim} Geheimnisse, ${g.regeln} Regeln und ${g.begriffe} Fachwörter; je Regel und Geheimnis höchstens ${g.regel} Zeichen, je Zustand ${g.zustand}, je Bedeutung ${g.bedeutung}. Längeres teilst du; die Schoolbox meldet es mit Stelle und Länge.`;
+};
+
 // ── Wo ein Material in der Geschichte steht ──
 
 /** Rollen über die ganze Reihe: Sie haben kein Kapitel, auch wenn eine Stunde sie nennt. */

@@ -207,7 +207,11 @@ process.stdin.on('end', () => {
 		const titelVon = (slug) => ({ 'fall-1': 'Fall 1', 'fall-2': 'Fall 2', deckblatt: 'Deckblatt' })[slug] ?? slug;
 		// 253: „einheit-figur“ plant Luna neu und Kiki aus der Bibliothek.
 		const figuren = fall === 'einheit-figur' ? { figuren: [{ name: 'Luna', rolle: 'Leitfigur', aussehen: 'Eule mit roter Brille und Laterne', herkunft: 'neu' }, { name: 'Kiki', rolle: 'Freundin', aussehen: '', herkunft: 'bibliothek:kiki' }] } : {};
-		const plan = () => fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Uhrzeit', annahmen: ['Klasse 2'], ...uebersicht, ...figuren, dokumente: [{ slug: 'fall-1', titel: 'Fall 1', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Einstieg', fertig: false }, zweitesDok] }));
+		// 263: „einheit-kanon-lang“ plant eine Regel mit 263 Zeichen und teilt sie in der Rückrunde, „einheit-kanon-stur“ nie.
+		const LANGE_REGEL = 'Die Uhr im Rathaus hat ein rundes Zifferblatt mit den Ziffern von 1 bis 12, einen kurzen Stundenzeiger und einen langen Minutenzeiger, und um zwölf Uhr schlägt sie zwölfmal; sie geht nie rückwärts, hat keinen Sekundenzeiger und zeigt nur volle oder halbe Stunden.';
+		const kanonGeteilt = fall === 'einheit-kanon-lang' && !eingabe.includes('Schritt 1');
+		const kanon = fall.startsWith('einheit-kanon') ? { kanon: { regeln: kanonGeteilt ? ['Die Uhr im Rathaus hat ein rundes Zifferblatt mit den Ziffern 1 bis 12, einen kurzen und einen langen Zeiger.', 'Sie geht nie rückwärts und hat keinen Sekundenzeiger.'] : [LANGE_REGEL] } } : {};
+		const plan = () => fs.writeFileSync('einheit.json', JSON.stringify({ titel: 'Uhrzeit', annahmen: ['Klasse 2'], ...uebersicht, ...figuren, ...kanon, dokumente: [{ slug: 'fall-1', titel: 'Fall 1', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'Einstieg', fertig: false }, zweitesDok] }));
 		// „einheit-unklar“ und „einheit-stur“: fall-1 mit einer unklaren Anweisung, „-stur“ behebt sie nie. „einheit-dopplung“:
 		// dieselbe Abbildung in beiden Materialien.
 		const UNKLAR = '<p>Mach was mit den Uhren.</p>';
@@ -240,6 +244,7 @@ process.stdin.on('end', () => {
 			// Schritt 1 schreibt nur den Plan; gebaut wird nach der Freigabe.
 			if (eingabe.includes('Schritt 1')) { plan(); ende({ result: (eingabe.includes('möchte ihn anders') ? 'Geänderter Plan. ' : '') + 'Die Uhr im Rathaus ist stehen geblieben. Zwei Fälle.' }); return; }
 			// 247: Mit Befunden der Plan-Prüfung antwortet die Rückrunde mit dem Block „geprueft“: den ersten Punkt behoben, die anderen nicht.
+			if (eingabe.startsWith('Korrekturrunde zum Kanon.')) { plan(); ende({ result: 'Erledigt.' }); return; }
 			if (eingabe.includes('Korrekturrunde zum Plan')) {
 				plan();
 				const nummern = [...eingabe.matchAll(/^(\d+)\. /gm)].map((t) => Number(t[1]));

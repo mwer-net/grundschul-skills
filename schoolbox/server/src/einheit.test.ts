@@ -24,6 +24,7 @@ import {
 	themaBefund,
 	VERMERK_GEGENSTAND,
 } from '@schoolbox/kern';
+import { KANON_GRENZEN } from '@schoolbox/kern/src/einheit-kanon';
 import type { BibliotheksFigur } from '@schoolbox/kern/src/figuren';
 import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
 
@@ -759,6 +760,37 @@ describe('Lauf einer Einheit (139)', () => {
 				s.planPruefung?.punkte.map((p) => p.stand),
 				['offen', 'offen'],
 			);
+			await api(`/einheiten/${id}/verwerfen`, { method: 'POST' });
+		});
+
+		it('Regel mit 263 Zeichen: Meldung in der Rückrunde, danach ist die Regel geteilt und kurz genug (263)', async () => {
+			await fall('einheit-kanon-lang');
+			const { id, neu, s } = await planen();
+			const runde = rueckrunden(neu);
+			assert.equal(runde.length, 1);
+			assert.match(runde[0] ?? '', /Kanon, Regel 1 \(„Die Uhr im Rathaus hat ein rundes…“\) hat 263 Zeichen, höchstens 200: teile sie/);
+			assert.deepEqual(neu.filter((p) => p.startsWith('Korrekturrunde zum Kanon')), []);
+			assert.equal(s.status, 'plan');
+			assert.equal(s.plan?.kanon?.regeln.length, 2);
+			assert.ok(s.plan?.kanon?.regeln.every((r) => r.length <= KANON_GRENZEN.regel && !r.endsWith('…')));
+			assert.deepEqual(s.planBefunde, []);
+			await api(`/einheiten/${id}/verwerfen`, { method: 'POST' });
+		});
+
+		it('Bleibt die Regel zu lang: eine kurze Kanon-Runde, dann gekürzt mit „…“ und als Befund im Stand (263)', async () => {
+			await fall('einheit-kanon-stur');
+			const { id, neu, s } = await planen();
+			assert.equal(rueckrunden(neu).length, 1);
+			const kanon = neu.filter((p) => p.startsWith('Korrekturrunde zum Kanon'));
+			assert.equal(kanon.length, 1);
+			assert.match(kanon[0] ?? '', /^- Kanon, Regel 1 .* hat 263 Zeichen/m);
+			assert.doesNotMatch(kanon[0] ?? '', /Stunde|"geprueft"/);
+			assert.equal(s.status, 'plan');
+			assert.match(s.planText ?? '', /Korrigierter Plan/);
+			const regel = s.plan?.kanon?.regeln[0] ?? '';
+			assert.ok(regel.length <= KANON_GRENZEN.regel && regel.endsWith('…'), regel);
+			assert.equal(s.planBefunde?.length, 1);
+			assert.match(s.planBefunde?.[0] ?? '', /hat 263 Zeichen/);
 			await api(`/einheiten/${id}/verwerfen`, { method: 'POST' });
 		});
 

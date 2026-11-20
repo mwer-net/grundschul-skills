@@ -70,7 +70,7 @@ import {
 	rolleVon,
 	WURZEL,
 } from '@schoolbox/kern';
-import { pruefeBildVertrag, pruefKanon } from '@schoolbox/kern/src/einheit-kanon';
+import { planKanonMeldungen, pruefeBildVertrag, pruefKanon } from '@schoolbox/kern/src/einheit-kanon';
 
 import type { PruefErgebnis } from '../src/ki';
 import {
@@ -191,6 +191,8 @@ interface Pruefstand {
 	plan: EinheitPlan;
 	/** Die Datei des Plans, wie Claude sie schrieb: `plan.json` oder `--plan`. */
 	planDatei: string;
+	/** Was am Kanon der Plandatei zu lang ist (263): gehört zur Rechnung wie im Server. */
+	kanonMeldungen: string[];
 	/** In der Reihenfolge des Baus, wie die Mappe sie übernommen hat. */
 	zuordnung: [string, string][];
 	auftrag: string;
@@ -224,7 +226,8 @@ const ladePruefstand = async (
 	if (!existsSync(planDatei)) {
 		throw new Abbruch(`--plan ${planDatei}: Datei fehlt.`);
 	}
-	const plan = lesePlan(await leseJson(planDatei), KI_GRENZEN.einheit.dokumente);
+	const planRoh = await leseJson(planDatei);
+	const plan = lesePlan(planRoh, KI_GRENZEN.einheit.dokumente);
 	if (!plan?.dokumente.length || !plan.geschichte || !plan.stunden?.length) {
 		throw new Abbruch('plan.json ergibt keinen vollständigen Plan (Dokumente, Geschichte, Stunden).');
 	}
@@ -253,6 +256,7 @@ const ladePruefstand = async (
 		mappe,
 		plan,
 		planDatei,
+		kanonMeldungen: planKanonMeldungen(planRoh),
 		zuordnung,
 		auftrag: await readFile(path.join(ordner, 'auftrag.txt'), 'utf8'),
 		klasse: meta.klasse,
@@ -669,7 +673,8 @@ const klasseVon = (k: number | string | undefined): Klasse | undefined =>
 
 /** Was der Server am Plan rechnet (247), auch ohne Claude: für die Konsole und den Abgleich. */
 const rechnungFuer = (p: Pruefstand) => {
-	const r = rechnePlan(p.plan, { klasse: klasseVon(p.klasse), niveaus: niveausImAuftrag(p.auftrag) });
+	const gerechnet = rechnePlan(p.plan, { klasse: klasseVon(p.klasse), niveaus: niveausImAuftrag(p.auftrag) });
+	const r = { ...gerechnet, befunde: [...gerechnet.befunde, ...p.kanonMeldungen] };
 	console.log(
 		`- plan: Rechnung ${r.befunde.length ? `${r.befunde.length} Befunde` : 'ohne Befund'}${r.ausgelassen.length ? `, ausgelassen: ${r.ausgelassen.length}` : ''} (${path.basename(p.planDatei)})`,
 	);
