@@ -287,7 +287,9 @@ const pruefSchwellen = (wurzel: string) => {
 		'symmetrie-achse':
 			'`x-gitter aufgabe="pruefen"` mit `nur`, und die Anweisung spricht von Symmetrie, nennt die Achse aber nicht',
 		'kontrast-sw-schau': `gedruckt wird s/w (Quelle in s/w oder \`blatt.py --sw-druck\`): Text auf einer Schauseite (Fall-Karte, Deckblatt, A3) mit Kontrast unter ${zahl('KONTRAST_MIN')}:1`,
-		'feld-klein': `\`.feld-kleben\` oder \`.feld-zeichnen\` kleiner als \`data-fuer\` und ${zahl('FELD_RAND')} mm je Seite, auch gedreht (FEHLER); Zeichenfeld ohne \`data-fuer\` unter dem Maß der Klasse (WARNUNG); Maße in „Platz zum Kleben, Zeichnen und Schreiben“`,
+		'feld-klein': `\`.feld-kleben\` oder \`.feld-zeichnen\` kleiner als \`data-fuer\` und ${zahl('FELD_RAND')} mm je Seite, auch gedreht (FEHLER); Zeichenfeld ohne \`data-fuer\` unter dem Maß der Klasse, \`.malfeld\` schmaler als dieses Maß (WARNUNG); Maße in „Platz zum Kleben, Zeichnen und Schreiben“`,
+		'aufloesung-sichtbar':
+			'`.aufloesung` (Seite oder Teil einer Seite) steht im PDF der Kinder, also ohne `.nur-loesung` und ohne `data-aus`; in der Lösung nie',
 		'feld-fuer': '`data-fuer` ist kein Maß (FEHLER) oder fehlt am Klebefeld (WARNUNG)',
 		'linien-wenig':
 			'`data-antwort="satz"` oder `"begruendung"` mit weniger Schreiblinien als in „Platz zum Kleben, Zeichnen und Schreiben“',

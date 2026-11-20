@@ -234,8 +234,9 @@ Mindestmaße, die höchste und die kleinste Zahl je A4 und den Abstand zur Schni
 | `aussen` | FEHLER | ein Gestaltungselement liegt zu mehr als der Hälfte außerhalb der Seite |
 | `symmetrie-achse` | FEHLER | `x-gitter aufgabe="pruefen"` mit `nur`, und die Anweisung spricht von Symmetrie, nennt die Achse aber nicht |
 | `feld-fuer` | FEHLER, WARNUNG | `data-fuer` ist kein Maß (FEHLER) oder fehlt am Klebefeld (WARNUNG) |
-| `feld-klein` | FEHLER, WARNUNG | `.feld-kleben` oder `.feld-zeichnen` kleiner als `data-fuer` und 5 mm je Seite, auch gedreht (FEHLER); Zeichenfeld ohne `data-fuer` unter dem Maß der Klasse (WARNUNG); Maße in „Platz zum Kleben, Zeichnen und Schreiben“ |
+| `feld-klein` | FEHLER, WARNUNG | `.feld-kleben` oder `.feld-zeichnen` kleiner als `data-fuer` und 5 mm je Seite, auch gedreht (FEHLER); Zeichenfeld ohne `data-fuer` unter dem Maß der Klasse, `.malfeld` schmaler als dieses Maß (WARNUNG); Maße in „Platz zum Kleben, Zeichnen und Schreiben“ |
 | `antwort-menge` | FEHLER, HINWEIS | eine Aufgabe mit Schreibplatz sagt „weil“, „begründe“ oder „erkläre“ und hat kein `data-antwort` (HINWEIS, einmal je Seite); `data-antwort` mit einem Wert, den es nicht gibt (FEHLER) |
+| `aufloesung-sichtbar` | FEHLER | `.aufloesung` (Seite oder Teil einer Seite) steht im PDF der Kinder, also ohne `.nur-loesung` und ohne `data-aus`; in der Lösung nie |
 | `zeit-fehlt` | WARNUNG | mit Zeitziel: eine Aufgabe ohne `data-min` |
 | `zeit-knapp` | WARNUNG | mit Zeitziel: das kürzeste Niveau unter 85 % des Ziels |
 | `zeit-viel` | WARNUNG | nur beim Bauen, mit Zeitziel: das längste Niveau über 125 % des Ziels |

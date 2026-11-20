@@ -1012,3 +1012,8 @@ body[data-satz="2"] .schneidebogen{--fs:var(--fs-schau,24px);font-size:var(--fs)
 /* 254 Ein Malfeld ohne eigene Breite in einer Flex-Spalte, die quer zentriert (Zelle, Karte, Teil im Schneidebogen),
    schrumpfte auf seinen Rahmen. Dort nimmt es die volle Breite; width im style geht vor und bleibt mittig. */
 :is(.zelle,.karte,.land-station,.kl-station,.schneidebogen>*)>.malfeld{width:100%}
+
+/* 256 Auflösung einer Reihe als Geschichte (`.aufloesung`): eigene Seite, nur im Lösungs-PDF. Kennung für pruefung.js,
+   das eine .aufloesung im Kinder-PDF meldet: class="seite fall aufloesung nur-loesung". Eine ganze Seite nur-loesung
+   behält in der Lösung das Flex-Layout von .seite. */
+body.loesung .seite:is(.nur-loesung,.aufloesung){display:flex}

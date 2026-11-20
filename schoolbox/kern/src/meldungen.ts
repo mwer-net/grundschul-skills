@@ -72,7 +72,8 @@ export const MELDUNG_CODES = [
 	'symmetrie-achse',
 	/** In s/w gedruckt (Quelle s/w oder `--sw-druck`): Text auf einer Schauseite hebt sich kaum ab (249). */
 	'kontrast-sw-schau',
-	/** `.feld-kleben`/`.feld-zeichnen`: kleiner als `data-fuer` und Rand, oder Zeichenfeld unter dem Maß der Klasse (249). */
+	/** `.feld-kleben`/`.feld-zeichnen`: kleiner als `data-fuer` und Rand, oder Zeichenfeld unter dem Maß der Klasse
+	 * (249); `.malfeld` schmaler als dieses Maß (256). */
 	'feld-klein',
 	/** `data-fuer` fehlt am Klebefeld oder ist kein Maß (249). */
 	'feld-fuer',
@@ -80,6 +81,8 @@ export const MELDUNG_CODES = [
 	'linien-wenig',
 	/** Begründen ohne `data-antwort` (HINWEIS, einmal je Seite) oder ein Wert, den es nicht gibt (249). */
 	'antwort-menge',
+	/** `.aufloesung` steht im PDF der Kinder statt nur in der Lösung (256). */
+	'aufloesung-sichtbar',
 ] as const;
 
 export type MeldungCode = (typeof MELDUNG_CODES)[number];
@@ -176,6 +179,10 @@ const TABELLE: Record<MeldungCode, Uebersetzung> = {
 	'feld-klein': (_n, text) => ({
 		satz: `${text.replace(/ → .*$/, '').replace(/^A\d+: /, '')}: Das Feld ist zu klein.`,
 		tipp: 'Claude bitten, das Feld größer zu machen oder ihm eine eigene Zeile zu geben.',
+	}),
+	'aufloesung-sichtbar': () => ({
+		satz: 'Die Auflösung steht im Blatt der Kinder. Sie verrät, wie die Geschichte ausgeht.',
+		tipp: 'Claude bitten, die Auflösung auf eine eigene Seite nur für die Lösung zu legen.',
 	}),
 	'feld-fuer': () => ({
 		satz: 'Bei einem Feld steht nicht, wie groß das ist, was hineinkommt.',

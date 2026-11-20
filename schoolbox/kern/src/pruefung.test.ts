@@ -102,6 +102,8 @@ describe('pruefung.js (mit blatt.py)', () => {
 					'feld-fuer',
 					'linien-wenig',
 					'antwort-menge',
+					// Auflösung (256) prüft „Auflösung nur in der Lösung“ unter „pruefung.js: Platz und Größe“.
+					'aufloesung-sichtbar',
 				].includes(c),
 		);
 		assert.deepEqual(fehlt, [], 'jede Regel kommt in den Testdaten vor');
@@ -840,6 +842,82 @@ describe('pruefung.js: Platz und Größe (249)', { skip: browserSkip() }, () => 
 			['WARNUNG'],
 		);
 		assert.deepEqual(codes(await pruefeMit(blatt(feld, 'kl3 farbe')), 'feld-klein'), []);
+	});
+
+	it('Malfeld, das in einer Flex-Spalte zusammenfällt: WARNUNG feld-klein; volle Breite still (256)', async () => {
+		const spalte = (malfeld: string) =>
+			aufgabe(
+				2,
+				'Male die ganze Figur.',
+				`<div style="display:flex;flex-direction:column;align-items:center">${malfeld}</div>`,
+			);
+		assert.deepEqual(
+			codes(await pruefeMit(blatt(spalte('<div class="malfeld" style="--h:200px"></div>'))), 'feld-klein').map(
+				([stufe, , text]) => [stufe, text?.split(':')[0]],
+			),
+			[['WARNUNG', 'A2']],
+		);
+		const voll = blatt(spalte('<div class="malfeld" style="--h:200px;width:100%"></div>'));
+		assert.deepEqual(codes(await pruefeMit(voll), 'feld-klein'), []);
+		const streifen = blatt(aufgabe(2, 'Male.', '<div class="malfeld" style="--h:90px"></div>'));
+		assert.deepEqual(codes(await pruefeMit(streifen), 'feld-klein'), [], 'die Höhe des Bausteins zählt nicht');
+	});
+
+	describe('Auflösung nur in der Lösung (256)', () => {
+		const seiten = (...inhalt: string[]) =>
+			blatt('').replace('<section class="seite" data-dicht-ok></section>', inhalt.join('\n'));
+		const KINDER = `<section class="seite" data-dicht-ok>${aufgabe(1, 'Male.', '<div class="schreiblinie"></div>')}</section>`;
+		const fall = (klassen: string) =>
+			`<section class="seite fall ${klassen}"><div class="fall-innen"><h1>Des Rätsels Lösung</h1></div></section>`;
+		/** Ganzer Bau mit Lösungsblatt: Dessen FEHLER stehen mit „Lösungsblatt: “ im Bericht. */
+		const baueMit = async (html: string): Promise<Bericht> => {
+			const tmp = await mkdtemp(path.join(tmpdir(), 'schoolbox-256-'));
+			try {
+				const datei = path.join(tmp, 'blatt.html');
+				const bericht = path.join(tmp, 'bericht.json');
+				await writeFile(datei, html);
+				try {
+					execFileSync('python3', [BLATT_PY, 'bauen', datei, '-o', tmp, '--bericht', bericht], { stdio: 'ignore' });
+				} catch {
+					// Exit-Code 1 bei FEHLER
+				}
+				return JSON.parse(await readFile(bericht, 'utf8')) as Bericht;
+			} finally {
+				await rm(tmp, { recursive: true, force: true });
+			}
+		};
+
+		it('sichtbare Auflösungsseite: FEHLER auf ihrer Seite', async () => {
+			assert.deepEqual(
+				(await pruefeMit(seiten(KINDER, fall('aufloesung'))).then((b) => b.meldungen))
+					.filter((m) => m.code === 'aufloesung-sichtbar')
+					.map((m) => [m.stufe, m.seite, m.text.split(' → ')[0]]),
+				[['FEHLER', 2, 'Die Auflösung („Des Rätsels Lösung“) steht im PDF der Kinder']],
+			);
+		});
+
+		it('Teil einer Seite: sichtbar FEHLER, in .nur-loesung still', async () => {
+			const teil = (huelle: string) =>
+				seiten(
+					`<section class="seite" data-dicht-ok>${aufgabe(1, 'Male.', '<div class="schreiblinie"></div>')}${huelle}</section>`,
+				);
+			const sichtbar = await pruefeMit(teil('<p class="aufloesung">Es war Ella.</p>'));
+			assert.deepEqual(codes(sichtbar, 'aufloesung-sichtbar').map(([stufe]) => stufe), ['FEHLER']);
+			const versteckt = await pruefeMit(teil('<div class="nur-loesung"><p class="aufloesung">Es war Ella.</p></div>'));
+			assert.deepEqual(codes(versteckt, 'aufloesung-sichtbar'), []);
+		});
+
+		it('eigene Seite mit nur-loesung: still, auch im Lösungsblatt', async () => {
+			const bericht = await baueMit(seiten(KINDER, fall('aufloesung nur-loesung')));
+			assert.deepEqual(
+				bericht.meldungen.filter((m) => m.code === 'aufloesung-sichtbar'),
+				[],
+			);
+			assert.deepEqual(
+				bericht.meldungen.filter((m) => m.stufe === 'FEHLER').map((m) => m.text),
+				[],
+			);
+		});
 	});
 
 	it('Begründung mit einer Linie in Kl. 2: WARNUNG; mit drei Linien still', async () => {

@@ -60,4 +60,5 @@ Nicht aus `blatt.css`: `.aufdecken` setzt `praesentation.js` (Antippen deckt auf
 - Schneidebogen: Teile, die Kinder selbst schneiden: `.schneidebogen`
 - 249 Felder mit Zweck: data-fuer nennt in mm, was hineinkommt (Breite x Höhe), pruefung.js misst das Feld daran: `.feld-kleben` `.feld-zeichnen`
 - Teil, das die Kinder ausschneiden, außerhalb von Schneidebogen und Karten (Kurzkante: teil-klein): `.ausschneiden`
+- 256 Auflösung einer Reihe als Geschichte (`.aufloesung`): eigene Seite, nur im Lösungs-PDF: `.aufloesung`
 <!-- /erzeugt: klassen-index -->

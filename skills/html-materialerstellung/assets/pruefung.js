@@ -526,6 +526,12 @@
       const min = ZEICHENFELD_MIN[kl] || ZEICHENFELD_MIN[2];
       if (Math.min(b, h) + 0.5 < min) melde("WARNUNG", nr, "feld-klein", `${feld}: Klasse ${kl} braucht zum Zeichnen mindestens ${min} × ${min} mm → --b und --h größer, eine Spalte weniger, oder data-fuer mit dem Maß der Zeichnung`, [ziel(e)]);
     });
+    // 256: Ein Malfeld braucht die Breite eines Zeichenfelds. Fällt es in einer Flex-Spalte auf seinen Rahmen zusammen
+    // (254), meldet das die Breite. Die Höhe bleibt frei: Der Baustein ist ein Streifen (--h), vorhandene Blätter auch.
+    [...S.querySelectorAll(".malfeld")].filter((e) => !e.matches(".feld-kleben,.feld-zeichnen") && !ausgeblendet(e) && e.getClientRects().length > 0).forEach((e) => {
+      const [b, h] = mmVon(e), min = ZEICHENFELD_MIN[kl] || ZEICHENFELD_MIN[2];
+      if (b + 0.5 < min) melde("WARNUNG", nr, "feld-klein", `${vorn(aufgabeVon(e))}Malfeld ${Math.round(b)} × ${Math.round(h)} mm: Klasse ${kl} braucht zum Zeichnen mindestens ${min} mm Breite → width:100% oder eine feste Breite am Malfeld, eine Spalte weniger`, [ziel(e)]);
+    });
     // 9b. Schreiblinien nach Antwort: data-antwort an der Aufgabe oder an einer Gruppe von Linien
     const LINIE = ".schreiblinie,.zeile-frei";
     const zeigt = (e) => sichtbar(e) && !ausgeblendet(e) && !e.closest(".nur-loesung");
@@ -619,6 +625,13 @@
     zumSchneiden.forEach((e) => sammle("teil", e, { motiv: motiv(e) }));
     felder.push(...gruppen.values());
     felder.push(...schreibOrte);
+
+    // 10. Auflösung (256): .aufloesung gehört nur ins Lösungs-PDF, als eigene Seite mit nur-loesung oder eigenes Material.
+    if (!loesungsblatt) {
+      const aufloesung = [S, ...S.querySelectorAll(".aufloesung")].filter((e) => e.matches(".aufloesung") && !ausgeblendet(e) && !e.closest(".nur-loesung") && e.getClientRects().length > 0);
+      const aussen = aufloesung.filter((e) => !aufloesung.some((o) => o !== e && o.contains(e)));
+      if (aussen.length) melde("FEHLER", nr, "aufloesung-sichtbar", `Die Auflösung („${kurz(aussen[0].querySelector("h1") || aussen[0])}“) steht im PDF der Kinder → eigene Seite class="seite … aufloesung nur-loesung" (nur im Lösungs-PDF) oder ein eigenes Material`, aussen.slice(0, 3).map(ziel));
+    }
 
     seiten.push({ nr, rest, breite: Math.round(P.width), aufgaben: auf.map((a) => rel(a.getBoundingClientRect())), ...(seitenLeer === null ? {} : { leer: seitenLeer }) });
   });
