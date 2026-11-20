@@ -128,7 +128,13 @@ describe('einheit-bibliothek (253)', () => {
 			'b.jpg\topenai\tm\t2026\tSzene',
 		].join('\n');
 		const z = leseHerkunft(tsv);
-		assert.deepEqual(z.get('a.png'), { datei: 'a.png', quelle: 'openai', motiv: 'Pose Luna zeigt', art: 'offen' });
+		assert.deepEqual(z.get('a.png'), {
+			datei: 'a.png',
+			quelle: 'openai',
+			modell: 'm',
+			motiv: 'Pose Luna zeigt',
+			art: 'offen',
+		});
 		assert.equal(z.get('b.jpg')?.art, '');
 	});
 

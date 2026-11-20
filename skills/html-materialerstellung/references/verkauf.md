@@ -102,7 +102,12 @@ Nur nennen, was die Reihe wirklich verwendet und was im Paket liegt: Strichzeich
 
 „Autorin“ oder „Autor“ nach dem Namen im Auftrag; ohne Namen „von mir“. Zu den Zeilen von Claude und Canva gehört bei Eduki der Hinweis, nach welchen Bedingungen der Verkauf erlaubt ist (die Zeile von OpenAI nennt ihn schon). Er hängt vom Konto ab, deshalb schreibst du ihn nur, wenn der Auftrag ihn nennt; sonst steht er als offener Punkt im Angebot (Abschnitt 4).
 
-Die Quelle je Bild steht in `bilder/bilder-herkunft.tsv` (für dieselbe Datei gilt die letzte Zeile), bei älteren Bildern in `canva-ids.tsv`. Ein Bild, dessen Herkunft du nicht kennst (aus der Bildersammlung der Mappe, in keiner der beiden Dateien), bekommt die Zeile „Quelle bitte ergänzen: <Datei>“ und steht in deiner Antwort am Ende. Nichts erfinden.
+Die Herkunft der Bilder:
+
+- **In der Schoolbox** nennt der Auftrag die „Bildliste der Schoolbox“: jedes Bild, das die Materialien verwenden, mit Datei, Material und Seite, Art (KI-Bild mit Quelle, Figur der Figurenbibliothek mit ihrer Herkunft, berechnet, Herkunft unbekannt) und Strichfassung. Sie ist die einzige Quelle. Nenne nur Bilder und Dateien aus ihr, jedes mit der Art und Quelle, die dort steht; was dort fehlt, auch eine Strichfassung oder ein Bild aus `bilder.json`, das kein Material verwendet, kommt nicht vor. Eine Folie, die die Liste als berechnet führt, ist kein KI-Bild. Der Server gleicht die genannten Dateinamen mit der Liste ab.
+- **In der Claude-App ohne Schoolbox** steht die Quelle je Bild in `bilder/bilder-herkunft.tsv` (für dieselbe Datei gilt die letzte Zeile), bei älteren Bildern in `canva-ids.tsv`. Nenne nur Bilder, die ein Material einbindet.
+
+Ein Bild, dessen Herkunft weder die Liste noch diese Dateien kennen, bekommt die Zeile „Quelle bitte ergänzen: <Datei>“ und steht in deiner Antwort am Ende. Nichts erfinden.
 
 Unter der Tabelle der Nutzungshinweis, wörtlich:
 
@@ -129,7 +134,7 @@ Ein Dokument nur für die Autorin, als `kit-tabelle` mit den Feldern, die Eduki 
 | Vorschau | welche Seiten offen bleiben (Deckblatt, Inhalt des Pakets, ein Kapitel ganz) und ab welcher Seite unscharf, meist ab Seite 10 oder 11. Offen bleibt keine Seite mit Lösung, Erwartungshorizont oder Auflösung; zeigen die Hinweise Lösungen (Rätselkette, typische Fehler), endet der offene Bereich davor oder überspringt sie |
 | Lösungsschlüssel | „an“, wenn Lösungen dabei sind |
 | Quellen: Texte | die Zeile „Texte“ aus dem Quellenverzeichnis |
-| Quellen: Bilder | die Zeilen zu den KI-Bildgeneratoren (Canva, OpenAI) und zu den gezeichneten Abbildungen in einem Satz. Ohne Link: Eduki ordnet eine Quelle mit bekanntem Link einem älteren Eintrag zu und zeigt dann dessen Text |
+| Quellen: Bilder | die Zeilen zu den KI-Bildgeneratoren (Canva, OpenAI) und zu den gezeichneten Abbildungen in einem Satz, nur mit den Quellen, die die Bilder laut Bildliste (in der Claude-App laut `bilder-herkunft.tsv`) haben; ein Bild unbekannter Herkunft fällt nie unter einen KI-Bildgenerator. Ohne Link: Eduki ordnet eine Quelle mit bekanntem Link einem älteren Eintrag zu und zeigt dann dessen Text |
 | Quellen: Schrift | „Google Fonts: Fredoka und Andika (SIL Open Font License)“, dazu weitere verwendete Schriften |
 | Quellen: Sonstiges | die Zeile „Gestaltung der Seiten“ |
 | Erklärung zu KI | „Ja“; ankreuzen: KI-generierter Text; KI-Bilder – nicht realistisch (wenn KI-Bilder oder die Leitfiguren vorkommen); Sonstige KI-Inhalte. **Nie** „vollständig mit KI erstellt“: Die Autorin plant, prüft und überarbeitet |

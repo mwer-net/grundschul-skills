@@ -513,6 +513,7 @@ describe('Requisiten aus Einheiten (253)', () => {
 			liste.map((r) => `${r.datei} ${r.mappe}`),
 			['laterne.png Spiegel'],
 		);
+		assert.deepEqual(liste[0]?.quelle, { quelle: 'openai', modell: 'm' }, '271: Quelle für die Bildliste');
 		assert.deepEqual(await sammleRequisiten(KONFIG, materialDir, a.id), []);
 		const sammlung = await sammleBilder(KONFIG, materialDir, b.id);
 		assert.deepEqual(

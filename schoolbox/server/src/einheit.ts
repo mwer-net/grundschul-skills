@@ -114,6 +114,7 @@ import {
 	planPruefStand,
 	planPruefText,
 	planRueckrunde,
+	posenQuellen,
 	pruefeEinheitAngaben,
 	pruefKorrektur,
 	pruefpunkteText,
@@ -139,6 +140,14 @@ import {
 	zahlenBefunde,
 	zahlenText,
 } from '@schoolbox/kern';
+import type { BildlistenEintrag } from '@schoolbox/kern/src/bildliste';
+import {
+	BILDLISTE_DATEI,
+	bildlisteBefunde,
+	bildlisteText,
+	erstelleBildliste,
+	leseBildQuellen,
+} from '@schoolbox/kern/src/bildliste';
 import {
 	artAus,
 	bibliotheksGrund,
@@ -1779,6 +1788,79 @@ export const erstelleEinheiten = (
 		}
 	};
 
+	/** 271: Quellen und Angebot schreiben die Herkunft der Bilder aus der Bildliste; nur sie gleicht der Server ab. */
+	const VERKAUF_ROLLEN = new Set(['quellen', 'angebot']);
+
+	/** 271: Jedes Bild, das die übrigen Materialien verwenden, mit Art und Quelle. */
+	const bildliste = async (s: EinheitStand, plan: EinheitPlan): Promise<BildlistenEintrag[]> => {
+		const bilderDir = path.join(arbeitDir(s.id), 'bilder');
+		const dateien = new Set(await readdir(bilderDir).catch(() => [] as string[]));
+		const dokumente = [];
+		for (const d of plan.dokumente.filter((x) => !VERKAUF_ROLLEN.has(rolleVon(x)))) {
+			const html = await materialHtml(s, d.slug);
+			if (html) {
+				dokumente.push({ slug: d.slug, html });
+			}
+		}
+		const requisiten = [...dateien].some((n) => n.startsWith('req-'))
+			? new Map(
+					(await sammleRequisiten(kontext.konfig, materialDir, s.mappe).catch(() => [])).map((r) => [
+						requisitDatei(r),
+						{ mappe: r.mappe, quelle: r.quelle },
+					]),
+				)
+			: undefined;
+		return erstelleBildliste(dokumente, {
+			herkunft: await leseBildQuellen(bilderDir),
+			posen: await posenQuellen(materialDir).catch(() => new Map()),
+			...(requisiten ? { requisiten } : {}),
+			dateien,
+		});
+	};
+
+	const bildlisteMarker = (s: EinheitStand) => path.join(arbeitDir(s.id), BILDLISTE_DATEI);
+
+	/** Die Slugs, deren Bau die Bildliste bekommen hat. Ein älteres Quellenblatt kennt sie nicht und bleibt ohne Abgleich. */
+	const mitBildliste = async (s: EinheitStand): Promise<string[]> => {
+		try {
+			const daten = JSON.parse(await readFile(bildlisteMarker(s), 'utf8')) as { slugs?: unknown };
+			return Array.isArray(daten.slugs) ? daten.slugs.filter((x): x is string => typeof x === 'string') : [];
+		} catch {
+			return [];
+		}
+	};
+
+	/** Der Absatz für den Bau von Quellen und Angebot; merkt den Slug für den Abgleich. */
+	const bildlisteFuerBau = async (s: EinheitStand, plan: EinheitPlan, d: PlanDokument) => {
+		if (!VERKAUF_ROLLEN.has(rolleVon(d))) {
+			return '';
+		}
+		const slugs = await mitBildliste(s);
+		if (!slugs.includes(d.slug)) {
+			await writeFile(bildlisteMarker(s), `${JSON.stringify({ slugs: [...slugs, d.slug] })}\n`);
+		}
+		return bildlisteText(await bildliste(s, plan));
+	};
+
+	/** 271: Der Abgleich von Quellen oder Angebot mit der Bildliste, nur für ein Material, dessen Bau sie bekam. */
+	const bildlisteBefundeFuer = async (
+		s: EinheitStand,
+		plan: EinheitPlan,
+		d: PlanDokument,
+		liste?: readonly BildlistenEintrag[],
+	) => {
+		if (!VERKAUF_ROLLEN.has(rolleVon(d)) || !(await mitBildliste(s)).includes(d.slug)) {
+			return [];
+		}
+		const html = await materialHtml(s, d.slug);
+		return html
+			? bildlisteBefunde(liste ?? (await bildliste(s, plan)), html, {
+					titel: d.titel,
+					quellen: rolleVon(d) === 'quellen',
+				})
+			: [];
+	};
+
 	const MATERIAL = async (s: EinheitStand, plan: EinheitPlan, d: PlanDokument, pflicht: string[], thema: boolean) => {
 		await sichereAuszuege(s);
 		const angefangen = existsSync(path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html'));
@@ -1797,6 +1879,7 @@ export const erstelleEinheiten = (
 			aufgabenFuerBau(plan, d.slug),
 			fertigText(plan, fertigeMaterialien(s), s.steckbriefe ?? {}),
 			await bilderText(s, rolleVon(d)),
+			await bildlisteFuerBau(s, plan, d),
 		]
 			.filter(Boolean)
 			.join('\n\n');
@@ -2345,7 +2428,10 @@ export const erstelleEinheiten = (
 		};
 		let sitz = sitzung;
 		for (let runde = 0; ; runde += 1) {
-			const server = dopplungTexte(await dopplungen(s, plan, d.slug), d.slug, titelVon(s));
+			const server = [
+				...dopplungTexte(await dopplungen(s, plan, d.slug), d.slug, titelVon(s)),
+				...(await bildlisteBefundeFuer(s, plan, d)),
+			];
 			const letzte = runde > 0 && runde === KI_GRENZEN.einheit.pruefRunden;
 			if (letzte && mitPruefLauf && letzteRundeEntfaellt(s, plan, d, weise)) {
 				stand.server = server;
@@ -2526,6 +2612,7 @@ export const erstelleEinheiten = (
 		dopplung: string[],
 		formate: FormateDerEinheit,
 		paket: string,
+		bilder: string,
 	) => {
 		const offen = plan.dokumente.flatMap((d) => {
 			const p = s.pruefung?.[d.slug];
@@ -2551,6 +2638,7 @@ export const erstelleEinheiten = (
 			fertigText(plan, fertigeMaterialien(s), s.steckbriefe ?? {}),
 			`Die Zahlen der Schoolbox (nur diese schreibst du ab):\n${zahlenText(plan, s.steckbriefe ?? {}, formate)}`,
 			paket,
+			bilder,
 			dopplung.length
 				? ['Doppelte Abbildungen, die der Server gefunden hat:', ...dopplung.map((t) => `- ${t}`)].join('\n')
 				: 'Doppelte Abbildungen: Der Server hat keine gefunden.',
@@ -2634,6 +2722,9 @@ export const erstelleEinheiten = (
 						dopplungUebersicht(await dopplungen(s, plan), titelVon(s)),
 						await formateDerEinheit(s),
 						await bestandteile(s, plan, await formateDerEinheit(s)),
+						plan.dokumente.some((d) => VERKAUF_ROLLEN.has(rolleVon(d)))
+							? bildlisteText(await bildliste(s, plan))
+							: '',
 					),
 					null,
 				);
@@ -2689,8 +2780,14 @@ export const erstelleEinheiten = (
 		for (const d of plan.dokumente) {
 			nachher.set(d.slug, await materialHtml(s, d.slug));
 		}
+		const liste = await bildliste(s, plan);
+		const herkunft = [];
+		for (const d of plan.dokumente) {
+			herkunft.push(...(await bildlisteBefundeFuer(s, plan, d, liste)));
+		}
 		stand.server = [
 			...dopplungUebersicht(await dopplungen(s, plan), titelVon(s)),
+			...herkunft,
 			...zahlenBefunde(
 				plan,
 				s.steckbriefe ?? {},

@@ -1211,6 +1211,25 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.ok(e?.befunde.some((b) => b.includes('nennt 12 Seiten')));
 		});
 
+		it('271: Quellen bekommen die Bildliste; eine fremde Datei und eine falsche Herkunft meldet der Server', async () => {
+			await fall('einheit-quellen');
+			const vorher = (await prompts()).length;
+			const { id } = await starte();
+			const s = await bis(id, 'fertig');
+			const neu = (await prompts()).slice(vorher);
+			const bau = neu.find((p) => p.startsWith('Schritt 2: der Bau von dokumente/quellen/')) ?? '';
+			assert.match(bau, /Bildliste der Schoolbox/);
+			assert.match(bau, /^- uhr\.png: Herkunft unbekannt; in fall-1 S\. 1$/m);
+			const fall1 = neu.find((p) => p.startsWith('Schritt 2: der Bau von dokumente/fall-1/')) ?? '';
+			assert.doesNotMatch(fall1, /Bildliste der Schoolbox/);
+			const server = s.pruefung?.quellen?.server ?? [];
+			assert.match(server.join(' '), /„Quellen“ nennt für uhr\.png eine andere Herkunft/);
+			assert.match(server.join(' '), /„Quellen“ nennt fremd\.png; diese Datei verwendet kein Material/);
+			const schluss = neu.find((p) => p.startsWith('Schritt 3: der Schlusslauf')) ?? '';
+			assert.match(schluss, /Bildliste der Schoolbox/);
+			assert.match(s.schluss?.server.join(' ') ?? '', /„Quellen“ nennt fremd\.png/);
+		});
+
 		it('Schlusslauf baut nach der Pflichtlektüre neu: übernommen, die Zahl stimmt', async () => {
 			await fall('einheit-seitenzahl-gebaut');
 			const { id, mappe } = await starte();

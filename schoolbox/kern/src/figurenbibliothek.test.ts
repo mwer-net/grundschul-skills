@@ -17,6 +17,7 @@ import {
 	figurenDir,
 	leseBibliothek,
 	nimmPoseAuf,
+	posenQuellen,
 	quittiereVermerk,
 	setzeEntferntesEin,
 } from './figurenbibliothek';
@@ -316,6 +317,28 @@ describe('Figurenbibliothek: Figuren aus Einheiten, einmal (253)', () => {
 		const luna = gespeichert.figuren.find((f) => f.id === 'luna');
 		assert.match(String(luna?.posen[0]?.herkunft), /\/bilder\/luna-zeigt\.png$/);
 		assert.deepEqual(await hashListe(bilder), vorher, 'nur Kopien');
+	});
+
+	it('271: schreibt die Quelle der Pose mit; posenQuellen liest sie, ältere Posen über ihre Herkunft', async () => {
+		const { bilder, materialDir } = await einheit();
+		await leseBibliothek(KONFIG, materialDir);
+		const gespeichert = await leseJson(materialDir);
+		const luna = gespeichert.figuren.find((f) => f.id === 'luna');
+		assert.equal(luna?.posen[0]?.quelle, 'openai');
+		assert.equal(luna?.posen[0]?.modell, 'gpt-image');
+		// Eine Pose von vor 271: nur die Herkunft, keine Quelle.
+		const alt = { datei: luna?.posen[1]?.datei, herkunft: path.relative(materialDir, path.join(bilder, 'luna-jubelt.png')) };
+		const ohne = { datei: 'ella.png', herkunft: 'mappe-fehlt/bilder/ella.png' };
+		const figuren = gespeichert.figuren.map((f) =>
+			f.id === 'luna' ? { ...f, posen: [f.posen[0], alt, ...f.posen.slice(2)] } : f.id === 'ella' ? { ...f, posen: [ohne] } : f,
+		);
+		await writeFile(json(materialDir), JSON.stringify({ ...gespeichert, figuren }));
+		const q = await posenQuellen(materialDir);
+		assert.deepEqual(q.get('luna'), { quelle: 'openai', modell: 'gpt-image' });
+		assert.deepEqual(q.get('luna-jubelt'), { quelle: 'openai', modell: 'gpt-image' });
+		assert.deepEqual(q.get('fridolin'), { quelle: 'canva' });
+		assert.deepEqual(q.get('willi'), { quelle: 'canva' });
+		assert.equal(q.get('ella'), null);
 	});
 
 	it('ein zweiter Start übernimmt nichts doppelt', async () => {

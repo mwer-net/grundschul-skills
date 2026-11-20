@@ -16,6 +16,7 @@ import { kopiereAtomar, schreibeAtomar } from './atomar';
 import { fuehreAus } from './bauen';
 import type { Sammlung, SammlungsBild } from './bildbefehle';
 import { beschreibungAus, MAX_BILD_BYTES } from './bildbefehle';
+import type { BildQuelle } from './bildliste';
 import type { Requisit } from './einheit-bibliothek';
 import { bildFigur, istRequisit, leseHerkunft } from './einheit-bibliothek';
 import { SchoolboxFehler } from './fehler';
@@ -389,8 +390,8 @@ const ohneDoppelte = async <T extends { d: string; groesse: number }>(liste: T[]
 	return ergebnis;
 };
 
-/** Ein Requisit samt seiner Datei. */
-export type RequisitDatei = Requisit & { pfad: string };
+/** Ein Requisit samt seiner Datei und, für die Bildliste (271), der Quelle aus `bilder-herkunft.tsv` seiner Mappe. */
+export type RequisitDatei = Requisit & { pfad: string; quelle: BildQuelle | null };
 
 /**
  * 253: Freigestellte Bilder früherer Einheiten ohne Figur, aus `bilder-herkunft.tsv` jeder Mappe außer `ohneMappe`:
@@ -424,7 +425,8 @@ export const sammleRequisiten = async (
 			const pfad = path.join(dir, z.datei);
 			const info = await stat(pfad).catch(() => null);
 			if (info?.isFile() && !(await gleichtFigur(inhalte, pfad, info))) {
-				liste.push({ datei: z.datei, motiv: z.motiv, mappe: mappe.titel, pfad });
+				const quelle = z.quelle.trim() ? { quelle: z.quelle.trim(), ...(z.modell ? { modell: z.modell } : {}) } : null;
+				liste.push({ datei: z.datei, motiv: z.motiv, mappe: mappe.titel, pfad, quelle });
 			}
 		}
 	}

@@ -317,6 +317,8 @@ export const requisitenText = (liste: readonly Requisit[], ordner: string) =>
 export interface HerkunftZeile {
 	datei: string;
 	quelle: string;
+	/** 271: Modell der Bild-API, leer bei Canva. */
+	modell: string;
 	motiv: string;
 	/** `erzeugt`, `bearbeitet`, `offen`; leer vor 248. */
 	art: string;
@@ -326,9 +328,9 @@ export interface HerkunftZeile {
 export const leseHerkunft = (inhalt: string): Map<string, HerkunftZeile> => {
 	const je = new Map<string, HerkunftZeile>();
 	for (const zeile of inhalt.split('\n').slice(1)) {
-		const [datei = '', quelle = '', , , motiv = '', art = ''] = zeile.replace(/\r$/, '').split('\t');
+		const [datei = '', quelle = '', modell = '', , motiv = '', art = ''] = zeile.replace(/\r$/, '').split('\t');
 		if (datei.trim()) {
-			je.set(datei.trim(), { datei: datei.trim(), quelle, motiv, art: art.trim() });
+			je.set(datei.trim(), { datei: datei.trim(), quelle, modell: modell.trim(), motiv, art: art.trim() });
 		}
 	}
 	return je;

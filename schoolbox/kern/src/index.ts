@@ -11,6 +11,7 @@ export * from './bild-auftrag';
 export * from './bild-formate';
 export * from './bildbefehle';
 export * from './bilder';
+export * from './bildliste';
 export * from './eigene';
 export * from './einfuegen';
 export * from './einheit';

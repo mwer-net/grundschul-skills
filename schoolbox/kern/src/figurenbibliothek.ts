@@ -18,6 +18,8 @@ import { mappenDir, sammleMappen } from './ablage';
 import { kopiereAtomar, schreibeJson } from './atomar';
 import { fuehreAus } from './bauen';
 import { neueFigurId } from './bild-auftrag';
+import type { BildQuelle } from './bildliste';
+import { leseBildQuellen } from './bildliste';
 import type { HerkunftZeile } from './einheit-bibliothek';
 import {
 	artAus,
@@ -55,6 +57,9 @@ interface GespeichertePose {
 	datei: string;
 	herkunft?: string;
 	canva?: string;
+	/** 271: Quelle und Modell wie in `bilder-herkunft.tsv` neben dem Bild, als es in die Bibliothek kam. */
+	quelle?: string;
+	modell?: string;
 	[feld: string]: unknown;
 }
 
@@ -468,10 +473,12 @@ const fuegePoseEin = async (
 	}
 	const canva = text(neu.canva);
 	const herkunft = text(neu.herkunft);
+	const quelle = neu.quelle ?? (await leseBildQuellen(path.dirname(neu.datei))).get(path.basename(neu.datei));
 	eintrag.posen.push({
 		datei: `${kennung}${endung}`,
 		...(herkunft ? { herkunft } : {}),
 		...(canva ? { canva } : {}),
+		...(quelle ? { quelle: quelle.quelle, ...(quelle.modell ? { modell: quelle.modell } : {}) } : {}),
 	});
 	if (!fest) {
 		ergaenzeFigur(eintrag, neu, neueFigur);
@@ -764,6 +771,8 @@ export interface NeuePose {
 	wort?: string;
 	/** Pfad relativ zu `materialien/`, `openai` (neue Posen seit 237) oder `canva` (alte). */
 	herkunft?: string;
+	/** 271: Quelle des Bildes; ohne sie liest die Bibliothek sie aus `bilder-herkunft.tsv` neben `datei`. */
+	quelle?: BildQuelle;
 	/** Nur alte Posen aus Canva: Media-ID genau dieser Pose; hat die Figur noch keine Referenz, wird sie es. */
 	canva?: string;
 	/** Aussehen; nur, wenn die Figur noch keinen hat. */
@@ -969,3 +978,52 @@ export const quittiereVermerk = async (
 		delete eintrag.vermerk;
 		return true;
 	});
+
+/** Die Quelle einer gespeicherten Pose: ihr Feld, sonst `herkunft` (`openai`, `canva` oder die Datei, deren Zeile gilt). */
+const quelleDerPose = async (
+	materialDir: string,
+	p: GespeichertePose,
+	ordner: Map<string, Map<string, BildQuelle>>,
+): Promise<BildQuelle | null> => {
+	const quelle = text(p.quelle);
+	if (quelle) {
+		const modell = text(p.modell);
+		return { quelle, ...(modell ? { modell } : {}) };
+	}
+	const herkunft = text(p.herkunft) ?? '';
+	if (herkunft === 'openai' || herkunft === 'canva') {
+		return { quelle: herkunft };
+	}
+	if (text(p.canva)) {
+		return { quelle: 'canva' };
+	}
+	const rel = path.posix.normalize(herkunft);
+	if (!herkunft || path.posix.isAbsolute(rel) || rel.startsWith('..')) {
+		return null;
+	}
+	const dir = path.join(materialDir, path.posix.dirname(rel));
+	let quellen = ordner.get(dir);
+	if (!quellen) {
+		quellen = await leseBildQuellen(dir);
+		ordner.set(dir, quellen);
+	}
+	return quellen.get(path.posix.basename(rel)) ?? null;
+};
+
+/**
+ * 271: Die Quelle je Pose (Kennung) für die Bildliste: aus `figuren.json` oder über `herkunft` aus der Mappe, aus der
+ * die Pose kam; `null`, wenn keins davon sie kennt. Die Grundposen von Willi und Wilma stammen aus Canva.
+ */
+export const posenQuellen = async (materialDir: string): Promise<Map<string, BildQuelle | null>> => {
+	const je = new Map<string, BildQuelle | null>(FIGUREN.map((f) => [f.id, { quelle: 'canva' }]));
+	const gelesen = await leseDatei(materialDir);
+	const ordner = new Map<string, Map<string, BildQuelle>>();
+	for (const f of gelesen.stand === 'da' ? gelesen.bibliothek.figuren : []) {
+		for (const p of istObjekt(f) && Array.isArray(f.posen) ? f.posen : []) {
+			if (istPose(p)) {
+				je.set(stammVon(p.datei), await quelleDerPose(materialDir, p, ordner));
+			}
+		}
+	}
+	return je;
+};
