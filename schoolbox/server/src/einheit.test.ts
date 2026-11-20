@@ -1220,6 +1220,8 @@ describe('Lauf einer Einheit (139)', () => {
 				schluss,
 				/Doppelte Abbildungen, die der Server gefunden hat:\n- Dieselbe Abbildung in „Fall 1“ und „Fall 2“: <x-gitter/,
 			);
+			// 272: Der Schlusslauf nennt für ein Material mit <x-gitter> dieselbe Datei, die bauen verlangt.
+			assert.match(schluss, /^- fall-1: .*Read html-materialerstellung\/references\/abbildungen\/mathe-geometrie\.md/m);
 			assert.match(s.schluss?.server[0] ?? '', /Dieselbe Abbildung in „Fall 1“ und „Fall 2“/);
 		});
 
@@ -1261,6 +1263,8 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.match(server.join(' '), /„Quellen“ nennt fremd\.png; diese Datei verwendet kein Material/);
 			const schluss = neu.find((p) => p.startsWith('Schritt 3: der Schlusslauf')) ?? '';
 			assert.match(schluss, /Bildliste der Schoolbox/);
+			assert.match(schluss, /^- Bilder: nur nach der Bildliste der Schoolbox/m);
+			assert.doesNotMatch(schluss, /Bilder unter bilder\//);
 			assert.match(s.schluss?.server.join(' ') ?? '', /„Quellen“ nennt fremd\.png/);
 		});
 

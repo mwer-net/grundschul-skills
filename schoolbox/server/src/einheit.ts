@@ -78,6 +78,7 @@ import {
 	figurenDir,
 	figurenDopplungen,
 	folgeBefund,
+	folienNotizen,
 	FOLGEN_FELD,
 	formatBefund,
 	formateDesMaterials,
@@ -2135,6 +2136,7 @@ export const erstelleEinheiten = (
 			stunden: fachblickStunden(plan, d.slug),
 			berechnet: berechneteElemente(html),
 			andere,
+			notizen: folienNotizen(html),
 			...kanon.fach,
 		}).map((a) => ({ text: fachblickText(a), teil: a.teil }));
 		return { kind, fach: fachLaeufe, bilder };
@@ -2599,7 +2601,7 @@ export const erstelleEinheiten = (
 	};
 
 	/** Die Bestandteile für Quellen und Angebot (250): gezählt am Gebauten, mit Druckprofil und Strichfassungen. */
-	const bestandteile = async (s: EinheitStand, plan: EinheitPlan, formate: FormateDerEinheit) => {
+	const bestandteile = async (s: EinheitStand, plan: EinheitPlan, formate: FormateDerEinheit, bildliste: boolean) => {
 		const htmls: Record<string, string> = {};
 		for (const d of plan.dokumente) {
 			const html = await materialHtml(s, d.slug);
@@ -2611,7 +2613,23 @@ export const erstelleEinheiten = (
 			formate,
 			profile: Object.fromEntries(Object.entries(htmls).map(([slug, h]) => [slug, druckprofilAusHtml(h)])),
 			bilder: await paketBilder(s, Object.values(htmls)),
+			bildliste,
 		});
+	};
+
+	/**
+	 * 272: Die Pflichtlektüre je Material für den Schlusslauf: die der Rolle und, wie `bauen` sie verlangt
+	 * (`abbildungenFehlen`), die Dateien des Katalogs zu den Elementen, die das Material schon verwendet.
+	 */
+	const schlussLektuere = async (s: EinheitStand, plan: EinheitPlan) => {
+		const liste: Record<string, string[]> = {};
+		for (const d of plan.dokumente) {
+			const pflicht = lektuereFuer(s, rolleVon(d));
+			const html = await materialHtml(s, d.slug);
+			const teile = html ? abbildungenFehlen(html, new Set(pflicht)).map((t) => t.datei) : [];
+			liste[d.slug] = [...pflicht, ...teile];
+		}
+		return liste;
 	};
 
 	const SCHLUSS = (
@@ -2621,6 +2639,7 @@ export const erstelleEinheiten = (
 		formate: FormateDerEinheit,
 		paket: string,
 		bilder: string,
+		lektuere: Readonly<Record<string, readonly string[]>>,
 	) => {
 		const offen = plan.dokumente.flatMap((d) => {
 			const p = s.pruefung?.[d.slug];
@@ -2654,7 +2673,7 @@ export const erstelleEinheiten = (
 			[
 				'Pflichtlektüre je Material, ganz und vor dem ersten Aufruf von bauen für dieses Material (Pfade ab dem Ordner der Skills; Read ohne offset und limit):',
 				...plan.dokumente.map(
-					(d) => `- ${d.slug}: ${lektuereFuer(s, rolleVon(d)).map(lektuereZeile).join(' · ')}`,
+					(d) => `- ${d.slug}: ${(lektuere[d.slug] ?? []).map(lektuereZeile).join(' · ')}`,
 				),
 			].join('\n'),
 		]
@@ -2720,6 +2739,7 @@ export const erstelleEinheiten = (
 				pflicht: [],
 			});
 		const halt = erschoepft(grenzenFuer(KI_GRENZEN.einheit.schluss));
+		const mitVerkauf = plan.dokumente.some((d) => VERKAUF_ROLLEN.has(rolleVon(d)));
 		let ergebnis = halt
 			? null
 			: await lauf(
@@ -2729,10 +2749,9 @@ export const erstelleEinheiten = (
 						plan,
 						dopplungUebersicht(await dopplungen(s, plan), titelVon(s)),
 						await formateDerEinheit(s),
-						await bestandteile(s, plan, await formateDerEinheit(s)),
-						plan.dokumente.some((d) => VERKAUF_ROLLEN.has(rolleVon(d)))
-							? bildlisteText(await bildliste(s, plan))
-							: '',
+						await bestandteile(s, plan, await formateDerEinheit(s), mitVerkauf),
+						mitVerkauf ? bildlisteText(await bildliste(s, plan)) : '',
+						await schlussLektuere(s, plan),
 					),
 					null,
 				);

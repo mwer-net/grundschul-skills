@@ -634,6 +634,13 @@ describe('Verkauf gegen das Paket (250)', () => {
 		assert.match(text, /Strichfassung für den s\/w-Druck \(`-strich`\) gibt es nur zu: luna\.png\./);
 		const ohne = bestandteileText(plan, briefe, { profile: {}, bilder: [{ datei: 'luna.png', strich: false }] });
 		assert.match(ohne, /Strichfassungen der Bilder gibt es keine: Nenne keine Strichzeichnungen\./);
+		const mitListe = bestandteileText(plan, briefe, {
+			profile: {},
+			bilder: [{ datei: 'luna.png', strich: true }],
+			bildliste: true,
+		});
+		assert.match(mitListe, /- Bilder: nur nach der Bildliste der Schoolbox/);
+		assert.doesNotMatch(mitListe, /bilder\/:|luna\.png|-strich/);
 	});
 
 	const seite = (klassen: string, inhalt: string) => `<section class="${klassen}">${inhalt}</section>`;

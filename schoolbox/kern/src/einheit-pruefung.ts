@@ -1179,6 +1179,8 @@ export const bestandteileText = (
 		formate?: FormateDerEinheit;
 		profile: Readonly<Record<string, Druckprofil | null>>;
 		bilder: readonly PaketBild[];
+		/** 271: Der Auftrag hat die Bildliste der Schoolbox; sie nennt die Bilder mit Art, Quelle und Strichfassung. */
+		bildliste?: boolean;
 	},
 ) => {
 	const z = zaehlung(plan, steckbriefe, o.formate ?? {});
@@ -1192,12 +1194,18 @@ export const bestandteileText = (
 			const profil = o.profile[x.slug];
 			return `- „${x.titel}“ (dokumente/${x.slug}): ${d ? ART_NAME[d.art] : 'Material'}, ${x.seiten ? plural(x.seiten, x.folie ? 'Folie' : 'Seite', x.folie ? 'Folien' : 'Seiten') : 'Seiten unbekannt'}${x.loesung ? `, ${plural(x.loesung, 'Lösungsseite', 'Lösungsseiten')}` : ', ohne Lösungsseiten'}${profil ? `, ${PROFIL_NAME[profil]}` : ''}`;
 		}),
-		o.bilder.length
-			? `- Bilder unter bilder/: ${plural(o.bilder.length, 'Datei', 'Dateien')} (${liste(o.bilder.map((b) => b.datei))}).`
-			: '- Bilder: keine Bilddateien im Paket.',
-		strich.length
-			? `- Strichfassung für den s/w-Druck (\`-strich\`) gibt es nur zu: ${liste(strich)}.`
-			: '- Strichfassungen der Bilder gibt es keine: Nenne keine Strichzeichnungen.',
+		...(o.bildliste
+			? [
+					'- Bilder: nur nach der Bildliste der Schoolbox, die je Bild Art, Quelle und Strichfassung nennt; ohne Strichfassung dort nennst du keine Strichzeichnung.',
+				]
+			: [
+					o.bilder.length
+						? `- Bilder unter bilder/: ${plural(o.bilder.length, 'Datei', 'Dateien')} (${liste(o.bilder.map((b) => b.datei))}).`
+						: '- Bilder: keine Bilddateien im Paket.',
+					strich.length
+						? `- Strichfassung für den s/w-Druck (\`-strich\`) gibt es nur zu: ${liste(strich)}.`
+						: '- Strichfassungen der Bilder gibt es keine: Nenne keine Strichzeichnungen.',
+				]),
 	].join('\n');
 };
 
