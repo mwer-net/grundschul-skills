@@ -481,8 +481,9 @@ const ABSCHNITTE: Abschnitt[] = [
 				</p>
 				<p>
 					Der neue Ordner öffnet sofort, oben zeigt ein Band zuerst den Plan der Einheit. Gibst du ihn frei,
-					baut Claude etwa ein bis drei Stunden; das verbraucht viel von deinem Limit. Jedes fertige Material
-					kannst du gleich öffnen, in seinem Kopf steht „Einheit: 3 von 12“. Es läuft immer nur eine Einheit.
+					baut Claude mehrere Stunden (wie lange etwa, sagt das Band vor der Freigabe); das verbraucht viel von
+					deinem Limit. Jedes fertige Material kannst du gleich öffnen, in seinem Kopf steht „Einheit: 3 von
+					12“. Es läuft immer nur eine Einheit.
 					„Abbrechen“ hält an, alles Fertige bleibt, „Weiterbauen“ baut nur, was fehlt. „Verwerfen“ legt den
 					Ordner in den Papierkorb.
 				</p>

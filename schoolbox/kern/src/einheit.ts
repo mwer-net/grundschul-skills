@@ -29,23 +29,28 @@ export const EINHEIT_ZEICHEN = { thema: 200, ziel: 200, frei: 1500, idee: 300, t
 export const EINHEIT_MAX_DOKUMENTE = 24;
 /**
  * Kasten „Verbrauch“ vor dem Start (140). Seit 220 baut je Material ein eigener Durchgang, danach prüft ein eigener Lauf
- * Arbeitsblätter, Stationen, Spiele und Schauseiten, am Ende gleicht ein Schlusslauf alles ab. Geschätzt, am ersten
- * echten Lauf zu messen (Lauf vom 2026-11-16: 15 Materialien in 54 Minuten in einem Lauf, ohne Prüfung).
+ * Arbeitsblätter, Stationen, Spiele und Schauseiten, am Ende gleicht ein Schlusslauf alles ab. Die Dauer wie bei
+ * `EINHEIT_MINUTEN_JE_MATERIAL`: klein zwei bis fünf Stunden, groß (14 Materialien, 10 geprüft) sechs bis acht.
  */
 export const EINHEIT_VERBRAUCH =
-	'Zuerst sucht Claude im Web nach Bildungsplan und Fachdidaktik und zeigt dir den Plan: die Geschichte und alle Materialien. Das dauert einige Minuten. Nach deiner Freigabe baut Claude die Materialien nacheinander, jedes in einem eigenen Durchgang: Regeln lesen, bauen, prüfen, ansehen. Danach löst ein eigener Durchgang jedes Arbeitsblatt, jede Station und jedes Spiel wie ein Kind der Klasse, und Claude bessert nach, was dabei auffällt. Zum Schluss gleicht Claude alle Materialien mit deinem Auftrag ab. Je nach Umfang dauert das zwei bis vier Stunden und verbraucht sehr viel von deinem Limit. Du kannst weiterarbeiten; jedes Material erscheint im Ordner, sobald es fertig ist.';
+	'Zuerst sucht Claude im Web nach Bildungsplan und Fachdidaktik und zeigt dir den Plan: die Geschichte und alle Materialien. Das dauert einige Minuten. Nach deiner Freigabe baut Claude die Materialien nacheinander, jedes in einem eigenen Durchgang: Regeln lesen, bauen, prüfen, ansehen. Danach löst ein eigener Durchgang jedes Arbeitsblatt, jede Station und jedes Spiel wie ein Kind der Klasse, und Claude bessert nach, was dabei auffällt. Zum Schluss gleicht Claude alle Materialien mit deinem Auftrag ab. Je nach Umfang dauert das einige Stunden, bei einer großen Einheit bis zu einem Arbeitstag, und verbraucht sehr viel von deinem Limit. Du kannst weiterarbeiten; jedes Material erscheint im Ordner, sobald es fertig ist.';
 
 /**
- * Minuten je Material in einem eigenen Durchgang (220), geschätzt; dazu einmal die Bilder. `pruefen`: Prüfläufe und
- * Korrekturrunden eines geprüften Materials (bis zu drei kurze Prüfläufe, bis zu zwei Korrekturen), `schluss` der
- * Schlusslauf einmal je Einheit.
+ * Minuten je Material in einem eigenen Durchgang (220); dazu einmal die Bilder. `pruefen`: Prüfläufe und
+ * Korrekturrunden eines geprüften Materials (bis zu drei Prüfläufe, bis zu zwei Korrekturen), `schluss` der
+ * Schlusslauf einmal je Einheit. Gemessen in `_lauf.json` des Laufs vom 2026-11-18 (238, 14 Materialien, 10 geprüft,
+ * zusammen 6,3 h): Bau im Mittel 12,7 min (2 bis 25), Prüfen und Korrigieren 16,4 min (9 bis 25), Bilder 24,5,
+ * Schluss 10,5. `von` ist etwa das Mittel, `bis` rund ein Viertel darüber; für diesen Lauf ergibt das 6 bis 8
+ * Stunden. Seit 238 läuft der Fachblick (244) neben den Kinderaugen und der zweite Blick liest mehr; am Prüfstand
+ * (2026-11-19/20) dauerte ein Prüflauf im Mittel 3 bis 6 min wie am 2026-11-18, `pruefen` ist deshalb nur um eine
+ * Minute erhöht (geschätzt, nicht an einer ganzen Einheit gemessen).
  */
 export const EINHEIT_MINUTEN_JE_MATERIAL = {
-	von: 5,
-	bis: 10,
-	bilder: 15,
-	pruefen: { von: 3, bis: 10 },
-	schluss: { von: 10, bis: 25 },
+	von: 12,
+	bis: 16,
+	bilder: 25,
+	pruefen: { von: 17, bis: 20 },
+	schluss: { von: 10, bis: 20 },
 };
 
 const dauer = (minuten: number) => {

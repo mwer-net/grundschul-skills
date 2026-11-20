@@ -4,6 +4,7 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 
 import type { EinheitPlan, PlanDokument } from './einheit';
+import { einheitBauDauer } from './einheit';
 import type { Steckbrief } from './einheit-bau';
 import type { PruefFeld } from './einheit-pruefung';
 import {
@@ -464,6 +465,11 @@ describe('Wer geprüft wird und gegen welche Regeln', () => {
 			assert.equal(pruefWeise(rolle, true).fach, false, rolle);
 		}
 		assert.equal(gepruefteZahl([dok('vorleseheft', 'lesetext'), dok('quellen'), dok('eduki-angebot')]), 1);
+	});
+
+	it('Dauer vor der Freigabe deckt den Lauf vom 2026-11-18 (14 Materialien, 10 geprüft, Bilder, 6,3 h)', () => {
+		assert.equal(einheitBauDauer(14, true, 10), 'etwa 6 bis 8 Stunden');
+		assert.equal(einheitBauDauer(15, true, 15), 'etwa 8 bis 10 Stunden');
 	});
 
 	it('jede Regeldatei des zweiten Blicks existiert; SKILL.md steht im Protokoll als skill:', () => {
