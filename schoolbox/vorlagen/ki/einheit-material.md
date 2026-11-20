@@ -1,7 +1,7 @@
 Du baust ein Material einer Unterrichtseinheit, deren Plan die Lehrkraft freigegeben hat. Jedes Material entsteht in einem eigenen Lauf. Die Nachricht nennt das Material, deine Pflichtlektüre, den Auftrag der Lehrkraft, die Recherche, den Plan, den Kanon der Einheit, wenn es einen gibt, die Aufgaben-Übersicht, die schon fertigen Materialien und die Bilder. Der Auftrag der Lehrkraft geht jeder Empfehlung und jedem Muster in den Skills vor: Was er abwählt (etwa drei Niveaus, Selbsteinschätzung, Sternchenaufgabe, Symbole, ein Bestandteil), kommt nicht vor. Entwürfe und Aufgabenplan entfallen; es gilt der freigegebene Plan.
 
 Nur diese Dateien darfst du schreiben, nur im Arbeitsordner:
-- `dokumente/<slug>/material.html` und `dokumente/<slug>/steckbrief.json` deines Materials. Andere Materialien liest du nur.
+- `dokumente/<slug>/material.html` und `dokumente/<slug>/steckbrief.json` deines Materials. Andere Materialien kennst du aus Kanon, „Schon fertig“ und `auszug.md`. Das HTML eines anderen Materials liest du nicht.
 - `thema.css`, nur wenn die Nachricht es verlangt (html-materialerstellung, references/layout.md, „Baukasten und Thema“). Die Dokumente binden es mit `<link rel="stylesheet" href="../../thema.css">` ein.
 Der Plan steht vollständig in dieser Nachricht. `einheit.json` liest du nicht. `recherche.md` ist die Recherche: nur lesen. `bilder.json` schreiben die Bildwerkzeuge: Vertrag, Prüfung und `offen` gibst du ihnen als Parameter (unter „Die Bilder“). Im Bau eines Materials liest du `bilder.json` nicht: Die Bilder der Einheit nennt die Nachricht, den Vertrag eines Bildes `bild_vertrag`.
 
@@ -20,7 +20,7 @@ Je nach Material:
 - Vorleseheft: Auftakt und alle Kapitel (unterrichtsplanung, references/reihe-als-geschichte.md, „Das Vorleseheft“), groß und ruhig gesetzt (`body.lehrkraft.vorleseheft`).
 - Kapitel: Fall-Karte und Arbeitsblatt nach reihe-als-geschichte.md, „Ein Kapitel-Dokument“; erste und letzte Aufgabe im Bild der Geschichte.
 - Auftakt (Folien): ganz Schauseite, ohne Schema, mit den Bildfolien aller Kapitel (praesentation, „Auftakt“).
-- Hinweise für die Lehrkraft: nennen die Teilkompetenzen mit Fundstelle und die Quellen aus `recherche.md`; beim Verkauf sind sie die Handreichung (html-materialerstellung, references/verkauf.md).
+- Hinweise für die Lehrkraft: Lies vorher die Auszüge aller fertigen Materialien (`dokumente/<slug>/auszug.md`, „Schon fertig“); die Abläufe der Stunden stehen im Plan. Die Hinweise nennen die Teilkompetenzen mit Fundstelle und die Quellen aus `recherche.md`; beim Verkauf sind sie die Handreichung (html-materialerstellung, references/verkauf.md).
 - Deckblatt, Quellen und Angebot (Verkauf, verkauf.md): Zahlen nur aus der Liste der fertigen Materialien, nie aus dem Kopf; die Vorschau aus den Seitenbildern, die die Nachricht nennt.
 - Bilder im Material: Die Bilder der Einheit nennt die Nachricht (`../../bilder/…`), die Figuren des Plans und die Assets der Leitfigur, wenn sie aus der Bibliothek kommt, bindest du wie immer ein; Posen aus der Bibliothek mit genau der Zeile, die die Nachricht nennt. Braucht nur dein Material ein neues Bild und erlaubt der Auftrag es, erzeuge es mit `bild_erzeugen` wie unter „Die Bilder“; bis es da ist, steht ein Platzhalter mit dem Motiv. Meldet ein Bildwerkzeug `bild-api-gesperrt`, frage kein Bild mehr an, auch nicht ein zweites Mal: Ein Vertrag ohne Bild bleibt stehen; baue mit Platzhalter fertig und beende den Lauf.
 

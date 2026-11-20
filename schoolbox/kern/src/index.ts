@@ -4,6 +4,7 @@ export * from './anmeldung';
 export * from './assistent';
 export * from './atomar';
 export * from './ausgabe';
+export * from './auszug';
 export * from './bauen';
 export * from './bausteine';
 export * from './bild-auftrag';

@@ -47,6 +47,8 @@ import {
 	ANSICHT_ORDNER,
 	ART_NAME,
 	aufgabenFuerBau,
+	AUSZUG_DATEI,
+	auszugAus,
 	baueAnsichtAus,
 	bauReihenfolge,
 	bausteinVerstoesse,
@@ -371,6 +373,8 @@ export const erstelleEinheiten = (
 
 	const dir = (id: string) => path.join(wurzel, `einheit-${id}`);
 	const arbeitDir = (id: string) => path.join(dir(id), 'arbeit');
+	const auszugDatei = (s: EinheitStand, slug: string) =>
+		path.join(arbeitDir(s.id), 'dokumente', slug, AUSZUG_DATEI);
 	const ablageDir = (id: string) => path.join(dir(id), 'ablage');
 	/** Jeder Lauf der Einheit wird mitgeschrieben (233). */
 	const mitschrift = (s: EinheitStand, art: string, dok: string | null): MitschriftZiel => ({
@@ -591,6 +595,18 @@ export const erstelleEinheiten = (
 	const ERLAUBTER_KOPF =
 		'<meta charset="utf-8"><link rel="stylesheet" href="blatt.css"><link rel="stylesheet" href="../../thema.css"><script src="abbildungen.js"></script>';
 
+	/**
+	 * Der Auszug eines übernommenen Materials (252): Spätere Läufe lesen ihn statt des HTML. Aus der Fassung im
+	 * Arbeitsordner, mit den Bildnamen dort. Ein Fehler kostet nur den Auszug, nicht die Übernahme.
+	 */
+	const schreibeAuszug = async (s: EinheitStand, d: PlanDokument, roh: string) => {
+		try {
+			await schreibeAtomar(auszugDatei(s, d.slug), auszugAus(roh, d.titel));
+		} catch (fehler) {
+			console.error('Auszug:', (fehler as Error).message);
+		}
+	};
+
 	const importiere = async (s: EinheitStand, d: PlanDokument) => {
 		const datei = path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html');
 		if (!existsSync(datei) || (await stat(datei)).size > KI_GRENZEN.materialBytes) {
@@ -603,6 +619,9 @@ export const erstelleEinheiten = (
 		);
 		const k = await materialKennung(roh, arbeitDir(s.id), bilder);
 		if (s.importiert[d.slug]?.kennung === k) {
+			if (!existsSync(auszugDatei(s, d.slug))) {
+				await schreibeAuszug(s, d, roh);
+			}
 			return;
 		}
 		// Verbotenes kommt gar nicht erst in die Ablage; die Korrekturrunde bekommt den Befund.
@@ -628,6 +647,7 @@ export const erstelleEinheiten = (
 			schreibeQuelle(kontext, s.mappe, dok, html, { urheber: 'claude', zusammenfassen: false }),
 		);
 		s.importiert[d.slug] = { dok, kennung: k };
+		await schreibeAuszug(s, d, roh);
 		const bericht: Pruefbericht = await pruefer(dokumentDir(materialDir, s.mappe, dok), html).catch(() => ({
 			seiten: [],
 			fehler: 0,
@@ -1699,7 +1719,18 @@ export const erstelleEinheiten = (
 	const fertigeMaterialien = (s: EinheitStand) =>
 		(s.plan?.dokumente ?? []).filter((d) => s.importiert[d.slug]).map((d) => d.slug);
 
+	/** Ein fertiges Material von vor 252 hat noch keinen Auszug: Der Server legt ihn vor dem nächsten Lauf an. */
+	const sichereAuszuege = async (s: EinheitStand) => {
+		for (const d of s.plan?.dokumente ?? []) {
+			const datei = path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html');
+			if (s.importiert[d.slug] && !existsSync(auszugDatei(s, d.slug)) && existsSync(datei)) {
+				await schreibeAuszug(s, d, await readFile(datei, 'utf8'));
+			}
+		}
+	};
+
 	const MATERIAL = async (s: EinheitStand, plan: EinheitPlan, d: PlanDokument, pflicht: string[], thema: boolean) => {
+		await sichereAuszuege(s);
 		const angefangen = existsSync(path.join(arbeitDir(s.id), 'dokumente', d.slug, 'material.html'));
 		return [
 			`Schritt 2: der Bau von dokumente/${d.slug}/material.html („${d.titel}“, Art ${d.art}, Format ${d.format}). Baue in diesem Lauf nur dieses Material.`,
@@ -2490,6 +2521,7 @@ export const erstelleEinheiten = (
 		s.schluss = stand;
 		await merke(s);
 		await halteFreigabe(s);
+		await sichereAuszuege(s);
 		const vorher = new Map<string, string | null>();
 		for (const d of plan.dokumente) {
 			vorher.set(d.slug, await materialHtml(s, d.slug));

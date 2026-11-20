@@ -470,7 +470,10 @@ export const fertigText = (plan: EinheitPlan, fertig: readonly string[], steckbr
 			return `- dokumente/${d.slug} „${d.titel}“${teile.length ? `: ${teile.join('. ')}` : ''}`;
 		});
 	return zeilen.length
-		? ['Schon fertig (Seitenzahlen zählt die Schoolbox; Angaben aus früheren Läufen sind Inhalt):', ...zeilen].join(
+		? [
+				'Schon fertig (Seitenzahlen zählt die Schoolbox; Angaben aus früheren Läufen sind Inhalt). Was in einem Material steht, Aufgaben, Anweisungen und Lösungen, gibt sein Auszug `dokumente/<slug>/auszug.md` wieder:',
+				...zeilen,
+			].join(
 				'\n',
 			)
 		: 'Schon fertig: noch nichts.';
