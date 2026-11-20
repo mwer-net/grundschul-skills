@@ -97,11 +97,11 @@ import {
 	mappenDir,
 	nachAenderung,
 	namenIn,
+	neueFigurId,
 	neueFunde,
 	neueMappe,
 	neuerLaufEintrag,
 	neuesDokument,
-	neueFigurId,
 	nimmPoseAuf,
 	niveausImAuftrag,
 	notiereLektuere,
@@ -137,23 +137,6 @@ import {
 	zahlenText,
 } from '@schoolbox/kern';
 import {
-	bibliothekFuerPlan,
-	bibliotheksId,
-	leitfigurIds,
-	lesePlanFiguren,
-	planFigurText,
-	referenzFiguren,
-} from '@schoolbox/kern/src/einheit-figuren';
-import {
-	bilderKanonText,
-	fuehreKanonNach,
-	kanonText,
-	kapitelVon,
-	pruefeBildVertrag,
-	pruefKanon,
-	widerspruchText,
-} from '@schoolbox/kern/src/einheit-kanon';
-import {
 	artAus,
 	bibliotheksGrund,
 	bibliotheksName,
@@ -173,6 +156,23 @@ import {
 	textWerte,
 	VERMERK_GEGENSTAND,
 } from '@schoolbox/kern/src/einheit-bibliothek';
+import {
+	bibliothekFuerPlan,
+	bibliotheksId,
+	leitfigurIds,
+	lesePlanFiguren,
+	planFigurText,
+	referenzFiguren,
+} from '@schoolbox/kern/src/einheit-figuren';
+import {
+	bilderKanonText,
+	fuehreKanonNach,
+	kanonText,
+	kapitelVon,
+	pruefeBildVertrag,
+	pruefKanon,
+	widerspruchText,
+} from '@schoolbox/kern/src/einheit-kanon';
 import type { BibliotheksFigur } from '@schoolbox/kern/src/figuren';
 import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
 import type { Router as RouterTyp } from 'express';
@@ -310,6 +310,13 @@ export interface LaufOptionen {
 
 /** Baut eine Fassung wie `blatt.py bauen`; Tests setzen eine ohne Browser ein. */
 export type EinheitAnsicht = (quelle: string, ziel: string, optionen?: AnsichtOptionen) => Promise<Ansicht>;
+
+/** Inhalt einer Datei als Hash; eine fehlende Datei zählt als leer. */
+const dateiHash = async (datei: string) =>
+	createHash('sha256')
+		.update(await readFile(datei).catch(() => Buffer.alloc(0)))
+		.digest('hex');
+
 const BILD_IM_DOKUMENT = /\.\.\/\.\.\/bilder\/([a-z0-9][a-z0-9-]{0,59}\.(?:png|jpg))/g;
 
 const kennung = (inhalt: string) => createHash('sha256').update(inhalt).digest('hex').slice(0, 16);
@@ -894,6 +901,28 @@ export const erstelleEinheiten = (
 		return keineBilder ? o.text.replace(EINHEIT_BILDER_SATZ.mit, EINHEIT_BILDER_SATZ.ohne) : o.text;
 	};
 
+	/**
+	 * Ehrlich, wenn ein Bild nicht gelingt (248): Lehnt das Bildwerkzeug nach zwei neuen Bildern einen weiteren Versuch
+	 * ab, oder trägt Claude `offen` beim Eintrag in `bilder.json` ein, steht ein Hinweis im Stand. Ein Bild, das der Lauf
+	 * danach doch gespeichert hat und das kein `offen` mehr trägt, verliert ihn.
+	 */
+	const merkeBildHinweise = async (s: EinheitStand, st: BildWerkzeugStand, von: string) => {
+		const vertraege = await leseBildVertraege(arbeitDir(s.id));
+		const offen = new Map(vertraege.flatMap((v) => (v.offen ? [[v.datei, v.offen] as const] : [])));
+		for (const o of st.offen) {
+			offen.set(o.datei, offen.get(o.datei) ?? o.befund);
+		}
+		const neu = new Set(st.bilder.map((b) => path.basename(b)));
+		const bleibt = (s.bildHinweise ?? []).filter((h) => !offen.has(h.datei) && !neu.has(h.datei));
+		const hinweise = [
+			...bleibt,
+			...[...offen].map(([datei, text]) => ({ datei, text: `${text.replace(/[.\s]+$/, '')}.`, von })),
+		].slice(-MAX_BILD_HINWEISE);
+		if (hinweise.length || s.bildHinweise) {
+			s.bildHinweise = hinweise;
+		}
+	};
+
 	const einLauf = async (s: EinheitStand, o: LaufOptionen): Promise<Ergebnis> => {
 		const eintrag = neuerEintrag(o.art, o.material, o.pflicht);
 		const lauf = { eintrag, pflicht: o.pflicht, gelesen: o.gelesen ?? new Set<string>() };
@@ -975,29 +1004,16 @@ export const erstelleEinheiten = (
 		return ergebnis;
 	};
 
-	/**
-	 * Ehrlich, wenn ein Bild nicht gelingt (248): Lehnt das Bildwerkzeug nach zwei neuen Bildern einen weiteren Versuch
-	 * ab, oder trägt Claude `offen` beim Eintrag in `bilder.json` ein, steht ein Hinweis im Stand. Ein Bild, das der Lauf
-	 * danach doch gespeichert hat und das kein `offen` mehr trägt, verliert ihn.
-	 */
-	const merkeBildHinweise = async (s: EinheitStand, st: BildWerkzeugStand, von: string) => {
-		const vertraege = await leseBildVertraege(arbeitDir(s.id));
-		const offen = new Map(vertraege.flatMap((v) => (v.offen ? [[v.datei, v.offen] as const] : [])));
-		for (const o of st.offen) {
-			offen.set(o.datei, offen.get(o.datei) ?? o.befund);
-		}
-		const neu = new Set(st.bilder.map((b) => path.basename(b)));
-		const bleibt = (s.bildHinweise ?? []).filter((h) => !offen.has(h.datei) && !neu.has(h.datei));
-		const hinweise = [
-			...bleibt,
-			...[...offen].map(([datei, text]) => ({ datei, text: `${text.replace(/[.\s]+$/, '')}.`, von })),
-		].slice(-MAX_BILD_HINWEISE);
-		if (hinweise.length || s.bildHinweise) {
-			s.bildHinweise = hinweise;
-		}
-	};
-
 	const bibliothek = () => leseBibliothek(kontext.konfig, materialDir).catch(() => [...EINGEBAUTE]);
+
+	/**
+	 * 253: Die Figuren der Bibliothek in dieser Einheit: die Leitfigur, die Figuren des Plans mit `bibliothek:<id>` und
+	 * die, die der Bilderlauf dieser Einheit in die Bibliothek gebracht hat.
+	 */
+	const figurenDerEinheit = async (s: EinheitStand) => {
+		const eigene = (s.bibliothekNeu ?? []).filter((n) => n.figur).map((n) => n.id);
+		return referenzFiguren(s.plan?.figuren ?? [], [...(s.leitfigur ?? []), ...eigene], await bibliothek());
+	};
 
 	/**
 	 * Die Figuren einer Einheit, deren Grundpose als Referenz in den Arbeitsordner kommt (237): die Leitfigur aus der
@@ -1008,15 +1024,6 @@ export const erstelleEinheiten = (
 		const genannt = (await figurenDerEinheit(s)).slice(0, MAX_REFERENZ_FIGUREN);
 		const referenzen = await Promise.all(genannt.map((f) => grundposeReferenz(materialDir, f)));
 		return referenzen.flatMap((r, i) => (r ? [{ ...r, figur: genannt[i]?.name ?? r.name }] : []));
-	};
-
-	/**
-	 * 253: Die Figuren der Bibliothek in dieser Einheit: die Leitfigur, die Figuren des Plans mit `bibliothek:<id>` und
-	 * die, die der Bilderlauf dieser Einheit in die Bibliothek gebracht hat.
-	 */
-	const figurenDerEinheit = async (s: EinheitStand) => {
-		const eigene = (s.bibliothekNeu ?? []).filter((n) => n.figur).map((n) => n.id);
-		return referenzFiguren(s.plan?.figuren ?? [], [...(s.leitfigur ?? []), ...eigene], await bibliothek());
 	};
 
 	/** Die Namen, unter denen der Plan oder ein Bildvertrag eine Figur der Bibliothek nennt. */
@@ -1074,15 +1081,20 @@ export const erstelleEinheiten = (
 			...textWerte(plan.geschichte),
 			...(plan.kanon?.dinge ?? []).map((d) => d.name),
 		].join(' ');
-		const alle = await sammleRequisiten(kontext.konfig, materialDir, s.mappe).catch(() => []);
+		const kandidaten = await sammleRequisiten(kontext.konfig, materialDir, s.mappe).catch(() => []);
 		const liste = [];
-		for (const r of requisitenFuer(alle, auftrag)) {
+		for (const r of requisitenFuer(kandidaten, auftrag)) {
 			const datei = path.join(ziel, requisitDatei(r));
 			if (existsSync(datei)) {
 				continue;
 			}
 			await mkdir(ziel, { recursive: true });
-			if (await copyFile(r.pfad, datei).then(() => true, () => false)) {
+			if (
+				await copyFile(r.pfad, datei).then(
+					() => true,
+					() => false,
+				)
+			) {
 				liste.push(r);
 			}
 		}
@@ -1103,7 +1115,9 @@ export const erstelleEinheiten = (
 		const szenen = vertraege.filter((v) => !bildFigur(v, namen)).map((v) => v.motiv);
 		for (const v of vertraege) {
 			const bf = bildFigur(v, namen);
-			const figur = plan.figuren?.find((f) => f.name && bf?.figur.toLocaleLowerCase('de') === f.name.toLocaleLowerCase('de'));
+			const figur = plan.figuren?.find(
+				(f) => f.name && bf?.figur.toLocaleLowerCase('de') === f.name.toLocaleLowerCase('de'),
+			);
 			const schon = (s.bibliothekNeu ?? []).some((n) => n.figur && n.plan === figur?.name);
 			if (
 				bf?.pose !== GRUNDPOSE ||
@@ -1122,19 +1136,27 @@ export const erstelleEinheiten = (
 				const umbenannt = await uebernimmBilder(arbeit, mappeDir, [bild]);
 				const inMappe = path.basename(umbenannt[bild] ?? bild);
 				await uebertrageHerkunft(bilderDir, path.join(mappeDir, 'bilder'), { [v.datei]: inMappe });
-				const alle = await bibliothek();
+				const bestand = await bibliothek();
 				const dateien = await readdir(figurenDir(materialDir)).catch(() => [] as string[]);
-				const id = neueFigurId(figur.name, [...alle.map((f) => f.id), ...dateien.map((d) => path.parse(d).name)]);
-				const kanon = plan.kanon?.figuren.find((k) => k.name.toLocaleLowerCase('de') === figur.name.toLocaleLowerCase('de'));
+				const id = neueFigurId(figur.name, [
+					...bestand.map((f) => f.id),
+					...dateien.map((d) => path.parse(d).name),
+				]);
+				const kanon = plan.kanon?.figuren.find(
+					(k) => k.name.toLocaleLowerCase('de') === figur.name.toLocaleLowerCase('de'),
+				);
 				// Ohne Kanon prüft niemand, ob die Grundpose einen Gegenstand der Handlung trägt (248): wie die einmalige Übernahme.
 				const gegenstaende = kanon ? [] : gegenstaendeInGrundpose(v.motiv, figur.name, szenen, namen);
 				const steckbrief = ohneGegenstaende(steckbriefAus(kanon, figur.aussehen), gegenstaende);
-				const name = bibliotheksName(figur.name, artAus(figur.aussehen, figur.name), s.titel, alle);
+				const name = bibliotheksName(figur.name, artAus(figur.aussehen, figur.name), s.titel, bestand);
 				await nimmPoseAuf(kontext.konfig, materialDir, {
 					datei: path.join(mappeDir, 'bilder', inMappe),
 					figur: id,
 					name,
-					herkunft: path.relative(materialDir, path.join(mappeDir, 'bilder', inMappe)).split(path.sep).join('/'),
+					herkunft: path
+						.relative(materialDir, path.join(mappeDir, 'bilder', inMappe))
+						.split(path.sep)
+						.join('/'),
 					...(steckbrief ? { steckbrief } : {}),
 					aus: s.titel,
 					...(gegenstaende.length ? { vermerk: VERMERK_GEGENSTAND } : {}),
@@ -1144,6 +1166,63 @@ export const erstelleEinheiten = (
 				console.error('Grundpose in die Bibliothek:', (fehler as Error).message);
 			}
 		}
+	};
+
+	/** 253: Die Bilder, die die fertigen Materialien der Einheit in der Mappe einbinden, das jüngste Material zuerst. */
+	const eingebundeneBilder = async (s: EinheitStand) => {
+		const mappeDir = mappenDir(materialDir, s.mappe);
+		const genannt: { datei: string; zeit: number }[] = [];
+		for (const { dok } of Object.values(s.importiert)) {
+			const html = path.join(dokumentDir(materialDir, s.mappe, dok), 'material.html');
+			const zeit = (await stat(html).catch(() => null))?.mtimeMs ?? 0;
+			for (const t of (await readFile(html, 'utf8').catch(() => '')).matchAll(BILD_IM_DOKUMENT)) {
+				genannt.push({ datei: path.join(mappeDir, 'bilder', t[1] ?? ''), zeit });
+			}
+		}
+		return genannt.sort((a, b) => b.zeit - a.zeit);
+	};
+
+	/**
+	 * 253: Je Figur der Bibliothek und Wort einer Pose, die sie noch nicht hat, die Inhalte der Fassungen, die der Lauf
+	 * abgenommen hat (Schlüssel `<id>\t<wort>`).
+	 */
+	const abgenommenePosen = async (
+		s: EinheitStand,
+		figuren: readonly BibliotheksFigur[],
+		namen: readonly string[],
+	) => {
+		const arbeit = arbeitDir(s.id);
+		const bilderDir = path.join(arbeit, 'bilder');
+		const herkunft = leseHerkunft(await readFile(path.join(bilderDir, BILD_HERKUNFT), 'utf8').catch(() => ''));
+		const je = new Map<string, Set<string>>();
+		for (const v of await leseBildVertraege(arbeit)) {
+			const bf = bildFigur(v, namen);
+			const gleich = (n: string) => n.toLocaleLowerCase('de') === bf?.figur.toLocaleLowerCase('de');
+			const f = bf ? figuren.find((x) => namenDer(s, x).some(gleich)) : undefined;
+			const datei = path.join(bilderDir, v.datei);
+			const abgenommen = v.geprueft && !v.offen && herkunft.get(v.datei)?.art !== 'offen' && existsSync(datei);
+			if (
+				!bf ||
+				!f ||
+				bf.pose === GRUNDPOSE ||
+				!abgenommen ||
+				f.posen.some((p) => p.id === `${f.id}-${bf.pose}`)
+			) {
+				continue;
+			}
+			const schluessel = `${f.id}\t${bf.pose}`;
+			je.set(schluessel, new Set([...(je.get(schluessel) ?? []), await dateiHash(datei)]));
+		}
+		return je;
+	};
+
+	/** 253: Merkt im Stand, welche Pose die Einheit einer Figur der Bibliothek gegeben hat, für den Satz im Band. */
+	const merkePose = (s: EinheitStand, f: BibliotheksFigur | undefined, id: string, wort: string) => {
+		const liste = s.bibliothekNeu ?? [];
+		const eintrag = liste.find((n) => n.id === id);
+		s.bibliothekNeu = eintrag
+			? liste.map((n) => (n === eintrag ? { ...n, posen: [...n.posen, wort] } : n))
+			: [...liste, { id, name: f?.name ?? id, plan: f?.name ?? id, figur: false, posen: [wort] }];
 	};
 
 	/**
@@ -1156,44 +1235,14 @@ export const erstelleEinheiten = (
 		if (!plan) {
 			return;
 		}
-		const arbeit = arbeitDir(s.id);
-		const bilderDir = path.join(arbeit, 'bilder');
-		const herkunft = leseHerkunft(await readFile(path.join(bilderDir, BILD_HERKUNFT), 'utf8').catch(() => ''));
 		const figuren = await figurenDerEinheit(s);
 		const namen = [...(plan.figuren ?? []).map((f) => f.name), ...figuren.flatMap((f) => namenDer(s, f))];
-		const mappeDir = mappenDir(materialDir, s.mappe);
-		const genannt: { datei: string; zeit: number }[] = [];
-		for (const { dok } of Object.values(s.importiert)) {
-			const html = path.join(dokumentDir(materialDir, s.mappe, dok), 'material.html');
-			const zeit = (await stat(html).catch(() => null))?.mtimeMs ?? 0;
-			for (const t of (await readFile(html, 'utf8').catch(() => '')).matchAll(BILD_IM_DOKUMENT)) {
-				genannt.push({ datei: path.join(mappeDir, 'bilder', t[1] ?? ''), zeit });
-			}
-		}
-		genannt.sort((a, b) => b.zeit - a.zeit);
-		const hash = async (datei: string) =>
-			createHash('sha256')
-				.update(await readFile(datei).catch(() => Buffer.alloc(0)))
-				.digest('hex');
-		const je = new Map<string, Set<string>>();
-		for (const v of await leseBildVertraege(arbeit)) {
-			const bf = bildFigur(v, namen.filter(Boolean));
-			const f = bf ? figuren.find((x) => namenDer(s, x).some((n) => n.toLocaleLowerCase('de') === bf.figur.toLocaleLowerCase('de'))) : undefined;
-			const datei = path.join(bilderDir, v.datei);
-			if (!bf || !f || bf.pose === GRUNDPOSE || !v.geprueft || v.offen || herkunft.get(v.datei)?.art === 'offen' || !existsSync(datei)) {
-				continue;
-			}
-			if (f.posen.some((p) => p.id === `${f.id}-${bf.pose}`)) {
-				continue;
-			}
-			const schluessel = `${f.id}\t${bf.pose}`;
-			je.set(schluessel, new Set([...(je.get(schluessel) ?? []), await hash(datei)]));
-		}
-		for (const [schluessel, inhalte] of je) {
+		const genannt = await eingebundeneBilder(s);
+		for (const [schluessel, inhalte] of await abgenommenePosen(s, figuren, namen.filter(Boolean))) {
 			const [id = '', wort = ''] = schluessel.split('\t');
 			let fassung: string | null = null;
 			for (const g of genannt) {
-				if (existsSync(g.datei) && inhalte.has(await hash(g.datei))) {
+				if (existsSync(g.datei) && inhalte.has(await dateiHash(g.datei))) {
 					fassung = g.datei;
 					break;
 				}
@@ -1208,12 +1257,12 @@ export const erstelleEinheiten = (
 					wort,
 					herkunft: path.relative(materialDir, fassung).split(path.sep).join('/'),
 				});
-				const f = figuren.find((x) => x.id === id);
-				const liste = s.bibliothekNeu ?? [];
-				const eintrag = liste.find((n) => n.id === id);
-				s.bibliothekNeu = eintrag
-					? liste.map((n) => (n === eintrag ? { ...n, posen: [...n.posen, wort] } : n))
-					: [...liste, { id, name: f?.name ?? id, plan: f?.name ?? id, figur: false, posen: [wort] }];
+				merkePose(
+					s,
+					figuren.find((x) => x.id === id),
+					id,
+					wort,
+				);
 			} catch (fehler) {
 				console.error('Pose in die Bibliothek:', (fehler as Error).message);
 			}
@@ -2113,7 +2162,11 @@ export const erstelleEinheiten = (
 			]);
 			const kindTeile = beide[0] ?? [];
 			if (auftraege?.bilder.length && kindTeile.length && kindTeile.every((t) => !t.fehler && t.lesbar)) {
-				merkeGepruefteBilder(s, auftraege.bilder, beide.flat().flatMap((t) => t.befunde));
+				merkeGepruefteBilder(
+					s,
+					auftraege.bilder,
+					beide.flat().flatMap((t) => t.befunde),
+				);
 			}
 		} finally {
 			await rm(ordner, { recursive: true, force: true });
@@ -2583,6 +2636,33 @@ export const erstelleEinheiten = (
 		return fehler ?? (aktiv?.bilderGesperrt && !aktiv.abbruch ? bilderGesperrtText(s, schritt) : null);
 	};
 
+	/** Die Schritte der Reihenfolge, dann Schluss und Posen. Gibt den letzten Fehler zurück, sonst `null`. */
+	const baueAlleSchritte = async (s: EinheitStand, plan: EinheitPlan) => {
+		let letzter: string | null = null;
+		s.reihenfolge ??= bauReihenfolge(plan, s.bilder);
+		for (const schritt of s.reihenfolge) {
+			if (aktiv?.abbruch) {
+				break;
+			}
+			const fehler = await baueSchritt(s, plan, schritt);
+			if (fehler) {
+				letzter = fehler;
+				if (!WEITER_NACH.has(fehler)) {
+					break;
+				}
+			}
+		}
+		const stehen = letzter !== null && !WEITER_NACH.has(letzter);
+		if (!aktiv?.abbruch && !stehen && alleMaterialien(s) && !schlussErledigt(s)) {
+			const fehler = await schlussLauf(s, plan);
+			letzter = fehler ?? letzter;
+		}
+		if (!aktiv?.abbruch && alleMaterialien(s)) {
+			await uebernimmPosen(s);
+		}
+		return letzter;
+	};
+
 	/** Schritt 2: die Schritte der Reihenfolge nacheinander, jeder in einer neuen Sitzung. Fertiges überspringt er. */
 	const fuehreAus = async (s: EinheitStand) => {
 		const takt = setInterval(() => void abgleich(), TAKT_MS);
@@ -2591,29 +2671,8 @@ export const erstelleEinheiten = (
 		}
 		let letzter: string | null = null;
 		try {
-			const plan = s.plan;
-			if (plan) {
-				s.reihenfolge ??= bauReihenfolge(plan, s.bilder);
-				for (const schritt of s.reihenfolge) {
-					if (aktiv?.abbruch) {
-						break;
-					}
-					const fehler = await baueSchritt(s, plan, schritt);
-					if (fehler) {
-						letzter = fehler;
-						if (!WEITER_NACH.has(fehler)) {
-							break;
-						}
-					}
-				}
-				const stehen = letzter !== null && !WEITER_NACH.has(letzter);
-				if (!aktiv?.abbruch && !stehen && alleMaterialien(s) && !schlussErledigt(s)) {
-					const fehler = await schlussLauf(s, plan);
-					letzter = fehler ?? letzter;
-				}
-				if (!aktiv?.abbruch && alleMaterialien(s)) {
-					await uebernimmPosen(s);
-				}
+			if (s.plan) {
+				letzter = await baueAlleSchritte(s, s.plan);
 			}
 			await abgleich();
 		} finally {

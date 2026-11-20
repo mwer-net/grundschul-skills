@@ -238,7 +238,11 @@ describe('Figurenbibliothek: Figuren aus Einheiten, einmal (253)', () => {
 		await png(figurenDir(materialDir), 'fridolin.png', 40, 40, 0.5, '#904010');
 		const alt = { id: 'fridolin', name: 'Fridolin', posen: [{ datei: 'fridolin.png', herkunft: 'canva' }] };
 		await writeFile(json(materialDir), JSON.stringify({ version: 1, figuren: [alt] }));
-		const { mappe: m } = await neueMappe(materialDir, { titel: 'Spiegelwerkstatt', fach: 'mathematik', klasse: 2 }, JETZT);
+		const { mappe: m } = await neueMappe(
+			materialDir,
+			{ titel: 'Spiegelwerkstatt', fach: 'mathematik', klasse: 2 },
+			JETZT,
+		);
 		const bilder = path.join(mappenDir(materialDir, m.id), 'bilder');
 		const farben: Record<string, string> = {
 			'luna-zeigt.png': '#305080',
@@ -285,7 +289,7 @@ describe('Figurenbibliothek: Figuren aus Einheiten, einmal (253)', () => {
 	};
 
 	it('übernimmt Grundposen und eingebundene Posen, mit Name, Herkunft, Steckbrief und Vermerk', async () => {
-		const { materialDir, bilder } = await einheit();
+		const { bilder, materialDir } = await einheit();
 		const vorher = await hashListe(bilder);
 		const figuren = await leseBibliothek(KONFIG, materialDir);
 		assert.deepEqual(kurz(figuren).slice(2), [
@@ -544,7 +548,13 @@ describe('Canva-Referenz, Steckbrief und entfernePose (176)', () => {
 
 	it('253: „Geprüft“ entfernt den Vermerk, sonst bleibt die Figur gleich', async () => {
 		const { bild, materialDir } = await mitKiki();
-		await nimmPoseAuf(KONFIG, materialDir, { datei: bild, figur: 'momo', name: 'Momo', aus: 'Herbst', vermerk: 'Prüfen' });
+		await nimmPoseAuf(KONFIG, materialDir, {
+			datei: bild,
+			figur: 'momo',
+			name: 'Momo',
+			aus: 'Herbst',
+			vermerk: 'Prüfen',
+		});
 		const momo = async () => (await leseBibliothek(KONFIG, materialDir)).find((f) => f.id === 'momo');
 		assert.equal((await momo())?.vermerk, 'Prüfen');
 		assert.equal(await quittiereVermerk(KONFIG, materialDir, 'momo'), true);

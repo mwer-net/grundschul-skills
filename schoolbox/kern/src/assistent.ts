@@ -537,7 +537,12 @@ export const ASSISTENT_SCHRITTE: readonly AssistentSchritt[] = [
 		einheit: 'ohne',
 		antwort: (a) =>
 			voll(a.thema)
-				? [a.thema.trim(), funktionName(a), umfangName(a), istBlattStandard(a.leitfigur) ? '' : leitfigurKurz(a.leitfigur)]
+				? [
+						a.thema.trim(),
+						funktionName(a),
+						umfangName(a),
+						istBlattStandard(a.leitfigur) ? '' : leitfigurKurz(a.leitfigur),
+					]
 						.filter(voll)
 						.join(' · ')
 				: '',

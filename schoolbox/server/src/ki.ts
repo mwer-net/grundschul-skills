@@ -98,8 +98,8 @@ import { liesReferenzen, loeseReferenz, pfadText } from '@schoolbox/kern/src/ref
 
 import { ANSICHT_BILDER, BILDER_LISTE } from './bild-datei';
 import { BILD_GRENZEN } from './bild-grenzen';
-import type { BildApi, BildKonfig } from './bild-zugang';
 import { REFERENZ_ORDNER } from './bild-werkzeug';
+import type { BildApi, BildKonfig } from './bild-zugang';
 import { erstelleLaufBilder, grundposeReferenz, posenPfad } from './bild-zugang';
 import type { BlattBilder } from './blatt-bilder';
 import { erstelleBlattBilder } from './blatt-bilder';
@@ -2401,7 +2401,13 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 		for (const r of requisitenFuer(alle, w.requisitenSuche ?? '')) {
 			const datei = path.join(ziel, requisitDatei(r));
 			await mkdir(ziel, { recursive: true });
-			if (!existsSync(datei) && (await copyFile(r.pfad, datei).then(() => true, () => false))) {
+			if (
+				!existsSync(datei) &&
+				(await copyFile(r.pfad, datei).then(
+					() => true,
+					() => false,
+				))
+			) {
 				requisiten.push(r);
 			}
 		}
@@ -2434,7 +2440,7 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 			art: 'blatt',
 			konfig,
 			api: bildApi,
-			figuren: [...referenzen.values()].map(({ name, datei }) => ({ name, datei })),
+			figuren: [...referenzen.values()].map(({ datei, name }) => ({ name, datei })),
 			pruefeVertrag: (v) =>
 				kopieGrund(v) ??
 				bibliotheksGrund(
@@ -2456,7 +2462,9 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 		const referenzText = werkzeug
 			? figuren.flatMap((f) => {
 					const r = referenzen.get(f.id);
-					return r ? [`Grundpose als Referenz: ${r.pfad} (${f.name}${f.steckbrief ? `; ${f.steckbrief}` : ''})`] : [];
+					return r
+						? [`Grundpose als Referenz: ${r.pfad} (${f.name}${f.steckbrief ? `; ${f.steckbrief}` : ''})`]
+						: [];
 				})
 			: [];
 		const text = [...referenzText, posenUndRequisiten].filter(Boolean).join('\n\n');
@@ -2508,7 +2516,7 @@ export const erstelleKi = ({ ansicht, bildApi = null, ereignisse, konfig, pruefe
 		const platz = w.gespraechId ? await gespraechPlatz(w.gespraechId, w) : await einmalPlatz();
 		const { ablage, arbeit } = platz;
 		const gross = w.neuesBlatt === true;
-		const { blatt: blattBilder, werkzeug: bildWerkzeug, text: figurenText } = await bilderFuer(w, arbeit);
+		const { blatt: blattBilder, text: figurenText, werkzeug: bildWerkzeug } = await bilderFuer(w, arbeit);
 		const mitBildern = async (html: string) => blattBilder?.einsetzen(html) ?? html;
 		// Neues Material (220, Teil 2): Laufprotokoll im Dokument; im Bau Pflichtlektüre vor bauen und ein Prüflauf danach.
 		const mitProtokoll = w.neuesBlatt === true && (w.phase === 'plan' || w.phase === 'bauen');

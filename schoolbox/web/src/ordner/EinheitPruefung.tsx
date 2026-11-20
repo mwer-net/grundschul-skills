@@ -3,7 +3,7 @@ import { bibliothekNeuSatz } from '@schoolbox/kern/src/einheit-bibliothek';
 import type { PruefBefund, PruefStand, SchlussStand } from '@schoolbox/kern/src/einheit-pruefung';
 import { befundZeile, FACHLICH_PRUEFEN, fachlichOffen } from '@schoolbox/kern/src/einheit-pruefung';
 
-import { bildHinweisZeile, bilderOffenSatz, fachlichOffenSatz } from './einheit-pruefung-text';
+import { bilderOffenSatz, bildHinweisZeile, fachlichOffenSatz } from './einheit-pruefung-text';
 import { Aufklapp } from './EinheitPlanDetails';
 
 /** Was nach der Prüfung offen ist: Befunde von Claude und Meldungen des Servers zusammen. */

@@ -274,6 +274,12 @@ export const Inhalt = (t: SchubladenTeile) => {
 			},
 			(grund: unknown) => zeigeHinweis({ text: meldung(grund), art: 'fehler' }),
 		);
+	// 253: „Geprüft“ am Vermerk einer Figur aus einem Lauf.
+	const quittiere = (figur: BibliotheksFigur) =>
+		void sende(`/api/figuren/${encodeURIComponent(figur.id)}/geprueft`, {}).then(
+			() => ladeFigurenNeu(),
+			(grund: unknown) => zeigeHinweis({ text: meldung(grund), art: 'fehler' }),
+		);
 	const [umbenennen, setUmbenennen] = useState<string | null>(null);
 
 	const { doc, folien, struktur } = t;
@@ -375,18 +381,13 @@ export const Inhalt = (t: SchubladenTeile) => {
 									<>
 										<span className="font-medium text-warnung" data-figur-vermerk>
 											{figur.vermerk}
-										</span>{' '}
+										</span>
 										<button
 											type="button"
 											data-figur-geprueft={figur.id}
 											title="Vermerk entfernen: Die Figur ist geprüft."
-											className="rounded px-1 font-medium text-brand-700 hover:bg-brand-50"
-											onClick={() =>
-												void sende(`/api/figuren/${encodeURIComponent(figur.id)}/geprueft`, {}).then(
-													() => ladeFigurenNeu(),
-													(grund: unknown) => zeigeHinweis({ text: meldung(grund), art: 'fehler' }),
-												)
-											}
+											className="ml-1 rounded px-1 font-medium text-brand-700 hover:bg-brand-50"
+											onClick={() => quittiere(figur)}
 										>
 											Geprüft
 										</button>

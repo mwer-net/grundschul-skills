@@ -482,7 +482,10 @@ describe('Requisiten aus Einheiten (253)', () => {
 	it('freigestellte Bilder ohne Figur aus anderen Mappen; Posen, Offenes, Szenen und Ausgeblendetes nicht', async () => {
 		const materialDir = await mkdtemp(path.join(tmpdir(), 'schoolbox-requisiten-'));
 		await mkdir(figurenDir(materialDir), { recursive: true });
-		await writeFile(path.join(figurenDir(materialDir), 'figuren.json'), '{"version":1,"figuren":[],"einheitenUebernommen":true}');
+		await writeFile(
+			path.join(figurenDir(materialDir), 'figuren.json'),
+			'{"version":1,"figuren":[],"einheitenUebernommen":true}',
+		);
 		const jetzt = new Date(2026, 10, 19);
 		const { mappe: a } = await neueMappe(materialDir, { titel: 'Spiegel', fach: 'mathematik', klasse: 2 }, jetzt);
 		const { mappe: b } = await neueMappe(materialDir, { titel: 'Hier', fach: 'mathematik', klasse: 2 }, jetzt);

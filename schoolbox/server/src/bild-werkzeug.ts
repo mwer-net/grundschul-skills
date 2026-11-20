@@ -333,7 +333,13 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 		await appendFile(herkunft, `${felder.map(tsvFeld).join('\t')}\n`);
 	};
 
-	const herkunftZeile = (datei: string, vertrag: BildVertrag | undefined, art: string, befund: string, hash: string) => [
+	const herkunftZeile = (
+		datei: string,
+		vertrag: BildVertrag | undefined,
+		art: string,
+		befund: string,
+		hash: string,
+	) => [
 		datei,
 		'openai',
 		o.konfig.bildModell,
@@ -362,7 +368,9 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 	const pruefeVersuch = async (werkzeug: string, a: Argumente, vertrag: BildVertrag | undefined) => {
 		const versuche = (await leseVersuche(herkunft)).get(a.datei) ?? [];
 		const da = existsSync(path.join(bilderDir, a.datei));
-		const erzeugt = versuche.filter((v) => v.art === 'erzeugt' && v.befund && gleicherBefund(v.befund, a.befund ?? ''));
+		const erzeugt = versuche.filter(
+			(v) => v.art === 'erzeugt' && v.befund && gleicherBefund(v.befund, a.befund ?? ''),
+		);
 		if (werkzeug === BILD_ERZEUGEN) {
 			if (!da) {
 				return;
@@ -392,7 +400,13 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 		throw new Abgelehnt(`Neu erzeugen: ${FLICKEN_SATZ}`);
 	};
 
-	const speichere = async (datei: string, inhalt: Buffer, vertrag: BildVertrag | undefined, art: string, befund: string) => {
+	const speichere = async (
+		datei: string,
+		inhalt: Buffer,
+		vertrag: BildVertrag | undefined,
+		art: string,
+		befund: string,
+	) => {
 		const ziel = path.join(bilderDir, datei);
 		const ext = path.extname(datei);
 		let vorversion: string | null = null;

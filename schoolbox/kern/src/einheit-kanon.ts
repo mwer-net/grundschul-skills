@@ -320,6 +320,23 @@ export interface BildVorschlag {
 }
 
 const BILD_DATEI_KAPITEL = /^(?:fall|folie)-(\d{1,2})(?=[-.])/;
+const schluessel = (name: string) =>
+	name
+		.toLowerCase()
+		.replace(/^(der|die|das|ein|eine|einen|den|dem)\s+/, '')
+		.replace(/[^\p{L}\p{N}]+/gu, ' ')
+		.trim();
+
+/**
+ * Nennt ein Text den Gegenstand `name` (247)? Gleich wie der Namensvergleich der Ergänzungen (`schluessel`), dazu
+ * genügt das letzte Wort des Namens als ganzes Wort im Text: „das goldene Glöckchen“ steht in „trägt ein kleines
+ * goldenes Glöckchen“. Kein Wortstamm, keine Ähnlichkeit; Wörter unter drei Zeichen zählen nicht.
+ */
+export const nenntNamen = (text: string, name: string) => {
+	const kern = schluessel(name).split(' ').at(-1) ?? '';
+	return kern.length >= 3 && schluessel(text).split(' ').includes(kern);
+};
+
 const BILDFOLIE_IM_MOTIV = /^(?:bildfolie\s+)?(\d{1,2})\.(\d{1,2})(?!\d)/i;
 const KAPITEL_IM_MOTIV = /^kapitel\s+(\d{1,2})\s*:/i;
 
@@ -346,8 +363,8 @@ export const bildKapitel = (plan: Pick<EinheitPlan, 'geschichte'>, datei: string
 		return null;
 	}
 	const nr = Number(folie[1]);
-	const nummer = `${nr}.${Number(folie[2])}`;
-	return kapitel.some((k) => k.nr === nr && k.bildfolien.some((b) => b.startsWith(nummer))) ? nr : null;
+	const folienNr = `${nr}.${Number(folie[2])}`;
+	return kapitel.some((k) => k.nr === nr && k.bildfolien.some((b) => b.startsWith(folienNr))) ? nr : null;
 };
 
 const woerterVon = (text: string) => new Set(schluessel(text).split(' ').filter(Boolean));
@@ -570,10 +587,7 @@ export const bilderKanonText = (kanon: EinheitKanon | undefined, kapitel: readon
 				].join('\n')
 			: '',
 		je.length
-			? [
-					'Je Kapitel. Eine Spur im Bild ist erlaubt, die erkennbare Auflösung nicht:',
-					...je,
-				].join('\n')
+			? ['Je Kapitel. Eine Spur im Bild ist erlaubt, die erkennbare Auflösung nicht:', ...je].join('\n')
 			: '',
 	]
 		.filter(Boolean)
@@ -629,23 +643,6 @@ export const leseSteckbriefKanon = (roh: unknown): SteckbriefKanon => {
 			.slice(0, KANON_GRENZEN.neuJeMaterial),
 		widerspruch: kurzListe(k.widerspruch, KANON_GRENZEN.widerspruchText, KANON_GRENZEN.widerspruch),
 	};
-};
-
-const schluessel = (name: string) =>
-	name
-		.toLowerCase()
-		.replace(/^(der|die|das|ein|eine|einen|den|dem)\s+/, '')
-		.replace(/[^\p{L}\p{N}]+/gu, ' ')
-		.trim();
-
-/**
- * Nennt ein Text den Gegenstand `name` (247)? Gleich wie der Namensvergleich der Ergänzungen (`schluessel`), dazu
- * genügt das letzte Wort des Namens als ganzes Wort im Text: „das goldene Glöckchen“ steht in „trägt ein kleines
- * goldenes Glöckchen“. Kein Wortstamm, keine Ähnlichkeit; Wörter unter drei Zeichen zählen nicht.
- */
-export const nenntNamen = (text: string, name: string) => {
-	const kern = schluessel(name).split(' ').at(-1) ?? '';
-	return kern.length >= 3 && schluessel(text).split(' ').includes(kern);
 };
 
 /** Namen, die der Plan schon festlegt: Figuren (auch `plan.figuren`), Gegenstände und Fachwörter. */

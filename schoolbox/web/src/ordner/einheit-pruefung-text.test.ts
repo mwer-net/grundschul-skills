@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { bildHinweisZeile, bilderOffenSatz, fachlichOffenSatz } from './einheit-pruefung-text';
+import { bilderOffenSatz, bildHinweisZeile, fachlichOffenSatz } from './einheit-pruefung-text';
 
 describe('Prüfung der Einheit: Texte', () => {
 	it('Satz über offene fachliche Befunde mit Leerzeichen vor „fachlich prüfen“', () => {
@@ -20,7 +20,10 @@ describe('Prüfung der Einheit: Texte', () => {
 		assert.equal(bilderOffenSatz(2), '2 Bilder sind nicht gelungen: bitte neu erzeugen oder ersetzen.');
 		const titel = (slug: string) => (slug === 'kapitel-1' ? 'Kapitel 1' : slug);
 		assert.equal(
-			bildHinweisZeile({ datei: 'fall-1.jpg', text: 'Der Spiegel ist eine Glasscheibe.', von: 'kapitel-1' }, titel),
+			bildHinweisZeile(
+				{ datei: 'fall-1.jpg', text: 'Der Spiegel ist eine Glasscheibe.', von: 'kapitel-1' },
+				titel,
+			),
 			'fall-1.jpg („Kapitel 1“): Der Spiegel ist eine Glasscheibe.',
 		);
 		assert.equal(

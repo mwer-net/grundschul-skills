@@ -6,14 +6,14 @@ import { describe, it } from 'node:test';
 import { lesePlan } from './einheit';
 import type { EinheitKanon } from './einheit-kanon';
 import {
-	bildKapitel,
 	bilderKanonText,
 	bildKanon,
+	bildKapitel,
 	bildVorschlag,
 	fehlendeZeilen,
-	GRUNDPOSE_SATZ,
 	fuehreKanonNach,
 	geheimText,
+	GRUNDPOSE_SATZ,
 	KANON_GRENZEN,
 	kanonText,
 	kapitelVon,
@@ -333,7 +333,10 @@ describe('Kanon der Einheit (246)', () => {
 				'erkennbar vor Kapitel 6: Ella ist die Täterin',
 				'Ella, nie: trägt das Glöckchen',
 			]);
-			const ohneBrille = leseKanon({ ...ROH, figuren: [{ name: 'Luna', fest: ['zwei Flügel'], nie: ['keine Brille', 'kein Hut'] }] });
+			const ohneBrille = leseKanon({
+				...ROH,
+				figuren: [{ name: 'Luna', fest: ['zwei Flügel'], nie: ['keine Brille', 'kein Hut'] }],
+			});
 			assert.deepEqual(ohneBrille && bildVorschlag(ohneBrille, null, 'Luna').verboten, [
 				'erkennbar vor Kapitel 6: Ella ist die Täterin',
 				'Luna, nie: Brille; Hut',
@@ -355,7 +358,11 @@ describe('Kanon der Einheit (246)', () => {
 				motiv: 'Ella am Baum',
 				vertrag: {
 					pflicht: [{ was: 'ella:  ein buschiger Schwanz; zwei Ohren mit Pinseln.' }],
-					verboten: ['„Erkennbar vor Kapitel 6: Ella ist die Täterin“', 'Ella, nie: trägt das Glöckchen', 'Schrift'],
+					verboten: [
+						'„Erkennbar vor Kapitel 6: Ella ist die Täterin“',
+						'Ella, nie: trägt das Glöckchen',
+						'Schrift',
+					],
 				},
 			};
 			assert.equal(pruefeBildVertrag(GESCHICHTE, mitAllem), null, 'Groß und klein, Leerraum, Zeichen am Ende');
@@ -399,15 +406,24 @@ describe('Kanon der Einheit (246)', () => {
 				},
 			};
 			assert.equal(pruefeBildVertrag(GESCHICHTE, pose), null);
-			assert.match(pruefeBildVertrag(GESCHICHTE, { ...pose, motiv: 'Pose: Ella lacht' }) ?? '', /Ella ist die Täterin/);
+			assert.match(
+				pruefeBildVertrag(GESCHICHTE, { ...pose, motiv: 'Pose: Ella lacht' }) ?? '',
+				/Ella ist die Täterin/,
+			);
 			const spiegel = bildVorschlag(KANON, null, 'Pose: Luna hält den Spiegel');
 			assert.ok(!spiegel.verboten.some((z) => z.includes(' bei ')), 'Ding bei Figur nur mit Kapitel');
 		});
 
 		it('ohne Kanon kein Vorschlag und kein Ablehnen; fehlendeZeilen liest Listen und Objekte', () => {
-			assert.equal(pruefeBildVertrag({ geschichte: GESCHICHTE.geschichte }, { datei: 'ella.png', motiv: 'Glöckchen' }), null);
+			assert.equal(
+				pruefeBildVertrag({ geschichte: GESCHICHTE.geschichte }, { datei: 'ella.png', motiv: 'Glöckchen' }),
+				null,
+			);
 			assert.deepEqual(
-				fehlendeZeilen({ pflicht: ['A b'], verboten: ['Ella, nie: trägt'] }, { pflicht: { x: ['a  B.'] }, verboten: 'Ella' }),
+				fehlendeZeilen(
+					{ pflicht: ['A b'], verboten: ['Ella, nie: trägt'] },
+					{ pflicht: { x: ['a  B.'] }, verboten: 'Ella' },
+				),
 				{ pflicht: [], verboten: ['Ella, nie: trägt'] },
 			);
 		});

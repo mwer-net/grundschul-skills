@@ -72,7 +72,10 @@ describe('Vermerk quittieren (253)', () => {
 		const materialDir = await mkdtemp(path.join(tmpdir(), 'schoolbox-figuren-api-'));
 		await legeTestfigurenAn(materialDir);
 		const kiki = { id: 'kiki', name: 'Kiki', vermerk: 'Bitte prüfen', posen: [{ datei: 'kiki.png' }] };
-		await writeFile(path.join(figurenDir(materialDir), 'figuren.json'), JSON.stringify({ version: 1, figuren: [kiki] }));
+		await writeFile(
+			path.join(figurenDir(materialDir), 'figuren.json'),
+			JSON.stringify({ version: 1, figuren: [kiki] }),
+		);
 		server = await starteTestServer({ materialDir });
 	});
 

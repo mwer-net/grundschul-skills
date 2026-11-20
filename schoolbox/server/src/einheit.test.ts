@@ -16,8 +16,8 @@ import {
 	LAUF_DATEI,
 	laufMeldungen,
 	lektuereZeile,
-	lesePlan,
 	leseBibliothek,
+	lesePlan,
 	mappenDir,
 	pruefeEinheitAngaben,
 	referenzFiguren,
@@ -1331,7 +1331,9 @@ describe('Lauf einer Einheit (139)', () => {
 				aufrufe.map((a) => a.fehler === true),
 				[false, false, false, true],
 			);
-			assert.deepEqual(s.bildHinweise, [{ datei: 'uhr-gross.png', text: 'Die Zeiger fehlen.', von: BILDER_SCHRITT }]);
+			assert.deepEqual(s.bildHinweise, [
+				{ datei: 'uhr-gross.png', text: 'Die Zeiger fehlen.', von: BILDER_SCHRITT },
+			]);
 			const herkunft = await readFile(
 				path.join(einheitenWurzel(server.materialDir), `einheit-${id}`, 'arbeit', 'bilder', BILD_HERKUNFT),
 				'utf8',
@@ -1365,7 +1367,11 @@ describe('Lauf einer Einheit (139)', () => {
 			const promptsVorher = (await prompts()).length;
 			const { id, mappe } = await starte(MIT_BILDERN);
 			const s = await bis(id, 'fertig');
-			const aufrufe = (await bildAufrufe()).slice(vorher) as { argumente: { datei: string }; fehler?: boolean; text?: string }[];
+			const aufrufe = (await bildAufrufe()).slice(vorher) as {
+				argumente: { datei: string };
+				fehler?: boolean;
+				text?: string;
+			}[];
 			const kiki = aufrufe.find((a) => a.argumente.datei === 'kiki.png');
 			assert.equal(kiki?.fehler, true);
 			assert.match(JSON.stringify(kiki), /Figurenbibliothek/);
@@ -1385,7 +1391,10 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.equal(luna?.steckbrief, 'Eule mit roter Brille');
 			assert.equal(luna?.vermerk, VERMERK_GEGENSTAND, 'ohne Kanon: Lunas Laterne trägt in einer Szene Kiki');
 			assert.equal(luna?.aus, s.titel);
-			assert.deepEqual(figuren.find((f) => f.id === 'kiki')?.posen.map((p) => p.id), ['kiki', 'kiki-winkt']);
+			assert.deepEqual(
+				figuren.find((f) => f.id === 'kiki')?.posen.map((p) => p.id),
+				['kiki', 'kiki-winkt'],
+			);
 			const bilder = path.join(mappenDir(server.materialDir, mappe), 'bilder');
 			assert.ok(existsSync(path.join(bilder, 'luna.png')), 'Grundpose in der Mappe, auch ohne Material');
 			const bibliothek = path.join(server.materialDir, '_figuren');
@@ -1394,7 +1403,9 @@ describe('Lauf einer Einheit (139)', () => {
 				await readFile(path.join(bilder, 'luna-faltet-2.png')),
 				'die eingebundene Fassung, nicht luna-faltet.png',
 			);
-			assert.deepEqual(s.bibliothekNeu, [{ id: 'luna', name: 'Luna', plan: 'Luna', figur: true, posen: ['faltet'] }]);
+			assert.deepEqual(s.bibliothekNeu, [
+				{ id: 'luna', name: 'Luna', plan: 'Luna', figur: true, posen: ['faltet'] },
+			]);
 		});
 	});
 

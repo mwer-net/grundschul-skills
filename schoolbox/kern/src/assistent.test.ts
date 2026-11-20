@@ -317,7 +317,13 @@ describe('Assistent: Leitfigur eines einzelnen Materials (253)', () => {
 		assert.deepEqual(pruefeAntworten({ leitfigur: { art: 'keine' } }, vorbelegt).leitfigur, { art: 'keine' });
 		for (const falsch of [
 			{ art: 'neu', name: 'Luna' },
-			{ art: 'bibliothek', figuren: [{ id: 'willi', name: 'Willi' }, { id: 'wilma', name: 'Wilma' }] },
+			{
+				art: 'bibliothek',
+				figuren: [
+					{ id: 'willi', name: 'Willi' },
+					{ id: 'wilma', name: 'Wilma' },
+				],
+			},
 		]) {
 			assert.throws(() => pruefeAntworten({ leitfigur: falsch }, vorbelegt), SchoolboxFehler);
 		}

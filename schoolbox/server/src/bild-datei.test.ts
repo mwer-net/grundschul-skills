@@ -123,7 +123,13 @@ describe('Bildvertrag und Zuschnitt (215, seit 237 hier)', () => {
 						{ versuch: 2, ok: ['Schal', 'Augen'], fehlt: [] },
 					],
 				},
-				{ datei: 'luna-zeigt.png', motiv: 'Pose', figur: 'Luna', pose: 'zeigt', pruefung: [{ ok: ['x'], fehlt: ['y'] }] },
+				{
+					datei: 'luna-zeigt.png',
+					motiv: 'Pose',
+					figur: 'Luna',
+					pose: 'zeigt',
+					pruefung: [{ ok: ['x'], fehlt: ['y'] }],
+				},
 				{ datei: 'luna-jubelt.png', motiv: 'Pose', pruefung: [{ ok: ['x'], verboten: ['Schrift'] }] },
 			]),
 		);

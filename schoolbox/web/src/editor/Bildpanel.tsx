@@ -24,7 +24,7 @@ import { useLaden } from '../lib/laden';
 import type { BildSteuerung, BildWerte, FreiAblegen } from './bild';
 import { gesehen, merkeGesehen, passt } from './bild-sammlung';
 import type { SammlungsGruppe } from './bildpanel-hilfe';
-import { bildBeschreibung, bildgruppenWerte, bilderZahl } from './bildpanel-hilfe';
+import { bildBeschreibung, bilderZahl, bildgruppenWerte } from './bildpanel-hilfe';
 import { elementZu } from './darstellung';
 import type { AblegenTeile } from './gestaltung/ablegen/ablegen';
 import { AblageKachel } from './gestaltung/ablegen/Kachel';
@@ -130,7 +130,6 @@ export const Hochladen = ({
 		</>
 	);
 };
-
 
 const bildName = (eintrag: SammlungsBild) => bildBeschreibung(eintrag) || eintrag.name;
 

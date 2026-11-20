@@ -1038,18 +1038,23 @@ describe('Aufträge an Claude', () => {
 			await legeTestfigurenAn(server.materialDir);
 			const dir = path.join(server.materialDir, '_figuren');
 			await copyFile(path.join(dir, 'kiki.png'), path.join(dir, 'luna.png'));
-			const luna = { id: 'luna', name: 'Luna', steckbrief: 'Eule mit roter Brille', posen: [{ datei: 'luna.png' }] };
+			const luna = {
+				id: 'luna',
+				name: 'Luna',
+				steckbrief: 'Eule mit roter Brille',
+				posen: [{ datei: 'luna.png' }],
+			};
 			const kiki = { id: 'kiki', name: 'Kiki', posen: [{ datei: 'kiki.png' }, { datei: 'kiki-winkt.png' }] };
 			await writeFile(path.join(dir, 'figuren.json'), JSON.stringify({ version: 1, figuren: [kiki, luna] }));
-			const aufrufe = path.join(path.dirname(bin), 'aufrufe.jsonl');
-			const vorher = (await readFile(aufrufe, 'utf8')).trim().split('\n').length;
+			const aufrufDatei = path.join(path.dirname(bin), 'aufrufe.jsonl');
+			const vorher = (await readFile(aufrufDatei, 'utf8')).trim().split('\n').length;
 			const { neu } = await baue('plan-bauen', true, {
 				leitfigur: { art: 'bibliothek', figuren: [{ id: 'luna', name: 'Luna' }] },
 			});
 			const bauPrompt = neu.find((p) => p.includes('Freigegebener Aufgabenplan')) ?? '';
 			assert.match(bauPrompt, /^Grundpose als Referenz: referenzen\/luna\.png \(Luna; Eule mit roter Brille\)$/m);
 			assert.match(bauPrompt, /data-figur="luna" src="\.\.\/\.\.\/bilder\/bib-luna\.png"/);
-			const laeufe = (await readFile(aufrufe, 'utf8'))
+			const laeufe = (await readFile(aufrufDatei, 'utf8'))
 				.trim()
 				.split('\n')
 				.slice(vorher)
@@ -2260,8 +2265,18 @@ describe('Ordner des Prüflaufs (229)', () => {
 			assert.deepEqual(dann.bilder[0]?.pruefbilder, ['bilder/folie-6-2-platz.png']);
 			assert.equal(dann.bilder[0]?.geprueft, true);
 
-			await writeFile(path.join(arbeit, 'bilder.json'), JSON.stringify([{ ...eintrag, vertrag: { pflicht: ['Luna'] } }]));
-			const neuerVertrag = await richtePruefOrdnerEin(ordner, [], html, arbeit, false, new Set([bild?.kennung ?? '']));
+			await writeFile(
+				path.join(arbeit, 'bilder.json'),
+				JSON.stringify([{ ...eintrag, vertrag: { pflicht: ['Luna'] } }]),
+			);
+			const neuerVertrag = await richtePruefOrdnerEin(
+				ordner,
+				[],
+				html,
+				arbeit,
+				false,
+				new Set([bild?.kennung ?? '']),
+			);
 			assert.notEqual(neuerVertrag.bilder[0]?.kennung, bild?.kennung);
 			assert.equal(neuerVertrag.bilder[0]?.geprueft, undefined);
 		} finally {

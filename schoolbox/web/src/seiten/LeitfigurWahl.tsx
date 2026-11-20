@@ -107,7 +107,11 @@ export const LeitfigurWahl = ({
 					</Kachel>
 				))}
 				{mitEigener && (
-					<Kachel titel="Eigene Figur" aktiv={wert.art === 'neu'} waehle={() => setze({ art: 'neu', ...eigene })}>
+					<Kachel
+						titel="Eigene Figur"
+						aktiv={wert.art === 'neu'}
+						waehle={() => setze({ art: 'neu', ...eigene })}
+					>
 						<Symbol name="plus" className="size-6" />
 					</Kachel>
 				)}

@@ -342,7 +342,9 @@ const teilText = (t: PruefTeil) => {
 const bildZeile = (b: PruefBild) => {
 	const kopf = `- ${b.datei}: ${b.motiv || 'ohne Motiv'}.`;
 	if (b.geprueft) {
-		const ausschnitt = b.pruefbilder.length ? ` Ausschnitt: ${b.pruefbilder.join(', ')}.` : ' Sieh es auf der Seite an.';
+		const ausschnitt = b.pruefbilder.length
+			? ` Ausschnitt: ${b.pruefbilder.join(', ')}.`
+			: ' Sieh es auf der Seite an.';
 		return `${kopf} Schon in Vierteln gegen diesen Vertrag geprüft: Prüfe nur, ob es zum Text dieses Materials passt.${ausschnitt} Vertrag: ${b.vertrag || 'keiner'}.`;
 	}
 	const bilder = b.pruefbilder.length ? ` Prüfbilder: ${b.pruefbilder.join(', ')}` : ' Keine Prüfbilder.';

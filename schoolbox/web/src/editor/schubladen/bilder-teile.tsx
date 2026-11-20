@@ -16,7 +16,7 @@ import { passt } from '../bild-sammlung';
 import type { BildZiehen } from '../Bildpanel';
 import { Hochladen, Laeuft, SammlungsKacheln } from '../Bildpanel';
 import type { SammlungsGruppe } from '../bildpanel-hilfe';
-import { BILDGRUPPEN, bildBeschreibung, bildgruppenWerte, bilderZahl } from '../bildpanel-hilfe';
+import { bildBeschreibung, bilderZahl, BILDGRUPPEN, bildgruppenWerte } from '../bildpanel-hilfe';
 import { legeInMitte } from '../gestaltung/ablegen/ablegen';
 import { bildGut, mitGeholtemBild } from '../gestaltung/ablegen/bild-gut';
 import { useHolenAmZeiger } from '../gestaltung/ablegen/holen-am-zeiger';

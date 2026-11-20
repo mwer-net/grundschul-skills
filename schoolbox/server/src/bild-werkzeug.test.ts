@@ -385,7 +385,10 @@ describe('Bildwerkzeuge (237)', () => {
 		assert.equal(KI_GRENZEN.bild, BILD_GRENZEN);
 		const w = await werkzeug({ art: 'schublade' });
 		for (const datei of namen.slice(0, 3)) {
-			assert.equal((await w.aufruf('bild_erzeugen', { datei, prompt: 'A', format: 'SQUARE_1_1' })).fehler, undefined);
+			assert.equal(
+				(await w.aufruf('bild_erzeugen', { datei, prompt: 'A', format: 'SQUARE_1_1' })).fehler,
+				undefined,
+			);
 		}
 		const vierte = await w.aufruf('bild_erzeugen', { datei: 'd.png', prompt: 'A', format: 'SQUARE_1_1' });
 		assert.equal(vierte.fehler, true);
@@ -492,11 +495,16 @@ describe('Bildwerkzeuge (237)', () => {
 		);
 		const erster = await werkzeug();
 		assert.equal(
-			(await erster.aufruf('bild_bearbeiten', { datei: 'fall-1.jpg', prompt: 'x', befund: 'Flügel fehlen.' })).fehler,
+			(await erster.aufruf('bild_bearbeiten', { datei: 'fall-1.jpg', prompt: 'x', befund: 'Flügel fehlen.' }))
+				.fehler,
 			undefined,
 		);
 		const zweiter = await werkzeug();
-		const antwort = await zweiter.aufruf('bild_bearbeiten', { datei: 'fall-1.jpg', prompt: 'x', befund: 'Die Flügel fehlen' });
+		const antwort = await zweiter.aufruf('bild_bearbeiten', {
+			datei: 'fall-1.jpg',
+			prompt: 'x',
+			befund: 'Die Flügel fehlen',
+		});
 		assert.match(antwort.text, /^Neu erzeugen/);
 	});
 

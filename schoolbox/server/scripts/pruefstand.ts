@@ -828,21 +828,31 @@ const legeVertraegeAn = async (p: Pruefstand, datei: string, ziel: string) => {
 			motiv: typeof e.motiv === 'string' ? e.motiv : '',
 			vertrag: e.vertrag,
 		});
-		console.log(grund ? `  ${String(e.datei)}: ${grund.replace(/\n/g, '\n    ')}` : `  ${String(e.datei)}: passt zum Kanon.`);
+		console.log(
+			grund
+				? `  ${String(e.datei)}: ${grund.replace(/\n/g, '\n    ')}`
+				: `  ${String(e.datei)}: passt zum Kanon.`,
+		);
 	}
+};
+
+/** Für Fachblick und Plan-Prüfung: welche Recherche sie bekommen, mit wie vielen Prüfpunkten. */
+const meldeRecherche = (o: Optionen, p: Pruefstand) => {
+	if (!o.teile.includes('fach') && !o.teile.includes('plan')) {
+		return;
+	}
+	const punkte = p.recherche ? pruefpunkteAus(p.recherche.text).length : 0;
+	console.log(
+		p.recherche
+			? `Recherche: ${p.recherche.datei}, ${punkte} Prüfpunkte${punkte ? '' : ' (der Fachblick liest dann den Fach-Skill)'}.`
+			: 'Keine Recherche: Fachblick und Plan-Prüfung lesen den Fach-Skill.',
+	);
 };
 
 const fuehreAus = async (o: Optionen) => {
 	pruefeGebaut(o.teile);
 	const p = await ladePruefstand(o.ordner, o.recherche, o.plan);
-	if (o.teile.includes('fach') || o.teile.includes('plan')) {
-		const punkte = p.recherche ? pruefpunkteAus(p.recherche.text).length : 0;
-		console.log(
-			p.recherche
-				? `Recherche: ${p.recherche.datei}, ${punkte} Prüfpunkte${punkte ? '' : ' (der Fachblick liest dann den Fach-Skill)'}.`
-				: 'Keine Recherche: Fachblick und Plan-Prüfung lesen den Fach-Skill.',
-		);
-	}
+	meldeRecherche(o, p);
 	if (o.abgleich) {
 		const alt = (await leseJson(path.resolve(o.abgleich))) as { materialien?: MaterialErgebnis[] };
 		console.log(abgleichTabelle(p.katalog, gleicheAb(p.katalog, alt.materialien ?? [])));

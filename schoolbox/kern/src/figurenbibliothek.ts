@@ -404,6 +404,103 @@ const nutzungIn = async (mappeDir: string, dokumente: readonly string[]) => {
 
 const gleicherName = (a: string, b: string) => a.toLocaleLowerCase('de') === b.toLocaleLowerCase('de');
 
+/** Canva-Referenz und Steckbrief, wenn die Figur noch keine hat; Herkunft und Vermerk nur für eine neue Figur (253). */
+const ergaenzeFigur = (eintrag: GespeicherteFigur, neu: NeuePose, neueFigur: boolean) => {
+	const canva = text(neu.canva);
+	const steckbrief = text(neu.steckbrief);
+	if (canva && !text(eintrag.canva)) {
+		eintrag.canva = canva;
+	}
+	if (steckbrief && !text(eintrag.steckbrief)) {
+		eintrag.steckbrief = steckbrief;
+	}
+	if (neueFigur) {
+		const aus = text(neu.aus);
+		const vermerk = text(neu.vermerk);
+		Object.assign(eintrag, aus ? { aus } : {}, vermerk ? { vermerk } : {});
+	}
+};
+
+/** Der Teil von `nimmPoseAuf`, der in der Reihe läuft: kopieren und eintragen. `dateien` wächst mit. */
+const fuegePoseEin = async (
+	materialDir: string,
+	gespeichert: Gespeichert,
+	dateien: Set<string>,
+	neu: NeuePose,
+	strich: string | null,
+): Promise<Pose> => {
+	const endung = path.extname(neu.datei).toLowerCase();
+	const fest = eingebaut(neu.figur);
+	let eintrag = gespeichert.figuren.find((f) => istObjekt(f) && f.id === neu.figur);
+	const name = text(neu.name);
+	if (!eintrag && !fest && !name) {
+		throw new SchoolboxFehler(`Die neue Figur „${neu.figur}“ braucht einen Namen.`);
+	}
+	const neueFigur = !eintrag;
+	eintrag ??= fest ? { id: neu.figur, posen: [] } : { id: neu.figur, name, posen: [] };
+	if (!Array.isArray(eintrag.posen)) {
+		eintrag.posen = [];
+	}
+	const kennungen = new Set([
+		...FIGUREN.map((f) => f.id),
+		...gespeichert.figuren.flatMap((f) =>
+			istObjekt(f) && Array.isArray(f.posen)
+				? f.posen.flatMap((p) => (istObjekt(p) && typeof p.datei === 'string' ? [stammVon(p.datei)] : []))
+				: [],
+		),
+	]);
+	const staemme = new Set([...dateien].map(stammVon));
+	const belegt = (k: string) => kennungen.has(k) || staemme.has(k) || staemme.has(`${k}${STRICH}`);
+	const grund = !fest && eintrag.posen.length === 0;
+	const basis = grund ? neu.figur : `${neu.figur}-${slug(neu.wort ?? '', 30) || 'pose'}`;
+	let kennung = basis;
+	for (let n = 2; belegt(kennung); n += 1) {
+		kennung = `${basis}-${n}`;
+	}
+	const ziel = figurenDir(materialDir);
+	await mkdir(ziel, { recursive: true });
+	await kopiereAtomar(neu.datei, path.join(ziel, `${kennung}${endung}`));
+	dateien.add(`${kennung}${endung}`);
+	if (strich) {
+		const strichName = `${kennung}${STRICH}${path.extname(strich).toLowerCase()}`;
+		await kopiereAtomar(strich, path.join(ziel, strichName));
+		dateien.add(strichName);
+	}
+	const canva = text(neu.canva);
+	const herkunft = text(neu.herkunft);
+	eintrag.posen.push({
+		datei: `${kennung}${endung}`,
+		...(herkunft ? { herkunft } : {}),
+		...(canva ? { canva } : {}),
+	});
+	if (!fest) {
+		ergaenzeFigur(eintrag, neu, neueFigur);
+	}
+	if (neueFigur) {
+		gespeichert.figuren.push(eintrag);
+	}
+	return {
+		id: kennung,
+		schluessel: `${FIGUREN_ORDNER}/${kennung}${endung}`,
+		strich: strich !== null,
+		...(canva ? { canva } : {}),
+	};
+};
+
+/** Die gespeicherte Figur, der die Datei `datei` der Bibliothek gehört. */
+const figurMitDatei = (gespeichert: Gespeichert, datei: string | undefined) =>
+	datei
+		? gespeichert.figuren.find(
+				(f) => istObjekt(f) && Array.isArray(f.posen) && f.posen.some((p) => istObjekt(p) && p.datei === datei),
+			)
+		: undefined;
+
+/** Steckbrief aus dem Motiv einer Grundpose, ohne Gegenstände der Handlung, die eine Szene einer anderen Figur gibt. */
+const aussehenDerGrundpose = (motiv: string, name: string, szenen: readonly string[], namen: readonly string[]) => {
+	const gegenstaende = gegenstaendeInGrundpose(motiv, name, szenen, namen);
+	return { aussehen: ohneGegenstaende(aussehenAus(motiv), gegenstaende), gegenstaende };
+};
+
 /**
  * 253, einmal: die Figuren aus `bilder-herkunft.tsv` aller Mappen (Motiv „Grundpose <Name>“ oder „Pose <Name>“), ohne
  * Bilder, deren letzte Zeile `offen` ist. Je Mappe und Figur die Grundpose, ohne sie die meistgenutzte Pose; je Pose
@@ -442,16 +539,19 @@ const uebernimmEinheiten = async (
 		);
 		const genutzt = (datei: string) => nutzung.get(datei) ?? { zahl: 0, zuletzt: 0 };
 		const szenen = zeilen.filter((z) => !bildFigur(z, namen)).map((z) => z.motiv);
-		const herkunft = (datei: string) => path.relative(materialDir, path.join(bilderDir, datei)).split(path.sep).join('/');
+		const herkunft = (datei: string) =>
+			path.relative(materialDir, path.join(bilderDir, datei)).split(path.sep).join('/');
 		for (const name of namen) {
 			const bilder = zeilen.flatMap((z) => {
 				const f = bildFigur(z, namen);
 				return f && gleicherName(f.figur, name) && z.art !== 'offen' ? [{ z, pose: f.pose }] : [];
 			});
 			const nachZahl = (a: { z: HerkunftZeile }, b: { z: HerkunftZeile }) =>
-				genutzt(b.z.datei).zahl - genutzt(a.z.datei).zahl || genutzt(b.z.datei).zuletzt - genutzt(a.z.datei).zuletzt;
+				genutzt(b.z.datei).zahl - genutzt(a.z.datei).zahl ||
+				genutzt(b.z.datei).zuletzt - genutzt(a.z.datei).zuletzt;
 			const nachZeit = (a: { z: HerkunftZeile }, b: { z: HerkunftZeile }) =>
-				genutzt(b.z.datei).zuletzt - genutzt(a.z.datei).zuletzt || genutzt(b.z.datei).zahl - genutzt(a.z.datei).zahl;
+				genutzt(b.z.datei).zuletzt - genutzt(a.z.datei).zuletzt ||
+				genutzt(b.z.datei).zahl - genutzt(a.z.datei).zahl;
 			const posen = new Map<string, HerkunftZeile>();
 			for (const wort of new Set(bilder.map((b) => b.pose).filter((p) => p !== GRUNDPOSE))) {
 				const beste = bilder.filter((b) => b.pose === wort && genutzt(b.z.datei).zahl > 0).sort(nachZeit)[0];
@@ -474,18 +574,17 @@ const uebernimmEinheiten = async (
 			if (grund) {
 				const datei = path.join(bilderDir, grund.datei);
 				const hash = await hashVon(datei);
-				const da = inhalte.get(hash);
-				const vorhanden = da
-					? gespeichert.figuren.find(
-							(f) => istObjekt(f) && Array.isArray(f.posen) && f.posen.some((p) => istObjekt(p) && p.datei === da),
-						)
-					: undefined;
+				const vorhanden = figurMitDatei(gespeichert, inhalte.get(hash));
 				if (vorhanden) {
 					figurId = vorhanden.id;
 				} else {
-					const gegenstaende = echt ? gegenstaendeInGrundpose(grund.motiv, name, szenen, namen) : [];
-					const aussehen = ohneGegenstaende(echt ? aussehenAus(grund.motiv) : '', gegenstaende);
-					figurId = neueFigurId(name, [...gespeichert.figuren.map((f) => f.id), ...[...dateien].map(stammVon)]);
+					const { aussehen, gegenstaende } = echt
+						? aussehenDerGrundpose(grund.motiv, name, szenen, namen)
+						: { aussehen: '', gegenstaende: [] };
+					figurId = neueFigurId(name, [
+						...gespeichert.figuren.map((f) => f.id),
+						...[...dateien].map(stammVon),
+					]);
 					const pose = await fuegePoseEin(
 						materialDir,
 						gespeichert,
@@ -493,7 +592,12 @@ const uebernimmEinheiten = async (
 						{
 							datei,
 							figur: figurId,
-							name: bibliotheksName(name, artAus(aussehen, name), mappe.titel, figurenAus(gespeichert, dateien)),
+							name: bibliotheksName(
+								name,
+								artAus(aussehen, name),
+								mappe.titel,
+								figurenAus(gespeichert, dateien),
+							),
 							herkunft: herkunft(grund.datei),
 							...(aussehen ? { steckbrief: aussehen } : {}),
 							aus: mappe.titel,
@@ -567,7 +671,9 @@ const sorgeFuerBibliothek = async (konfig: Pick<Konfig, 'pythonBin'>, materialDi
 			gelesen.bibliothek.einheitenUebernommen = true;
 			await schreibeJson(jsonDatei(materialDir), gelesen.bibliothek);
 		} catch (fehler) {
-			console.warn(`Figurenbibliothek: Figuren aus Einheiten nicht übernommen: ${fehler instanceof Error ? fehler.message : '?'}`);
+			console.warn(
+				`Figurenbibliothek: Figuren aus Einheiten nicht übernommen: ${fehler instanceof Error ? fehler.message : '?'}`,
+			);
 		}
 	});
 };
@@ -691,81 +797,6 @@ export const nimmPoseAuf = async (
 	return aendereBibliothek(konfig, materialDir, (gespeichert, dateien) =>
 		fuegePoseEin(materialDir, gespeichert, new Set(dateien), neu, strich),
 	);
-};
-
-/** Der Teil von `nimmPoseAuf`, der in der Reihe läuft: kopieren und eintragen. `dateien` wächst mit. */
-const fuegePoseEin = async (
-	materialDir: string,
-	gespeichert: Gespeichert,
-	dateien: Set<string>,
-	neu: NeuePose,
-	strich: string | null,
-): Promise<Pose> => {
-	const endung = path.extname(neu.datei).toLowerCase();
-	const fest = eingebaut(neu.figur);
-	let eintrag = gespeichert.figuren.find((f) => istObjekt(f) && f.id === neu.figur);
-	const name = text(neu.name);
-	if (!eintrag && !fest && !name) {
-		throw new SchoolboxFehler(`Die neue Figur „${neu.figur}“ braucht einen Namen.`);
-	}
-	const neueFigur = !eintrag;
-	eintrag ??= fest ? { id: neu.figur, posen: [] } : { id: neu.figur, name, posen: [] };
-	if (!Array.isArray(eintrag.posen)) {
-		eintrag.posen = [];
-	}
-	const kennungen = new Set([
-		...FIGUREN.map((f) => f.id),
-		...gespeichert.figuren.flatMap((f) =>
-			istObjekt(f) && Array.isArray(f.posen)
-				? f.posen.flatMap((p) => (istObjekt(p) && typeof p.datei === 'string' ? [stammVon(p.datei)] : []))
-				: [],
-		),
-	]);
-	const staemme = new Set([...dateien].map(stammVon));
-	const belegt = (k: string) => kennungen.has(k) || staemme.has(k) || staemme.has(`${k}${STRICH}`);
-	const grund = !fest && eintrag.posen.length === 0;
-	const basis = grund ? neu.figur : `${neu.figur}-${slug(neu.wort ?? '', 30) || 'pose'}`;
-	let kennung = basis;
-	for (let n = 2; belegt(kennung); n += 1) {
-		kennung = `${basis}-${n}`;
-	}
-	const ziel = figurenDir(materialDir);
-	await mkdir(ziel, { recursive: true });
-	await kopiereAtomar(neu.datei, path.join(ziel, `${kennung}${endung}`));
-	dateien.add(`${kennung}${endung}`);
-	if (strich) {
-		const strichName = `${kennung}${STRICH}${path.extname(strich).toLowerCase()}`;
-		await kopiereAtomar(strich, path.join(ziel, strichName));
-		dateien.add(strichName);
-	}
-	const canva = text(neu.canva);
-	const herkunft = text(neu.herkunft);
-	eintrag.posen.push({
-		datei: `${kennung}${endung}`,
-		...(herkunft ? { herkunft } : {}),
-		...(canva ? { canva } : {}),
-	});
-	const steckbrief = text(neu.steckbrief);
-	if (!fest && canva && !text(eintrag.canva)) {
-		eintrag.canva = canva;
-	}
-	if (!fest && steckbrief && !text(eintrag.steckbrief)) {
-		eintrag.steckbrief = steckbrief;
-	}
-	if (neueFigur && !fest) {
-		const aus = text(neu.aus);
-		const vermerk = text(neu.vermerk);
-		Object.assign(eintrag, aus ? { aus } : {}, vermerk ? { vermerk } : {});
-	}
-	if (neueFigur) {
-		gespeichert.figuren.push(eintrag);
-	}
-	return {
-		id: kennung,
-		schluessel: `${FIGUREN_ORDNER}/${kennung}${endung}`,
-		strich: strich !== null,
-		...(canva ? { canva } : {}),
-	};
 };
 
 /**

@@ -36,7 +36,10 @@ describe('einheit-bibliothek (253)', () => {
 			figur: 'Luna',
 			pose: 'faltet',
 		});
-		assert.deepEqual(bildFigur({ datei: 'kobi.png', motiv: 'Kobi winkt' }, ['Kobi']), { figur: 'Kobi', pose: 'grund' });
+		assert.deepEqual(bildFigur({ datei: 'kobi.png', motiv: 'Kobi winkt' }, ['Kobi']), {
+			figur: 'Kobi',
+			pose: 'grund',
+		});
 		assert.equal(bildFigur({ datei: 'fall-1.jpg', motiv: 'Fall-Karte: Luna an der Werkbank' }, ['Luna']), null);
 	});
 
@@ -70,7 +73,10 @@ describe('einheit-bibliothek (253)', () => {
 	});
 
 	it('steckbriefAus: Kanon vor Aussehen', () => {
-		assert.equal(steckbriefAus({ fest: ['graue Eule', 'rote Brille'], nie: ['Spiegel'] }, 'Eule'), 'graue Eule, rote Brille; nie: Spiegel');
+		assert.equal(
+			steckbriefAus({ fest: ['graue Eule', 'rote Brille'], nie: ['Spiegel'] }, 'Eule'),
+			'graue Eule, rote Brille; nie: Spiegel',
+		);
 		assert.equal(steckbriefAus(undefined, ' Eule mit Brille '), 'Eule mit Brille');
 	});
 
@@ -108,7 +114,10 @@ describe('einheit-bibliothek (253)', () => {
 			{ datei: 'buch.png', motiv: 'Buch, aufgeschlagen bei Kapitel 3', mappe: 'A' },
 		];
 		assert.deepEqual(requisitenFuer(allgemein, 'Luna findet den Schlüssel nicht. Kapitel 2: die Brücke'), []);
-		assert.deepEqual(textWerte({ kurz: 'Die Laterne', kapitel: [{ nr: 1, text: 'Brücke' }] }), ['Die Laterne', 'Brücke']);
+		assert.deepEqual(textWerte({ kurz: 'Die Laterne', kapitel: [{ nr: 1, text: 'Brücke' }] }), [
+			'Die Laterne',
+			'Brücke',
+		]);
 	});
 
 	it('leseHerkunft: fünf oder acht Spalten, die letzte Zeile je Datei gilt', () => {
@@ -148,14 +157,21 @@ describe('einheit-bibliothek (253)', () => {
 			namen: ['Luna'],
 		};
 		assert.match(
-			bibliotheksGrund([luna], { datei: 'luna.png', motiv: 'Luna', figur: 'Luna', pose: 'grund' }, 'referenzen') ?? '',
+			bibliotheksGrund(
+				[luna],
+				{ datei: 'luna.png', motiv: 'Luna', figur: 'Luna', pose: 'grund' },
+				'referenzen',
+			) ?? '',
 			/Figurenbibliothek.*referenzen\//,
 		);
 		assert.match(
 			bibliotheksGrund([luna], { datei: 'luna-zeigt.png', motiv: 'Pose Luna zeigt' }, 'referenzen') ?? '',
 			/\.\.\/\.\.\/bilder\/bib-luna-zeigt\.png/,
 		);
-		assert.equal(bibliotheksGrund([luna], { datei: 'luna-winkt.png', motiv: 'Pose Luna winkt' }, 'referenzen'), null);
+		assert.equal(
+			bibliotheksGrund([luna], { datei: 'luna-winkt.png', motiv: 'Pose Luna winkt' }, 'referenzen'),
+			null,
+		);
 		// Ohne Grundpose in referenzen/ (Willi im neuen Blatt) nennt keine Ablehnung eine Datei, die es nicht gibt.
 		assert.equal(
 			bibliotheksGrund(

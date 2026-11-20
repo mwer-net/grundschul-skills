@@ -105,7 +105,9 @@ export const gegenstaendeInGrundpose = (
 		szenen.some((s) =>
 			s
 				.split(/[,;:.()]/)
-				.some((teil) => enthaelt(teil, wort) && !enthaelt(teil, figur) && andere.some((g) => enthaelt(teil, g))),
+				.some(
+					(teil) => enthaelt(teil, wort) && !enthaelt(teil, figur) && andere.some((g) => enthaelt(teil, g)),
+				),
 		),
 	);
 };
@@ -191,9 +193,14 @@ export const ohneGegenstaende = (aussehen: string, gegenstaende: readonly string
 		.join(', ');
 
 /** Steckbrief einer neuen Figur: aus dem Kanon (`fest`, `nie`, 246), sonst ihr Aussehen aus dem Plan. */
-export const steckbriefAus = (kanon: { fest: readonly string[]; nie: readonly string[] } | undefined, aussehen: string) => {
+export const steckbriefAus = (
+	kanon: { fest: readonly string[]; nie: readonly string[] } | undefined,
+	aussehen: string,
+) => {
 	if (kanon?.fest.length) {
-		return [kanon.fest.join(', '), kanon.nie.length ? `nie: ${kanon.nie.join(', ')}` : ''].filter(Boolean).join('; ');
+		return [kanon.fest.join(', '), kanon.nie.length ? `nie: ${kanon.nie.join(', ')}` : '']
+			.filter(Boolean)
+			.join('; ');
 	}
 	return aussehen.trim();
 };
@@ -269,14 +276,15 @@ const woerter = (t: string) =>
 	);
 
 /** Die Textwerte eines Objekts, ohne seine Schlüssel: Danach sucht `requisitenFuer`, nicht nach Feldnamen aus JSON. */
-export const textWerte = (wert: unknown): string[] =>
-	typeof wert === 'string'
-		? [wert]
-		: Array.isArray(wert)
-			? wert.flatMap(textWerte)
-			: wert && typeof wert === 'object'
-				? Object.values(wert).flatMap(textWerte)
-				: [];
+export const textWerte = (wert: unknown): string[] => {
+	if (typeof wert === 'string') {
+		return [wert];
+	}
+	if (Array.isArray(wert)) {
+		return wert.flatMap(textWerte);
+	}
+	return wert && typeof wert === 'object' ? Object.values(wert).flatMap(textWerte) : [];
+};
 
 export const MAX_REQUISITEN = 8;
 

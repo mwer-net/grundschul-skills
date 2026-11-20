@@ -10,8 +10,8 @@ import {
 	abbildungenIn,
 	befundeDerTeile,
 	berechneteElemente,
-	bilderMitBefund,
 	bestandteileText,
+	bilderMitBefund,
 	blickLektuere,
 	blickRegeln,
 	fachblickStunden,
@@ -237,10 +237,15 @@ describe('Nachricht an den Prüflauf (229)', () => {
 		});
 		it('Befund mit Feld bild; bilderMitBefund ordnet zu, Unzuordenbares zählt für alle', () => {
 			const [befund] = lesePruefung(
-				JSON.stringify({ befunde: [{ art: 'bild', bild: 'folie-3-1.jpg', aufgabe: '', text: 'Spiegel aus Glas' }] }),
+				JSON.stringify({
+					befunde: [{ art: 'bild', bild: 'folie-3-1.jpg', aufgabe: '', text: 'Spiegel aus Glas' }],
+				}),
 			).befunde;
 			assert.equal(befund?.bild, 'folie-3-1.jpg');
-			assert.equal(lesePruefung('{"befunde":[{"art":"bild","bild":"../x.png","text":"t"}]}').befunde[0]?.bild, undefined);
+			assert.equal(
+				lesePruefung('{"befunde":[{"art":"bild","bild":"../x.png","text":"t"}]}').befunde[0]?.bild,
+				undefined,
+			);
 			const zwei = [
 				{ ...BILD, datei: 'folie-3-1.jpg' },
 				{ ...BILD, datei: 'fall-2.jpg' },
@@ -251,11 +256,14 @@ describe('Nachricht an den Prüflauf (229)', () => {
 			);
 			const ohne = { seite: 1, aufgabe: '', art: 'bild' as const, text: 'Ein Bild ist unscharf.' };
 			assert.equal(bilderMitBefund(zwei, [ohne]).length, 2);
-			assert.equal(bilderMitBefund(zwei, [{ ...ohne, art: 'unklar' as const, text: 'Aufgabe 2 unklar' }]).length, 0);
+			assert.equal(
+				bilderMitBefund(zwei, [{ ...ohne, art: 'unklar' as const, text: 'Aufgabe 2 unklar' }]).length,
+				0,
+			);
 			assert.deepEqual(
-				bilderMitBefund(zwei, [{ ...ohne, art: 'kanon' as const, text: 'Auf fall-2 hängt das Glöckchen schon an Ella.' }]).map(
-					(b) => b.datei,
-				),
+				bilderMitBefund(zwei, [
+					{ ...ohne, art: 'kanon' as const, text: 'Auf fall-2 hängt das Glöckchen schon an Ella.' },
+				]).map((b) => b.datei),
 				['fall-2.jpg'],
 			);
 		});
