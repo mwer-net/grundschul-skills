@@ -10,7 +10,16 @@ import { BROWSER_HINWEIS, browserFehlt } from './browsertest';
 import { ASSETS, BLATT_PY } from './konfig';
 import { setzeLoesung } from './loesungen';
 import type { Knoten } from './quelltext';
-import { klassenVon, schuetzeText, verschiebe, wendeAn, zerlege } from './quelltext';
+import {
+	attribut,
+	entschluessele,
+	innenVon,
+	klassenVon,
+	schuetzeText,
+	verschiebe,
+	wendeAn,
+	zerlege,
+} from './quelltext';
 import { verschiebeBaustein } from './struktur';
 
 const ausfuehren = promisify(execFile);
@@ -51,6 +60,21 @@ const bearbeite = (quelle: string) => {
 	return html;
 };
 
+/**
+ * Die ersten drei Wörter der Anweisung einer Aufgabe, wie sie in der Vorlage steht. Mehr nicht, weil `pdftotext`
+ * längere Anweisungen umbricht.
+ */
+const anfangDerAnweisung = (z: ReturnType<typeof zerlege>, aufgabe: Knoten) => {
+	const anw = aufgabe.kinder.find((k) => klassenVon(k).includes('anw'));
+	const text = anw?.kinder.find((k) => klassenVon(k).includes('text')) ?? anw;
+	assert.ok(text, `Aufgabe ${aufgabe.nr} hat keine Anweisung`);
+	return entschluessele(innenVon(z, text).replace(/<[^>]*>/g, ''))
+		.trim()
+		.split(/\s+/)
+		.slice(0, 3)
+		.join(' ');
+};
+
 describe('blatt.py auf im Editor bearbeiteten Dateien', () => {
 	it('baut wie vorher, ohne Fehler und mit derselben Seitenzahl', { timeout: 300_000 }, async (t) => {
 		if (browserFehlt()) {
@@ -83,18 +107,18 @@ describe('blatt.py auf im Editor bearbeiteten Dateien', () => {
 			}
 			const ordner = await mkdtemp(path.join(tmpdir(), 'schoolbox-struktur-blatt-'));
 			const quelle = await readFile(path.join(ASSETS, 'vorlage-arbeitsblatt.html'), 'utf8');
-			const aufgaben = zerlege(quelle).knoten.filter((k) => klassenVon(k).includes('aufgabe'));
-			const [erste, , dritte] = aufgaben as [Knoten, Knoten, Knoten];
+			const z = zerlege(quelle);
+			const aufgaben = z.knoten.filter((k) => klassenVon(k).includes('aufgabe'));
+			const [erste, zweite, dritte] = aufgaben as [Knoten, Knoten, Knoten];
 			const neu = verschiebeBaustein(quelle, dritte.nr, { nr: erste.nr, wo: 'vor' }, { jeSeite: false }).quelle;
 			await baue(ordner, 'umsortiert', neu);
 			for (const name of ['umsortiert', 'umsortiert-loesung']) {
 				const pdf = path.join(ordner, 'umsortiert', `${name}.pdf`);
 				const { stdout } = await ausfuehren('pdftotext', ['-layout', pdf, '-']);
 				const text = stdout.replace(/\s+/g, ' ');
-				const willi = text.indexOf('1 Willi sagt');
-				const liesAb = text.indexOf('2 Lies ab.');
-				const zeichne = text.indexOf('3 Zeichne die Zeiger');
-				assert.ok(willi >= 0 && willi < liesAb && liesAb < zeichne, `${name}: ${text}`);
+				const stellen = [dritte, erste, zweite].map((a, i) => text.indexOf(`${i + 1} ${anfangDerAnweisung(z, a)}`));
+				const [vorn, mitte, hinten] = stellen as [number, number, number];
+				assert.ok(vorn >= 0 && vorn < mitte && mitte < hinten, `${name}: ${stellen.join(', ')}: ${text}`);
 			}
 		},
 	);
@@ -110,17 +134,21 @@ describe('blatt.py auf im Editor bearbeiteten Dateien', () => {
 			const ordner = await mkdtemp(path.join(tmpdir(), 'schoolbox-loesung-blatt-'));
 			const quelle = await readFile(path.join(ASSETS, 'vorlage-arbeitsblatt.html'), 'utf8');
 			const zweite = zerlege(quelle).knoten.filter((k) => klassenVon(k).includes('antwort'))[1] as Knoten;
+			const alt = entschluessele(attribut(zweite, 'data-l')?.wert ?? '');
+			const neu = 'halb fünf';
+			assert.ok(alt, 'die zweite Antwort der Vorlage hat ein data-l');
+			assert.ok(!quelle.includes(neu), `„${neu}“ steht schon in der Vorlage`);
 			await baue(ordner, 'vorher', quelle);
-			await baue(ordner, 'nachher', setzeLoesung(quelle, zweite.nr, 'halb fünf'));
+			await baue(ordner, 'nachher', setzeLoesung(quelle, zweite.nr, neu));
 			const pdfText = async (name: string, datei: string) =>
 				(await ausfuehren('pdftotext', ['-layout', path.join(ordner, name, datei), '-'])).stdout;
 			assert.equal(await pdfText('nachher', 'nachher.pdf'), await pdfText('vorher', 'vorher.pdf'));
 			const loesungVorher = await pdfText('vorher', 'vorher-loesung.pdf');
 			const loesungNachher = await pdfText('nachher', 'nachher-loesung.pdf');
 			const anzahl = (text: string, was: string) => text.split(was).length - 1;
-			assert.equal(anzahl(loesungVorher, 'halb fünf'), 0);
-			assert.equal(anzahl(loesungNachher, 'halb fünf'), 1);
-			assert.equal(anzahl(loesungNachher, 'halb 5'), anzahl(loesungVorher, 'halb 5') - 1);
+			assert.equal(anzahl(loesungVorher, neu), 0);
+			assert.equal(anzahl(loesungNachher, neu), 1);
+			assert.equal(anzahl(loesungNachher, alt), anzahl(loesungVorher, alt) - 1);
 		},
 	);
 });
