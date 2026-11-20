@@ -14,7 +14,7 @@ Prüfe in dieser Reihenfolge und lies dafür die Materialien unter `dokumente/<s
 - Vor dem ersten Aufruf von `bauen` für ein Material liest du dessen Pflichtlektüre ganz (die Nachricht nennt sie je Material). `bauen` nimmt das Material sonst nicht an und nennt, was fehlt.
 - Rufe nach jeder Änderung `bauen` mit dem Slug auf, sieh dir die Seiten an (html-materialerstellung, references/visuelle-endkontrolle.md) und baue wieder, bis kein FEHLER bleibt. Was du änderst und nicht mit `bauen` baust, übernimmt der Server nicht: Er setzt es zurück.
 - Seitenzahlen ändern sich, wenn du Seiten hinzufügst oder wegnimmst. Dann stimmt die Liste der Nachricht nicht mehr für dieses Material: Ändere dann keine Zahl auf dem Deckblatt, sondern nenne es unter „offen“.
-- `einheit.json`, `recherche.md`, `thema.css` und `bilder.json` liest du nur.
+- Der Plan steht vollständig in der Nachricht, `einheit.json` liest du nicht. `recherche.md`, `thema.css` und `bilder.json` liest du nur.
 
 Antworte am Ende mit höchstens fünf Zeilen Text, was du geändert hast, und danach mit einem JSON-Block, was offen bleibt:
 

@@ -108,6 +108,7 @@ import {
 	pflichtAbschnitt,
 	pflichtFuer,
 	PLAN_VORGABE_ART,
+	planFuerBau,
 	planPruefStand,
 	planPruefText,
 	planRueckrunde,
@@ -161,7 +162,6 @@ import {
 	bibliotheksId,
 	leitfigurIds,
 	lesePlanFiguren,
-	planFigurText,
 	referenzFiguren,
 } from '@schoolbox/kern/src/einheit-figuren';
 import {
@@ -357,32 +357,6 @@ const PLAN = (s: EinheitStand, bibliothek: string) =>
 
 const PLAN_AENDERN = (wunsch: string) =>
 	`Schritt 1, Änderung. Die Lehrkraft hat den Plan gelesen und möchte ihn anders: „${wunsch}“\nArbeite das ein, schreibe einheit.json neu und antworte mit dem ganzen Plan. Baue noch nichts.`;
-
-/** Der freigegebene Plan für jeden Baulauf (220): Geschichte, Figuren, Rätselkette, Kapitel und die Liste der Materialien. */
-const PLAN_ABSCHNITT = (plan: EinheitPlan) => {
-	const g = plan.geschichte;
-	return [
-		'Der freigegebene Plan (steht auch in einheit.json; nur lesen, der Server hält ihn fest):',
-		`Titel: ${plan.titel}`,
-		g?.kurz ? `Geschichte: ${g.kurz}` : '',
-		plan.figuren?.length ? `Figuren: ${plan.figuren.map(planFigurText).join(' · ')}` : '',
-		g?.verdaechtige.length ? `Verdächtige: ${g.verdaechtige.join(' · ')}` : '',
-		g?.falscheFaehrte ? `Falsche Fährte: ${g.falscheFaehrte}` : '',
-		g?.aufloesung ? `Auflösung: ${g.aufloesung}` : '',
-		plan.raetselkette ? `Rätselkette: ${plan.raetselkette}` : '',
-		plan.berichtigungen?.length
-			? `Fachliche Prüfpunkte, von der Lehrkraft berichtigt (gehen der Recherche vor): ${plan.berichtigungen.join(' · ')}`
-			: '',
-		...(g?.kapitel ?? []).map(
-			(k) =>
-				`Kapitel ${k.nr}: ${k.titel}${k.offenesEnde ? `. Offenes Ende: ${k.offenesEnde}` : ''}${k.bildfolien.length ? `. Bildfolien: ${k.bildfolien.join(' · ')}` : ''}`,
-		),
-		'Materialien der Einheit:',
-		...plan.dokumente.map((d) => `- ${d.slug} „${d.titel}“ (${d.art}, ${d.format}): ${d.zweck}`),
-	]
-		.filter(Boolean)
-		.join('\n');
-};
 
 export const erstelleEinheiten = (
 	kontext: Kontext,
@@ -1736,7 +1710,7 @@ export const erstelleEinheiten = (
 				: '',
 			pflichtAbschnitt(pflicht, 'vor dem ersten Aufruf von bauen; bauen nimmt das Material sonst nicht an'),
 			KOPF(s),
-			PLAN_ABSCHNITT(plan),
+			planFuerBau(plan),
 			kanonText(plan.kanon, { kapitel: kapitelVon(plan, d.slug), nachtrag: s.kanonNachtrag }),
 			aufgabenFuerBau(plan, d.slug),
 			fertigText(plan, fertigeMaterialien(s), s.steckbriefe ?? {}),
@@ -1751,7 +1725,7 @@ export const erstelleEinheiten = (
 			'Schritt 2: die Bilder der Einheit. Baue in diesem Lauf kein Material.',
 			pflichtAbschnitt(pflicht, 'bevor du das erste Bild erzeugst'),
 			KOPF(s),
-			PLAN_ABSCHNITT(plan),
+			planFuerBau(plan),
 			fertigText(plan, fertigeMaterialien(s), s.steckbriefe ?? {}),
 			await bilderText(s, 'bilder'),
 		]
@@ -2454,7 +2428,7 @@ export const erstelleEinheiten = (
 		return [
 			`Schritt 3: der Schlusslauf. Ändere höchstens ${KI_GRENZEN.einheit.schluss.neubau} Materialien und baue jedes geänderte mit bauen neu.`,
 			KOPF(s),
-			PLAN_ABSCHNITT(plan),
+			planFuerBau(plan),
 			pruefpunkteText(s.recherche?.text, plan.berichtigungen),
 			kanonText(plan.kanon, { nachtrag: s.kanonNachtrag }),
 			widerspruchText(plan, (slug) => s.steckbriefe?.[slug]?.widerspruch),

@@ -7,7 +7,7 @@ import { leseStunden, leseZiele } from './einheit-aufgaben';
 import type { Steckbrief } from './einheit-bau';
 import type { BibliothekNeu } from './einheit-bibliothek';
 import type { EinheitLeitfigur, PlanFigur } from './einheit-figuren';
-import { leitfigurSatz, leseLeitfigur, lesePlanFiguren } from './einheit-figuren';
+import { leitfigurSatz, leseLeitfigur, lesePlanFiguren, planFigurText } from './einheit-figuren';
 import type { EinheitKanon, KanonNachtrag } from './einheit-kanon';
 import { leseKanon } from './einheit-kanon';
 import type { PlanPruefStand } from './einheit-plan-pruefung';
@@ -444,6 +444,45 @@ export const lesePlan = (roh: unknown, max = EINHEIT_MAX_DOKUMENTE): EinheitPlan
 		...(berichtigungen.length ? { berichtigungen } : {}),
 		...(kanon ? { kanon } : {}),
 	};
+};
+
+/**
+ * Der freigegebene Plan für Bau-, Bilder- und Schlusslauf (220): alles aus `einheit.json`, was ein Lauf braucht, damit
+ * er die Datei nicht liest (252). Kanon (`kanonText`) und Aufgaben-Übersicht (`aufgabenFuerBau`) folgen eigens; die
+ * Kurzfassung der Recherche nicht, die ganze steht im Kopf des Auftrags. Nur für den Server ist `fertig`.
+ */
+export const planFuerBau = (plan: EinheitPlan) => {
+	const g = plan.geschichte;
+	return [
+		'Der freigegebene Plan, vollständig in dieser Nachricht (der Server hält ihn fest):',
+		`Titel: ${plan.titel}`,
+		plan.annahmen.length ? ['Annahmen des Plans:', ...plan.annahmen.map((a) => `- ${a}`)].join('\n') : '',
+		plan.ziele?.length
+			? [
+					'Ich-kann-Ziele der Reihe:',
+					...plan.ziele.map(
+						(z) => `- Ziel ${z.nr}: ${z.text}${z.handlung ? ' (verlangt eine Handlung mit Material oder Werkzeug)' : ''}`,
+					),
+				].join('\n')
+			: '',
+		g?.kurz ? `Geschichte: ${g.kurz}` : '',
+		plan.figuren?.length ? `Figuren: ${plan.figuren.map(planFigurText).join(' · ')}` : '',
+		g?.verdaechtige.length ? `Verdächtige: ${g.verdaechtige.join(' · ')}` : '',
+		g?.falscheFaehrte ? `Falsche Fährte: ${g.falscheFaehrte}` : '',
+		g?.aufloesung ? `Auflösung: ${g.aufloesung}` : '',
+		plan.raetselkette ? `Rätselkette: ${plan.raetselkette}` : '',
+		plan.berichtigungen?.length
+			? `Fachliche Prüfpunkte, von der Lehrkraft berichtigt (gehen der Recherche vor): ${plan.berichtigungen.join(' · ')}`
+			: '',
+		...(g?.kapitel ?? []).map(
+			(k) =>
+				`Kapitel ${k.nr}: ${k.titel}${k.offenesEnde ? `. Offenes Ende: ${k.offenesEnde}` : ''}${k.bildfolien.length ? `. Bildfolien: ${k.bildfolien.join(' · ')}` : ''}`,
+		),
+		'Materialien der Einheit:',
+		...plan.dokumente.map((d) => `- ${d.slug} „${d.titel}“ (${d.art}, ${d.format}): ${d.zweck}`),
+	]
+		.filter(Boolean)
+		.join('\n');
 };
 
 /**

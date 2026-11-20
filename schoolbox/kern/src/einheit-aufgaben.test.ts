@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { EinheitPlan } from './einheit';
-import { lesePlan } from './einheit';
+import { lesePlan, planFuerBau } from './einheit';
 import { aufgabenFuerBau, formatAus, formatTitel, formatZaehlung, planBefunde } from './einheit-aufgaben';
+import { kanonText } from './einheit-kanon';
 
 const ARTEN: Record<string, string> = { kontrolle: 'lernzielkontrolle', vorleseheft: 'unterrichtsplanung' };
 
@@ -239,9 +240,118 @@ describe('Aufgaben-Übersicht im Plan (221)', () => {
 			aufgabenFuerBau(p, 'kapitel-3'),
 			/zum zweiten Mal: mit höherem Anspruch als beim ersten: Figur an waagerechter Achse/,
 		);
-		// Ein Material ohne eigene Aufgaben bekommt die Formate der ganzen Reihe.
+		// Ein Material ohne eigene Aufgaben bekommt jede Stunde ganz, mit den Aufgaben aller Materialien (252).
 		const heft = aufgabenFuerBau(p, 'vorleseheft');
-		assert.match(heft, /^Aufgaben-Übersicht.*\n\nFormate der Stunden:\n- Stunde 1: /);
+		assert.match(heft, /^Aufgaben-Übersicht.*\n\nStunde 1\. Was die Kinder tun: Faltschnitte/);
+		assert.match(heft, /^- lernspiel: Spiegel-Memory, Bereich I: Hälften finden$/m);
+		assert.doesNotMatch(heft, /Formate der (anderen )?Stunden/);
 		assert.equal(aufgabenFuerBau(plan({ dokumente: DOKUMENTE }), 'kapitel-1'), '');
+	});
+});
+
+/** Jedes Feld des Plans mit einem eigenen Wert, damit der Test sieht, ob es im Auftrag ankommt (252). */
+const VOLL = {
+	titel: 'T-titel',
+	annahmen: ['T-annahme'],
+	recherche: 'T-recherche',
+	geschichte: 'T-geschichte',
+	verdaechtige: ['T-verdaechtig'],
+	falscheFaehrte: 'T-faehrte',
+	aufloesung: 'T-aufloesung',
+	kapitel: [{ nr: 1, titel: 'T-kapitel', offenesEnde: 'T-ende', bildfolien: ['1.1 T-bildfolie'] }],
+	figuren: [{ name: 'T-figur', rolle: 'T-rolle', aussehen: 'T-aussehen', herkunft: 'bibliothek:luna' }],
+	raetselkette: 'T-kette',
+	berichtigungen: ['T-berichtigung'],
+	ziele: [{ nr: 1, text: 'T-ziel', handlung: true }],
+	stunden: [
+		{
+			nr: 1,
+			handlung: 'T-handlung',
+			begriffe: ['T-begriff'],
+			kontrolle: true,
+			minuten: 45,
+			ziel: 1,
+			phasen: [{ was: 'T-phase', minuten: 17, arbeit: true }],
+			aufgaben: [
+				{
+					dokument: 'kapitel-1',
+					format: 'T-format',
+					inhalt: 'T-inhalt',
+					bereich: 'II',
+					zweitesMal: true,
+					ziel: 1,
+					minuten: 13,
+					niveau: 3,
+				},
+			],
+		},
+	],
+	dokumente: [
+		{ slug: 'kapitel-1', titel: 'T-dokument', art: 'arbeitsblatt', format: 'a4-hoch', zweck: 'T-zweck' },
+		{ slug: 'hinweise', titel: 'T-hinweise', art: 'unterrichtsplanung', format: 'a4-hoch', zweck: 'T-zweck2' },
+	],
+	kanon: {
+		figuren: [{ name: 'T-figur', fest: ['T-fest'], nie: ['T-nie'] }],
+		dinge: [{ name: 'T-ding', kapitel: { 1: 'T-zustand' } }],
+		geheim: [{ was: 'T-geheim', bis: 2 }],
+		regeln: ['T-regel'],
+		begriffe: [{ wort: 'T-wort', bedeutung: 'T-bedeutung', ab: 1 }],
+	},
+};
+
+/**
+ * Wo jedes Feld von `EinheitPlan` im Auftrag des Baus steht (252). Ein neues Feld bricht die Typprüfung, bis es hier
+ * eingetragen ist: im Plan-Abschnitt, im Kanon, in der Aufgaben-Übersicht, im Kopf (die ganze Recherche) oder nur für
+ * den Server.
+ */
+const FELD_IM_BAU: Record<keyof EinheitPlan, 'plan' | 'kanon' | 'aufgaben' | 'kopf'> = {
+	titel: 'plan',
+	annahmen: 'plan',
+	dokumente: 'plan',
+	geschichte: 'plan',
+	recherche: 'kopf',
+	stunden: 'aufgaben',
+	ziele: 'plan',
+	figuren: 'plan',
+	raetselkette: 'plan',
+	berichtigungen: 'plan',
+	kanon: 'kanon',
+};
+
+/** Alle Texte und Zahlen in einem Wert, mit dem Pfad dahin. */
+const blaetter = (wert: unknown, pfad: string): [string, string][] => {
+	if (typeof wert === 'string' || typeof wert === 'number') {
+		return [[pfad, String(wert)]];
+	}
+	if (Array.isArray(wert)) {
+		return wert.flatMap((w) => blaetter(w, `${pfad}[]`));
+	}
+	if (typeof wert === 'object' && wert !== null) {
+		return Object.entries(wert).flatMap(([k, w]) => blaetter(w, `${pfad}.${k}`));
+	}
+	return [];
+};
+
+describe('Der Bau bekommt den ganzen Plan (252)', () => {
+	it('jedes Feld, das nicht nur für den Server ist, steht im Auftrag', () => {
+		const p = lesePlan(VOLL);
+		assert.ok(p);
+		// Jedes Feld des Fixtures kommt durch `lesePlan`: Sonst prüfte der Test eine Lücke nicht.
+		assert.deepEqual(Object.keys(p).sort(), Object.keys(FELD_IM_BAU).sort());
+		// Ein Material ohne eigene Aufgaben (Hinweise) bekommt alles; eines mit Aufgaben dieselben Plan-Zeilen.
+		const auftrag = [planFuerBau(p), kanonText(p.kanon), aufgabenFuerBau(p, 'hinweise')].join('\n');
+		// `fertig` und `arbeit` braucht nur der Server; die Herkunft steht als „aus der Bibliothek“ (unten geprüft).
+		const nurServer = new Set(['dokumente[].fertig', 'stunden[].phasen[].arbeit', 'figuren[].herkunft']);
+		const fehlen = (Object.keys(FELD_IM_BAU) as (keyof EinheitPlan)[])
+			.filter((k) => FELD_IM_BAU[k] !== 'kopf')
+			.flatMap((k) => blaetter(p[k], k))
+			.filter(([pfad, wert]) => !nurServer.has(pfad) && !auftrag.includes(wert))
+			.map(([pfad, wert]) => `${pfad}: ${wert}`);
+		assert.deepEqual(fehlen, []);
+		assert.match(auftrag, /T-figur \(aus der Bibliothek\)/);
+		assert.match(auftrag, /Ziel 1: T-ziel \(verlangt eine Handlung/);
+		assert.match(auftrag, /Stunde 1 \(Lernzielkontrolle/);
+		assert.match(auftrag, /zum zweiten Mal/);
+		assert.match(planFuerBau(p), /^Der freigegebene Plan, vollständig in dieser Nachricht/);
 	});
 });

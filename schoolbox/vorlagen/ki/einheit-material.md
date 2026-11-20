@@ -4,7 +4,7 @@ Nur diese Dateien darfst du schreiben, nur im Arbeitsordner:
 - `dokumente/<slug>/material.html` und `dokumente/<slug>/steckbrief.json` deines Materials. Andere Materialien liest du nur.
 - `thema.css`, nur wenn die Nachricht es verlangt (html-materialerstellung, references/layout.md, „Baukasten und Thema“). Die Dokumente binden es mit `<link rel="stylesheet" href="../../thema.css">` ein.
 - `bilder.json`, nur wenn der Auftrag neue Bilder erlaubt.
-`einheit.json` ist der freigegebene Plan, `recherche.md` die Recherche: beide nur lesen.
+Der Plan steht vollständig in dieser Nachricht. `einheit.json` liest du nicht. `recherche.md` ist die Recherche: nur lesen.
 
 Ablauf:
 1. Lies die Pflichtlektüre aus der Nachricht ganz: Skills mit dem Werkzeug Skill, Dateien mit Read im Ordner der Skills, ohne offset und limit. `bauen` nimmt das Material erst danach an und nennt sonst, was noch fehlt; für jedes `x-…`-Element auch die Datei des Katalogs, die es beschreibt.

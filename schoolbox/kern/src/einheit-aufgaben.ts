@@ -507,11 +507,25 @@ const stundenZahlen = (plan: EinheitPlan, s: PlanStunde) => {
 	].filter(Boolean);
 };
 
+const zeileMitMaterial = (a: PlanAufgabe) => zeile(a).replace(/^- /, `- ${a.dokument || 'ohne Material'}: `);
+
+/** Jede Stunde ganz, mit den Aufgaben aller Materialien (252): für Materialien ohne eigene Aufgaben und den Schluss. */
+const alleStunden = (plan: EinheitPlan, stunden: PlanStunde[]) =>
+	stunden.flatMap((s) => [
+		'',
+		`Stunde ${s.nr}${s.kontrolle ? ' (Lernzielkontrolle: Formate der Reihe, neue Items)' : ''}. Was die Kinder tun: ${s.handlung || 'nicht angegeben'}`,
+		`Neue Fachwörter: ${s.begriffe.join(', ') || 'keine'}.`,
+		...stundenZahlen(plan, s),
+		...(s.aufgaben.length
+			? ['Aufgaben der Stunde (Material, Format, Bereich, Inhalt):', ...s.aufgaben.map(zeileMitMaterial)]
+			: []),
+	]);
+
 /**
  * Was der Baulauf eines Materials aus der Übersicht braucht (für 220): die Stunde mit Handlungsform und Fachwörtern,
  * die Aufgaben dieses Materials und der Stunde, und die Formate aller anderen Stunden. Die Stunde eines Materials sind
  * die Stunden, in denen seine Aufgaben stehen; ein Material ohne eigene Aufgaben (Vorleseheft, Hinweise) bekommt die
- * ganze Reihe. Leer, wenn der Plan keine Übersicht hat.
+ * ganze Reihe mit jeder Aufgabe (252: es liest `einheit.json` nicht mehr). Leer, wenn der Plan keine Übersicht hat.
  */
 export const aufgabenFuerBau = (plan: EinheitPlan, slug: string): string => {
 	const stunden = plan.stunden ?? [];
@@ -520,6 +534,9 @@ export const aufgabenFuerBau = (plan: EinheitPlan, slug: string): string => {
 	}
 	const eigene = stunden.filter((s) => s.aufgaben.some((a) => a.dokument === slug));
 	const zeilen = [`Aufgaben-Übersicht aus dem freigegebenen Plan, für dokumente/${slug}:`];
+	if (eigene.length === 0) {
+		zeilen.push(...alleStunden(plan, stunden));
+	}
 	for (const s of eigene) {
 		const frueher = stunden.filter((t) => t.nr < s.nr).flatMap((t) => t.begriffe);
 		zeilen.push(
@@ -536,10 +553,10 @@ export const aufgabenFuerBau = (plan: EinheitPlan, slug: string): string => {
 		}
 	}
 	const rest = stunden.filter((s) => !eigene.includes(s));
-	if (rest.length) {
+	if (rest.length && eigene.length) {
 		zeilen.push(
 			'',
-			eigene.length ? 'Formate der anderen Stunden (nicht wiederholen):' : 'Formate der Stunden:',
+			'Formate der anderen Stunden (nicht wiederholen):',
 			...rest.map(
 				(s) =>
 					`- Stunde ${s.nr}${s.kontrolle ? ' (Lernzielkontrolle)' : ''}: ${[...new Set(s.aufgaben.map((a) => formatTitel(a.format)).filter(Boolean))].join('; ') || 'keine Aufgaben'}${s.begriffe.length ? ` (neu: ${s.begriffe.join(', ')})` : ''}`,
