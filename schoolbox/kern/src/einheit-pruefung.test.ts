@@ -456,7 +456,12 @@ describe('Nachricht an den Prüflauf (229)', () => {
 				pruefbilder: [`bilder/${datei}-v1.png`],
 				...(s ? { seiten: s } : {}),
 			});
-			const bilder = [bild('vorn.jpg', [3]), bild('hinten.jpg', [20]), bild('beide.png', [5, 25]), bild('frei.png')];
+			const bilder = [
+				bild('vorn.jpg', [3]),
+				bild('hinten.jpg', [20]),
+				bild('beide.png', [5, 25]),
+				bild('frei.png'),
+			];
 			const [eins, zwei] = pruefTeile({ ...lang, bilder });
 			assert.deepEqual(
 				eins?.bilder.map((b) => b.datei),
@@ -493,11 +498,17 @@ describe('Nachricht an den Prüflauf (229)', () => {
 				],
 			);
 			// Ausgeblendete Seite 1 mit Bildern nach der Seite im PDF: die sichtbaren Seiten der Reihe nach.
-			const ohneEins = [seite('<img src="../../bilder/x.png">', ' nur-loesung'), seite('<img src="../../bilder/y.png">')];
-			assert.deepEqual([...bildSeiten(ohneEins.join(''), [1])], [
-				['x.png', [1]],
-				['y.png', [1]],
-			]);
+			const ohneEins = [
+				seite('<img src="../../bilder/x.png">', ' nur-loesung'),
+				seite('<img src="../../bilder/y.png">'),
+			];
+			assert.deepEqual(
+				[...bildSeiten(ohneEins.join(''), [1])],
+				[
+					['x.png', [1]],
+					['y.png', [1]],
+				],
+			);
 		});
 
 		it('Befunde der Teile zusammen, Doppelte einmal', () => {

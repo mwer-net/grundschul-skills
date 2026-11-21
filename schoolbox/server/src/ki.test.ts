@@ -2317,7 +2317,9 @@ describe('Ordner des Prüflaufs (229)', () => {
 			}
 			await writeFile(
 				path.join(arbeit, 'bilder.json'),
-				JSON.stringify(namen.map((datei) => ({ datei, motiv: datei, vertrag: { pflicht: [`Vertrag ${datei}`] } }))),
+				JSON.stringify(
+					namen.map((datei) => ({ datei, motiv: datei, vertrag: { pflicht: [`Vertrag ${datei}`] } })),
+				),
 			);
 			const html = Array.from(
 				{ length: 30 },
