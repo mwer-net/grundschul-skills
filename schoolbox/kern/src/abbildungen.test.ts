@@ -1133,6 +1133,21 @@ describe('Ebene Geometrie (025)', () => {
 	const zuListe = (w: number[][]) => Array.from(w, (z) => Array.from(z).join(',')).sort();
 	const leer: number[][][] = [];
 
+	it('267: Geobrett 5 × 5 Nägel, Achse in der mittleren Spalte, Lösung ist der gespiegelte Gummi', () => {
+		const s = schema('x-gitter');
+		const halbeTanne = '2,0 1,1 1.5,1 0,3 2,3';
+		const w: Werte = { art: 'geobrett', spalten: '4', zeilen: '4', aufgabe: 'spiegeln', linien: halbeTanne };
+		assert.equal(aendereFeld(s, w, feld(s, 'achse'), 'senkrecht')['achse-bei'], '2');
+		const { bildVon, spiegelung } = rechenkerne();
+		const gummi = halbeTanne.split(' ').map((p) => p.split(',').map(Number));
+		const loesung = bildVon({ zellen: [], polys: [gummi] }, spiegelung('senkrecht', 2));
+		assert.deepEqual(
+			Array.from(loesung.polys[0] ?? [], (p) => Array.from(p).join(',')),
+			['2,0', '3,1', '2.5,1', '4,3', '2,3'],
+		);
+		assert.match(JS, /const rPunkt = art === "geobrett" \? 3 : 1\.6;\s+for \(let x = 0; x <= spalten; x\+\+\) for \(let y = 0; y <= zeilen; y\+\+\)/);
+	});
+
 	it('spiegelt Kästchen und Linien genau', () => {
 		const { bildVon, spiegelung } = rechenkerne();
 		const b = bildVon(

@@ -646,7 +646,7 @@ describe('Kanon: melden statt kürzen, Bildvertrag nur mit Regeln fürs Bild (26
 		assert.equal(meldungen.length, 10);
 		assert.deepEqual(kanonMeldungen({ regeln: [`  ${'x '.repeat(100)}  `] }), []);
 		assert.deepEqual(kanonMeldungen({ regeln: [{ text: 'Eine Regel.', bild: 'ja' }] }), [
-			'Kanon, Regel 1 („Eine Regel.“): „bild“ ist true oder false.',
+			'Kanon, Regel 1 („Eine Regel.“): „bild“ ist true, false oder "element".',
 		]);
 	});
 
@@ -709,6 +709,51 @@ describe('Kanon: melden statt kürzen, Bildvertrag nur mit Regeln fürs Bild (26
 			const [mit, ohne] = bilder.split('Regeln der Welt ohne Bildbezug');
 			assert.ok(mit?.includes(MIT_BILD.slice(0, -1)) && !mit.includes('Buchstaben B'));
 			assert.ok(ohne?.includes(OHNE_BILD.slice(0, -1)));
+		});
+	});
+
+	describe('bild: "element" je Regel (267)', () => {
+		const EXAKT = 'Das Geobrett hat 5 × 5 Nägel, die Spiegelachse ist ein roter Gummi über der mittleren Nagelspalte.';
+		const ZEILE = `Element: ${EXAKT.slice(0, -1)}`;
+		const kanon = leseKanon({ ...ROH, regeln: [...ROH.regeln, { text: EXAKT, bild: 'element' }] }) as EinheitKanon;
+		const plan = {
+			kanon,
+			geschichte: { kapitel: [{ nr: 4, titel: '', inhalt: '', bildfolien: ['4.1 Hanne am Geobrett'] }] },
+		} as unknown as Parameters<typeof pruefeBildVertrag>[0];
+		const pflicht = ['Luna: zwei Flügel; eine kleine Brille'];
+		const verboten = ['erkennbar vor Kapitel 6: Ella ist die Täterin', 'das Glöckchen bei Luna', 'der Spiegel bei Luna'];
+		const bild = (vertrag: Record<string, unknown>) => ({
+			datei: 'folie-4-1.jpg',
+			motiv: 'Luna zeigt auf das Geobrett',
+			vertrag: { pflicht, verboten, ...vertrag },
+		});
+
+		it('steht in regelnAlsElement, nicht in pflicht, sondern als „Element: …“ in frei', () => {
+			assert.deepEqual(kanon.regelnAlsElement, [EXAKT]);
+			assert.equal('regelnAlsElement' in KANON, false);
+			const v = bildVorschlag(kanon, 4, 'Luna zeigt auf das Geobrett');
+			assert.deepEqual(v.frei, [ZEILE]);
+			assert.ok(!v.pflicht.some((z) => z.includes('Nägel')), v.pflicht.join('\n'));
+			assert.equal('frei' in bildVorschlag(kanon, 4, 'Luna am Fenster'), false);
+			assert.deepEqual(kanonMeldungen({ regeln: [{ text: EXAKT, bild: 'element' }] }), []);
+		});
+
+		it('Vertrag ohne Platz abgelehnt, mit Platz angenommen, mit der Eigenschaft in pflicht abgelehnt', () => {
+			assert.match(pruefeBildVertrag(plan, bild({})) ?? '', /- frei, mit der Lage des Elements: „Element: Das Geobrett/);
+			assert.equal(pruefeBildVertrag(plan, bild({ frei: [{ was: ZEILE, lage: 'neben dem Bild' }] })), null);
+			const gemalt = pruefeBildVertrag(
+				plan,
+				bild({ pflicht: [...pflicht, { was: EXAKT }], frei: [{ was: ZEILE, lage: 'rechte Hälfte' }] }),
+			);
+			assert.ok(gemalt?.startsWith('Der Bildvertrag von folie-4-1.jpg verlangt vom Bildmodell'), gemalt ?? '');
+			assert.match(gemalt ?? '', /aus pflicht nehmen/);
+		});
+
+		it('Bilderlauf und Bau sehen die Regel als Element', () => {
+			const bilder = bilderKanonText(kanon, [4]);
+			assert.ok(bilder.includes(`- „${ZEILE}“`), bilder);
+			assert.ok(!bilder.split('Regeln mit exakter Eigenschaft')[0]?.includes('5 × 5'), bilder);
+			assert.ok(kanonText(kanon).includes(`- ${EXAKT} (Exakt: im Material als x-…-Element oder SVG`));
 		});
 	});
 

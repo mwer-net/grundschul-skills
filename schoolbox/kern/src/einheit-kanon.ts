@@ -76,6 +76,12 @@ export interface EinheitKanon {
 	 * Fehlt, wenn jede Regel Bildbezug hat, und bei Plänen davor.
 	 */
 	regelnOhneBild?: string[];
+	/**
+	 * Die Regeln aus `regeln`, die der Plan mit `bild: "element"` kennzeichnet (267): Sie legen eine exakte Eigenschaft
+	 * fest, an der eine Aufgabe hängt (Raster, Anzahl, Symmetrie, Achse). Kein Bildmodell malt sie; der Bildvertrag hält
+	 * in `frei` den Platz für das Element. Fehlt, wenn keine Regel so gekennzeichnet ist.
+	 */
+	regelnAlsElement?: string[];
 	begriffe: KanonBegriff[];
 }
 
@@ -166,10 +172,16 @@ const leseBegriffe = (roh: unknown) =>
 		.filter((b) => b.wort && b.bedeutung)
 		.slice(0, KANON_GRENZEN.begriffe);
 
-/** Eine Regel im Plan: ein Satz (gilt als `bild: true`) oder `{"text": "…", "bild": false}` (263). */
+/** Wert von `bild` für eine Regel, deren exakte Eigenschaft ein Element zeigt (267). */
+export const REGEL_ALS_ELEMENT = 'element';
+
+/**
+ * Eine Regel im Plan: ein Satz (gilt als `bild: true`) oder `{"text": "…", "bild": false}` (263), mit
+ * `"bild": "element"` eine Regel, deren exakte Eigenschaft ein Element zeigt (267).
+ */
 const regelVon = (r: unknown) => {
 	const x = typeof r === 'string' ? { text: r } : objekt(r);
-	return { text: einzeilig(x.text), bild: x.bild !== false };
+	return { text: einzeilig(x.text), bild: x.bild === REGEL_ALS_ELEMENT ? REGEL_ALS_ELEMENT : x.bild !== false };
 };
 
 const leseRegeln = (roh: unknown) =>
@@ -190,12 +202,14 @@ export const leseKanon = (roh: unknown): EinheitKanon | undefined => {
 	const x = roh as Record<string, unknown>;
 	const regeln = leseRegeln(x.regeln);
 	const ohneBild = regeln.filter((r) => !r.bild).map((r) => r.text);
+	const alsElement = regeln.filter((r) => r.bild === REGEL_ALS_ELEMENT).map((r) => r.text);
 	const kanon: EinheitKanon = {
 		figuren: leseFiguren(x.figuren),
 		dinge: leseDinge(x.dinge),
 		geheim: leseGeheim(x.geheim),
 		regeln: regeln.map((r) => r.text),
 		...(ohneBild.length ? { regelnOhneBild: ohneBild } : {}),
+		...(alsElement.length ? { regelnAlsElement: alsElement } : {}),
 		begriffe: leseBegriffe(x.begriffe),
 	};
 	const listen: readonly (readonly unknown[])[] = [
@@ -321,9 +335,9 @@ const regelMeldungen = (roh: unknown) => {
 			}
 			return [
 				...zuLang(`Regel ${i + 1} (${zitat(text)})`, text, KANON_GRENZEN.regel, TEILE_REGEL),
-				...(bild === undefined || typeof bild === 'boolean'
+				...(bild === undefined || typeof bild === 'boolean' || bild === REGEL_ALS_ELEMENT
 					? []
-					: [`Regel ${i + 1} (${zitat(text)}): „bild“ ist true oder false.`]),
+					: [`Regel ${i + 1} (${zitat(text)}): „bild“ ist true, false oder "${REGEL_ALS_ELEMENT}".`]),
 			];
 		}),
 	];
@@ -499,6 +513,10 @@ const nachtragBlock = (nachtrag: readonly KanonNachtrag[]) =>
 			].join('\n')
 		: '';
 
+/** 267: Hinter einer Regel mit `bild: "element"`, damit der Bau sie als Element setzt und nie ins Bild verlangt. */
+const alsElementHinweis = (k: EinheitKanon, regel: string) =>
+	k.regelnAlsElement?.includes(regel) ? ' (Exakt: im Material als x-…-Element oder SVG, nie aus dem Bildmodell.)' : '';
+
 /**
  * Der ganze Kanon für einen Bau-, Fach- oder Schlusslauf. Mit `kapitel` stehen die Zustände dieses Kapitels, was dort
  * noch geheim ist und welche Fachwörter noch nicht eingeführt sind, vorn. Mit `jeKapitel` (ohne Kapitel, für ein
@@ -521,7 +539,7 @@ export const kanonText = (
 		k.geheim.length
 			? [`Geheimnisse. ${VERRAT}`, ...k.geheim.map((g) => `- ${ohnePunkt(g.was)}: ${geheimBis(g)}.`)].join('\n')
 			: '',
-		k.regeln.length ? ['Regeln der Welt:', ...k.regeln.map((r) => `- ${r}`)].join('\n') : '',
+		k.regeln.length ? ['Regeln der Welt:', ...k.regeln.map((r) => `- ${r}${alsElementHinweis(k, r)}`)].join('\n') : '',
 		k.begriffe.length
 			? [
 					'Fachwörter, so erklärt und erst ab ihrer Stunde verwendet:',
@@ -563,10 +581,12 @@ export const bildKanon = (kanon: EinheitKanon | undefined, kapitel: number) => (
 
 // ── Bildvertrag aus dem Kanon (248) ──
 
-/** Ein Vorschlag für den Bildvertrag: Zeilen, die wörtlich in `pflicht` und `verboten` stehen müssen. */
+/** Ein Vorschlag für den Bildvertrag: Zeilen, die wörtlich in `pflicht`, `verboten` und `frei` stehen müssen. */
 export interface BildVorschlag {
 	pflicht: string[];
 	verboten: string[];
+	/** 267: der Platz je Element, das eine exakte Eigenschaft zeigt („Element: …“); fehlt, wenn es keins gibt. */
+	frei?: string[];
 }
 
 const BILD_DATEI_KAPITEL = /^(?:fall|folie)-(\d{1,2})(?=[-.])/;
@@ -644,11 +664,13 @@ const trifft = (nomen: string, wort: string) =>
 const regelImBild = (regel: string, woerter: ReadonlySet<string>, figuren: readonly string[]) =>
 	nomenDerRegel(regel, figuren).some((n) => [...woerter].some((w) => trifft(n, w)));
 
-/** Die Regeln, die ein Bildvertrag tragen kann: ohne die mit `bild: false` (263). */
+/** Die Regeln, die ein Bildvertrag in `pflicht` trägt: ohne die mit `bild: false` (263) und `"element"` (267). */
 const regelnFuerBild = (kanon: EinheitKanon) => {
-	const ohne = new Set(kanon.regelnOhneBild ?? []);
+	const ohne = new Set([...(kanon.regelnOhneBild ?? []), ...(kanon.regelnAlsElement ?? [])]);
 	return kanon.regeln.filter((r) => !ohne.has(r));
 };
+
+const elementZeile = (regel: string) => `Element: ${ohnePunkt(regel)}`;
 
 const figurPflicht = (f: KanonFigur) => `${f.name}: ${f.fest.map(ohnePunkt).join('; ')}`;
 /** Ohne doppelte Verneinung: „nie: keine Brille“ wird „nie: Brille“. */
@@ -676,6 +698,8 @@ const nichtBeiFigur = (d: KanonDing, f: KanonFigur, kapitel: number) => {
  *   Werkzeug oder Fachgegenstand im Bild die Regel.
  * - `verboten`: was im Kapitel noch geheim ist, je Figur ihr `nie`, Gegenstände, die die Figur nur in anderen
  *   Kapiteln hat.
+ * - `frei` (267): je Regel mit `bild: "element"` zu einem Ding im Bild „Element: …“. Die exakte Eigenschaft zeigt ein
+ *   Element auf oder neben dem Bild, nie das Bildmodell; der Vertrag hält den Platz dafür.
  * Ohne Kapitel (Grundpose, Pose, Deckblatt) Figuren, Regeln und die Geheimnisse wie in Kapitel 0: Diese Bilder sehen
  * die Kinder vor der Auflösung. Zustände und „Ding bei Figur“ nur mit Kapitel.
  */
@@ -684,6 +708,7 @@ export const bildVorschlag = (kanon: EinheitKanon, kapitel: number | null, text:
 	const figuren = kanon.figuren.filter((f) => nenntFigur(woerter, f.name));
 	const namen = kanon.figuren.map((f) => f.name);
 	const mitKapitel = <T>(ausKapitel: () => T[]) => (kapitel === null ? [] : ausKapitel());
+	const frei = (kanon.regelnAlsElement ?? []).filter((r) => regelImBild(r, woerter, namen)).map(elementZeile);
 	return {
 		pflicht: [
 			...figuren.filter((f) => f.fest.length).map(figurPflicht),
@@ -708,6 +733,7 @@ export const bildVorschlag = (kanon: EinheitKanon, kapitel: number | null, text:
 				),
 			),
 		],
+		...(frei.length ? { frei } : {}),
 	};
 };
 
@@ -739,7 +765,18 @@ export const fehlendeZeilen = (vorschlag: BildVorschlag, vertrag: unknown): Bild
 		const da = blaetter(feld).map(abgleichText);
 		return zeilen.filter((z) => !da.some((d) => d.includes(abgleichText(z))));
 	};
-	return { pflicht: fehlt(vorschlag.pflicht, v.pflicht), verboten: fehlt(vorschlag.verboten, v.verboten) };
+	const frei = fehlt(vorschlag.frei ?? [], v.frei);
+	return {
+		pflicht: fehlt(vorschlag.pflicht, v.pflicht),
+		verboten: fehlt(vorschlag.verboten, v.verboten),
+		...(frei.length ? { frei } : {}),
+	};
+};
+
+/** 267: Regeln mit `bild: "element"`, die ein Vertrag trotzdem in `pflicht` stellt; dann malte sie das Bildmodell. */
+const elementInPflicht = (kanon: EinheitKanon, vertrag: unknown) => {
+	const da = blaetter(objekt(vertrag).pflicht).map(abgleichText);
+	return (kanon.regelnAlsElement ?? []).filter((r) => da.some((d) => d.includes(abgleichText(r))));
 };
 
 /** Eine Grundpose (253: `pose: "grund"`, sonst Motiv oder Dateiname einer Figur des Kanons), `bildFigur`. */
@@ -760,6 +797,10 @@ const zeigtText = (kanon: EinheitKanon, motiv: string, vertrag: unknown) => {
 	};
 	return [motiv, ...blaetter(objekt(vertrag).pflicht).filter((b) => !ausKanon(b))].join('\n');
 };
+
+/** 267: wie eine Regel mit `bild: "element"` ins Bild kommt; für Bilderlauf und Ablehnung gleich. */
+export const ELEMENT_SATZ =
+	'Die Szene zeigt das Ding nur ohne die exakte Eigenschaft (von der Seite, klein im Hintergrund) oder gar nicht; Prompt und „pflicht“ nennen die Eigenschaft nicht. Sie kommt als x-…-Element oder SVG groß auf den Platz aus „frei“ oder neben das Bild (bilder.md, Abschnitt 3, Punkt 1).';
 
 export const GRUNDPOSE_SATZ =
 	'Die Grundpose zeigt nur, was die Figur in jeder Szene hat (Kanon `figuren.fest`). Gegenstände der Handlung (Kanon `dinge`) kommen nie in die Grundpose.';
@@ -788,13 +829,21 @@ export const pruefeBildVertrag = (
 	}
 	const kapitel = istGrundpose(kanon, e) ? null : bildKapitel(plan, e.datei, e.motiv);
 	const fehlt = fehlendeZeilen(bildVorschlag(kanon, kapitel, text), e.vertrag);
-	if (!fehlt.pflicht.length && !fehlt.verboten.length) {
+	const zuViel = elementInPflicht(kanon, e.vertrag);
+	if (!fehlt.pflicht.length && !fehlt.verboten.length && !fehlt.frei?.length && !zuViel.length) {
 		return null;
 	}
+	const kopf = fehlt.pflicht.length || fehlt.verboten.length || fehlt.frei?.length;
 	return [
-		`Dem Bildvertrag von ${e.datei} fehlen Zeilen aus dem Kanon${kapitel === null ? '' : ` (Kapitel ${kapitel})`}. Übernimm jede wörtlich als eigenen Eintrag in ihr Feld von „vertrag“ und erzeuge das Bild dann:`,
+		kopf
+			? `Dem Bildvertrag von ${e.datei} fehlen Zeilen aus dem Kanon${kapitel === null ? '' : ` (Kapitel ${kapitel})`}. Übernimm jede wörtlich als eigenen Eintrag in ihr Feld von „vertrag“ und erzeuge das Bild dann:`
+			: `Der Bildvertrag von ${e.datei} verlangt vom Bildmodell eine exakte Eigenschaft, die ein Element zeigt:`,
 		fehlt.pflicht.length ? `- pflicht: ${zitiert(fehlt.pflicht)}` : '',
 		fehlt.verboten.length ? `- verboten: ${zitiert(fehlt.verboten)}` : '',
+		fehlt.frei?.length ? `- frei, mit der Lage des Elements: ${zitiert(fehlt.frei)}` : '',
+		zuViel.length
+			? `- aus pflicht nehmen und nur als „Element: …“ in frei: ${zitiert(zuViel.map(ohnePunkt))}. ${ELEMENT_SATZ}`
+			: '',
 	]
 		.filter(Boolean)
 		.join('\n');
@@ -835,7 +884,8 @@ export const bilderKanonText = (kanon: EinheitKanon | undefined, kapitel: readon
 	);
 	const je = nummern.flatMap((nr) => kapitelZeilen(kanon, nr));
 	const mitBild = regelnFuerBild(kanon);
-	const ohneBild = kanon.regeln.filter((r) => !mitBild.includes(r));
+	const alsElement = kanon.regelnAlsElement ?? [];
+	const ohneBild = kanon.regeln.filter((r) => !mitBild.includes(r) && !alsElement.includes(r));
 	return [
 		'Kanon für die Bilder (aus dem freigegebenen Plan). Ein Bild gehört zum Kapitel seiner Fall-Karte oder Bildfolie („3.1“ zu Kapitel 3).',
 		`Bildvertrag aus dem Kanon: Übernimm jede Zeile, die zu einem Bild passt, wörtlich als eigenen Eintrag in „pflicht“ oder „verboten“ seines Vertrags und ergänze, was das Bild sonst braucht. bild_erzeugen lehnt einen Vertrag ab, dem eine dieser Zeilen fehlt, und nennt sie. ${GRUNDPOSE_SATZ} Grundposen, Posen und das Deckblatt haben kein Kapitel: Für sie gelten Figuren, Regeln und die Geheimnisse von Kapitel 0. Eine Pose, die erst ab einem Kapitel vorkommt, nennt es am Anfang des Motivs („Kapitel 6: …“); die Grundpose nie.`,
@@ -844,6 +894,12 @@ export const bilderKanonText = (kanon: EinheitKanon | undefined, kapitel: readon
 			? [
 					'Regeln der Welt. Handelt eine von einem Werkzeug oder Gegenstand im Bild, steht sie in „pflicht“; sie sagt, wie er aussieht und benutzt wird:',
 					...mitBild.map((r) => `- „${ohnePunkt(r)}“`),
+				].join('\n')
+			: '',
+		alsElement.length
+			? [
+					`Regeln mit exakter Eigenschaft, an der eine Aufgabe hängt. Zeigt ein Bild das Ding, steht die Zeile wörtlich in „frei“ seines Vertrags, mit der Lage des Elements („neben dem Bild“, wenn es dort steht). ${ELEMENT_SATZ}`,
+					...alsElement.map((r) => `- „${elementZeile(r)}“`),
 				].join('\n')
 			: '',
 		ohneBild.length
