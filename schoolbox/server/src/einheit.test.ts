@@ -1572,6 +1572,65 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.match(herkunft, /\toffen\tDie Zeiger fehlen\.\t[0-9a-f]{16}\n$/);
 		});
 
+		const bildPruefungen = () =>
+			jsonl<{ dateien: string[]; zweite: boolean; auftrag: string; eingabe: string }>('bildpruefungen.jsonl');
+		const laufArten = async (mappe: string) => {
+			const roh = await readFile(path.join(mappenDir(server.materialDir, mappe), LAUF_DATEI), 'utf8');
+			return (JSON.parse(roh) as LaufProtokoll).laeufe.map((e) => e.art);
+		};
+
+		it('268: Nach dem Bilderlauf die Bildprüfung; ohne Befund ist das Bild abgenommen und in bilderGeprueft', async () => {
+			await fall('einheit-bild');
+			const vorher = (await bildPruefungen()).length;
+			const { id, mappe } = await starte(MIT_BILDERN);
+			const s = await bis(id, 'fertig');
+			const runden = (await bildPruefungen()).slice(vorher);
+			assert.equal(runden.length, 1, 'ohne Befund keine zweite Runde');
+			assert.equal(runden[0]?.auftrag, 'einheit-bildpruefung.md');
+			assert.match(runden[0]?.eingabe ?? '', /^Bildprüfung .*\n[\s\S]*uhr-gross\.png/);
+			const arten = await laufArten(mappe);
+			assert.ok(arten.indexOf('bildpruefung') > arten.indexOf('bilder'), 'die Bildprüfung läuft nach dem Bilderlauf');
+			assert.equal(arten.filter((a) => a === 'bilder').length, 1, 'ohne Befund kein fortgesetzter Bilderlauf');
+			assert.equal(s.bilderGeprueft?.length, 1);
+			assert.match(s.bilderGeprueft?.[0] ?? '', /^[0-9a-f]{16}$/);
+		});
+
+		it('268: Befunde der Bildprüfung gehen per --resume an den Bilderlauf; die zweite Runde sieht das neue Bild', async () => {
+			await fall('einheit-bild-befund');
+			const vorher = (await bildPruefungen()).length;
+			const laeufeVorher = (await jsonl<{ erste: string; resume: boolean }>('laeufe.jsonl')).length;
+			const { id, mappe } = await starte(MIT_BILDERN);
+			const s = await bis(id, 'fertig');
+			const runden = (await bildPruefungen()).slice(vorher);
+			assert.deepEqual(
+				runden.map((r) => r.zweite),
+				[false, true],
+			);
+			const fortgesetzt = (await jsonl<{ erste: string; resume: boolean }>('laeufe.jsonl'))
+				.slice(laeufeVorher)
+				.filter((l) => l.erste.startsWith('Bildprüfung mit frischem Blick'));
+			assert.equal(fortgesetzt.length, 1);
+			assert.equal(fortgesetzt[0]?.resume, true);
+			const text = (await prompts()).find((p) => p.startsWith('Bildprüfung mit frischem Blick')) ?? '';
+			assert.match(text, /- bilder\/uhr-gross\.png: Im Viertel unten rechts fehlt der Minutenzeiger\./);
+			assert.deepEqual(
+				(await laufArten(mappe)).filter((a) => a === 'bilder' || a === 'bildpruefung'),
+				['bilder', 'bildpruefung', 'bilder', 'bildpruefung'],
+			);
+			assert.equal(s.bilderGeprueft?.length, 1, 'nach der zweiten Runde abgenommen');
+			assert.ok(!(s.bildHinweise ?? []).length);
+		});
+
+		it('268: Was nach der zweiten Bildprüfung noch fehlt, wird ein Hinweis; nicht abgenommen', async () => {
+			await fall('einheit-bild-befund-stur');
+			const { id } = await starte(MIT_BILDERN);
+			const s = await bis(id, 'fertig');
+			assert.deepEqual(s.bildHinweise, [
+				{ datei: 'uhr-gross.png', text: 'Im Viertel unten rechts fehlt der Minutenzeiger.', von: BILDER_SCHRITT },
+			]);
+			assert.ok(!(s.bilderGeprueft ?? []).length);
+		});
+
 		it('Sperrt OpenAI im Bilder-Lauf: unvollständig mit dem Satz, ohne Pause, ohne Material; Weiterbauen geht dort weiter', async () => {
 			await fall('einheit-bild-gesperrt');
 			const vorher = (await jsonl<{ erste: string }>('laeufe.jsonl')).length;

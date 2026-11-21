@@ -13,10 +13,13 @@
  * `--vertraege <datei>` (sonst `<prüfstand>/bildvertraege.json`, wenn es sie gibt) ersetzt den Vertrag einzelner Bilder
  * aus `mappe/bilder.json`, etwa von Hand aus dem Kanon geschrieben (248): Der zweite Blick sieht ihn, wie der Server
  * ihn aus `bilder.json` des Arbeitsordners nimmt; fehlt ihm eine Zeile, die `bild_erzeugen` verlangen würde, sagt das
- * Skript es vor dem Lauf.
+ * Skript es vor dem Lauf. Teil `bild` (268) ist die Bildprüfung wie im Server nach dem Bilderlauf: die KI-Bilder der
+ * gewählten Materialien, je Kapitel ein Lauf (`bildPruefLaeufe`), Viertel und Ausschnitt aus `mappe/ansicht/bilder/`
+ * oder, wo sie fehlen, mit `blatt.py viertel` neu geschnitten, dazu Vertrag, Kanon und Bildvorschlag. Ein Befund zählt
+ * im Abgleich bei jedem gewählten Material, das sein Bild zeigt, ohne Seite.
  *
  *   pnpm --filter @schoolbox/server exec tsx scripts/pruefstand.ts <prüfstand> [--nur a,b]
- *     [--teil kind,blick,fach,plan] [--plan <datei>] [--recherche <datei>] [--vertraege <datei>] [--trocken] [--ja]
+ *     [--teil kind,blick,fach,plan,bild] [--plan <datei>] [--recherche <datei>] [--vertraege <datei>] [--trocken] [--ja]
  *     [--abgleich <ergebnis.json>]
  *
  * Der Ordner `<prüfstand>` hält `mappe/` (Kopie der Mappe mit `bilder.json` und den Prüfbildern unter
@@ -73,9 +76,13 @@ import {
 } from '@schoolbox/kern';
 import { planKanonMeldungen, pruefeBildVertrag, pruefKanon } from '@schoolbox/kern/src/einheit-kanon';
 
+import { erstelleZuschnitt } from '../src/bild-datei';
+import type { BildPruefLauf, KiBild } from '../src/bild-pruefung';
+import { befundeJeBild, bildPruefAuftrag, bildPruefLaeufe, leseKiBilder } from '../src/bild-pruefung';
 import type { PruefErgebnis } from '../src/ki';
 import {
 	beendeKind,
+	BILD_PRUEF_AUFTRAG,
 	FACHBLICK_AUFTRAG,
 	KI_GRENZEN,
 	kiPfad,
@@ -94,6 +101,8 @@ const KOSTEN_JE_LAUF = { min: 0.7, mittel: 1.1, max: 1.4 };
 const BILD_IM_DOKUMENT = /\.\.\/\.\.\/bilder\/([a-z0-9][a-z0-9-]{0,59}\.(?:png|jpg))/g;
 /** Geschätzt für 247: Plan, Recherche und zwei Skills lesen, ohne Bilder; etwa ein Fachblick ohne Seiten. */
 const KOSTEN_PLAN = { min: 0.4, mittel: 0.7, max: 1.2 };
+/** Geschätzt für 268: ein Lauf der Bildprüfung liest je Bild vier Viertel und den Ausschnitt, höchstens sechs Bilder. */
+const KOSTEN_BILD = { min: 0.4, mittel: 0.8, max: 1.2 };
 /** Wie im Server: Diese Materialien geben dem Fachblick der Hinweise keine Lösungsseiten. */
 const OHNE_FREMDE_LOESUNG = new Set(['deckblatt', 'quellen', 'angebot', 'hinweise', 'bilder']);
 
@@ -790,6 +799,168 @@ const pruefePlan = async (k: Kontext, r: PlanRechnung): Promise<Ergebnis | null>
 	}
 };
 
+/** Die KI-Bilder, die die gewählten Materialien zeigen, mit den Slugs der Materialien je Bild. */
+const bilderDerMaterialien = async (p: Pruefstand, materialien: readonly PlanDokument[]) => {
+	const je = new Map<string, string[]>();
+	for (const d of materialien) {
+		const q = await quelleVon(p, d);
+		for (const t of q ? q.html.matchAll(BILD_IM_DOKUMENT) : []) {
+			const datei = t[1] ?? '';
+			if (p.bilderListe.has(datei) && !(je.get(datei) ?? []).includes(d.slug)) {
+				je.set(datei, [...(je.get(datei) ?? []), d.slug]);
+			}
+		}
+	}
+	const bilder = (await leseKiBilder(p.mappe)).filter((b) => je.has(b.datei));
+	return { je, laeufe: bildPruefLaeufe(p.plan, bilder, KI_GRENZEN.einheit.bildPruefung.bilderJeLauf) };
+};
+
+/**
+ * Ein Arbeitsordner wie im Server: `bilder.json` aus `bildArbeit`, `bilder/` verlinkt, unter `ansicht/bilder/` die
+ * Prüfbilder der Mappe; fehlen sie für ein Bild, schneidet `blatt.py viertel` sie wie `bild_erzeugen`.
+ */
+const bildArbeitFuer = async (k: Kontext, bilder: readonly KiBild[]) => {
+	const arbeit = await mkdtemp(path.join(tmpdir(), 'schoolbox-pruefstand-bild-'));
+	await copyFile(path.join(k.bildArbeit, 'bilder.json'), path.join(arbeit, 'bilder.json'));
+	await symlink(path.join(k.p.mappe, 'bilder'), path.join(arbeit, 'bilder'));
+	const ziel = path.join(arbeit, 'ansicht', 'bilder');
+	await mkdir(ziel, { recursive: true });
+	const vorhanden = path.join(k.p.mappe, 'ansicht', 'bilder');
+	const zuschnitt = erstelleZuschnitt(k.konfig.pythonBin, ziel);
+	let neu = 0;
+	for (const b of bilder) {
+		const stamm = b.datei.replace(/\.(png|jpg)$/, '');
+		const namen = ['v1', 'v2', 'v3', 'v4', 'platz'].map((n) => `${stamm}-${n}.png`);
+		if (namen.every((n) => existsSync(path.join(vorhanden, n)))) {
+			for (const n of namen) {
+				await copyFile(path.join(vorhanden, n), path.join(ziel, n));
+			}
+			continue;
+		}
+		const e = JSON.parse(b.vertrag) as { platz?: { breite: number; hoehe: number }; blickpunkt?: { x: number; y: number } };
+		await zuschnitt(await readFile(path.join(k.p.mappe, 'bilder', b.datei)), {
+			datei: b.datei,
+			...(e.platz ? { platz: e.platz } : {}),
+			...(e.blickpunkt ? { blickpunkt: e.blickpunkt } : {}),
+		});
+		neu++;
+	}
+	console.log(`bild: ${bilder.length} KI-Bilder, ${neu ? `für ${neu} die Prüfbilder neu geschnitten` : 'Prüfbilder aus der Mappe'}.`);
+	return arbeit;
+};
+
+/**
+ * Teil `bild` (268) wie `pruefeBilder` im Server, erste Runde: je Lauf derselbe Auftrag (`bildPruefAuftrag`), dieselbe
+ * Vorlage und Grenzen. Die Befunde gehen an jedes gewählte Material, das ihr Bild zeigt; ein Material, dessen Bilder
+ * ein gescheiterter Lauf hatte, gilt für `bild` als nicht geprüft.
+ */
+const pruefeBilderTeil = async (
+	k: Kontext,
+	plan: { je: Map<string, string[]>; laeufe: BildPruefLauf[] },
+): Promise<Ergebnis[]> => {
+	const { p } = k;
+	const arbeit = await bildArbeitFuer(
+		k,
+		plan.laeufe.flatMap((l) => l.bilder),
+	);
+	const jeMaterial = new Map<string, Ergebnis[]>();
+	const kopf = { klasse: klasseText(p.klasse), fach: FACH_NAME[p.fach], auftrag: p.auftrag };
+	try {
+		for (const [i, lauf] of plan.laeufe.entries()) {
+			if (k.zustand.abgebrochen) {
+				break;
+			}
+			const nr = i + 1;
+			const name = `bild-${nr}`;
+			const ordner = k.ausgabe ? path.join(k.ausgabe, name) : await mkdtemp(path.join(tmpdir(), 'schoolbox-pruefstand-'));
+			await mkdir(ordner, { recursive: true });
+			const beginn = Date.now();
+			try {
+				const auftrag = await bildPruefAuftrag({ ordner, arbeit, plan: p.plan, lauf, kopf, runde: 1 });
+				const wo = `${lauf.kapitel === null ? 'ohne Kapitel' : `Kapitel ${lauf.kapitel}`}${lauf.teil ? `, Teil ${lauf.teil.nr} von ${lauf.teil.von}` : ''}`;
+				if (k.ausgabe) {
+					const datei = path.join(k.ausgabe, `${name}.txt`);
+					await writeFile(datei, auftrag.text);
+					console.log(
+						`${name}, Bildprüfung ${wo}: ${lauf.bilder.length} Bilder, ${auftrag.bilder.reduce((s, b) => s + b.pruefbilder.length, 0)} Prüfbilder → ${datei}`,
+					);
+					continue;
+				}
+				console.log(`${name}, Bildprüfung ${wo} läuft …`);
+				const gelesen: string[] = [];
+				const e = await pruefeLauf({
+					bin: kiPfad(k.konfig),
+					...k.ki,
+					ordner,
+					ablage: k.ablage,
+					text: auftrag.text,
+					grenzen: KI_GRENZEN.einheit.bildPruefung,
+					auftragDatei: BILD_PRUEF_AUFTRAG,
+					rolle: 'kind',
+					vorgabe: 'bild',
+					gestartet: (kind) => {
+						k.zustand.laufend = kind;
+					},
+					werkzeug: (werkzeug, eingabe) => {
+						if (werkzeug === 'Read' && typeof eingabe.file_path === 'string') {
+							gelesen.push(path.relative(ordner, eingabe.file_path));
+						}
+					},
+					mitschrift: { materialDir: p.ordner, mappe: 'pruefstand', dok: name, art: 'pruefstand-bild' },
+				});
+				k.zustand.laufend = null;
+				const kosten = zahlAus(e.verbrauch.kostenUsd);
+				console.log(
+					`${name}: ${e.fehler ? `gescheitert (${e.fehler})` : `${e.befunde.length} Befunde`}${e.lesbar ? '' : ', Antwort ohne lesbaren Block'}, ${gelesen.length} Read, ${usd(kosten)}`,
+				);
+				const befunde = befundeJeBild(auftrag.bilder, e.befunde);
+				const slugs = [...new Set(lauf.bilder.flatMap((b) => plan.je.get(b.datei) ?? []))];
+				for (const [j, slug] of slugs.entries()) {
+					const eigene = lauf.bilder.filter((b) => (plan.je.get(b.datei) ?? []).includes(slug));
+					const liste = e.befunde.filter((b) => eigene.some((x) => (befunde.get(x.datei) ?? []).includes(b)));
+					jeMaterial.set(slug, [
+						...(jeMaterial.get(slug) ?? []),
+						{
+							slug,
+							rolle: 'bild',
+							geprueft: e.fehler || !e.lesbar ? [] : ['bild'],
+							befunde: liste.map((b) => ({ ...b, seite: null })),
+							fehler: e.fehler ?? (e.lesbar ? null : 'Antwort ohne lesbaren Block'),
+							lesbar: e.lesbar,
+							// Die Kosten eines Laufs zählen beim ersten Material, das er geprüft hat.
+							kostenUsd: j === 0 ? kosten : 0,
+							runden: j === 0 ? zahlAus(e.verbrauch.runden) : 0,
+							sekunden: j === 0 ? Math.round((Date.now() - beginn) / 1000) : 0,
+							laeufe: [
+								{
+									rolle: 'bild',
+									lauf: name,
+									bilder: eigene.map((b) => b.datei),
+									befunde: liste.length,
+									fehler: e.fehler,
+									lesbar: e.lesbar,
+									...(j === 0 ? { verbrauch: e.verbrauch, gelesen } : {}),
+								},
+							],
+						},
+					]);
+				}
+			} finally {
+				if (!k.ausgabe) {
+					await rm(ordner, { recursive: true, force: true });
+				}
+			}
+		}
+	} finally {
+		await rm(arbeit, { recursive: true, force: true });
+	}
+	return [...jeMaterial.values()].map((teile) => {
+		// Ein Material mit Bildern in mehreren Läufen: geprüft nur, wenn jeder davon gelang.
+		const ganz = zusammen(teile);
+		return teile.some((e) => e.fehler) ? { ...ganz, geprueft: [] } : ganz;
+	});
+};
+
 const schreibeErgebnis = async (p: Pruefstand, o: Optionen, ki: KiLauf, ergebnisse: Ergebnis[]) => {
 	const abgleich = gleicheAb(p.katalog, ergebnisse);
 	const tabelle = abgleichTabelle(p.katalog, abgleich);
@@ -866,14 +1037,22 @@ const fuehreAus = async (o: Optionen) => {
 	}
 	const vorhaben = await planeVorhaben(p, o);
 	const mitPlan = o.teile.includes('plan');
+	const bildPlan = o.teile.includes('bild') ? await bilderDerMaterialien(p, waehleMaterialien(p, o.nur)) : null;
+	const nBild = bildPlan?.laeufe.length ?? 0;
+	if (bildPlan) {
+		console.log(
+			`- bild: ${bildPlan.je.size} KI-Bilder in den gewählten Materialien, ${nBild} Läufe der Bildprüfung (je Kapitel, höchstens ${KI_GRENZEN.einheit.bildPruefung.bilderJeLauf} Bilder)`,
+		);
+	}
 	const rechnung = mitPlan ? rechnungFuer(p) : { befunde: [], ausgelassen: [] };
 	const ki = await kiLaufJetzt(ladeKonfig(), 'gross');
 	const n = vorhaben.flat().length;
-	const kosten = (art: keyof typeof KOSTEN_JE_LAUF) => n * KOSTEN_JE_LAUF[art] + (mitPlan ? KOSTEN_PLAN[art] : 0);
+	const kosten = (art: keyof typeof KOSTEN_JE_LAUF) =>
+		n * KOSTEN_JE_LAUF[art] + (mitPlan ? KOSTEN_PLAN[art] : 0) + nBild * KOSTEN_BILD[art];
 	console.log(
-		`\n${vorhaben.length} Materialien, ${n} Prüfläufe (über 24 Seiten einer je 16 Seiten)${mitPlan ? ', dazu die Plan-Prüfung' : ''}, Modell ${ki.modell}, Gründlichkeit ${ki.effort}. Geschätzt rund ${usd(kosten('mittel'))} (${usd(kosten('min'))} bis ${usd(kosten('max'))}).`,
+		`\n${vorhaben.length} Materialien, ${n} Prüfläufe (über 24 Seiten einer je 16 Seiten)${mitPlan ? ', dazu die Plan-Prüfung' : ''}${nBild ? `, dazu ${nBild} Läufe der Bildprüfung` : ''}, Modell ${ki.modell}, Gründlichkeit ${ki.effort}. Geschätzt rund ${usd(kosten('mittel'))} (${usd(kosten('min'))} bis ${usd(kosten('max'))}).`,
 	);
-	if (!n && !mitPlan) {
+	if (!n && !mitPlan && !nBild) {
 		return;
 	}
 	if (!o.trocken && !o.ja) {
@@ -923,6 +1102,18 @@ const fuehreAus = async (o: Optionen) => {
 			}
 			if (teile.length) {
 				ergebnisse.push(zusammen(teile));
+			}
+		}
+		if (bildPlan && nBild && !k.zustand.abgebrochen) {
+			// Der Abgleich nimmt je Material ein Ergebnis: die Bildprüfung kommt zu dem des Materials dazu.
+			for (const b of await pruefeBilderTeil(k, bildPlan)) {
+				const i = ergebnisse.findIndex((e) => e.slug === b.slug);
+				const alt = ergebnisse[i];
+				if (alt) {
+					ergebnisse[i] = zusammen([alt, b]);
+				} else {
+					ergebnisse.push(b);
+				}
 			}
 		}
 	} finally {

@@ -98,6 +98,7 @@ import { liesReferenzen, loeseReferenz, pfadText } from '@schoolbox/kern/src/ref
 
 import { ANSICHT_BILDER, BILDER_LISTE } from './bild-datei';
 import { BILD_GRENZEN } from './bild-grenzen';
+import { kiBildAus, legePruefbilderAb, leseKiBildEintraege, MAX_VERTRAG } from './bild-pruefung';
 import { REFERENZ_ORDNER } from './bild-werkzeug';
 import type { BildApi, BildKonfig } from './bild-zugang';
 import { erstelleLaufBilder, grundposeReferenz, posenPfad } from './bild-zugang';
@@ -205,6 +206,35 @@ export const KI_GRENZEN = {
 		material: { zeitMs: 30 * 60_000, runden: 200, budgetUsd: 20, budgetGuthabenUsd: 5 },
 		/** Der Schritt „Bilder“: Leitfigur, Posen und die Szenen aller Kapitel, je Bild bis zu drei Versuche. */
 		bilder: { zeitMs: 60 * 60_000, runden: 300, budgetUsd: 25, budgetGuthabenUsd: 5, cacheTtl: KURZER_CACHE },
+		/**
+		 * Die Bildprüfung nach dem Bilderlauf (268): je Kapitel ein Lauf mit frischem Blick, nur Read, höchstens
+		 * `bilderJeLauf` Bilder (je Bild vier Viertel und der Ausschnitt, gemessen rund 5k Token je Prüfbild), zwei Läufe
+		 * gleichzeitig wie Kinderaugen und Fachblick. Geschätzt 0,5 bis 1 USD je Lauf; die Grenzen eines Prüflaufs mit
+		 * mehr Runden, weil jedes Prüfbild ein Read ist. Die Reserve des Schlusses (262) hält `grenzenFuer` zurück.
+		 */
+		bildPruefung: {
+			zeitMs: 10 * 60_000,
+			runden: 60,
+			budgetUsd: 3,
+			budgetGuthabenUsd: 1,
+			cacheTtl: KURZER_CACHE,
+			bilderJeLauf: 6,
+			gleichzeitig: 2,
+		},
+		/**
+		 * Der Bilderlauf nach der Bildprüfung (268), per `--resume` in seiner Sitzung: Er erzeugt die Bilder mit Befund
+		 * neu. Am 2026-11-20 fanden die Prüfer 5 bis 6 Fehler in 26 Bildern; je Bild Erzeugen, Ganzes und Ausschnitt
+		 * ansehen, abhaken, rund 4 Runden. Kosten vor allem das Lesen des Kontexts (rund 250k Token je Runde, 0,05 USD)
+		 * und, nach mehr als 5 Minuten Bildprüfung, einmal das Neuschreiben in den Cache (rund 1,3 USD). 5 min bleibt
+		 * trotzdem billiger als 1 h (Rechnung in 268).
+		 */
+		bilderNachPruefung: {
+			zeitMs: 30 * 60_000,
+			runden: 120,
+			budgetUsd: 10,
+			budgetGuthabenUsd: 3,
+			cacheTtl: KURZER_CACHE,
+		},
 		/** So oft geht ein Material mit Sperre oder Prüf-FEHLER an seinen Lauf zurück. */
 		korrekturen: 1,
 		/**
@@ -1017,11 +1047,11 @@ export const PRUEF_AUFTRAG = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'e
 export const PLAN_PRUEF_AUFTRAG = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit-plan-pruefung.md');
 /** Der Fachblick (244): eigener Lauf neben dem mit Kinderaugen, in einer Kopie des Prüfordners. */
 export const FACHBLICK_AUFTRAG = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit-fachblick.md');
+/** Die Bildprüfung (268): eigener Lauf je Kapitel nach dem Bilderlauf, nur Read, Prüfbilder im eigenen Ordner. */
+export const BILD_PRUEF_AUFTRAG = path.join(WURZEL, 'schoolbox', 'vorlagen', 'ki', 'einheit-bildpruefung.md');
 /** Im Prüfordner des Fachblicks der Hinweise: die Lösungsseiten der anderen Materialien, je Material ein Ordner. */
 export const ANDERE_ORDNER = 'andere';
 const BILD_IM_MATERIAL = /\.\.\/\.\.\/bilder\/([a-z0-9][a-z0-9-]{0,59}\.(?:png|jpg))/g;
-/** Mit den Zeilen aus dem Kanon (248) wird ein Vertrag länger; abgeschnitten fiele `verboten` am Ende weg. */
-const MAX_VERTRAG = 3000;
 const LOESUNGSSEITE = /^loesung-seite-\d+\.png$/;
 const LOESUNG_ORDNER = 'loesung';
 
@@ -1064,46 +1094,21 @@ export const richtePruefOrdnerEin = async (
 	}
 	const seiten = gebaut.filter((b) => /^seite-\d+\.png$/.test(b));
 	const ausschnitte = gebaut.filter((b) => /^seite-\d+-aufgabe-\d+\.png$/.test(b));
-	let liste: unknown = [];
-	try {
-		liste = JSON.parse(await readFile(path.join(arbeit, 'bilder.json'), 'utf8'));
-	} catch {
-		// Keine Bildliste: keine neuen Bilder.
-	}
-	const eintraege = new Map(
-		(Array.isArray(liste) ? (liste as Record<string, unknown>[]) : [])
-			.filter((e) => typeof e.datei === 'string')
-			.map((e) => [String(e.datei), e]),
-	);
-	const vorhanden = await readdir(path.join(arbeit, ANSICHT_BILDER)).catch(() => [] as string[]);
+	const eintraege = await leseKiBildEintraege(arbeit);
 	const bilder: PruefBild[] = [];
 	for (const datei of new Set([...html.matchAll(BILD_IM_MATERIAL)].map((t) => t[1] ?? ''))) {
 		const e = eintraege.get(datei);
 		if (!e) {
 			continue;
 		}
-		const stamm = datei.replace(/\.(png|jpg)$/, '');
-		const vertrag = JSON.stringify({ platz: e.platz, blickpunkt: e.blickpunkt, vertrag: e.vertrag });
-		const motiv = typeof e.motiv === 'string' ? e.motiv.slice(0, 200) : '';
-		const inhalt = await readFile(path.join(arbeit, 'bilder', datei)).catch(() => null);
-		const bildKennung = inhalt
-			? createHash('sha256').update(inhalt).update(motiv).update(vertrag).digest('hex').slice(0, 16)
-			: null;
-		const schonGeprueft = bildKennung !== null && geprueft.has(bildKennung);
-		const muster = new RegExp(`^${stamm}-(${schonGeprueft ? 'platz' : 'v[1-4]|platz'})\\.png$`);
-		const pruefbilder = vorhanden.filter((n) => muster.test(n)).sort();
-		if (pruefbilder.length) {
-			await mkdir(path.join(ordner, 'bilder'), { recursive: true });
-			for (const n of pruefbilder) {
-				await cp(path.join(arbeit, ANSICHT_BILDER, n), path.join(ordner, 'bilder', n));
-			}
-		}
+		const b = await kiBildAus(arbeit, e);
+		const schonGeprueft = b.kennung !== null && geprueft.has(b.kennung);
 		bilder.push({
 			datei,
-			motiv,
-			vertrag: vertrag.slice(0, MAX_VERTRAG),
-			pruefbilder: pruefbilder.map((n) => `bilder/${n}`),
-			...(bildKennung ? { kennung: bildKennung } : {}),
+			motiv: b.motiv,
+			vertrag: b.vertrag.slice(0, MAX_VERTRAG),
+			pruefbilder: await legePruefbilderAb(ordner, arbeit, datei, schonGeprueft),
+			...(b.kennung ? { kennung: b.kennung } : {}),
 			...(schonGeprueft ? { geprueft: true } : {}),
 		});
 	}

@@ -57,6 +57,7 @@ import {
 	berechneteElemente,
 	bestandteileText,
 	BILDER_SCHRITT,
+	BILDPRUEFUNG_SCHRITT,
 	bilderMitBefund,
 	bilderSatzIn,
 	blickLektuere,
@@ -193,6 +194,8 @@ import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
 import type { Router as RouterTyp } from 'express';
 
 import type { BildVertrag } from './bild-datei';
+import type { BildPruefLauf, KiBild } from './bild-pruefung';
+import { befundeJeBild, bildPruefAuftrag, bildPruefLaeufe, leseKiBilder } from './bild-pruefung';
 import { leseBildVertraege } from './bild-datei';
 import { materialKennung, uebertrageHerkunft } from './bild-herkunft';
 import type { BildWerkzeugStand } from './bild-werkzeug';
@@ -211,6 +214,7 @@ import { HttpFehler } from './fehler';
 import type { Ergebnis, KiCacheTtl, KiPruefer, LaufStand, PruefErgebnis } from './ki';
 import {
 	beendeKind,
+	BILD_PRUEF_AUFTRAG,
 	EINHEIT_PLAN_RECHTE,
 	einheitBauRechte,
 	FACHBLICK_AUFTRAG,
@@ -2532,6 +2536,211 @@ export const erstelleEinheiten = (
 		return null;
 	};
 
+	// ── Bildprüfung mit frischem Blick (268) ──
+
+	const BILDER_NACH_PRUEFUNG = (je: ReadonlyMap<string, readonly PruefBefund[]>) =>
+		[
+			'Bildprüfung mit frischem Blick. Ein eigener Lauf hat die Viertel und den Ausschnitt deiner Bilder gegen Vertrag und Kanon geprüft und meldet:',
+			...[...je].map(([datei, befunde]) => `- bilder/${datei}: ${befunde.map((b) => b.text).join(' · ')}`),
+			'Behebe jeden Befund nach bilder.md, „Fehler und Versuche“ und 2a: neu statt flicken, den Befund in `befund`, danach das ganze Bild und den Ausschnitt ansehen und mit bild_pruefung abhaken. Verlangt der Vertrag das Bild so, wie es ist, lass es und sag es in deiner Antwort. Danach prüft die Bildprüfung die geänderten Bilder noch einmal. Antworte am Ende mit einer Zeile je Bild.',
+		].join('\n');
+
+	/** Abgenommen heißt wie nach Kinderaugen (248): Die Kennung steht in `bilderGeprueft`, der Prüflauf sieht nur den Ausschnitt. */
+	const merkeAbgenommen = (s: EinheitStand, bilder: readonly KiBild[]) => {
+		const neu = bilder.flatMap((b) => (b.kennung ? [b.kennung] : []));
+		if (neu.length) {
+			s.bilderGeprueft = [...new Set([...(s.bilderGeprueft ?? []), ...neu])].slice(-MAX_GEPRUEFTE_BILDER);
+		}
+	};
+
+	/** Was nach der zweiten Bildprüfung fehlt, sieht die Lehrkraft wie ein `offen` des Bilderlaufs (248). */
+	const merkeBildOffen = (s: EinheitStand, offen: readonly { datei: string; text: string }[]) => {
+		const da = new Set((s.bildHinweise ?? []).map((h) => h.datei));
+		const neu = offen.filter((o) => !da.has(o.datei));
+		if (neu.length) {
+			s.bildHinweise = [
+				...(s.bildHinweise ?? []),
+				...neu.map((o) => ({ datei: o.datei, text: `${o.text.replace(/[.\s]+$/, '')}.`, von: BILDER_SCHRITT })),
+			].slice(-MAX_BILD_HINWEISE);
+		}
+	};
+
+	/**
+	 * Eine Runde der Bildprüfung: je Kapitel ein Lauf (`bildPruefLaeufe`), höchstens `gleichzeitig` zugleich, jeder mit
+	 * eigenem Eintrag im Protokoll und eigener Mitschrift. Wie bei Kinderaugen und Fachblick (244) hält jeder laufende
+	 * Lauf sein Budget zurück. Zurück kommen nur die Bilder gelungener Läufe, je mit ihren Befunden.
+	 */
+	const pruefeBilder = async (s: EinheitStand, plan: EinheitPlan, bilder: readonly KiBild[], runde: 1 | 2) => {
+		const g = KI_GRENZEN.einheit.bildPruefung;
+		const laeufe = bildPruefLaeufe(plan, bilder, g.bilderJeLauf);
+		const kopf = { klasse: klasseText(s.rechercheAnfrage?.klasse), fach: FACH_NAME[fach(s)], auftrag: s.auftrag };
+		const ergebnis: { bild: KiBild; befunde: PruefBefund[] }[] = [];
+		const einer = async (lauf: BildPruefLauf, nr: number) => {
+			const a = aktiv;
+			if (!a || a.abbruch) {
+				return;
+			}
+			const ordner = path.join(dir(s.id), `bildpruefung-${nr}`);
+			const eintrag = neuerEintrag('bildpruefung', BILDER_SCHRITT, []);
+			eintrag.hinweis = `Bildprüfung ${runde}, ${lauf.kapitel === null ? 'Bilder ohne Kapitel' : `Kapitel ${lauf.kapitel}`}${lauf.teil ? `, Lauf ${lauf.teil.nr} von ${lauf.teil.von}` : ''}: ${lauf.bilder.map((b) => b.datei).join(', ')}.`;
+			const gelesen = { eintrag, gelesen: new Set<string>() };
+			const beginn = Date.now();
+			const grenzen = grenzenFuer(g);
+			const zuEnde = erschoepft(grenzen);
+			a.protokoll.laeufe.push(eintrag);
+			if (zuEnde) {
+				beendeEintrag(eintrag, beginn, fehlerText(zuEnde), {});
+				await schreibeProtokoll();
+				return;
+			}
+			const vergeben = { kostenUsd: Math.max(0, grenzen.budgetUsd), runden: Math.max(0, grenzen.runden) };
+			a.reserviert.kostenUsd += vergeben.kostenUsd;
+			a.reserviert.runden += vergeben.runden;
+			await schreibeProtokoll();
+			let e: PruefErgebnis = { befunde: [], lesbar: true, fehler: 'Die Bildprüfung ließ sich nicht einrichten.', verbrauch: {} };
+			let geprueft: PruefBild[] = [];
+			try {
+				await rm(ordner, { recursive: true, force: true });
+				await mkdir(ordner, { recursive: true });
+				const auftrag = await bildPruefAuftrag({
+					ordner,
+					arbeit: arbeitDir(s.id),
+					plan,
+					lauf,
+					kopf,
+					runde,
+					nachtrag: s.kanonNachtrag ?? [],
+				});
+				geprueft = auftrag.bilder;
+				e = await pruefeLauf({
+					bin,
+					...kiJetzt(),
+					ordner,
+					ablage: ablageDir(s.id),
+					text: auftrag.text,
+					grenzen,
+					auftragDatei: BILD_PRUEF_AUFTRAG,
+					rolle: 'kind',
+					vorgabe: 'bild',
+					gestartet: (k) => {
+						if (aktiv) {
+							merkeKind(aktiv.kinder, k, path.join(dir(s.id), PID), aktiv.abbruch);
+						}
+					},
+					werkzeug: (name, eingabe) => notiereGelesen(gelesen, name, eingabe),
+					mitschrift: mitschrift(s, 'bildpruefung', null),
+				});
+			} catch (fehler) {
+				console.error('Bildprüfung:', (fehler as Error).message);
+			} finally {
+				a.reserviert.kostenUsd -= vergeben.kostenUsd;
+				a.reserviert.runden -= vergeben.runden;
+				await rm(ordner, { recursive: true, force: true });
+			}
+			const fehler = a.abbruch ? 'Abgebrochen.' : fehlerText(e.fehler);
+			eintrag.befunde = e.befunde.map(befundZeile);
+			if (!e.lesbar) {
+				eintrag.hinweis += ' Die Antwort hatte keinen lesbaren Block mit Befunden: kein Bild abgenommen.';
+			}
+			beendeEintrag(eintrag, beginn, fehler, e.verbrauch);
+			await schreibeProtokoll();
+			await notiereVerbrauch(s, fehler ? 'unvollstaendig' : 'fertig', beginn, {
+				...e.verbrauch,
+				lauf: 'bildpruefung',
+			});
+			if (!fehler && e.lesbar) {
+				const je = befundeJeBild(geprueft, e.befunde);
+				ergebnis.push(...lauf.bilder.map((b) => ({ bild: b, befunde: je.get(b.datei) ?? [] })));
+			}
+		};
+		let naechster = 0;
+		const arbeite = async () => {
+			while (naechster < laeufe.length && aktiv && !aktiv.abbruch) {
+				const i = naechster++;
+				const lauf = laeufe[i];
+				if (lauf) {
+					await einer(lauf, i + 1);
+				}
+			}
+		};
+		await Promise.all(Array.from({ length: Math.min(g.gleichzeitig, laeufe.length) }, arbeite));
+		return ergebnis;
+	};
+
+	/**
+	 * Nach dem Bilderlauf (268): Die Bildprüfung sieht jedes noch nicht abgenommene Bild in Vierteln. Bilder ohne Befund
+	 * sind abgenommen. Die Befunde gehen per `--resume` an den Bilderlauf, der neu erzeugt; eine zweite Bildprüfung sieht
+	 * nur die Bilder mit Befund, die er geändert hat. Was dann noch fehlt, und Bilder mit Befund, die er nicht geändert
+	 * hat, werden ein Hinweis an die Lehrkraft. Scheitert ein Lauf, bleiben seine Bilder für die Kinderaugen.
+	 */
+	const pruefeUndErneuereBilder = async (s: EinheitStand, plan: EinheitPlan, sitzung: string | null) => {
+		const arbeit = arbeitDir(s.id);
+		const schon = new Set(s.bilderGeprueft ?? []);
+		const offen = (await leseKiBilder(arbeit)).filter((b) => b.kennung && !schon.has(b.kennung));
+		if (!offen.length || !aktiv || aktiv.abbruch) {
+			return;
+		}
+		s.inArbeit = BILDPRUEFUNG_SCHRITT;
+		await merke(s);
+		const erste = await pruefeBilder(s, plan, offen, 1);
+		merkeAbgenommen(
+			s,
+			erste.filter((e) => !e.befunde.length).map((e) => e.bild),
+		);
+		const gruende = new Map(erste.filter((e) => e.befunde.length).map((e) => [e.bild.datei, e.befunde]));
+		const rest: { datei: string; text: string }[] = [];
+		if (gruende.size && aktiv && !aktiv.abbruch) {
+			if (sitzung) {
+				s.inArbeit = BILDER_SCHRITT;
+				await merke(s);
+				await starteLauf(s, {
+					art: 'bilder',
+					material: BILDER_SCHRITT,
+					text: BILDER_NACH_PRUEFUNG(gruende),
+					sitzung,
+					auftragDatei: materialAuftrag,
+					rechte: einheitBauRechte({ slug: null, thema: false }),
+					mitBildern: true,
+					bauen: null,
+					grenzen: KI_GRENZEN.einheit.bilderNachPruefung,
+					pflicht: [],
+				});
+				await abgleich();
+			}
+			const vorher = new Set(erste.flatMap((e) => (e.bild.kennung ? [e.bild.kennung] : [])));
+			const geaendert = (await leseKiBilder(arbeit)).filter(
+				(b) => gruende.has(b.datei) && b.kennung && !vorher.has(b.kennung),
+			);
+			for (const [datei, befunde] of gruende) {
+				if (!geaendert.some((b) => b.datei === datei)) {
+					rest.push({ datei, text: befunde[0]?.text ?? '' });
+				}
+			}
+			if (geaendert.length && aktiv && !aktiv.abbruch) {
+				s.inArbeit = BILDPRUEFUNG_SCHRITT;
+				await merke(s);
+				const zweite = await pruefeBilder(s, plan, geaendert, 2);
+				merkeAbgenommen(
+					s,
+					zweite.filter((e) => !e.befunde.length).map((e) => e.bild),
+				);
+				rest.push(
+					...zweite
+						.filter((e) => e.befunde.length)
+						.map((e) => ({ datei: e.bild.datei, text: e.befunde[0]?.text ?? '' })),
+				);
+			}
+		}
+		if (!aktiv?.abbruch) {
+			merkeBildOffen(
+				s,
+				rest.filter((r) => r.text),
+			);
+		}
+		s.inArbeit = BILDER_SCHRITT;
+		await merke(s);
+	};
+
 	const baueBilder = async (s: EinheitStand, plan: EinheitPlan) => {
 		const pflicht = lektuereFuer(s, 'bilder');
 		s.inArbeit = BILDER_SCHRITT;
@@ -2554,15 +2763,20 @@ export const erstelleEinheiten = (
 			pflicht,
 		});
 		await abgleich();
+		const gesperrt = ergebnis.bilder?.gesperrt === true;
+		// Fertig schon vor der Bildprüfung: Bricht sie ab, macht „Weiterbauen“ nicht alle Bilder neu; was sie nicht
+		// abgenommen hat, prüfen die Kinderaugen in Vierteln.
+		if (!gesperrt && !ergebnis.fehler && !aktiv?.abbruch) {
+			s.bilderFertig = true;
+			await merke(s);
+			await pruefeUndErneuereBilder(s, plan, ergebnis.sitzung);
+		}
 		if (!aktiv?.abbruch) {
 			await uebernimmGrundposen(s, plan);
 			await merke(s);
 		}
-		if (ergebnis.bilder?.gesperrt && !aktiv?.abbruch) {
+		if (gesperrt && !aktiv?.abbruch) {
 			return ergebnis.fehler ?? bilderGesperrtText(s, BILDER_SCHRITT);
-		}
-		if (!ergebnis.fehler && !aktiv?.abbruch) {
-			s.bilderFertig = true;
 		}
 		return ergebnis.fehler;
 	};

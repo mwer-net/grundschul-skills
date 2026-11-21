@@ -170,6 +170,17 @@ process.stdin.on('end', () => {
 		fertig('Geprüft.\n\x60\x60\x60json\n' + JSON.stringify({ befunde }) + '\n\x60\x60\x60');
 		return;
 	}
+	// 268: die Bildprüfung, nur Read und ohne Sitzung, mit Vierteln und Ausschnitt je Bild in bilder/. Jeder Lauf landet in
+	// „bildpruefungen.jsonl“. „einheit-bild-befund“ meldet in der ersten Runde einen Befund zu uhr-gross.png, „-stur“ in jeder.
+	if (args[args.indexOf('--tools') + 1] === 'Read' && eingabe.startsWith('Bildprüfung')) {
+		const dateien = liste('bilder').sort();
+		sag({ type: 'assistant', message: { content: dateien.map((n) => ({ type: 'tool_use', name: 'Read', input: { file_path: path.resolve('bilder', n) } })) } });
+		const zweite = eingabe.includes('Zweite Bildprüfung');
+		fs.appendFileSync(path.join(__dirname, 'bildpruefungen.jsonl'), JSON.stringify({ dateien, zweite, auftrag: path.basename(args[args.indexOf('--append-system-prompt-file') + 1] ?? ''), eingabe }) + '\n');
+		const befunde = (fall === 'einheit-bild-befund' && !zweite) || fall === 'einheit-bild-befund-stur' ? [{ bild: 'uhr-gross.png', art: 'bild', text: 'Im Viertel unten rechts fehlt der Minutenzeiger.' }] : [];
+		sag({ type: 'result', subtype: 'success', is_error: false, result: 'Geprüft.\n\x60\x60\x60json\n' + JSON.stringify({ befunde }) + '\n\x60\x60\x60', num_turns: 3, total_cost_usd: 0.02, usage: { output_tokens: 5 }, permission_denials: [] });
+		return;
+	}
 	if (args[args.indexOf('--tools') + 1] === 'Read') {
 		const seiten = fs.readdirSync('.').filter((n) => /^seite-\d+\.png$/.test(n)).sort();
 		sag({ type: 'assistant', message: { content: seiten.map((n) => ({ type: 'tool_use', name: 'Read', input: { file_path: path.resolve(n) } })) } });
@@ -290,9 +301,11 @@ process.stdin.on('end', () => {
 			}
 			// 237: „einheit-bild“ erzeugt im Bilder-Lauf dieselbe Datei zweimal über bild_erzeugen (das zweite Mal mit Befund,
 			// 248) und wartet einen Takt des Servers ab, „einheit-bild-gesperrt“ trifft beim ersten Aufruf auf die Sperre.
-			if (eingabe.includes('die Bilder der Einheit')) {
+			// 268: Mit den Befunden der Bildprüfung macht der fortgesetzte Bilderlauf das Bild neu und ändert das Motiv.
+			const bildBefund = fall.startsWith('einheit-bild-befund');
+			if (eingabe.includes('die Bilder der Einheit') || (bildBefund && eingabe.startsWith('Bildprüfung mit frischem Blick'))) {
 				lies(lektuere);
-				if (fall === 'einheit-bild' || fall === 'einheit-bild-gesperrt' || fall === 'einheit-bild-offen') {
+				if (fall === 'einheit-bild' || fall === 'einheit-bild-gesperrt' || fall === 'einheit-bild-offen' || bildBefund) {
 					const argumente = { datei: 'uhr-gross.png', prompt: (fall === 'einheit-bild-gesperrt' ? '[gesperrt] ' : '') + 'Eine große Uhr', format: 'SQUARE_1_1', transparent: true };
 					fs.writeFileSync('bilder.json', JSON.stringify([{ datei: argumente.datei, motiv: 'Eine große Uhr' }]));
 					const erzeuge = (befund) => new Promise((fertig) => {
@@ -304,6 +317,14 @@ process.stdin.on('end', () => {
 						v.on('close', () => { const a = JSON.parse(antwort || '{}'); fs.appendFileSync(path.join(__dirname, 'bild.jsonl'), JSON.stringify({ argumente, ...a }) + '\n'); fertig(a); });
 						v.on('error', () => fertig({ fehler: true }));
 					});
+					if (bildBefund) {
+						const erneut = eingabe.startsWith('Bildprüfung mit frischem Blick');
+						const motiv = erneut ? 'Eine große Uhr mit zwei Zeigern' : 'Eine große Uhr';
+						fs.writeFileSync('bilder.json', JSON.stringify([{ datei: argumente.datei, motiv }]));
+						const b = await erzeuge(erneut ? 'Im Viertel unten rechts fehlt der Minutenzeiger (Bildprüfung).' : undefined);
+						ende({ result: b.fehler ? 'Fehler.' : erneut ? 'uhr-gross.png: neu mit Minutenzeiger.' : 'Ein Bild.' });
+						return;
+					}
 					const a = await erzeuge();
 					if (fall === 'einheit-bild-offen') {
 						// 248: zweimal neu für denselben Befund, der dritte Versuch wird abgelehnt.

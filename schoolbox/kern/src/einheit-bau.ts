@@ -480,10 +480,10 @@ export const fertigText = (plan: EinheitPlan, fertig: readonly string[], steckbr
 // ——— Protokoll ———
 
 /**
- * `pruefung`: Prüflauf „mit Kinderaugen“ oder Fachblick (`rolle`, 244), `schluss`: Abgleich über alle Materialien (220,
- * Teil 2).
+ * `pruefung`: Prüflauf „mit Kinderaugen“ oder Fachblick (`rolle`, 244), `bildpruefung`: die Bilder mit frischem Blick
+ * nach dem Bilderlauf (268), `schluss`: Abgleich über alle Materialien (220, Teil 2).
  */
-export type LaufArt = 'recherche' | 'plan' | 'bilder' | 'bau' | 'korrektur' | 'pruefung' | 'schluss';
+export type LaufArt = 'recherche' | 'plan' | 'bilder' | 'bildpruefung' | 'bau' | 'korrektur' | 'pruefung' | 'schluss';
 
 export interface BauVersuch {
 	zeit: string;

@@ -58,6 +58,8 @@ const FIGUR_NAME = /^[a-z0-9][a-z0-9-]{0,59}$/;
 const PRUEFEN_SATZ = 'Prüfe sie gegen den Vertrag und trage die Prüfung in `bilder.json` ein.';
 /** 252: Im Einheit-Lauf schreiben die Werkzeuge `bilder.json`; Claude gibt Vertrag und Prüfung als Parameter. */
 const PRUEFEN_SATZ_WERKZEUG = `Prüfe sie gegen den Vertrag und trage die Prüfung mit ${BILD_PRUEFUNG} ein.`;
+/** 268: Die Viertel liest im Lauf der Einheit nicht der Bilderlauf, sondern die Bildprüfung danach. */
+export const VIERTEL_SPAETER = 'Die Viertel prüft danach die Bildprüfung; lies sie nicht.';
 /** Felder des Bildvertrags, die `bild_erzeugen` und `bild_bearbeiten` als Parameter nehmen (252). */
 const VERTRAG_FELDER = ['motiv', 'platz', 'blickpunkt', 'vertrag', 'figur', 'pose'] as const;
 const MAX_VERTRAG_ZEICHEN = 8000;
@@ -497,6 +499,21 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 		throw new Abgelehnt(`Neu erzeugen: ${FLICKEN_SATZ}`);
 	};
 
+	/**
+	 * 268: Im Lauf der Einheit sieht Claude das ganze Bild und den Ausschnitt; die Viertel entstehen trotzdem, sie liest
+	 * danach die Bildprüfung mit frischem Blick (und Kinderaugen, wenn sie ein Bild nicht abgenommen hat).
+	 */
+	const pruefbilderText = (datei: string, pruefbilder: readonly string[]) => {
+		if (!pruefbilder.length) {
+			return `Keine Prüfbilder: Sieh dir bilder/${datei} ganz an.`;
+		}
+		if (!mitVertrag) {
+			return `Prüfbilder: ${pruefbilder.join(', ')}.`;
+		}
+		const platz = pruefbilder.filter((p) => p.endsWith('-platz.png'));
+		return `Ansehen: bilder/${datei} ganz${platz.length ? ` und den Ausschnitt ${platz.join(', ')}` : ''}. ${VIERTEL_SPAETER}`;
+	};
+
 	const speichere = async (
 		datei: string,
 		inhalt: Buffer,
@@ -532,9 +549,7 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 		return [
 			`Gespeichert: bilder/${datei}${masse ? ` (${masse.breite} × ${masse.hoehe} px)` : ''}, Versuch ${versuch}.`,
 			vorversion ? `Die Vorversion liegt unter ${vorversion}.` : null,
-			pruefbilder.length
-				? `Prüfbilder: ${pruefbilder.join(', ')}.`
-				: `Keine Prüfbilder: Sieh dir bilder/${datei} ganz an.`,
+			pruefbilderText(datei, pruefbilder),
 			mitVertrag ? PRUEFEN_SATZ_WERKZEUG : PRUEFEN_SATZ,
 			art === 'bearbeitet' ? FLICKEN_SATZ : null,
 		]

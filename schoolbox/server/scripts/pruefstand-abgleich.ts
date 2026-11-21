@@ -5,10 +5,10 @@
  */
 import type { PruefBefund } from '@schoolbox/kern';
 
-/** Die Teile eines Prüflaufs; `plan` ist die Plan-Prüfung vor der Freigabe. */
-export const TEILE = ['kind', 'blick', 'fach', 'plan'] as const;
+/** Die Teile eines Prüflaufs; `plan` ist die Plan-Prüfung vor der Freigabe, `bild` die Bildprüfung (268). */
+export const TEILE = ['kind', 'blick', 'fach', 'plan', 'bild'] as const;
 export type Teil = (typeof TEILE)[number];
-export const GEBAUTE_TEILE: readonly Teil[] = ['kind', 'blick', 'fach', 'plan'];
+export const GEBAUTE_TEILE: readonly Teil[] = ['kind', 'blick', 'fach', 'plan', 'bild'];
 
 /** Was der Plan selbst falsch hat (Punkt 4): findet die Plan-Prüfung, nicht der Blick auf die Materialien. */
 export const PLAN_DOKUMENT = 'plan';

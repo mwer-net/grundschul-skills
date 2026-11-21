@@ -1,7 +1,7 @@
 import type { EinheitPlan, EinheitStand, PlanDokument, PlanGeschichte } from '@schoolbox/kern/src/einheit';
 import { einheitBauDauer } from '@schoolbox/kern/src/einheit';
 import { BILDER_SCHRITT } from '@schoolbox/kern/src/einheit-bau';
-import { gepruefteZahl, SCHLUSS_SCHRITT } from '@schoolbox/kern/src/einheit-pruefung';
+import { BILDPRUEFUNG_SCHRITT, gepruefteZahl, SCHLUSS_SCHRITT } from '@schoolbox/kern/src/einheit-pruefung';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -189,6 +189,9 @@ const zahlText = (s: EinheitStand, plant: boolean) => {
 	const titel = s.plan.dokumente.find((d) => d.slug === s.inArbeit)?.titel;
 	if (s.inArbeit === BILDER_SCHRITT) {
 		return `${stand} · Claude macht die Bilder`;
+	}
+	if (s.inArbeit === BILDPRUEFUNG_SCHRITT) {
+		return `${stand} · Claude prüft die Bilder mit frischem Blick`;
 	}
 	if (s.inArbeit === SCHLUSS_SCHRITT) {
 		return `${stand} · Claude gleicht alle Materialien ab`;
