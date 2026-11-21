@@ -51,6 +51,13 @@ export interface Abgleich {
 const istTextListe = (wert: unknown): wert is string[] =>
 	Array.isArray(wert) && wert.every((w) => typeof w === 'string' && w.trim() !== '');
 
+/** 268: `bild` fehlt oder ist der Dateiname eines KI-Bildes. */
+const pruefeBildFeld = (x: Record<string, unknown> & { id: string }, wo: string) => {
+	if (x.bild !== undefined && (typeof x.bild !== 'string' || !/^[a-z0-9][a-z0-9-]{0,59}\.(png|jpg)$/.test(x.bild))) {
+		throw new Error(`${wo} (${x.id}): „bild“ ist kein Dateiname eines Bildes.`);
+	}
+};
+
 /** Prüft einen Eintrag mit gültiger `id`; jeder Fehler bricht den Abgleich ab. */
 const katalogEintrag = (
 	x: Record<string, unknown> & { id: string },
@@ -73,9 +80,7 @@ const katalogEintrag = (
 	if (erwartung === 'gefunden' && !istTextListe(x.stichwoerter)) {
 		throw new Error(`${wo} (${x.id}): „stichwoerter“ fehlt.`);
 	}
-	if (x.bild !== undefined && (typeof x.bild !== 'string' || !/^[a-z0-9][a-z0-9-]{0,59}\.(png|jpg)$/.test(x.bild))) {
-		throw new Error(`${wo} (${x.id}): „bild“ ist kein Dateiname eines Bildes.`);
-	}
+	pruefeBildFeld(x, wo);
 	if (erwartung === 'still' && x.seite === null) {
 		throw new Error(`${wo} (${x.id}): Eine Gegenprobe „still“ braucht eine Seite.`);
 	}
@@ -144,7 +149,9 @@ export const gleicheAb = (katalog: readonly KatalogEintrag[], materialien: reado
 		}
 		const treffer = m.befunde
 			.map((b, nr) => ({ b, nr }))
-			.filter(({ b }) => (e.erwartung === 'still' ? e.seite === b.seite : seitePasst(e, b) && bildPasst(e, b) && nennt(e, b)));
+			.filter(({ b }) =>
+				e.erwartung === 'still' ? e.seite === b.seite : seitePasst(e, b) && bildPasst(e, b) && nennt(e, b),
+			);
 		for (const { nr } of treffer) {
 			benutzt.add(`${m.slug}#${nr}`);
 		}

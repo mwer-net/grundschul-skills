@@ -1589,7 +1589,10 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.equal(runden[0]?.auftrag, 'einheit-bildpruefung.md');
 			assert.match(runden[0]?.eingabe ?? '', /^Bildprüfung .*\n[\s\S]*uhr-gross\.png/);
 			const arten = await laufArten(mappe);
-			assert.ok(arten.indexOf('bildpruefung') > arten.indexOf('bilder'), 'die Bildprüfung läuft nach dem Bilderlauf');
+			assert.ok(
+				arten.indexOf('bildpruefung') > arten.indexOf('bilder'),
+				'die Bildprüfung läuft nach dem Bilderlauf',
+			);
 			assert.equal(arten.filter((a) => a === 'bilder').length, 1, 'ohne Befund kein fortgesetzter Bilderlauf');
 			assert.equal(s.bilderGeprueft?.length, 1);
 			assert.match(s.bilderGeprueft?.[0] ?? '', /^[0-9a-f]{16}$/);
@@ -1626,7 +1629,11 @@ describe('Lauf einer Einheit (139)', () => {
 			const { id } = await starte(MIT_BILDERN);
 			const s = await bis(id, 'fertig');
 			assert.deepEqual(s.bildHinweise, [
-				{ datei: 'uhr-gross.png', text: 'Im Viertel unten rechts fehlt der Minutenzeiger.', von: BILDER_SCHRITT },
+				{
+					datei: 'uhr-gross.png',
+					text: 'Im Viertel unten rechts fehlt der Minutenzeiger.',
+					von: BILDER_SCHRITT,
+				},
 			]);
 			assert.ok(!(s.bilderGeprueft ?? []).length);
 		});
@@ -1639,7 +1646,10 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.equal((await bildPruefungen()).slice(vorher).length, 1, 'kein Bild mit Befund, keine zweite Runde');
 			const text = (await prompts()).findLast((p) => p.startsWith('Bildprüfung mit frischem Blick')) ?? '';
 			assert.equal(text.match(/Auf einem Bild fehlt ein Zeiger\./g)?.length, 1);
-			assert.match(text, /- ohne Bildangabe \(eines von bilder\/uhr-gross\.png\): Auf einem Bild fehlt ein Zeiger\./);
+			assert.match(
+				text,
+				/- ohne Bildangabe \(eines von bilder\/uhr-gross\.png\): Auf einem Bild fehlt ein Zeiger\./,
+			);
 			assert.ok(!(s.bilderGeprueft ?? []).length);
 			assert.ok(!(s.bildHinweise ?? []).length);
 		});

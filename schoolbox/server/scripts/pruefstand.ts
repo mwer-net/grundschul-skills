@@ -837,7 +837,10 @@ const bildArbeitFuer = async (k: Kontext, bilder: readonly KiBild[]) => {
 			}
 			continue;
 		}
-		const e = JSON.parse(b.vertrag) as { platz?: { breite: number; hoehe: number }; blickpunkt?: { x: number; y: number } };
+		const e = JSON.parse(b.vertrag) as {
+			platz?: { breite: number; hoehe: number };
+			blickpunkt?: { x: number; y: number };
+		};
 		await zuschnitt(await readFile(path.join(k.p.mappe, 'bilder', b.datei)), {
 			datei: b.datei,
 			...(e.platz ? { platz: e.platz } : {}),
@@ -845,7 +848,9 @@ const bildArbeitFuer = async (k: Kontext, bilder: readonly KiBild[]) => {
 		});
 		neu++;
 	}
-	console.log(`bild: ${bilder.length} KI-Bilder, ${neu ? `für ${neu} die Prüfbilder neu geschnitten` : 'Prüfbilder aus der Mappe'}.`);
+	console.log(
+		`bild: ${bilder.length} KI-Bilder, ${neu ? `für ${neu} die Prüfbilder neu geschnitten` : 'Prüfbilder aus der Mappe'}.`,
+	);
 	return arbeit;
 };
 
@@ -875,7 +880,9 @@ const pruefeBilderTeil = async (
 			}
 			const nr = i + 1;
 			const name = `bild-${nr}`;
-			const ordner = k.ausgabe ? path.join(k.ausgabe, name) : await mkdtemp(path.join(tmpdir(), 'schoolbox-pruefstand-'));
+			const ordner = k.ausgabe
+				? path.join(k.ausgabe, name)
+				: await mkdtemp(path.join(tmpdir(), 'schoolbox-pruefstand-'));
 			await mkdir(ordner, { recursive: true });
 			const beginn = Date.now();
 			try {
@@ -1029,6 +1036,60 @@ const meldeRecherche = (o: Optionen, p: Pruefstand) => {
 	);
 };
 
+/** Teil `bild`: welche Bilder in wie vielen Läufen, für die Konsole und die Kosten; `null` ohne den Teil. */
+const planeBilder = async (p: Pruefstand, o: Optionen) => {
+	if (!o.teile.includes('bild')) {
+		return null;
+	}
+	const plan = await bilderDerMaterialien(p, waehleMaterialien(p, o.nur));
+	console.log(
+		`- bild: ${plan.je.size} KI-Bilder in den gewählten Materialien, ${plan.laeufe.length} Läufe der Bildprüfung (je Kapitel, höchstens ${KI_GRENZEN.einheit.bildPruefung.bilderJeLauf} Bilder)`,
+	);
+	return plan;
+};
+
+const meldeKosten = (materialien: number, n: number, mitPlan: boolean, nBild: number, ki: KiLauf) => {
+	const kosten = (art: keyof typeof KOSTEN_JE_LAUF) =>
+		n * KOSTEN_JE_LAUF[art] + (mitPlan ? KOSTEN_PLAN[art] : 0) + nBild * KOSTEN_BILD[art];
+	console.log(
+		`\n${materialien} Materialien, ${n} Prüfläufe (über 24 Seiten einer je 16 Seiten)${mitPlan ? ', dazu die Plan-Prüfung' : ''}${nBild ? `, dazu ${nBild} Läufe der Bildprüfung` : ''}, Modell ${ki.modell}, Gründlichkeit ${ki.effort}. Geschätzt rund ${usd(kosten('mittel'))} (${usd(kosten('min'))} bis ${usd(kosten('max'))}).`,
+	);
+};
+
+/** Je Material seine Läufe nacheinander, zu einem Ergebnis zusammengefasst; Strg+C hält vor dem nächsten an. */
+const pruefeVorhaben = async (k: Kontext, vorhaben: readonly Vorhaben[][]) => {
+	const ergebnisse: Ergebnis[] = [];
+	for (const liste of vorhaben) {
+		const teile: Ergebnis[] = [];
+		for (const v of liste) {
+			if (k.zustand.abgebrochen) {
+				break;
+			}
+			const e = await pruefeMaterial(k, v);
+			if (e) {
+				teile.push(e);
+			}
+		}
+		if (teile.length) {
+			ergebnisse.push(zusammen(teile));
+		}
+	}
+	return ergebnisse;
+};
+
+/** Der Abgleich nimmt je Material ein Ergebnis: die Bildprüfung kommt zu dem des Materials dazu. */
+const fuegeBilderHinzu = (ergebnisse: Ergebnis[], bilder: readonly Ergebnis[]) => {
+	for (const b of bilder) {
+		const i = ergebnisse.findIndex((e) => e.slug === b.slug);
+		const alt = ergebnisse[i];
+		if (alt) {
+			ergebnisse[i] = zusammen([alt, b]);
+		} else {
+			ergebnisse.push(b);
+		}
+	}
+};
+
 const fuehreAus = async (o: Optionen) => {
 	pruefeGebaut(o.teile);
 	const p = await ladePruefstand(o.ordner, o.recherche, o.plan);
@@ -1040,21 +1101,12 @@ const fuehreAus = async (o: Optionen) => {
 	}
 	const vorhaben = await planeVorhaben(p, o);
 	const mitPlan = o.teile.includes('plan');
-	const bildPlan = o.teile.includes('bild') ? await bilderDerMaterialien(p, waehleMaterialien(p, o.nur)) : null;
+	const bildPlan = await planeBilder(p, o);
 	const nBild = bildPlan?.laeufe.length ?? 0;
-	if (bildPlan) {
-		console.log(
-			`- bild: ${bildPlan.je.size} KI-Bilder in den gewählten Materialien, ${nBild} Läufe der Bildprüfung (je Kapitel, höchstens ${KI_GRENZEN.einheit.bildPruefung.bilderJeLauf} Bilder)`,
-		);
-	}
 	const rechnung = mitPlan ? rechnungFuer(p) : { befunde: [], ausgelassen: [] };
 	const ki = await kiLaufJetzt(ladeKonfig(), 'gross');
 	const n = vorhaben.flat().length;
-	const kosten = (art: keyof typeof KOSTEN_JE_LAUF) =>
-		n * KOSTEN_JE_LAUF[art] + (mitPlan ? KOSTEN_PLAN[art] : 0) + nBild * KOSTEN_BILD[art];
-	console.log(
-		`\n${vorhaben.length} Materialien, ${n} Prüfläufe (über 24 Seiten einer je 16 Seiten)${mitPlan ? ', dazu die Plan-Prüfung' : ''}${nBild ? `, dazu ${nBild} Läufe der Bildprüfung` : ''}, Modell ${ki.modell}, Gründlichkeit ${ki.effort}. Geschätzt rund ${usd(kosten('mittel'))} (${usd(kosten('min'))} bis ${usd(kosten('max'))}).`,
-	);
+	meldeKosten(vorhaben.length, n, mitPlan, nBild, ki);
 	if (!n && !mitPlan && !nBild) {
 		return;
 	}
@@ -1092,32 +1144,9 @@ const fuehreAus = async (o: Optionen) => {
 		if (plan) {
 			ergebnisse.push(plan);
 		}
-		for (const liste of vorhaben) {
-			const teile: Ergebnis[] = [];
-			for (const v of liste) {
-				if (k.zustand.abgebrochen) {
-					break;
-				}
-				const e = await pruefeMaterial(k, v);
-				if (e) {
-					teile.push(e);
-				}
-			}
-			if (teile.length) {
-				ergebnisse.push(zusammen(teile));
-			}
-		}
+		ergebnisse.push(...(await pruefeVorhaben(k, vorhaben)));
 		if (bildPlan && nBild && !k.zustand.abgebrochen) {
-			// Der Abgleich nimmt je Material ein Ergebnis: die Bildprüfung kommt zu dem des Materials dazu.
-			for (const b of await pruefeBilderTeil(k, bildPlan)) {
-				const i = ergebnisse.findIndex((e) => e.slug === b.slug);
-				const alt = ergebnisse[i];
-				if (alt) {
-					ergebnisse[i] = zusammen([alt, b]);
-				} else {
-					ergebnisse.push(b);
-				}
-			}
+			fuegeBilderHinzu(ergebnisse, await pruefeBilderTeil(k, bildPlan));
 		}
 	} finally {
 		await rm(k.ablage, { recursive: true, force: true });

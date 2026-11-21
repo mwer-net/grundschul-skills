@@ -515,7 +515,9 @@ const nachtragBlock = (nachtrag: readonly KanonNachtrag[]) =>
 
 /** 267: Hinter einer Regel mit `bild: "element"`, damit der Bau sie als Element setzt und nie ins Bild verlangt. */
 const alsElementHinweis = (k: EinheitKanon, regel: string) =>
-	k.regelnAlsElement?.includes(regel) ? ' (Exakt: im Material als x-…-Element oder SVG, nie aus dem Bildmodell.)' : '';
+	k.regelnAlsElement?.includes(regel)
+		? ' (Exakt: im Material als x-…-Element oder SVG, nie aus dem Bildmodell.)'
+		: '';
 
 /**
  * Der ganze Kanon für einen Bau-, Fach- oder Schlusslauf. Mit `kapitel` stehen die Zustände dieses Kapitels, was dort
@@ -539,7 +541,9 @@ export const kanonText = (
 		k.geheim.length
 			? [`Geheimnisse. ${VERRAT}`, ...k.geheim.map((g) => `- ${ohnePunkt(g.was)}: ${geheimBis(g)}.`)].join('\n')
 			: '',
-		k.regeln.length ? ['Regeln der Welt:', ...k.regeln.map((r) => `- ${r}${alsElementHinweis(k, r)}`)].join('\n') : '',
+		k.regeln.length
+			? ['Regeln der Welt:', ...k.regeln.map((r) => `- ${r}${alsElementHinweis(k, r)}`)].join('\n')
+			: '',
 		k.begriffe.length
 			? [
 					'Fachwörter, so erklärt und erst ab ihrer Stunde verwendet:',

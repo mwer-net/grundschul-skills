@@ -1145,7 +1145,10 @@ describe('Ebene Geometrie (025)', () => {
 			Array.from(loesung.polys[0] ?? [], (p) => Array.from(p).join(',')),
 			['2,0', '3,1', '2.5,1', '4,3', '2,3'],
 		);
-		assert.match(JS, /const rPunkt = art === "geobrett" \? 3 : 1\.6;\s+for \(let x = 0; x <= spalten; x\+\+\) for \(let y = 0; y <= zeilen; y\+\+\)/);
+		assert.match(
+			JS,
+			/const rPunkt = art === "geobrett" \? 3 : 1\.6;\s+for \(let x = 0; x <= spalten; x\+\+\) for \(let y = 0; y <= zeilen; y\+\+\)/,
+		);
 	});
 
 	it('spiegelt Kästchen und Linien genau', () => {

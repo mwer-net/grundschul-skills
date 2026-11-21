@@ -713,7 +713,8 @@ describe('Kanon: melden statt kürzen, Bildvertrag nur mit Regeln fürs Bild (26
 	});
 
 	describe('bild: "element" je Regel (267)', () => {
-		const EXAKT = 'Das Geobrett hat 5 × 5 Nägel, die Spiegelachse ist ein roter Gummi über der mittleren Nagelspalte.';
+		const EXAKT =
+			'Das Geobrett hat 5 × 5 Nägel, die Spiegelachse ist ein roter Gummi über der mittleren Nagelspalte.';
 		const ZEILE = `Element: ${EXAKT.slice(0, -1)}`;
 		const kanon = leseKanon({ ...ROH, regeln: [...ROH.regeln, { text: EXAKT, bild: 'element' }] }) as EinheitKanon;
 		const plan = {
@@ -721,7 +722,11 @@ describe('Kanon: melden statt kürzen, Bildvertrag nur mit Regeln fürs Bild (26
 			geschichte: { kapitel: [{ nr: 4, titel: '', inhalt: '', bildfolien: ['4.1 Hanne am Geobrett'] }] },
 		} as unknown as Parameters<typeof pruefeBildVertrag>[0];
 		const pflicht = ['Luna: zwei Flügel; eine kleine Brille'];
-		const verboten = ['erkennbar vor Kapitel 6: Ella ist die Täterin', 'das Glöckchen bei Luna', 'der Spiegel bei Luna'];
+		const verboten = [
+			'erkennbar vor Kapitel 6: Ella ist die Täterin',
+			'das Glöckchen bei Luna',
+			'der Spiegel bei Luna',
+		];
 		const bild = (vertrag: Record<string, unknown>) => ({
 			datei: 'folie-4-1.jpg',
 			motiv: 'Luna zeigt auf das Geobrett',
@@ -739,7 +744,10 @@ describe('Kanon: melden statt kürzen, Bildvertrag nur mit Regeln fürs Bild (26
 		});
 
 		it('Vertrag ohne Platz abgelehnt, mit Platz angenommen, mit der Eigenschaft in pflicht abgelehnt', () => {
-			assert.match(pruefeBildVertrag(plan, bild({})) ?? '', /- frei, mit der Lage des Elements: „Element: Das Geobrett/);
+			assert.match(
+				pruefeBildVertrag(plan, bild({})) ?? '',
+				/- frei, mit der Lage des Elements: „Element: Das Geobrett/,
+			);
 			assert.equal(pruefeBildVertrag(plan, bild({ frei: [{ was: ZEILE, lage: 'neben dem Bild' }] })), null);
 			const gemalt = pruefeBildVertrag(
 				plan,

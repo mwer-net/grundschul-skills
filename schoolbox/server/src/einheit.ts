@@ -57,9 +57,9 @@ import {
 	berechneteElemente,
 	bestandteileText,
 	BILDER_SCHRITT,
-	BILDPRUEFUNG_SCHRITT,
 	bilderMitBefund,
 	bilderSatzIn,
+	BILDPRUEFUNG_SCHRITT,
 	blickLektuere,
 	blickRegeln,
 	dokKnotenSchluessel,
@@ -194,10 +194,10 @@ import { EINGEBAUTE } from '@schoolbox/kern/src/figuren';
 import type { Router as RouterTyp } from 'express';
 
 import type { BildVertrag } from './bild-datei';
-import type { BildPruefLauf, KiBild } from './bild-pruefung';
-import { befundeJeBild, bildPruefAuftrag, bildPruefLaeufe, leseKiBilder } from './bild-pruefung';
 import { leseBildVertraege } from './bild-datei';
 import { materialKennung, uebertrageHerkunft } from './bild-herkunft';
+import type { BildPruefLauf, KiBild } from './bild-pruefung';
+import { befundeJeBild, bildPruefAuftrag, bildPruefLaeufe, leseKiBilder } from './bild-pruefung';
 import type { BildWerkzeugStand } from './bild-werkzeug';
 import { BILD_HERKUNFT, REFERENZ_ORDNER } from './bild-werkzeug';
 import type { LaufBilder } from './bild-zugang';
@@ -2548,7 +2548,8 @@ export const erstelleEinheiten = (
 			'Bildprüfung mit frischem Blick. Ein eigener Lauf hat die Viertel und den Ausschnitt deiner Bilder gegen Vertrag und Kanon geprüft und meldet:',
 			...[...je].map(([datei, befunde]) => `- bilder/${datei}: ${befunde.map((b) => b.text).join(' · ')}`),
 			...ohneBild.map(
-				(o) => `- ohne Bildangabe (eines von ${o.bilder.map((d) => `bilder/${d}`).join(', ')}): ${o.befund.text}`,
+				(o) =>
+					`- ohne Bildangabe (eines von ${o.bilder.map((d) => `bilder/${d}`).join(', ')}): ${o.befund.text}`,
 			),
 			'Behebe jeden Befund nach bilder.md, „Fehler und Versuche“ und 2a: neu statt flicken, den Befund in `befund`, danach das ganze Bild und den Ausschnitt ansehen und mit bild_pruefung abhaken. Verlangt der Vertrag das Bild so, wie es ist, lass es und sag es in deiner Antwort. Danach prüft die Bildprüfung die geänderten Bilder noch einmal. Antworte am Ende mit einer Zeile je Bild.',
 		].join('\n');
@@ -2607,7 +2608,12 @@ export const erstelleEinheiten = (
 			a.reserviert.kostenUsd += vergeben.kostenUsd;
 			a.reserviert.runden += vergeben.runden;
 			await schreibeProtokoll();
-			let e: PruefErgebnis = { befunde: [], lesbar: true, fehler: 'Die Bildprüfung ließ sich nicht einrichten.', verbrauch: {} };
+			let e: PruefErgebnis = {
+				befunde: [],
+				lesbar: true,
+				fehler: 'Die Bildprüfung ließ sich nicht einrichten.',
+				verbrauch: {},
+			};
 			let geprueft: PruefBild[] = [];
 			try {
 				await rm(ordner, { recursive: true, force: true });
@@ -2660,8 +2666,8 @@ export const erstelleEinheiten = (
 			});
 			if (!fehler && e.lesbar) {
 				const je = befundeJeBild(geprueft, e.befunde, { ohneBildAnAlle: false });
-				const offen = e.befunde.filter((b) => !geprueft.some((g) => (je.get(g.datei) ?? []).includes(b)));
-				ohneBild.push(...offen.map((befund) => ({ befund, bilder: lauf.bilder.map((b) => b.datei) })));
+				const offen = e.befunde.filter((b) => !geprueft.some((x) => (je.get(x.datei) ?? []).includes(b)));
+				ohneBild.push(...offen.map((ohne) => ({ befund: ohne, bilder: lauf.bilder.map((b) => b.datei) })));
 				ergebnis.push(
 					...lauf.bilder.map((b) => ({ bild: b, befunde: je.get(b.datei) ?? [], unklar: offen.length > 0 })),
 				);

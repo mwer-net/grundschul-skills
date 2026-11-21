@@ -12,7 +12,14 @@ import type { BildPlatz } from './bild-datei';
 import { hatTransparenz } from './bild-datei';
 import { BILD_GRENZEN } from './bild-grenzen';
 import type { BildWerkzeugOptionen } from './bild-werkzeug';
-import { BILD_HERKUNFT, erstelleBildWerkzeug, gleicherBefund, inhaltHash, VERSUCHE, VIERTEL_SPAETER } from './bild-werkzeug';
+import {
+	BILD_HERKUNFT,
+	erstelleBildWerkzeug,
+	gleicherBefund,
+	inhaltHash,
+	VERSUCHE,
+	VIERTEL_SPAETER,
+} from './bild-werkzeug';
 import { KI_GRENZEN } from './ki';
 
 type Alpha = 'ohne' | 'deckend' | 'ecke';
@@ -556,7 +563,10 @@ describe('Bildwerkzeuge (237)', () => {
 		assert.equal(antwort.fehler, undefined, antwort.text);
 		assert.match(antwort.text, /mit bild_pruefung ein/);
 		// 268: Im Lauf der Einheit sieht der Bilderlauf das ganze Bild und den Ausschnitt, die Viertel die Bildprüfung.
-		assert.match(antwort.text, /Ansehen: bilder\/fall-1\.jpg ganz und den Ausschnitt ansicht\/bilder\/fall-1-platz\.png\./);
+		assert.match(
+			antwort.text,
+			/Ansehen: bilder\/fall-1\.jpg ganz und den Ausschnitt ansicht\/bilder\/fall-1-platz\.png\./,
+		);
 		assert.ok(antwort.text.includes(VIERTEL_SPAETER));
 		assert.doesNotMatch(antwort.text, /-v1\.png/);
 		assert.deepEqual(await liste(), [

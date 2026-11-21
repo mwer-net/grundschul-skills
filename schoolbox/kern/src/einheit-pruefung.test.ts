@@ -13,8 +13,8 @@ import {
 	berechneteElemente,
 	bestandteileText,
 	bilderMitBefund,
-	BILDPRUEFUNG_ANFANG,
 	bildPruefText,
+	BILDPRUEFUNG_ANFANG,
 	blickLektuere,
 	blickRegeln,
 	fachblickStunden,
@@ -1008,12 +1008,21 @@ describe('Bildprüfung mit frischem Blick (268)', () => {
 		});
 		assert.ok(text.startsWith(`${BILDPRUEFUNG_ANFANG} von Kapitel 2, Klasse 2, Mathematik. Lauf 1 von 2`));
 		assert.ok(text.includes('\n\nKANON\n\n'));
-		assert.match(text, /- fall-1\.jpg: Luna am Fenster\. Vertrag: \{.*\}\. Vorschlag aus dem Kanon: pflicht „Die Uhr hat zwei Zeiger\.“\. Prüfbilder: bilder\/fall-1-platz\.png, bilder\/fall-1-v1\.png\./);
+		assert.match(
+			text,
+			/- fall-1\.jpg: Luna am Fenster\. Vertrag: \{.*\}\. Vorschlag aus dem Kanon: pflicht „Die Uhr hat zwei Zeiger\.“\. Prüfbilder: bilder\/fall-1-platz\.png, bilder\/fall-1-v1\.png\./,
+		);
 		assert.doesNotMatch(text, /Zweite Bildprüfung/);
 	});
 
 	it('ohne Kapitel und in der zweiten Runde', () => {
-		const text = bildPruefText({ kapitel: null, klasse: 'Klasse 2', fach: 'Mathematik', bilder: [{ ...bild, pruefbilder: [], vorschlag: null }], runde: 2 });
+		const text = bildPruefText({
+			kapitel: null,
+			klasse: 'Klasse 2',
+			fach: 'Mathematik',
+			bilder: [{ ...bild, pruefbilder: [], vorschlag: null }],
+			runde: 2,
+		});
 		assert.ok(text.startsWith(`${BILDPRUEFUNG_ANFANG} der Bilder ohne Kapitel`));
 		assert.match(text, /Zweite Bildprüfung/);
 		assert.match(text, /Keine Prüfbilder\./);

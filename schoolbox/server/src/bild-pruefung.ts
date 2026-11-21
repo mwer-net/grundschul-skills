@@ -186,7 +186,8 @@ export const befundeJeBild = (
 	const je = new Map<string, PruefBefund[]>();
 	for (const b of befunde) {
 		const genannt = bilder.filter((x) => nenntBild(b, x.datei));
-		for (const x of genannt.length ? genannt : o.ohneBildAnAlle ? bilder : []) {
+		const ziel = genannt.length || !o.ohneBildAnAlle ? genannt : bilder;
+		for (const x of ziel) {
 			je.set(x.datei, [...(je.get(x.datei) ?? []), b]);
 		}
 	}
