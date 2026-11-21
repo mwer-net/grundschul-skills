@@ -16,11 +16,13 @@
  * Skript es vor dem Lauf. Teil `bild` (268) ist die Bildprüfung wie im Server nach dem Bilderlauf: die KI-Bilder der
  * gewählten Materialien, je Kapitel ein Lauf (`bildPruefLaeufe`), Viertel und Ausschnitt aus `mappe/ansicht/bilder/`
  * oder, wo sie fehlen, mit `blatt.py viertel` neu geschnitten, dazu Vertrag, Kanon und Bildvorschlag. Ein Befund zählt
- * im Abgleich bei jedem gewählten Material, das sein Bild zeigt, ohne Seite.
+ * im Abgleich bei jedem gewählten Material, das sein Bild zeigt, ohne Seite. `--effort` und `--modell` (273) ersetzen
+ * für diesen Aufruf, was die Einstellung für große Läufe ergibt; erlaubt ist, was der Server an `claude` gibt. Modell und
+ * Gründlichkeit stehen in der Konsole, im Ergebnis (`ki`) und im Namen der Ergebnisdatei.
  *
  *   pnpm --filter @schoolbox/server exec tsx scripts/pruefstand.ts <prüfstand> [--nur a,b]
  *     [--teil kind,blick,fach,plan,bild] [--plan <datei>] [--recherche <datei>] [--vertraege <datei>] [--trocken] [--ja]
- *     [--abgleich <ergebnis.json>]
+ *     [--effort <stufe>] [--modell <name>] [--abgleich <ergebnis.json>]
  *
  * Der Ordner `<prüfstand>` hält `mappe/` (Kopie der Mappe mit `bilder.json` und den Prüfbildern unter
  * `ansicht/bilder/`), `plan.json` (wie `einheit.json`), `zuordnung.json` (Slug des Plans → Dokument der Mappe),
@@ -92,7 +94,8 @@ import {
 	pruefeLauf,
 	richtePruefOrdnerEin,
 } from '../src/ki';
-import { kiLaufJetzt } from '../src/ki-einstellung';
+import type { KiEffort } from '../src/ki-einstellung';
+import { KI_EFFORTS, KI_MODELLE, kiLaufJetzt } from '../src/ki-einstellung';
 import type { KatalogEintrag, MaterialErgebnis, Teil } from './pruefstand-abgleich';
 import { abgleichTabelle, GEBAUTE_TEILE, gleicheAb, leseKatalog, TEILE } from './pruefstand-abgleich';
 
@@ -120,6 +123,9 @@ interface Optionen {
 	plan: string | null;
 	/** `--vertraege`: Bildverträge statt der aus `mappe/bilder.json` (248). */
 	vertraege: string | null;
+	/** `--effort`, `--modell` (273): statt der Einstellung, für die Messung je Stufe und Modell. */
+	effort: string | null;
+	modell: string | null;
 }
 
 const leseOptionen = (argv: string[]): Optionen => {
@@ -133,6 +139,8 @@ const leseOptionen = (argv: string[]): Optionen => {
 		recherche: null,
 		plan: null,
 		vertraege: null,
+		effort: null,
+		modell: null,
 	};
 	const wert = (i: number, name: string) => {
 		const w = argv[i + 1];
@@ -170,6 +178,12 @@ const leseOptionen = (argv: string[]): Optionen => {
 			i++;
 		} else if (a === '--vertraege') {
 			o.vertraege = path.resolve(wert(i, a));
+			i++;
+		} else if (a === '--effort') {
+			o.effort = wert(i, a);
+			i++;
+		} else if (a === '--modell') {
+			o.modell = wert(i, a);
 			i++;
 		} else if (a === '--trocken') {
 			o.trocken = true;
@@ -436,6 +450,23 @@ const planeVorhaben = async (p: Pruefstand, o: Optionen) => {
 };
 
 type KiLauf = Awaited<ReturnType<typeof kiLaufJetzt>>;
+
+const STUFEN = KI_EFFORTS.filter((e): e is KiEffort => e !== 'auto');
+
+/** Die Einstellung für große Läufe, mit `--effort` und `--modell` ersetzt; Unbekanntes bricht vor dem Lauf ab. */
+const kiFuer = async (o: Optionen): Promise<KiLauf> => {
+	const konfig = ladeKonfig();
+	const modelle = [...new Set([...KI_MODELLE.map((m) => m.id), konfig.kiModell])];
+	const stufe = STUFEN.find((e) => e === o.effort);
+	if (o.effort !== null && !stufe) {
+		throw new Abbruch(`--effort ${o.effort}: unbekannt. Erlaubt: ${STUFEN.join(', ')}.`);
+	}
+	if (o.modell !== null && !modelle.includes(o.modell)) {
+		throw new Abbruch(`--modell ${o.modell}: unbekannt. Erlaubt: ${modelle.join(', ')}.`);
+	}
+	const ki = await kiLaufJetzt(konfig, 'gross');
+	return { modell: o.modell ?? ki.modell, effort: stufe ?? ki.effort };
+};
 type Ergebnis = MaterialErgebnis & Record<string, unknown>;
 type Lauf = PruefErgebnis & { teil: PruefTeil | null; gelesen: string[] };
 
@@ -975,7 +1006,7 @@ const schreibeErgebnis = async (p: Pruefstand, o: Optionen, ki: KiLauf, ergebnis
 	const abgleich = gleicheAb(p.katalog, ergebnisse);
 	const tabelle = abgleichTabelle(p.katalog, abgleich);
 	const summe = ergebnisse.reduce((s, e) => s + zahlAus(e.kostenUsd), 0);
-	const name = `ergebnis-${zeitstempel()}-${o.teile.join('-')}`;
+	const name = `ergebnis-${zeitstempel()}-${o.teile.join('-')}-${ki.modell.replace(/[^a-zA-Z0-9.-]+/g, '-')}-${ki.effort}`;
 	await writeFile(
 		path.join(p.ordner, `${name}.json`),
 		`${JSON.stringify({ datum: new Date().toISOString(), teile: o.teile, ki, kostenUsd: summe, materialien: ergebnisse, abgleich }, null, '\t')}\n`,
@@ -1048,11 +1079,11 @@ const planeBilder = async (p: Pruefstand, o: Optionen) => {
 	return plan;
 };
 
-const meldeKosten = (materialien: number, n: number, mitPlan: boolean, nBild: number, ki: KiLauf) => {
+const meldeKosten = (materialien: number, n: number, mitPlan: boolean, nBild: number, ki: KiLauf, o: Optionen) => {
 	const kosten = (art: keyof typeof KOSTEN_JE_LAUF) =>
 		n * KOSTEN_JE_LAUF[art] + (mitPlan ? KOSTEN_PLAN[art] : 0) + nBild * KOSTEN_BILD[art];
 	console.log(
-		`\n${materialien} Materialien, ${n} Prüfläufe (über 24 Seiten einer je 16 Seiten)${mitPlan ? ', dazu die Plan-Prüfung' : ''}${nBild ? `, dazu ${nBild} Läufe der Bildprüfung` : ''}, Modell ${ki.modell}, Gründlichkeit ${ki.effort}. Geschätzt rund ${usd(kosten('mittel'))} (${usd(kosten('min'))} bis ${usd(kosten('max'))}).`,
+		`\n${materialien} Materialien, ${n} Prüfläufe (über 24 Seiten einer je 16 Seiten)${mitPlan ? ', dazu die Plan-Prüfung' : ''}${nBild ? `, dazu ${nBild} Läufe der Bildprüfung` : ''}, Modell ${ki.modell}${o.modell ? ' (--modell)' : ''}, Gründlichkeit ${ki.effort}${o.effort ? ' (--effort)' : ''}. Geschätzt rund ${usd(kosten('mittel'))} (${usd(kosten('min'))} bis ${usd(kosten('max'))}).`,
 	);
 };
 
@@ -1092,6 +1123,7 @@ const fuegeBilderHinzu = (ergebnisse: Ergebnis[], bilder: readonly Ergebnis[]) =
 
 const fuehreAus = async (o: Optionen) => {
 	pruefeGebaut(o.teile);
+	const ki = await kiFuer(o);
 	const p = await ladePruefstand(o.ordner, o.recherche, o.plan);
 	meldeRecherche(o, p);
 	if (o.abgleich) {
@@ -1104,9 +1136,8 @@ const fuehreAus = async (o: Optionen) => {
 	const bildPlan = await planeBilder(p, o);
 	const nBild = bildPlan?.laeufe.length ?? 0;
 	const rechnung = mitPlan ? rechnungFuer(p) : { befunde: [], ausgelassen: [] };
-	const ki = await kiLaufJetzt(ladeKonfig(), 'gross');
 	const n = vorhaben.flat().length;
-	meldeKosten(vorhaben.length, n, mitPlan, nBild, ki);
+	meldeKosten(vorhaben.length, n, mitPlan, nBild, ki, o);
 	if (!n && !mitPlan && !nBild) {
 		return;
 	}
