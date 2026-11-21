@@ -11,7 +11,7 @@ import { planFigurText } from './einheit-figuren';
 import { leseNotiz } from './kit-einstellungen';
 import { ART_NAME } from './namen';
 import type { Knoten } from './quelltext';
-import { klassenVon, zerlege } from './quelltext';
+import { attribut, klassenVon, zerlege } from './quelltext';
 import type { Druckprofil, Format } from './werte';
 
 export const PRUEF_ARTEN = [
@@ -189,6 +189,11 @@ export interface PruefBild {
 	 */
 	kennung?: string;
 	geprueft?: boolean;
+	/**
+	 * 270: Die Seiten (wie `seite-N.png`), auf denen das Bild steht (`bildSeiten`). `pruefTeile` gibt es nur den Läufen
+	 * dieser Seiten; ohne Angabe bekommt es jeder Lauf.
+	 */
+	seiten?: readonly number[];
 }
 
 /** Ein Prüflauf von mehreren über ein langes Material (241): Seiten `erste` bis `letzte` von `gesamt`. */
@@ -306,6 +311,8 @@ interface TeilbarerAuftrag {
 	seiten: string[];
 	ausschnitte: string[];
 	loesungen: string[];
+	/** 270: Nur Kinderaugen; ein Bild mit `seiten` geht an die Teile dieser Seiten. */
+	bilder?: readonly Pick<PruefBild, 'seiten'>[];
 	teil?: PruefTeil;
 }
 
@@ -318,18 +325,20 @@ export const pruefTeile = <T extends TeilbarerAuftrag>(o: T): T[] => {
 		gruppen.push(o.seiten.slice(i, i + PRUEF_GRENZEN.seiten));
 	}
 	const anfaenge = gruppen.map((g) => seiteVon(g[0] ?? ''));
-	const teilVon = (datei: string) => {
-		const n = seiteVon(datei);
-		return Math.max(
+	const teilDerSeite = (n: number) =>
+		Math.max(
 			0,
 			anfaenge.findLastIndex((a) => a <= n),
 		);
-	};
+	const teilVon = (datei: string) => teilDerSeite(seiteVon(datei));
 	return gruppen.map((seiten, i) => ({
 		...o,
 		seiten,
 		ausschnitte: o.ausschnitte.filter((a) => teilVon(a) === i),
 		loesungen: o.loesungen.filter((l) => teilVon(l) === i),
+		...(o.bilder
+			? { bilder: o.bilder.filter((b) => !b.seiten?.length || b.seiten.some((n) => teilDerSeite(n) === i)) }
+			: {}),
 		teil: {
 			nr: i + 1,
 			von: gruppen.length,
@@ -385,7 +394,7 @@ export const bilderMitBefund = (bilder: readonly PruefBild[], befunde: readonly 
 export const pruefText = (o: PruefAuftrag) =>
 	[
 		`Prüfung von „${o.titel}“ (${o.artName}), ${o.klasse}, ${o.fach}.`,
-		o.teil ? teilText(o.teil) : '',
+		o.teil ? `${teilText(o.teil)}${o.bilder.length ? ' Unten stehen nur die KI-Bilder deiner Seiten.' : ''}` : '',
 		o.auftrag ? `Auftrag der Lehrkraft (aus dem Assistenten):\n${o.auftrag}` : '',
 		o.figuren?.length ? `Figuren der Geschichte laut Plan: ${o.figuren.map(planFigurText).join(' · ')}` : '',
 		o.geheim ?? '',
@@ -545,6 +554,34 @@ export const folienNotizen = (html: string): FolienNotiz[] => {
 	return seiten
 		.map((k, i) => ({ seite: i + 1, text: leseNotiz(html, k.nr).replace(/\s+/g, ' ').trim() }))
 		.filter((n) => n.text);
+};
+
+const KI_BILD = /\.\.\/\.\.\/bilder\/([a-z0-9][a-z0-9-]{0,59}\.(?:png|jpg))/g;
+const ausgeblendet = (k: Knoten) => klassenVon(k).includes('nur-loesung') || attribut(k, 'data-aus') !== undefined;
+
+/**
+ * 270: Auf welchen Seiten jedes Bild steht, das das Material über `../../bilder/` zeigt; ein Bild außerhalb jeder Seite
+ * fehlt. `nummern` sind die Nummern der Seitenbilder (`seite-N.png`) in ihrer Reihenfolge. Die i-te sichtbare Seite im
+ * HTML ist das i-te Seitenbild, ob die Bilder nach der Seite im HTML heißen (256) oder nach der im PDF (ausgeblendete
+ * Seite 1). Passt die Zahl nicht oder ist die Seite ausgeblendet, gilt die Stelle im HTML.
+ */
+export const bildSeiten = (html: string, nummern: readonly number[]): Map<string, number[]> => {
+	const z = zerlege(html);
+	const seiten = z.knoten.filter((k) => istSeite(k) && !z.knoten.some((v) => istSeite(v) && innerhalb(k, v)));
+	const sichtbar = seiten.filter((k) => !ausgeblendet(k));
+	const gepaart = sichtbar.length === nummern.length;
+	const je = new Map<string, number[]>();
+	for (const [i, k] of seiten.entries()) {
+		const j = sichtbar.indexOf(k);
+		const nr = gepaart && j >= 0 ? (nummern[j] ?? i + 1) : i + 1;
+		for (const t of html.slice(k.start, k.ende).matchAll(KI_BILD)) {
+			const liste = je.get(t[1] ?? '') ?? [];
+			if (!liste.includes(nr)) {
+				je.set(t[1] ?? '', [...liste, nr]);
+			}
+		}
+	}
+	return je;
 };
 
 /** Der Auftrag des Fachblicks beginnt so; daran erkennt man ihn auch in Mitschrift und Tests. */

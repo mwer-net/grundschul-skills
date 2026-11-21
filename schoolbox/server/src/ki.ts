@@ -37,6 +37,7 @@ import {
 	beendeLaufEintrag,
 	befundZeile,
 	berechneteElemente,
+	bildSeiten,
 	blickLektuere,
 	blickRegeln,
 	dokumentDir,
@@ -1072,7 +1073,8 @@ export const trennePruefOrdner = async (ordner: string, fachOrdner: string, kind
  * heraus, mit `mitLoesung` (Rollen mit Kinderaugen, 229) liegen die ganzen Lösungsseiten danach unter `loesung/`. Die
  * Prüfbilder der neuen Bilder des Materials kommen nach `bilder/`. `arbeit` ist der Arbeitsordner des Baus mit
  * `bilder.json` und `ansicht/bilder/`. Jedes Bild bekommt eine Kennung aus Inhalt und Vertrag (248); steht sie in
- * `geprueft`, kommt nur der Ausschnitt mit (`-platz.png`), die Viertel nicht.
+ * `geprueft`, kommt nur der Ausschnitt mit (`-platz.png`), die Viertel nicht. Jedes Bild nennt seine Seiten (270), damit
+ * ein geteiltes Material (`pruefTeile`) jedem Lauf nur die Bilder seiner Seiten gibt.
  */
 export const richtePruefOrdnerEin = async (
 	ordner: string,
@@ -1095,6 +1097,10 @@ export const richtePruefOrdnerEin = async (
 	const seiten = gebaut.filter((b) => /^seite-\d+\.png$/.test(b));
 	const ausschnitte = gebaut.filter((b) => /^seite-\d+-aufgabe-\d+\.png$/.test(b));
 	const eintraege = await leseKiBildEintraege(arbeit);
+	const aufSeiten = bildSeiten(
+		html,
+		seiten.map((b) => Number(/\d+/.exec(b)?.[0])),
+	);
 	const bilder: PruefBild[] = [];
 	for (const datei of new Set([...html.matchAll(BILD_IM_MATERIAL)].map((t) => t[1] ?? ''))) {
 		const e = eintraege.get(datei);
@@ -1110,6 +1116,7 @@ export const richtePruefOrdnerEin = async (
 			pruefbilder: await legePruefbilderAb(ordner, arbeit, datei, schonGeprueft),
 			...(b.kennung ? { kennung: b.kennung } : {}),
 			...(schonGeprueft ? { geprueft: true } : {}),
+			...(aufSeiten.get(datei)?.length ? { seiten: aufSeiten.get(datei) } : {}),
 		});
 	}
 	return { seiten, ausschnitte, bilder, loesungen };

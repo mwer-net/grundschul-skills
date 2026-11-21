@@ -15,6 +15,7 @@ import {
 	bilderMitBefund,
 	bildPruefText,
 	BILDPRUEFUNG_ANFANG,
+	bildSeiten,
 	blickLektuere,
 	blickRegeln,
 	fachblickStunden,
@@ -445,6 +446,58 @@ describe('Nachricht an den Prüflauf (229)', () => {
 			assert.equal(teile.length, 1);
 			assert.match(pruefText(teile[0] ?? AUFTRAG), /- seite-24\.png/);
 			assert.doesNotMatch(pruefText(teile[0] ?? AUFTRAG), /Prüflauf 1 von/);
+		});
+
+		it('270: jeder Teil nennt nur die KI-Bilder seiner Seiten, ein Bild ohne Seite jeder', () => {
+			const bild = (datei: string, s?: number[]) => ({
+				datei,
+				motiv: datei,
+				vertrag: `Vertrag ${datei}`,
+				pruefbilder: [`bilder/${datei}-v1.png`],
+				...(s ? { seiten: s } : {}),
+			});
+			const bilder = [bild('vorn.jpg', [3]), bild('hinten.jpg', [20]), bild('beide.png', [5, 25]), bild('frei.png')];
+			const [eins, zwei] = pruefTeile({ ...lang, bilder });
+			assert.deepEqual(
+				eins?.bilder.map((b) => b.datei),
+				['vorn.jpg', 'beide.png', 'frei.png'],
+			);
+			assert.deepEqual(
+				zwei?.bilder.map((b) => b.datei),
+				['hinten.jpg', 'beide.png', 'frei.png'],
+			);
+			const text = pruefText({ ...(eins ?? AUFTRAG), regeln: ['bilder.md'] });
+			assert.match(text, /Vertrag vorn\.jpg/);
+			assert.doesNotMatch(text, /hinten\.jpg/);
+			assert.match(text, /prüft ein anderer Lauf: .* Unten stehen nur die KI-Bilder deiner Seiten\./);
+			const ganz = pruefTeile({ ...AUFTRAG, bilder });
+			assert.equal(ganz.length, 1);
+			assert.deepEqual(ganz[0]?.bilder, bilder);
+		});
+
+		it('270: bildSeiten ordnet jedes Bild der Seite zu, auf der es im HTML steht', () => {
+			const seite = (inhalt: string, mehr = '') => `<section class="seite${mehr}">${inhalt}</section>`;
+			const html = [
+				'<style>.x{background:url(../../bilder/stil.png)}</style>',
+				seite('<img src="../../bilder/a.jpg"><div class="seite-kopf"><img src="../../bilder/b.png"></div>'),
+				seite('<img src="../../bilder/geheim.png">', ' nur-loesung'),
+				seite('<img src="../../bilder/a.jpg"><img src="../../bilder/c.png">'),
+			].join('');
+			assert.deepEqual(
+				[...bildSeiten(html, [1, 3])],
+				[
+					['a.jpg', [1, 3]],
+					['b.png', [1]],
+					['geheim.png', [2]],
+					['c.png', [3]],
+				],
+			);
+			// Ausgeblendete Seite 1 mit Bildern nach der Seite im PDF: die sichtbaren Seiten der Reihe nach.
+			const ohneEins = [seite('<img src="../../bilder/x.png">', ' nur-loesung'), seite('<img src="../../bilder/y.png">')];
+			assert.deepEqual([...bildSeiten(ohneEins.join(''), [1])], [
+				['x.png', [1]],
+				['y.png', [1]],
+			]);
 		});
 
 		it('Befunde der Teile zusammen, Doppelte einmal', () => {

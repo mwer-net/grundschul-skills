@@ -17,6 +17,8 @@ import {
 	laufMeldungen,
 	leereAntworten,
 	listeVersionen,
+	pruefTeile,
+	pruefText,
 	WURZEL,
 	zerlege,
 } from '@schoolbox/kern';
@@ -2298,6 +2300,56 @@ describe('Ordner des Prüflaufs (229)', () => {
 			);
 			assert.notEqual(neuerVertrag.bilder[0]?.kennung, bild?.kennung);
 			assert.equal(neuerVertrag.bilder[0]?.geprueft, undefined);
+		} finally {
+			await rm(ordner, { recursive: true, force: true });
+			await rm(arbeit, { recursive: true, force: true });
+		}
+	});
+
+	it('270: jedes Bild nennt seine Seite; ein geteiltes Material gibt jedem Lauf nur die Bilder seiner Seiten', async () => {
+		const ordner = await mkdtemp(path.join(tmpdir(), 'pruefordner-'));
+		const arbeit = await mkdtemp(path.join(tmpdir(), 'pruefarbeit-'));
+		try {
+			await mkdir(path.join(arbeit, 'bilder'));
+			const namen = ['folie-0-1.jpg', 'folie-6-2.jpg'];
+			for (const n of namen) {
+				await writeFile(path.join(arbeit, 'bilder', n), n);
+			}
+			await writeFile(
+				path.join(arbeit, 'bilder.json'),
+				JSON.stringify(namen.map((datei) => ({ datei, motiv: datei, vertrag: { pflicht: [`Vertrag ${datei}`] } }))),
+			);
+			const html = Array.from(
+				{ length: 30 },
+				(_, i) =>
+					`<section class="seite">${i === 0 ? '<img src="../../bilder/folie-0-1.jpg">' : ''}${i === 29 ? '<img src="../../bilder/folie-6-2.jpg">' : ''}</section>`,
+			).join('\n');
+			const gebaut = Array.from({ length: 30 }, (_, i) => `seite-${i + 1}.png`);
+			const teile = await richtePruefOrdnerEin(ordner, gebaut, html, arbeit, false);
+			assert.deepEqual(
+				teile.bilder.map((b) => [b.datei, b.seiten]),
+				[
+					['folie-0-1.jpg', [1]],
+					['folie-6-2.jpg', [30]],
+				],
+			);
+			const auftrag = {
+				titel: 'Auftakt',
+				artName: 'Präsentation',
+				klasse: 'Klasse 2',
+				fach: 'Mathematik',
+				formate: [],
+				kind: false,
+				regeln: ['bilder.md'],
+				...teile,
+			};
+			const [eins, zwei] = pruefTeile(auftrag).map(pruefText);
+			assert.match(eins ?? '', /Vertrag folie-0-1\.jpg/);
+			assert.doesNotMatch(eins ?? '', /folie-6-2/);
+			assert.match(zwei ?? '', /Vertrag folie-6-2\.jpg/);
+			assert.doesNotMatch(zwei ?? '', /folie-0-1/);
+			const [ganz] = pruefTeile({ ...auftrag, seiten: gebaut.slice(0, 20) }).map(pruefText);
+			assert.match(ganz ?? '', /Vertrag folie-0-1\.jpg[\s\S]*Vertrag folie-6-2\.jpg/);
 		} finally {
 			await rm(ordner, { recursive: true, force: true });
 			await rm(arbeit, { recursive: true, force: true });
