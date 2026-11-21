@@ -53,7 +53,7 @@ Die Endkontrolle bewertet streng: Im Zweifel ist es ein Befund. „Sieht im Gro�
 - [ ] Lösungsblatt hat dasselbe Layout, alle Lösungen stehen an der richtigen Stelle.
 - [ ] Bilder scharf (kein dpi-Hinweis).
 
-**G. KI-Bilder (je Bild in vier Vierteln und im Ausschnitt des Platzes, jede Figur einzeln)**
+**G. KI-Bilder (je Bild in vier Vierteln und im Ausschnitt des Platzes, jede Figur einzeln; im Bilderlauf einer Unterrichtseinheit der Schoolbox am ganzen Bild und im Ausschnitt, `bilder.md` Abschnitt 2b)**
 - [ ] Bildvertrag abgehakt: jedes Pflichtobjekt mit Zahl, Farbe und Lage da und im Ausschnitt des Platzes ganz zu sehen, nichts Wichtiges in den äußeren 15 %, nichts Verbotenes im Bild.
 - [ ] Augen: zwei je Figur, in der Farbe ihrer Beschreibung, frei; kein Gegenstand (Lupe, Brille, Fernglas) mit dem Auge verschmolzen.
 - [ ] Arme, Hände, Pfoten und Beine gezählt: keine dritte Hand, keine Pfote ohne Körper, kein Arm, der in einen Gegenstand übergeht.
