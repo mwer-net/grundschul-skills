@@ -211,7 +211,7 @@ export const leseKanon = (roh: unknown): EinheitKanon | undefined => {
 // ── Strenge Prüfung für den Planlauf (263) ──
 
 const GANZER_KANON = 'Der Kanon';
-const liste = (wert: unknown) => (Array.isArray(wert) ? wert : []);
+const liste = (wert: unknown): unknown[] => (Array.isArray(wert) ? wert : []);
 const zitat = (text: string) => `„${kuerze(text, 40)}“`;
 
 const zuLang = (wer: string, wert: unknown, max: number, rat: string) => {
@@ -481,6 +481,16 @@ const jeKapitelBlock = (k: EinheitKanon, kapitel: readonly number[]) => {
 	return bloecke.length ? [JE_KAPITEL_KOPF, ...bloecke].join('\n') : '';
 };
 
+/** Die Gegenstände: Kapitel für Kapitel bei einem Material über alle Kapitel, sonst mit Zustand ab Kapitel. */
+const dingeBlock = (k: EinheitKanon, o: { kapitel?: number | null; jeKapitel?: readonly number[] }) => {
+	if ((o.kapitel === null || o.kapitel === undefined) && o.jeKapitel?.length) {
+		return jeKapitelBlock(k, o.jeKapitel);
+	}
+	return k.dinge.length
+		? ['Gegenstände der Handlung, Zustand ab Kapitel:', ...k.dinge.map(dingZeile)].join('\n')
+		: '';
+};
+
 const nachtragBlock = (nachtrag: readonly KanonNachtrag[]) =>
 	nachtrag.length
 		? [
@@ -507,11 +517,7 @@ export const kanonText = (
 		'Kanon der Einheit (Teil des freigegebenen Plans; gilt für jedes Material, nur lesen):',
 		o.kapitel === null || o.kapitel === undefined ? '' : kapitelBlock(k, o.kapitel),
 		k.figuren.length ? ['Figuren, in jedem Material gleich:', ...k.figuren.map(figurZeile)].join('\n') : '',
-		(o.kapitel === null || o.kapitel === undefined) && o.jeKapitel?.length
-			? jeKapitelBlock(k, o.jeKapitel)
-			: k.dinge.length
-				? ['Gegenstände der Handlung, Zustand ab Kapitel:', ...k.dinge.map(dingZeile)].join('\n')
-				: '',
+		dingeBlock(k, o),
 		k.geheim.length
 			? [`Geheimnisse. ${VERRAT}`, ...k.geheim.map((g) => `- ${ohnePunkt(g.was)}: ${geheimBis(g)}.`)].join('\n')
 			: '',
@@ -677,7 +683,7 @@ export const bildVorschlag = (kanon: EinheitKanon, kapitel: number | null, text:
 	const woerter = woerterVon(text);
 	const figuren = kanon.figuren.filter((f) => nenntFigur(woerter, f.name));
 	const namen = kanon.figuren.map((f) => f.name);
-	const mitKapitel = <T>(liste: () => T[]) => (kapitel === null ? [] : liste());
+	const mitKapitel = <T>(ausKapitel: () => T[]) => (kapitel === null ? [] : ausKapitel());
 	return {
 		pflicht: [
 			...figuren.filter((f) => f.fest.length).map(figurPflicht),

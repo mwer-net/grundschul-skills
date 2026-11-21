@@ -78,8 +78,8 @@ import {
 	figurenDir,
 	figurenDopplungen,
 	folgeBefund,
-	folienNotizen,
 	FOLGEN_FELD,
+	folienNotizen,
 	formatBefund,
 	formateDesMaterials,
 	freierName,
@@ -179,8 +179,8 @@ import {
 import {
 	bilderKanonText,
 	fuehreKanonNach,
-	kanonRueckrunde,
 	kanonKapitel,
+	kanonRueckrunde,
 	kanonText,
 	planKanonMeldungen,
 	pruefeBildVertrag,
@@ -844,6 +844,12 @@ export const erstelleEinheiten = (
 		);
 	};
 
+	/** Fertig ist der Schlusslauf auch, wenn er an seiner eigenen Grenze gescheitert ist: Die Materialien sind da. */
+	const schlussErledigt = (s: EinheitStand) => s.schluss?.status === 'fertig' || s.schluss?.status === 'gescheitert';
+
+	const schlussReserve = (ueber: boolean) =>
+		ueber ? KI_GRENZEN.einheit.schluss.reserveGuthabenUsd : KI_GRENZEN.einheit.schluss.reserveUsd;
+
 	/**
 	 * Was dem Durchgang an Budget bleibt. Steht im Bau der Schlusslauf noch aus, hält jeder andere Lauf dessen Reserve
 	 * zurück (262): Ohne Schluss blieben die Befunde der letzten Prüfrunde offen.
@@ -852,11 +858,7 @@ export const erstelleEinheiten = (
 		const e = KI_GRENZEN.einheit;
 		const verbraucht = (aktiv?.verbraucht.kostenUsd ?? 0) + (aktiv?.reserviert.kostenUsd ?? 0);
 		const reserve =
-			!fuerSchluss && aktiv?.stufe === 'bau' && !schlussErledigt(aktiv.stand)
-				? ueber
-					? e.schluss.reserveGuthabenUsd
-					: e.schluss.reserveUsd
-				: 0;
+			!fuerSchluss && aktiv?.stufe === 'bau' && !schlussErledigt(aktiv.stand) ? schlussReserve(ueber) : 0;
 		return (ueber ? e.budgetGuthabenUsd : e.budgetUsd) - verbraucht - reserve;
 	};
 
@@ -870,10 +872,7 @@ export const erstelleEinheiten = (
 		return {
 			zeitMs: Math.min(g.zeitMs, seit + e.zeitMs - Date.now()),
 			runden: Math.min(g.runden, e.runden - verbraucht.runden - reserviert.runden),
-			budgetUsd: Math.min(
-				ueber ? g.budgetGuthabenUsd : g.budgetUsd,
-				restUsd(g === e.schluss, ueber),
-			),
+			budgetUsd: Math.min(ueber ? g.budgetGuthabenUsd : g.budgetUsd, restUsd(g === e.schluss, ueber)),
 			...(g.cacheTtl ? { cacheTtl: g.cacheTtl } : {}),
 		};
 	};
@@ -1790,6 +1789,15 @@ export const erstelleEinheiten = (
 		}
 	};
 
+	const materialHtml = async (s: EinheitStand, slug: string) => {
+		const datei = path.join(arbeitDir(s.id), 'dokumente', slug, 'material.html');
+		try {
+			return (await stat(datei)).size > KI_GRENZEN.materialBytes ? null : await readFile(datei, 'utf8');
+		} catch {
+			return null;
+		}
+	};
+
 	/** 271: Quellen und Angebot schreiben die Herkunft der Bilder aus der Bildliste; nur sie gleicht der Server ab. */
 	const VERKAUF_ROLLEN = new Set(['quellen', 'angebot']);
 
@@ -1984,15 +1992,6 @@ export const erstelleEinheiten = (
 
 	const titelVon = (s: EinheitStand) => (slug: string) =>
 		s.plan?.dokumente.find((d) => d.slug === slug)?.titel ?? slug;
-
-	const materialHtml = async (s: EinheitStand, slug: string) => {
-		const datei = path.join(arbeitDir(s.id), 'dokumente', slug, 'material.html');
-		try {
-			return (await stat(datei)).size > KI_GRENZEN.materialBytes ? null : await readFile(datei, 'utf8');
-		} catch {
-			return null;
-		}
-	};
 
 	/** Das Format jedes übernommenen Materials aus seiner `meta.json`, für die Zählung von Seiten und Folien (241). */
 	const formateDerEinheit = async (s: EinheitStand): Promise<FormateDerEinheit> => {
@@ -2339,6 +2338,15 @@ export const erstelleEinheiten = (
 		return restUsd(false) < runde;
 	};
 
+	/** Vermerkt an der letzten Korrekturrunde im Protokoll, dass die letzte Prüfrunde entfiel. */
+	const vermerkeOhneLetzteRunde = async () => {
+		const eintrag = aktiv?.protokoll.laeufe.at(-1);
+		if (eintrag?.art === 'korrektur') {
+			eintrag.hinweis = 'Die letzte Prüfrunde entfiel, das Budget wurde knapp; die Befunde gehen an den Schluss.';
+			await schreibeProtokoll();
+		}
+	};
+
 	/**
 	 * Prüflauf „mit Kinderaugen“ und Serverprüfung auf Dopplung nach dem Bau (Punkte 3 und 5): Befunde gehen als
 	 * Korrekturrunde an den Baulauf desselben Materials zurück, danach prüft ein neuer Prüflauf. Höchstens
@@ -2441,11 +2449,7 @@ export const erstelleEinheiten = (
 			if (letzte && mitPruefLauf && letzteRundeEntfaellt(s, plan, d, weise)) {
 				stand.server = server;
 				stand.ohneLetzteRunde = true;
-				const eintrag = aktiv?.protokoll.laeufe.at(-1);
-				if (eintrag?.art === 'korrektur') {
-					eintrag.hinweis = 'Die letzte Prüfrunde entfiel, das Budget wurde knapp; die Befunde gehen an den Schluss.';
-					await schreibeProtokoll();
-				}
+				await vermerkeOhneLetzteRunde();
 				break;
 			}
 			const gefunden = await pruefe(runde, server);
@@ -2570,9 +2574,6 @@ export const erstelleEinheiten = (
 		return dokumente.length > 0 && dokumente.every((d) => s.importiert[d.slug]);
 	};
 
-	/** Fertig ist der Schlusslauf auch, wenn er an seiner eigenen Grenze gescheitert ist: Die Materialien sind da. */
-	const schlussErledigt = (s: EinheitStand) => s.schluss?.status === 'fertig' || s.schluss?.status === 'gescheitert';
-
 	/** Was beim Abbruch oder Neustart noch lief, gilt als abgebrochen. */
 	const brichPruefungAb = (s: EinheitStand) => {
 		for (const [slug, p] of Object.entries(s.pruefung ?? {})) {
@@ -2601,7 +2602,12 @@ export const erstelleEinheiten = (
 	};
 
 	/** Die Bestandteile für Quellen und Angebot (250): gezählt am Gebauten, mit Druckprofil und Strichfassungen. */
-	const bestandteile = async (s: EinheitStand, plan: EinheitPlan, formate: FormateDerEinheit, bildliste: boolean) => {
+	const bestandteile = async (
+		s: EinheitStand,
+		plan: EinheitPlan,
+		formate: FormateDerEinheit,
+		nenntBildliste: boolean,
+	) => {
 		const htmls: Record<string, string> = {};
 		for (const d of plan.dokumente) {
 			const html = await materialHtml(s, d.slug);
@@ -2613,7 +2619,7 @@ export const erstelleEinheiten = (
 			formate,
 			profile: Object.fromEntries(Object.entries(htmls).map(([slug, h]) => [slug, druckprofilAusHtml(h)])),
 			bilder: await paketBilder(s, Object.values(htmls)),
-			bildliste,
+			bildliste: nenntBildliste,
 		});
 	};
 
@@ -2672,9 +2678,7 @@ export const erstelleEinheiten = (
 			offen.length ? ['Was die Prüfläufe offen ließen:', ...offen].join('\n') : '',
 			[
 				'Pflichtlektüre je Material, ganz und vor dem ersten Aufruf von bauen für dieses Material (Pfade ab dem Ordner der Skills; Read ohne offset und limit):',
-				...plan.dokumente.map(
-					(d) => `- ${d.slug}: ${(lektuere[d.slug] ?? []).map(lektuereZeile).join(' · ')}`,
-				),
+				...plan.dokumente.map((d) => `- ${d.slug}: ${(lektuere[d.slug] ?? []).map(lektuereZeile).join(' · ')}`),
 			].join('\n'),
 		]
 			.filter(Boolean)
@@ -2703,6 +2707,29 @@ export const erstelleEinheiten = (
 			return 'fertig';
 		}
 		return !vorDemLauf && WEITER_NACH.has(fehler) ? 'gescheitert' : 'abgebrochen';
+	};
+
+	/** Was der Server nach dem Schlusslauf selbst nachzählt: Dopplungen, Herkunft der Bilder, Zahlen der Einheit. */
+	const schlussNachzaehlen = async (s: EinheitStand, plan: EinheitPlan) => {
+		const nachher = new Map<string, string | null>();
+		for (const d of plan.dokumente) {
+			nachher.set(d.slug, await materialHtml(s, d.slug));
+		}
+		const liste = await bildliste(s, plan);
+		const herkunft = [];
+		for (const d of plan.dokumente) {
+			herkunft.push(...(await bildlisteBefundeFuer(s, plan, d, liste)));
+		}
+		return [
+			...dopplungUebersicht(await dopplungen(s, plan), titelVon(s)),
+			...herkunft,
+			...zahlenBefunde(
+				plan,
+				s.steckbriefe ?? {},
+				(slug) => nachher.get(slug) ?? null,
+				await formateDerEinheit(s),
+			),
+		];
 	};
 
 	/**
@@ -2803,25 +2830,7 @@ export const erstelleEinheiten = (
 		const eintrag = aktiv?.protokoll.laeufe.findLast((e) => e.art === 'schluss');
 		const gelesen = ergebnis ? lesePruefung(ergebnis.antwort) : { befunde: [], lesbar: true };
 		stand.offen = gelesen.befunde;
-		const nachher = new Map<string, string | null>();
-		for (const d of plan.dokumente) {
-			nachher.set(d.slug, await materialHtml(s, d.slug));
-		}
-		const liste = await bildliste(s, plan);
-		const herkunft = [];
-		for (const d of plan.dokumente) {
-			herkunft.push(...(await bildlisteBefundeFuer(s, plan, d, liste)));
-		}
-		stand.server = [
-			...dopplungUebersicht(await dopplungen(s, plan), titelVon(s)),
-			...herkunft,
-			...zahlenBefunde(
-				plan,
-				s.steckbriefe ?? {},
-				(slug) => nachher.get(slug) ?? null,
-				await formateDerEinheit(s),
-			),
-		];
+		stand.server = await schlussNachzaehlen(s, plan);
 		if (eintrag) {
 			await notiereSchluss(eintrag, stand, ergebnis !== null && !gelesen.lesbar, zurueck);
 		}

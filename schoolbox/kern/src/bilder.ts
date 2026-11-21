@@ -425,7 +425,9 @@ export const sammleRequisiten = async (
 			const pfad = path.join(dir, z.datei);
 			const info = await stat(pfad).catch(() => null);
 			if (info?.isFile() && !(await gleichtFigur(inhalte, pfad, info))) {
-				const quelle = z.quelle.trim() ? { quelle: z.quelle.trim(), ...(z.modell ? { modell: z.modell } : {}) } : null;
+				const quelle = z.quelle.trim()
+					? { quelle: z.quelle.trim(), ...(z.modell ? { modell: z.modell } : {}) }
+					: null;
 				liste.push({ datei: z.datei, motiv: z.motiv, mappe: mappe.titel, pfad, quelle });
 			}
 		}

@@ -957,16 +957,30 @@ describe('Fachblick (244)', () => {
 		assert.doesNotMatch(text, /Folie 3/);
 		assert.match(fachblickText({ ...FACH, seiten: ['seite-3.png'], notizen }), /- Folie 3: Wette/);
 		assert.doesNotMatch(fachblickText(FACH), /Notizen der Lehrkraft/);
-		const lang = fachblickText({ ...FACH, seiten: ['seite-1.png'], notizen: [{ seite: 1, text: 'x'.repeat(900) }] });
+		const lang = fachblickText({
+			...FACH,
+			seiten: ['seite-1.png'],
+			notizen: [{ seite: 1, text: 'x'.repeat(900) }],
+		});
 		assert.match(lang, new RegExp(`- Folie 1: x{${PRUEF_GRENZEN.notiz}}$`, 'm'));
 	});
 
 	it('Korrekturrunde zu einem Befund zur Zeit: die Minuten des Plans gelten', () => {
 		const text = pruefKorrektur(
-			[{ seite: null, aufgabe: 'Stunde 1', art: 'zeit', text: 'Die Folien 1 bis 12 dauern etwa 17 min, geplant sind 10.' }],
+			[
+				{
+					seite: null,
+					aufgabe: 'Stunde 1',
+					art: 'zeit',
+					text: 'Die Folien 1 bis 12 dauern etwa 17 min, geplant sind 10.',
+				},
+			],
 			[],
 		);
 		assert.match(text, /Zu „Zeit der Stunde“: Die Minuten des Plans gelten\./);
-		assert.equal(lesePruefung('{"befunde":[{"art":"länger als geplant","text":"zu lang"}]}', 'fach').befunde[0]?.art, 'zeit');
+		assert.equal(
+			lesePruefung('{"befunde":[{"art":"länger als geplant","text":"zu lang"}]}', 'fach').befunde[0]?.art,
+			'zeit',
+		);
 	});
 });

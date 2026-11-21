@@ -90,7 +90,8 @@ const seitenAnfaenge = (html: string) =>
 
 const seiteAn = (anfaenge: readonly number[], stelle: number) => anfaenge.filter((a) => a <= stelle).length;
 
-const ohneSkripte = (html: string) => html.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, (t) => ' '.repeat(t.length));
+const ohneSkripte = (html: string) =>
+	html.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, (t) => ' '.repeat(t.length));
 
 const stammVon = (datei: string) => datei.replace(/\.[^.]+$/, '');
 
@@ -115,6 +116,15 @@ const einordnen = (datei: string, h: BildlistenHerkunft): Omit<BildlistenEintrag
 
 const KIT_SCHLUESSEL = 'kit:';
 
+const kitEintrag = (datei: string): Omit<BildlistenEintrag, 'verwendet'> => {
+	const name = path.posix.basename(datei);
+	const kit = KIT_BILDER.get(datei);
+	if (kit) {
+		return { datei: name, ...kit };
+	}
+	return { datei: name, art: datei.startsWith('verkehrszeichen/') ? 'gemeinfrei' : 'unbekannt' };
+};
+
 /**
  * Die Bildliste aus dem HTML der Materialien: Bilder aus `../../bilder/` (ohne Seitenbilder `v-…`), Bilder der Skills
  * aus `bilder/` neben dem Material, SVG und `x-…`-Elemente als berechnet. Je Eintrag die Materialien und Seiten; die
@@ -125,7 +135,12 @@ export const erstelleBildliste = (
 	h: BildlistenHerkunft,
 ): BildlistenEintrag[] => {
 	const je = new Map<string, BildlistenEintrag>();
-	const notiere = (schluessel: string, neu: () => Omit<BildlistenEintrag, 'verwendet'>, slug: string, seite: number) => {
+	const notiere = (
+		schluessel: string,
+		neu: () => Omit<BildlistenEintrag, 'verwendet'>,
+		slug: string,
+		seite: number,
+	) => {
 		const e = je.get(schluessel) ?? { ...neu(), verwendet: [] };
 		je.set(schluessel, e);
 		let v = e.verwendet.find((x) => x.slug === slug);
@@ -150,19 +165,7 @@ export const erstelleBildliste = (
 				}
 				continue;
 			}
-			const name = path.posix.basename(datei);
-			const kit = KIT_BILDER.get(datei);
-			notiere(
-				`${KIT_SCHLUESSEL}${datei}`,
-				() =>
-					kit
-						? { datei: name, ...kit }
-						: datei.startsWith('verkehrszeichen/')
-							? { datei: name, art: 'gemeinfrei' }
-							: { datei: name, art: 'unbekannt' },
-				d.slug,
-				seite,
-			);
+			notiere(`${KIT_SCHLUESSEL}${datei}`, () => kitEintrag(datei), d.slug, seite);
 		}
 		for (const t of html.matchAll(BERECHNET)) {
 			const name = (t[1] ?? '').toLowerCase();
@@ -173,7 +176,10 @@ export const erstelleBildliste = (
 	const berechnet = (x: { schluessel: string }) => (x.schluessel.startsWith('<') ? 1 : 0);
 	return liste
 		.sort((a, b) => berechnet(a) - berechnet(b) || a.e.datei.localeCompare(b.e.datei))
-		.map(({ e }) => ({ ...e, verwendet: e.verwendet.map((v) => ({ ...v, seiten: v.seiten.sort((a, b) => a - b) })) }));
+		.map(({ e }) => ({
+			...e,
+			verwendet: e.verwendet.map((v) => ({ ...v, seiten: v.seiten.sort((a, b) => a - b) })),
+		}));
 };
 
 const quelleText = (q: BildQuelle | undefined) => (q ? `Quelle ${q.quelle}${q.modell ? ` (${q.modell})` : ''}` : '');
@@ -197,9 +203,7 @@ const eintragText = (e: BildlistenEintrag) => {
 	]
 		.filter(Boolean)
 		.join(', ');
-	const wo = e.verwendet
-		.map((v) => (v.seiten.length ? `${v.slug} S. ${v.seiten.join(', ')}` : v.slug))
-		.join('; ');
+	const wo = e.verwendet.map((v) => (v.seiten.length ? `${v.slug} S. ${v.seiten.join(', ')}` : v.slug)).join('; ');
 	return `- ${e.datei}: ${art}; in ${wo}`;
 };
 
@@ -265,6 +269,13 @@ const bloecke = (html: string) => {
 
 const DATEI_IM_TEXT = /(?<![\w/.-])([a-z0-9][a-z0-9-]*\.(?:png|jpe?g|webp|gif|svg))(?![\w/-])/gi;
 
+const erlaubteArten = (e: BildlistenEintrag) => {
+	if (e.art === 'bibliothek') {
+		return new Set<string>(['bibliothek', ...(e.quelle ? ['ki'] : [])]);
+	}
+	return new Set<string>(e.art === 'unbekannt' ? [] : [e.art]);
+};
+
 /** Darf ein Block, der `a` sagt, das Bild `e` meinen? Ohne Angabe zur Art oder Quelle gilt er nicht. */
 const passt = (e: BildlistenEintrag, a: Angabe): string | null => {
 	const quelle = e.quelle?.quelle ?? 'unbekannt';
@@ -273,10 +284,12 @@ const passt = (e: BildlistenEintrag, a: Angabe): string | null => {
 	if (genannt.length && bekannt.includes(quelle) && !genannt.includes(quelle)) {
 		return quelle === 'unbekannt' ? 'Herkunft unbekannt' : quelleText(e.quelle);
 	}
-	const erlaubt = new Set<string>(
-		e.art === 'bibliothek' ? ['bibliothek', ...(e.quelle ? ['ki'] : [])] : e.art === 'unbekannt' ? [] : [e.art],
-	);
-	if (a.arten.size && ![...a.arten].some((x) => erlaubt.has(x)) && !(e.art === 'unbekannt' && a.quellen.has('unbekannt'))) {
+	const erlaubt = erlaubteArten(e);
+	if (
+		a.arten.size &&
+		![...a.arten].some((x) => erlaubt.has(x)) &&
+		!(e.art === 'unbekannt' && a.quellen.has('unbekannt'))
+	) {
 		return ART_TEXT[e.art];
 	}
 	return null;
@@ -326,7 +339,8 @@ export const bildlisteBefunde = (
 	}
 	if (o.quellen) {
 		const fehlen = liste.filter(
-			(e) => (e.art === 'unbekannt' || (e.art === 'bibliothek' && !e.quelle)) && !genannt.has(e.datei.toLowerCase()),
+			(e) =>
+				(e.art === 'unbekannt' || (e.art === 'bibliothek' && !e.quelle)) && !genannt.has(e.datei.toLowerCase()),
 		);
 		if (fehlen.length) {
 			befunde.push(

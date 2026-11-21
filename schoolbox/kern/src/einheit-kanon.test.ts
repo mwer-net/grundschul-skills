@@ -16,8 +16,8 @@ import {
 	GRUNDPOSE_SATZ,
 	JE_KAPITEL_KOPF,
 	KANON_GRENZEN,
-	kanonMeldungen,
 	kanonKapitel,
+	kanonMeldungen,
 	kanonText,
 	kapitelVon,
 	kuerze,
@@ -609,13 +609,20 @@ describe('Kanon: melden statt kürzen, Bildvertrag nur mit Regeln fürs Bild (26
 		const n = (max: number) => 'x'.repeat(max + 1);
 		const meldungen = kanonMeldungen({
 			figuren: [
-				{ name: 'Luna', fest: [n(KANON_GRENZEN.merkmal), 'a', 'b', 'c', 'd', 'e'], nie: [n(KANON_GRENZEN.merkmal)] },
+				{
+					name: 'Luna',
+					fest: [n(KANON_GRENZEN.merkmal), 'a', 'b', 'c', 'd', 'e'],
+					nie: [n(KANON_GRENZEN.merkmal)],
+				},
 				{ name: n(KANON_GRENZEN.name), fest: ['ein Schwanz'] },
 			],
 			dinge: [{ name: 'der Spiegel', kapitel: { 3: n(KANON_GRENZEN.zustand), 4: 'bei Hanne' } }],
 			geheim: [{ was: n(KANON_GRENZEN.was), bis: 6 }],
 			regeln: [...Array.from({ length: KANON_GRENZEN.regeln + 1 }, (_, i) => `Regel ${i}.`), { bild: false }, ''],
-			begriffe: [{ wort: 'Achse', bedeutung: n(KANON_GRENZEN.bedeutung), ab: 1 }, { wort: n(KANON_GRENZEN.wort), bedeutung: 'b' }],
+			begriffe: [
+				{ wort: 'Achse', bedeutung: n(KANON_GRENZEN.bedeutung), ab: 1 },
+				{ wort: n(KANON_GRENZEN.wort), bedeutung: 'b' },
+			],
 		});
 		const erwartet = [
 			'Kanon, Figur „Luna“ hat 6 Einträge in „fest“, höchstens 5',
@@ -745,7 +752,10 @@ describe('Kanon je Kapitel für Vorleseheft und Auftakt, Abweichung wird behoben
 	});
 
 	it('Korrektur: der Kanon gilt, Widerspruch nur mit Grund aus Auftrag oder Sache', () => {
-		const text = pruefKorrektur([{ seite: 4, aufgabe: '', art: 'kanon', text: 'Luna trägt den Stern ins Haus.' }], []);
+		const text = pruefKorrektur(
+			[{ seite: 4, aufgabe: '', art: 'kanon', text: 'Luna trägt den Stern ins Haus.' }],
+			[],
+		);
 		assert.match(text, /auch wenn die Geschichte dafür anders erzählt werden muss/);
 		assert.match(text, /Nur wenn der Kanon dem Auftrag der Lehrkraft oder der Sache widerspricht/);
 	});

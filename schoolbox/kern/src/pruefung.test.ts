@@ -674,7 +674,7 @@ describe('pruefung.js: Inhalt bleibt in der Karte (266)', { skip: browserSkip() 
 			await writeFile(datei, html);
 			return (await pruefe(datei))
 				.filter((m) => ['ueberlauf', 'abgeschnitten', 'rand'].includes(m.code ?? ''))
-				.map(({ stufe, seite, code, text }) => ({ stufe, seite, code, text }));
+				.map(({ code, seite, stufe, text }) => ({ stufe, seite, code, text }));
 		} finally {
 			await rm(tmp, { recursive: true, force: true });
 		}
@@ -692,7 +692,9 @@ describe('pruefung.js: Inhalt bleibt in der Karte (266)', { skip: browserSkip() 
 
 	it('Karte mit fester Höhe: Inhalt ragt aus der Karte; schneidet die Karte ab, „abgeschnitten“', async () => {
 		const fest = (mehr = '') =>
-			blatt(`<div class="karten" style="--spalten:2;--zeilen:2;--karte-h:60mm">${karte('40mm', mehr).repeat(4)}</div>`);
+			blatt(
+				`<div class="karten" style="--spalten:2;--zeilen:2;--karte-h:60mm">${karte('40mm', mehr).repeat(4)}</div>`,
+			);
 		const ueber = await melde(fest());
 		assert.deepEqual(
 			ueber.map((m) => m.code),
@@ -707,7 +709,8 @@ describe('pruefung.js: Inhalt bleibt in der Karte (266)', { skip: browserSkip() 
 	});
 
 	it('was passt oder mit data-rand-ok übersteht, meldet nichts', async () => {
-		const marke = '<div data-rand-ok style="position:absolute;left:-6mm;top:-6mm;width:8mm;height:8mm;background:#000"></div>';
+		const marke =
+			'<div data-rand-ok style="position:absolute;left:-6mm;top:-6mm;width:8mm;height:8mm;background:#000"></div>';
 		const karten = `<div class="karten" style="--spalten:2;--zeilen:2">${`<div class="karte">${marke}<div class="kartentext">Spiegel</div></div>`.repeat(4)}</div>`;
 		assert.deepEqual(await melde(blatt(karten)), []);
 	});

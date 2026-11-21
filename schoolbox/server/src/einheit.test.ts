@@ -768,8 +768,14 @@ describe('Lauf einer Einheit (139)', () => {
 			const { id, neu, s } = await planen();
 			const runde = rueckrunden(neu);
 			assert.equal(runde.length, 1);
-			assert.match(runde[0] ?? '', /Kanon, Regel 1 \(„Die Uhr im Rathaus hat ein rundes…“\) hat 263 Zeichen, höchstens 200: teile sie/);
-			assert.deepEqual(neu.filter((p) => p.startsWith('Korrekturrunde zum Kanon')), []);
+			assert.match(
+				runde[0] ?? '',
+				/Kanon, Regel 1 \(„Die Uhr im Rathaus hat ein rundes…“\) hat 263 Zeichen, höchstens 200: teile sie/,
+			);
+			assert.deepEqual(
+				neu.filter((p) => p.startsWith('Korrekturrunde zum Kanon')),
+				[],
+			);
 			assert.equal(s.status, 'plan');
 			assert.equal(s.plan?.kanon?.regeln.length, 2);
 			assert.ok(s.plan?.kanon?.regeln.every((r) => r.length <= KANON_GRENZEN.regel && !r.endsWith('…')));
@@ -1221,7 +1227,10 @@ describe('Lauf einer Einheit (139)', () => {
 				/Doppelte Abbildungen, die der Server gefunden hat:\n- Dieselbe Abbildung in „Fall 1“ und „Fall 2“: <x-gitter/,
 			);
 			// 272: Der Schlusslauf nennt für ein Material mit <x-gitter> dieselbe Datei, die bauen verlangt.
-			assert.match(schluss, /^- fall-1: .*Read html-materialerstellung\/references\/abbildungen\/mathe-geometrie\.md/m);
+			assert.match(
+				schluss,
+				/^- fall-1: .*Read html-materialerstellung\/references\/abbildungen\/mathe-geometrie\.md/m,
+			);
 			assert.match(s.schluss?.server[0] ?? '', /Dieselbe Abbildung in „Fall 1“ und „Fall 2“/);
 		});
 
@@ -1258,9 +1267,9 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.match(bau, /^- uhr\.png: Herkunft unbekannt; in fall-1 S\. 1$/m);
 			const fall1 = neu.find((p) => p.startsWith('Schritt 2: der Bau von dokumente/fall-1/')) ?? '';
 			assert.doesNotMatch(fall1, /Bildliste der Schoolbox/);
-			const server = s.pruefung?.quellen?.server ?? [];
-			assert.match(server.join(' '), /„Quellen“ nennt für uhr\.png eine andere Herkunft/);
-			assert.match(server.join(' '), /„Quellen“ nennt fremd\.png; diese Datei verwendet kein Material/);
+			const vomServer = s.pruefung?.quellen?.server ?? [];
+			assert.match(vomServer.join(' '), /„Quellen“ nennt für uhr\.png eine andere Herkunft/);
+			assert.match(vomServer.join(' '), /„Quellen“ nennt fremd\.png; diese Datei verwendet kein Material/);
 			const schluss = neu.find((p) => p.startsWith('Schritt 3: der Schlusslauf')) ?? '';
 			assert.match(schluss, /Bildliste der Schoolbox/);
 			assert.match(schluss, /^- Bilder: nur nach der Bildliste der Schoolbox/m);

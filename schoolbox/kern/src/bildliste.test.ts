@@ -19,7 +19,14 @@ const HERKUNFT: BildlistenHerkunft = {
 		['luna', { quelle: 'openai', modell: 'gpt-image' }],
 		['pelle', null],
 	]),
-	dateien: new Set(['fall-1.jpg', 'folie-3-2.jpg', 'bib-luna.png', 'bib-luna-strich.png', 'bib-pelle.png', 'v-k-1.png']),
+	dateien: new Set([
+		'fall-1.jpg',
+		'folie-3-2.jpg',
+		'bib-luna.png',
+		'bib-luna-strich.png',
+		'bib-pelle.png',
+		'v-k-1.png',
+	]),
 };
 
 const KAPITEL = [
@@ -27,7 +34,8 @@ const KAPITEL = [
 	'<section class="seite folie"><svg viewBox="0 0 10 10"></svg><x-uhr zeit="3:00"></x-uhr></section>',
 	'<section class="seite"><img src="../../bilder/bib-pelle.png"><img src="bilder/willi.png"></section>',
 ].join('\n');
-const DECKBLATT = '<section class="seite deckblatt"><img src="../../bilder/v-k-1.png"><img src="../../bilder/fall-1.jpg"></section>';
+const DECKBLATT =
+	'<section class="seite deckblatt"><img src="../../bilder/v-k-1.png"><img src="../../bilder/fall-1.jpg"></section>';
 
 const liste = () =>
 	erstelleBildliste(
@@ -59,7 +67,12 @@ describe('Bildliste (271)', () => {
 				strich: 'bib-luna-strich.png',
 				verwendet: [{ slug: 'kapitel-1', seiten: [1] }],
 			},
-			{ datei: 'bib-pelle.png', art: 'bibliothek', figur: 'pelle', verwendet: [{ slug: 'kapitel-1', seiten: [3] }] },
+			{
+				datei: 'bib-pelle.png',
+				art: 'bibliothek',
+				figur: 'pelle',
+				verwendet: [{ slug: 'kapitel-1', seiten: [3] }],
+			},
 			{
 				datei: 'fall-1.jpg',
 				art: 'ki',
@@ -81,7 +94,10 @@ describe('Bildliste (271)', () => {
 		]);
 		const text = bildlisteText(liste());
 		assert.match(text, /- fall-1\.jpg: KI-Bild, Quelle openai \(gpt-image\); in kapitel-1 S\. 1; deckblatt S\. 1/);
-		assert.match(text, /- bib-pelle\.png: Figur der Figurenbibliothek, Pose pelle, Herkunft unbekannt; in kapitel-1 S\. 3/);
+		assert.match(
+			text,
+			/- bib-pelle\.png: Figur der Figurenbibliothek, Pose pelle, Herkunft unbekannt; in kapitel-1 S\. 3/,
+		);
 		assert.match(text, /- x-uhr: berechnet/);
 		assert.doesNotMatch(text, /folie-3-2|v-k-1/, 'nur, was das HTML verwendet');
 	});
@@ -124,7 +140,10 @@ describe('Bildliste (271)', () => {
 
 	it('liest bilder-herkunft.tsv vor canva-ids.tsv, je Datei die letzte Zeile', async () => {
 		const dir = await mkdtemp(path.join(tmpdir(), 'schoolbox-bildliste-'));
-		await writeFile(path.join(dir, 'canva-ids.tsv'), 'datei\tmedia-id\tmotiv\nalt.png\tMAH1\tx\nbeide.png\tMAH2\ty\n');
+		await writeFile(
+			path.join(dir, 'canva-ids.tsv'),
+			'datei\tmedia-id\tmotiv\nalt.png\tMAH1\tx\nbeide.png\tMAH2\ty\n',
+		);
 		await writeFile(
 			path.join(dir, 'bilder-herkunft.tsv'),
 			[KOPF, 'beide.png\topenai\tm1\t2026\tSzene', 'beide.png\topenai\tm2\t2026\tSzene\terzeugt\t\t'].join('\n'),
