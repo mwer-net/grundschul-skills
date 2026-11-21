@@ -87,11 +87,14 @@ def finde_chromium():
 
 
 def chromium(args, url, timeout=90):
-    cmd = [finde_chromium(), "--headless", "--no-sandbox", "--disable-gpu", "--hide-scrollbars",
-           "--allow-file-access-from-files", "--run-all-compositor-stages-before-draw",
-           "--virtual-time-budget=15000", *args, url]
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
-    return r.stdout
+    # Ohne eigenes Profil legt Chromium je Lauf einen Cache unter ~/.cache/google-chrome-for-testing-headless/ an
+    # und räumt ihn nie weg. Mit einem Profil in /tmp liegt der Cache darin und wird mit ihm gelöscht.
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as profil:
+        cmd = [finde_chromium(), "--headless", "--no-sandbox", "--disable-gpu", "--hide-scrollbars",
+               "--allow-file-access-from-files", "--run-all-compositor-stages-before-draw",
+               "--virtual-time-budget=15000", f"--user-data-dir={profil}", *args, url]
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return r.stdout
 
 
 def daten_uri(pfad):
