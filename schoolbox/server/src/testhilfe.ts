@@ -171,13 +171,14 @@ process.stdin.on('end', () => {
 		return;
 	}
 	// 268: die Bildprüfung, nur Read und ohne Sitzung, mit Vierteln und Ausschnitt je Bild in bilder/. Jeder Lauf landet in
-	// „bildpruefungen.jsonl“. „einheit-bild-befund“ meldet in der ersten Runde einen Befund zu uhr-gross.png, „-stur“ in jeder.
+	// „bildpruefungen.jsonl“. „einheit-bild-befund“ meldet in der ersten Runde einen Befund zu uhr-gross.png, „-stur“ in jeder, „-ohne“ einen Befund ohne Bild.
 	if (args[args.indexOf('--tools') + 1] === 'Read' && eingabe.startsWith('Bildprüfung')) {
 		const dateien = liste('bilder').sort();
 		sag({ type: 'assistant', message: { content: dateien.map((n) => ({ type: 'tool_use', name: 'Read', input: { file_path: path.resolve('bilder', n) } })) } });
 		const zweite = eingabe.includes('Zweite Bildprüfung');
 		fs.appendFileSync(path.join(__dirname, 'bildpruefungen.jsonl'), JSON.stringify({ dateien, zweite, auftrag: path.basename(args[args.indexOf('--append-system-prompt-file') + 1] ?? ''), eingabe }) + '\n');
 		const befunde = (fall === 'einheit-bild-befund' && !zweite) || fall === 'einheit-bild-befund-stur' ? [{ bild: 'uhr-gross.png', art: 'bild', text: 'Im Viertel unten rechts fehlt der Minutenzeiger.' }] : [];
+		if (fall === 'einheit-bild-befund-ohne') { befunde.push({ art: 'bild', text: 'Auf einem Bild fehlt ein Zeiger.' }); }
 		sag({ type: 'result', subtype: 'success', is_error: false, result: 'Geprüft.\n\x60\x60\x60json\n' + JSON.stringify({ befunde }) + '\n\x60\x60\x60', num_turns: 3, total_cost_usd: 0.02, usage: { output_tokens: 5 }, permission_denials: [] });
 		return;
 	}

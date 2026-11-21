@@ -9,7 +9,7 @@ import { cp, mkdir, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { BildPruefEintrag, EinheitPlan, PruefBefund, PruefBild } from '@schoolbox/kern';
-import { bilderMitBefund, bildPruefText } from '@schoolbox/kern';
+import { bildPruefText, nenntBild } from '@schoolbox/kern';
 import type { KanonNachtrag } from '@schoolbox/kern/src/einheit-kanon';
 import { bildKapitel, bildVorschlag, kanonText } from '@schoolbox/kern/src/einheit-kanon';
 
@@ -175,13 +175,18 @@ export const bildPruefAuftrag = async (o: {
 
 /**
  * Welcher Befund zu welchem Bild gehört: was ihn nennt (`bild`, Text oder Aufgabe). Ein Befund, der kein Bild des Laufs
- * nennt, gilt für jedes: Was sich nicht zuordnen lässt, ist nie abgenommen.
+ * nennt, gilt im Prüfstand für jedes; der Server (`ohneBildAnAlle: false`) gibt ihn einmal an den Bilderlauf und nimmt
+ * kein Bild des Laufs ab.
  */
-export const befundeJeBild = (bilder: readonly PruefBild[], befunde: readonly PruefBefund[]) => {
+export const befundeJeBild = (
+	bilder: readonly PruefBild[],
+	befunde: readonly PruefBefund[],
+	o: { ohneBildAnAlle: boolean } = { ohneBildAnAlle: true },
+) => {
 	const je = new Map<string, PruefBefund[]>();
 	for (const b of befunde) {
-		const genannt = bilderMitBefund(bilder, [b]);
-		for (const x of genannt.length ? genannt : bilder) {
+		const genannt = bilder.filter((x) => nenntBild(b, x.datei));
+		for (const x of genannt.length ? genannt : o.ohneBildAnAlle ? bilder : []) {
 			je.set(x.datei, [...(je.get(x.datei) ?? []), b]);
 		}
 	}

@@ -1,7 +1,8 @@
 /**
  * Der Abgleich des Prüfstands (239): Befunde eines Prüflaufs gegen den Fehlerkatalog `fehler.json`. Ein Eintrag gilt
  * als gefunden, wenn ein Befund desselben Materials auf derselben Seite (oder ohne Seite) eines seiner Stichwörter
- * nennt. Die Zuordnung ist grob; was als „neu“ übrig bleibt, beurteilt ein Mensch: echter Fund oder Fehlalarm.
+ * nennt; haben Eintrag und Befund ein Bild (`bild`, 268), muss es dasselbe sein. Die Zuordnung ist grob; was als „neu“
+ * übrig bleibt, beurteilt ein Mensch: echter Fund oder Fehlalarm.
  */
 import type { PruefBefund } from '@schoolbox/kern';
 
@@ -20,6 +21,8 @@ export interface KatalogEintrag {
 	seite: number | null;
 	aufgabe: string;
 	art: string;
+	/** 268: Die Datei des Bildes; nennt ein Befund ein Bild (`bild`), muss es dieses sein. */
+	bild?: string;
 	/** Die Teile, die den Fehler finden sollen; ein Lauf ohne sie wertet den Eintrag nicht. */
 	teil: Teil[];
 	stichwoerter: string[];
@@ -70,6 +73,9 @@ const katalogEintrag = (
 	if (erwartung === 'gefunden' && !istTextListe(x.stichwoerter)) {
 		throw new Error(`${wo} (${x.id}): „stichwoerter“ fehlt.`);
 	}
+	if (x.bild !== undefined && (typeof x.bild !== 'string' || !/^[a-z0-9][a-z0-9-]{0,59}\.(png|jpg)$/.test(x.bild))) {
+		throw new Error(`${wo} (${x.id}): „bild“ ist kein Dateiname eines Bildes.`);
+	}
 	if (erwartung === 'still' && x.seite === null) {
 		throw new Error(`${wo} (${x.id}): Eine Gegenprobe „still“ braucht eine Seite.`);
 	}
@@ -79,6 +85,7 @@ const katalogEintrag = (
 		seite: x.seite,
 		aufgabe: typeof x.aufgabe === 'string' ? x.aufgabe : '',
 		art: typeof x.art === 'string' ? x.art : '',
+		...(typeof x.bild === 'string' ? { bild: x.bild } : {}),
 		teil: x.teil as Teil[],
 		stichwoerter: istTextListe(x.stichwoerter) ? x.stichwoerter : [],
 		beschreibung: typeof x.beschreibung === 'string' ? x.beschreibung : '',
@@ -113,6 +120,9 @@ const normal = (text: string) =>
 
 const seitePasst = (e: KatalogEintrag, b: PruefBefund) => e.seite === null || b.seite === null || e.seite === b.seite;
 
+/** Ein Befund der Bildprüfung hat keine Seite; er passt nur zu dem Bild, das er nennt (268). */
+const bildPasst = (e: KatalogEintrag, b: PruefBefund) => !e.bild || !b.bild || e.bild === b.bild;
+
 const nennt = (e: KatalogEintrag, b: PruefBefund) => {
 	const text = normal(`${b.aufgabe} ${b.text}`);
 	return e.stichwoerter.some((w) => text.includes(normal(w)));
@@ -134,7 +144,7 @@ export const gleicheAb = (katalog: readonly KatalogEintrag[], materialien: reado
 		}
 		const treffer = m.befunde
 			.map((b, nr) => ({ b, nr }))
-			.filter(({ b }) => (e.erwartung === 'still' ? e.seite === b.seite : seitePasst(e, b) && nennt(e, b)));
+			.filter(({ b }) => (e.erwartung === 'still' ? e.seite === b.seite : seitePasst(e, b) && bildPasst(e, b) && nennt(e, b)));
 		for (const { nr } of treffer) {
 			benutzt.add(`${m.slug}#${nr}`);
 		}

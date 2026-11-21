@@ -101,8 +101,8 @@ const KOSTEN_JE_LAUF = { min: 0.7, mittel: 1.1, max: 1.4 };
 const BILD_IM_DOKUMENT = /\.\.\/\.\.\/bilder\/([a-z0-9][a-z0-9-]{0,59}\.(?:png|jpg))/g;
 /** Geschätzt für 247: Plan, Recherche und zwei Skills lesen, ohne Bilder; etwa ein Fachblick ohne Seiten. */
 const KOSTEN_PLAN = { min: 0.4, mittel: 0.7, max: 1.2 };
-/** Geschätzt für 268: ein Lauf der Bildprüfung liest je Bild vier Viertel und den Ausschnitt, höchstens sechs Bilder. */
-const KOSTEN_BILD = { min: 0.4, mittel: 0.8, max: 1.2 };
+/** Gemessen in 268 (fall-272, 16 Bilder): 7 Läufe der Bildprüfung zusammen 1,47 USD. */
+const KOSTEN_BILD = { min: 0.15, mittel: 0.25, max: 0.5 };
 /** Wie im Server: Diese Materialien geben dem Fachblick der Hinweise keine Lösungsseiten. */
 const OHNE_FREMDE_LOESUNG = new Set(['deckblatt', 'quellen', 'angebot', 'hinweise', 'bilder']);
 
@@ -859,14 +859,17 @@ const pruefeBilderTeil = async (
 	plan: { je: Map<string, string[]>; laeufe: BildPruefLauf[] },
 ): Promise<Ergebnis[]> => {
 	const { p } = k;
+	// Vertrag und Vorschlag aus `bildArbeit`: mit `--vertraege` oder `bildvertraege.json` die ersetzten, wie Kinderaugen.
+	const ersetzt = new Map((await leseKiBilder(k.bildArbeit)).map((b) => [b.datei, b]));
+	const laeufe = plan.laeufe.map((l) => ({ ...l, bilder: l.bilder.map((b) => ersetzt.get(b.datei) ?? b) }));
 	const arbeit = await bildArbeitFuer(
 		k,
-		plan.laeufe.flatMap((l) => l.bilder),
+		laeufe.flatMap((l) => l.bilder),
 	);
 	const jeMaterial = new Map<string, Ergebnis[]>();
 	const kopf = { klasse: klasseText(p.klasse), fach: FACH_NAME[p.fach], auftrag: p.auftrag };
 	try {
-		for (const [i, lauf] of plan.laeufe.entries()) {
+		for (const [i, lauf] of laeufe.entries()) {
 			if (k.zustand.abgebrochen) {
 				break;
 			}

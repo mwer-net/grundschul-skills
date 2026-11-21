@@ -1631,6 +1631,19 @@ describe('Lauf einer Einheit (139)', () => {
 			assert.ok(!(s.bilderGeprueft ?? []).length);
 		});
 
+		it('268: Ein Befund ohne Bildangabe geht einmal an den Bilderlauf, nimmt nichts ab und wird kein Hinweis', async () => {
+			await fall('einheit-bild-befund-ohne');
+			const vorher = (await bildPruefungen()).length;
+			const { id } = await starte(MIT_BILDERN);
+			const s = await bis(id, 'fertig');
+			assert.equal((await bildPruefungen()).slice(vorher).length, 1, 'kein Bild mit Befund, keine zweite Runde');
+			const text = (await prompts()).findLast((p) => p.startsWith('Bildprüfung mit frischem Blick')) ?? '';
+			assert.equal(text.match(/Auf einem Bild fehlt ein Zeiger\./g)?.length, 1);
+			assert.match(text, /- ohne Bildangabe \(eines von bilder\/uhr-gross\.png\): Auf einem Bild fehlt ein Zeiger\./);
+			assert.ok(!(s.bilderGeprueft ?? []).length);
+			assert.ok(!(s.bildHinweise ?? []).length);
+		});
+
 		it('Sperrt OpenAI im Bilder-Lauf: unvollständig mit dem Satz, ohne Pause, ohne Material; Weiterbauen geht dort weiter', async () => {
 			await fall('einheit-bild-gesperrt');
 			const vorher = (await jsonl<{ erste: string }>('laeufe.jsonl')).length;

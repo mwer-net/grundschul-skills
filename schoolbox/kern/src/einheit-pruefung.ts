@@ -367,7 +367,8 @@ const bildZeile = (b: PruefBild) => {
 const bildStamm = (datei: string) => datei.replace(/\.(png|jpg)$/, '');
 
 /** Nennt ein Befund das Bild: in `bild`, im Text oder in der Aufgabe („Bild folie-3-1“)? */
-const nenntBild = (b: PruefBefund, datei: string) =>
+/** Ob ein Befund ein Bild nennt: als `bild`, im Text oder in der Aufgabe (mit oder ohne Endung). */
+export const nenntBild = (b: PruefBefund, datei: string) =>
 	b.bild === datei || b.text.includes(bildStamm(datei)) || b.aufgabe.includes(bildStamm(datei));
 
 /**

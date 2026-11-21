@@ -1157,6 +1157,8 @@ export const erstelleEinheiten = (
 				!v.geprueft ||
 				v.offen ||
 				herkunft.get(v.datei)?.art === 'offen' ||
+				// 268: Ein Befund der Bildprüfung, den der Bilderlauf nicht behoben hat, steht nur als Hinweis im Stand.
+				(s.bildHinweise ?? []).some((h) => h.datei === v.datei) ||
 				!existsSync(path.join(bilderDir, v.datei))
 			) {
 				continue;
@@ -2538,10 +2540,16 @@ export const erstelleEinheiten = (
 
 	// ── Bildprüfung mit frischem Blick (268) ──
 
-	const BILDER_NACH_PRUEFUNG = (je: ReadonlyMap<string, readonly PruefBefund[]>) =>
+	const BILDER_NACH_PRUEFUNG = (
+		je: ReadonlyMap<string, readonly PruefBefund[]>,
+		ohneBild: readonly { befund: PruefBefund; bilder: readonly string[] }[],
+	) =>
 		[
 			'Bildprüfung mit frischem Blick. Ein eigener Lauf hat die Viertel und den Ausschnitt deiner Bilder gegen Vertrag und Kanon geprüft und meldet:',
 			...[...je].map(([datei, befunde]) => `- bilder/${datei}: ${befunde.map((b) => b.text).join(' · ')}`),
+			...ohneBild.map(
+				(o) => `- ohne Bildangabe (eines von ${o.bilder.map((d) => `bilder/${d}`).join(', ')}): ${o.befund.text}`,
+			),
 			'Behebe jeden Befund nach bilder.md, „Fehler und Versuche“ und 2a: neu statt flicken, den Befund in `befund`, danach das ganze Bild und den Ausschnitt ansehen und mit bild_pruefung abhaken. Verlangt der Vertrag das Bild so, wie es ist, lass es und sag es in deiner Antwort. Danach prüft die Bildprüfung die geänderten Bilder noch einmal. Antworte am Ende mit einer Zeile je Bild.',
 		].join('\n');
 
@@ -2574,7 +2582,9 @@ export const erstelleEinheiten = (
 		const g = KI_GRENZEN.einheit.bildPruefung;
 		const laeufe = bildPruefLaeufe(plan, bilder, g.bilderJeLauf);
 		const kopf = { klasse: klasseText(s.rechercheAnfrage?.klasse), fach: FACH_NAME[fach(s)], auftrag: s.auftrag };
-		const ergebnis: { bild: KiBild; befunde: PruefBefund[] }[] = [];
+		const ergebnis: { bild: KiBild; befunde: PruefBefund[]; unklar: boolean }[] = [];
+		/** Befunde, die kein Bild nennen: einmal an den Bilderlauf, die Bilder ihres Laufs gelten als nicht abgenommen. */
+		const ohneBild: { befund: PruefBefund; bilder: string[] }[] = [];
 		const einer = async (lauf: BildPruefLauf, nr: number) => {
 			const a = aktiv;
 			if (!a || a.abbruch) {
@@ -2649,8 +2659,12 @@ export const erstelleEinheiten = (
 				lauf: 'bildpruefung',
 			});
 			if (!fehler && e.lesbar) {
-				const je = befundeJeBild(geprueft, e.befunde);
-				ergebnis.push(...lauf.bilder.map((b) => ({ bild: b, befunde: je.get(b.datei) ?? [] })));
+				const je = befundeJeBild(geprueft, e.befunde, { ohneBildAnAlle: false });
+				const offen = e.befunde.filter((b) => !geprueft.some((g) => (je.get(g.datei) ?? []).includes(b)));
+				ohneBild.push(...offen.map((befund) => ({ befund, bilder: lauf.bilder.map((b) => b.datei) })));
+				ergebnis.push(
+					...lauf.bilder.map((b) => ({ bild: b, befunde: je.get(b.datei) ?? [], unklar: offen.length > 0 })),
+				);
 			}
 		};
 		let naechster = 0;
@@ -2664,7 +2678,7 @@ export const erstelleEinheiten = (
 			}
 		};
 		await Promise.all(Array.from({ length: Math.min(g.gleichzeitig, laeufe.length) }, arbeite));
-		return ergebnis;
+		return { ergebnis, ohneBild };
 	};
 
 	/**
@@ -2682,21 +2696,22 @@ export const erstelleEinheiten = (
 		}
 		s.inArbeit = BILDPRUEFUNG_SCHRITT;
 		await merke(s);
-		const erste = await pruefeBilder(s, plan, offen, 1);
+		const { ergebnis: erste, ohneBild } = await pruefeBilder(s, plan, offen, 1);
+		// Ein Befund ohne Bildangabe nimmt kein Bild seines Laufs ab; Kinderaugen sieht sie dann in Vierteln.
 		merkeAbgenommen(
 			s,
-			erste.filter((e) => !e.befunde.length).map((e) => e.bild),
+			erste.filter((e) => !e.befunde.length && !e.unklar).map((e) => e.bild),
 		);
 		const gruende = new Map(erste.filter((e) => e.befunde.length).map((e) => [e.bild.datei, e.befunde]));
 		const rest: { datei: string; text: string }[] = [];
-		if (gruende.size && aktiv && !aktiv.abbruch) {
+		if ((gruende.size || ohneBild.length) && aktiv && !aktiv.abbruch) {
 			if (sitzung) {
 				s.inArbeit = BILDER_SCHRITT;
 				await merke(s);
 				await starteLauf(s, {
 					art: 'bilder',
 					material: BILDER_SCHRITT,
-					text: BILDER_NACH_PRUEFUNG(gruende),
+					text: BILDER_NACH_PRUEFUNG(gruende, ohneBild),
 					sitzung,
 					auftragDatei: materialAuftrag,
 					rechte: einheitBauRechte({ slug: null, thema: false }),
@@ -2719,10 +2734,10 @@ export const erstelleEinheiten = (
 			if (geaendert.length && aktiv && !aktiv.abbruch) {
 				s.inArbeit = BILDPRUEFUNG_SCHRITT;
 				await merke(s);
-				const zweite = await pruefeBilder(s, plan, geaendert, 2);
+				const { ergebnis: zweite } = await pruefeBilder(s, plan, geaendert, 2);
 				merkeAbgenommen(
 					s,
-					zweite.filter((e) => !e.befunde.length).map((e) => e.bild),
+					zweite.filter((e) => !e.befunde.length && !e.unklar).map((e) => e.bild),
 				);
 				rest.push(
 					...zweite
