@@ -99,6 +99,15 @@ Empfehlung: Immer alle Skills installieren, da sie aufeinander verweisen.
 
 `blatt.py` braucht Python 3, Chromium, Pillow und pypdfium2 bzw. `pdftoppm`. Ohne die beiden Letzteren entsteht nur das PDF, ohne Vorschau-PNGs und ohne Ausschnitte je Aufgabe, und die visuelle Endkontrolle fällt aus. Chromium findet `blatt.py` als Playwright-Chromium (`~/.cache/ms-playwright/`), `chromium` oder `google-chrome`.
 
+Chromium läuft beim Bauen mit Sandbox, ohne Netz und ohne Zugriff auf andere Dateien, denn ein Blatt ist HTML, das jemand anderes geschrieben hat. Was das Blatt braucht (Schriften, Stile und Bilder neben dem Blatt oder aus `assets/`), bettet `blatt.py` vorher ein. Unter Ubuntu ab 23.10 braucht das Playwright-Chromium für die Sandbox ein AppArmor-Profil, das einmal eingerichtet wird:
+
+```bash
+sudo cp schoolbox/docs/playwright-chrome.apparmor /etc/apparmor.d/playwright-chrome
+sudo apparmor_parser -r /etc/apparmor.d/playwright-chrome
+```
+
+Wo es keine Sandbox gibt, etwa als root in einem Container, `CHROMIUM_OHNE_SANDBOX=1` setzen.
+
 - **Debian/Ubuntu:** `sudo apt install python3-pil poppler-utils`. Danach läuft `python3 …/blatt.py` wie in den Skills beschrieben, ohne virtuelle Umgebung (PNGs über `pdftoppm`).
 - **Andere Systeme:** `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`, dann `.venv/bin/python` statt `python3` aufrufen.
 

@@ -105,9 +105,10 @@ Maßstäbliche Elemente (echte Zentimeter): `masstab(el)` im Element, und beim A
 | Problem | Lösung |
 |---|---|
 | „Kein Chromium gefunden" | `pip install playwright && playwright install chromium` oder `CHROMIUM_PATH` setzen |
+| „Chromium startet ohne Sandbox nicht" | Ubuntu ab 23.10: AppArmor-Profil `schoolbox/docs/playwright-chrome.apparmor` einrichten; als root oder in einem Container `CHROMIUM_OHNE_SANDBOX=1` setzen |
 | Keine PNG-Vorschau | `pip install pypdfium2` |
 | Schrift nicht geladen | Quelle bindet `blatt.css` per `<link>` ein, `assets/fonts/` vorhanden |
-| Bild fehlt | Pfad relativ zur Quelle oder zu `assets/` (`bilder/willi.png`) |
+| Bild fehlt | Pfad relativ zur Quelle oder zu `assets/` (`bilder/willi.png`); Bilder aus dem Netz vorher herunterladen, beim Bauen gibt es kein Netz |
 | Element ragt in den Rand | Inhalt kürzen, `--spalten` senken, Abbildung kleiner (`groesse`), sonst zweite Seite |
 | Bild unscharf (Hinweis dpi) | Original in voller Auflösung holen (`references/bilder.md`) |
 | Lösungsblatt weicht ab | Lösung immer über `data-l`/`loesung`/`nur-loesung` im selben HTML, nie als zweite Kopie |

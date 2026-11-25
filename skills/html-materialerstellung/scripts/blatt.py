@@ -86,14 +86,37 @@ def finde_chromium():
              "(oder CHROMIUM_PATH setzen).")
 
 
+OHNE_SANDBOX = "Chromium startet ohne Sandbox nicht. Unter Ubuntu ab 23.10 fehlt das AppArmor-Profil " \
+               "(schoolbox/docs/playwright-chrome.apparmor). Als root oder in einem Container ohne Sandbox: " \
+               "CHROMIUM_OHNE_SANDBOX=1 setzen."
+
+
+def keine_sandbox(stderr):
+    # Ubuntu ohne Profil meldet „No usable sandbox“, root ohne --no-sandbox verweist auf crbug.com/638180.
+    return "No usable sandbox" in stderr or "crbug.com/638180" in stderr
+
+
+def chromium_aufruf():
+    """Ein Blatt ist fremdes HTML: Sandbox an, kein Netz, kein Lesen anderer Dateien. Was das Blatt braucht, hat
+    einbetten() schon hineingelegt. Ohne Sandbox nur ausdrücklich, auf Rechnern, die keine bieten."""
+    aufruf = [finde_chromium(), "--headless", "--disable-gpu", "--hide-scrollbars",
+              # Kein Netz: Namen lösen nicht auf, und Adressen gehen an einen Proxy, den es nicht gibt.
+              "--host-resolver-rules=MAP * ~NOTFOUND", "--proxy-server=127.0.0.1:9", "--proxy-bypass-list=<-loopback>",
+              "--force-webrtc-ip-handling-policy=disable_non_proxied_udp"]
+    if os.environ.get("CHROMIUM_OHNE_SANDBOX") == "1":
+        aufruf.append("--no-sandbox")
+    return aufruf
+
+
 def chromium(args, url, timeout=90):
     # Ohne eigenes Profil legt Chromium je Lauf einen Cache unter ~/.cache/google-chrome-for-testing-headless/ an
     # und räumt ihn nie weg. Mit einem Profil in /tmp liegt der Cache darin und wird mit ihm gelöscht.
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as profil:
-        cmd = [finde_chromium(), "--headless", "--no-sandbox", "--disable-gpu", "--hide-scrollbars",
-               "--allow-file-access-from-files", "--run-all-compositor-stages-before-draw",
-               "--virtual-time-budget=15000", f"--user-data-dir={profil}", *args, url]
+        cmd = [*chromium_aufruf(), "--run-all-compositor-stages-before-draw", "--virtual-time-budget=15000",
+               f"--user-data-dir={profil}", *args, url]
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        if r.returncode and keine_sandbox(r.stderr):
+            sys.exit(OHNE_SANDBOX)
         return r.stdout
 
 
@@ -103,9 +126,10 @@ def daten_uri(pfad):
 
 
 def suche(name, quelle_dir):
+    """Nur Dateien, die ein Blatt einbetten darf. Sonst holte ein Verweis wie ../../.env die Datei ins Blatt."""
     for basis in (quelle_dir, ASSETS):
         p = (basis / name).resolve()
-        if p.exists():
+        if p.suffix.lower() in EINBETTBAR and not p.name.startswith(".") and p.is_file():
             return p
     return None
 
@@ -117,6 +141,7 @@ def mit_klasse(text, klasse):
 JPEG_QUALITAET = 85
 FARBSTICH = 25
 RASTER = (".png", ".jpg", ".jpeg", ".webp", ".gif")
+EINBETTBAR = (".css", ".js", ".woff2", ".woff", ".ttf", ".otf", ".svg", *RASTER)
 HELLIGKEIT = lambda r, g, b: round(0.299 * r + 0.587 * g + 0.114 * b)
 
 
@@ -420,10 +445,11 @@ class Cdp:
             lesen, schreiben = fcntl.fcntl(von_uns, fcntl.F_DUPFD, 10), fcntl.fcntl(an_uns, fcntl.F_DUPFD, 10)
             os.dup2(lesen, 3, inheritable=True)
             os.dup2(schreiben, 4, inheritable=True)
-        self.proc = subprocess.Popen(
-            [finde_chromium(), "--headless", "--no-sandbox", "--disable-gpu", "--hide-scrollbars",
-             "--allow-file-access-from-files", "--remote-debugging-pipe", f"--user-data-dir={ordner}", "about:blank"],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn=kanaele, close_fds=False, start_new_session=True)
+        self.fehler = Path(ordner) / "chromium-fehler.txt"
+        with open(self.fehler, "wb") as fehler:
+            self.proc = subprocess.Popen(
+                [*chromium_aufruf(), "--remote-debugging-pipe", f"--user-data-dir={ordner}", "about:blank"],
+                stdout=subprocess.DEVNULL, stderr=fehler, preexec_fn=kanaele, close_fds=False, start_new_session=True)
         os.close(von_uns)
         os.close(an_uns)
         self.schreiben, self.lesen = os.fdopen(an_chrome, "wb"), os.fdopen(von_chrome, "rb")
@@ -434,7 +460,8 @@ class Cdp:
         while True:
             z = self.lesen.read(1)
             if not z:
-                raise RuntimeError("Chromium hat die Verbindung beendet.")
+                ohne = self.fehler.exists() and keine_sandbox(self.fehler.read_text(errors="replace"))
+                raise RuntimeError(OHNE_SANDBOX if ohne else "Chromium hat die Verbindung beendet.")
             if z == b"\0":
                 return json.loads(puffer)
             puffer += z

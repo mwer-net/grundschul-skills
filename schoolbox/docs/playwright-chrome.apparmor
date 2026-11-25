@@ -1,0 +1,15 @@
+# Als /etc/apparmor.d/playwright-chrome installieren, dann: sudo apparmor_parser -r /etc/apparmor.d/playwright-chrome
+#
+# Erlaubt dem Chromium, das Playwright herunterlädt und mit dem blatt.py PDFs und Vorschaubilder baut, die
+# User-Namespaces seiner Sandbox. Ubuntu ab 23.10 verweigert sie Programmen ohne eigenes Profil, und ohne Sandbox
+# würde ein Fehler im Browser direkt zum Benutzer der Schoolbox durchgreifen. Das Muster deckt jede Playwright-Version
+# ab, ein Update braucht hier keine Änderung.
+
+abi <abi/4.0>,
+include <tunables/global>
+
+profile playwright-chrome @{HOME}/.cache/ms-playwright/chromium-*/chrome-linux*/chrome flags=(unconfined) {
+  userns,
+
+  include if exists <local/playwright-chrome>
+}

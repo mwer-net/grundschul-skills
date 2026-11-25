@@ -27,7 +27,7 @@
 		"react-router-dom": "^7.18.4"
 	},
 	"devDependencies": {
-		"@playwright/test": "^1.64.0",
+		"@playwright/test": "^1.65.1",
 		"@schoolbox/kern": "workspace:*",
 		"@tailwindcss/vite": "^4.3.3",
 		"@types/react": "^19.0.0",
