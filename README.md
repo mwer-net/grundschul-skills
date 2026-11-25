@@ -230,10 +230,12 @@ Das Skript kopiert `schoolbox/vorlagen/settings.lehrkraft.json` nach `.claude/se
 
 Außerdem kopiert es `schoolbox/vorlagen/CLAUDE.lehrkraft.md` nach `CLAUDE.local.md` (ebenfalls nie committet). Diese Anweisungen gelten nur in diesem Klon: Claude spricht mit einer Lehrkraft, die nicht programmiert. Im Chat stehen keine Befehle, Pfade oder Fehlermeldungen, Material wird über das CLI in Mappen abgelegt, und am Ende steht ein Link in die Schoolbox. Wünsche, die alle Materialien betreffen („ab jetzt größere Schrift“), ändert Claude nicht selbst, sondern notiert sie mit `schoolbox wunsch` in `materialien/_wuensche.md`. Die Skills selbst bleiben ohne Schoolbox nutzbar; ihre Abschnitte „Mit Schoolbox“ greifen nur, wenn die Projektanweisungen eine nennen.
 
-Zwei Dinge an der Vorlage sind nicht offensichtlich:
+Vier Dinge an der Vorlage sind nicht offensichtlich:
 
 - **Hooks sind abgeschaltet** (`disableAllHooks`). Ein Hook aus den persönlichen Einstellungen, der Bash-Befehle umschreibt und freigibt, setzt sonst jede `Bash(…)`-Sperre außer Kraft, weil die Regel den umgeschriebenen Befehl nicht mehr erkennt.
 - **Die Regeln prüfen den Wortlaut eines Befehls.** `git -C . push` trifft die Sperre für `git push` nicht. Das Skript macht deshalb zusätzlich die Push-Adresse des Klons ungültig und schaltet im Pre-Commit-Hook eine Commit-Sperre ein (`git config schoolbox.lehrkraftModus true`). Holen funktioniert weiter, `ausrollen.sh` pusht nie.
+- **`curl` und `file` sind nicht freigegeben.** Eine freigegebene Zeile übergeht den Auto-Modus, und die Regel prüft nur den Anfang des Befehls: `curl -o materialien/… file://…/.env` käme so an der Sperre für `.env` vorbei. Bilder von Canva lädt Claude trotzdem, der Auto-Modus prüft dann jeden Download einzeln.
+- **`schoolbox passwort` ist gesperrt**, obwohl das CLI sonst freigegeben ist. Ohne Terminal liest der Befehl das neue Passwort von der Standardeingabe, Claude könnte damit also das Anmeldepasswort der Schoolbox ändern. Weil die Sperre nur einen Wortlaut trifft (`schoolbox --json passwort` nicht), verweigert sich der Befehl außerdem selbst, sobald Claude Code ihn aufruft (`CLAUDECODE` gesetzt).
 
 Einen Berechtigungsmodus legt die Vorlage nicht fest. Für die Sitzungen der Lehrkraft passt Auto: Claude fragt dann auch bei Unvorhergesehenem nicht nach, und die Sperren gelten trotzdem. Auto lässt sich nicht in der Einstellungsdatei setzen, nur beim Start, zum Beispiel mit `claude remote-control --permission-mode auto`.
 

@@ -296,6 +296,23 @@ describe('CLI', () => {
 		});
 	});
 
+	it('setzt das Passwort nicht aus einer Claude-Sitzung, auch nicht mit --json davor', () => {
+		const cli = path.resolve(__dirname, '..', '..', 'bin', 'schoolbox');
+		// Leere Eingabe: Fehlte die Sperre, scheiterte der Befehl an der Länge, bevor er .env schreibt.
+		const lauf = () =>
+			execFileSync(cli, ['--json', 'passwort'], {
+				encoding: 'utf8',
+				env: { ...process.env, CLAUDECODE: '1' },
+				input: '',
+				stdio: 'pipe',
+			});
+		assert.throws(lauf, (fehler: { status: number; stdout: string }) => {
+			assert.equal(fehler.status, 2);
+			assert.match(fehler.stdout, /nur ein Mensch/);
+			return true;
+		});
+	});
+
 	it('legt ein Mini-Book ohne --format aus der Vorlage an und nennt alle Vorlagen', async () => {
 		const materialDir = await ablage();
 		const mappe = await kartoffeln(materialDir);

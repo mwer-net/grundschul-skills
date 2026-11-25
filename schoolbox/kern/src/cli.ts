@@ -326,6 +326,11 @@ const leseZeile = async () => {
 
 const befehlPasswort = async (konfig: Konfig, argumente: string[]): Promise<Ergebnis> => {
 	lies(argumente, {});
+	// Die Sitzung der Lehrkraft darf das CLI ohne Rückfrage aufrufen, und die Sperre in ihren Regeln trifft
+	// nur einen Wortlaut (`schoolbox --json passwort` nicht). Claude Code setzt CLAUDECODE in seiner Shell.
+	if (process.env.CLAUDECODE) {
+		throw new SchoolboxFehler('Das Passwort setzt nur ein Mensch, am Terminal und nicht über Claude.');
+	}
 	let passwort: string;
 	if (process.stdin.isTTY) {
 		passwort = await leseVerdeckt('Neues Passwort für die Schoolbox: ');
