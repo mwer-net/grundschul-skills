@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test';
 import { crc32, deflateSync } from 'node:zlib';
 
 import type { AppAntwort, AppBilderOptionen, AppFigur } from './app-bilder';
-import { erstelleAppBilder, MAX_AUFRUFE_SITZUNG } from './app-bilder';
+import { erstelleAppBilder } from './app-bilder';
 import type { BildAnfrage } from './bild-api';
 import { BILD_API_GESPERRT, BildApiFehler } from './bild-api';
 import { BILD_GRENZEN } from './bild-grenzen';
@@ -301,36 +301,16 @@ describe('Bildwerkzeuge der Claude-App (280)', () => {
 		assert.equal(anfragen.length, 0);
 	});
 
-	it('Grenzen: die eines Blatts je Dokument, dazu eine je Sitzung', async () => {
-		const je = BILD_GRENZEN.aufrufe.blatt;
-		const dokumente = Array.from({ length: Math.ceil(MAX_AUFRUFE_SITZUNG / je) + 1 }, (_, i) => `blatt-${i + 1}`);
-		const dateien = dokumente.flatMap((d) => Array.from({ length: je + 1 }, (_, i) => `${d}-bild-${i + 1}.png`));
+	it('keine Obergrenze: mehr Bilder als ein Blatt-Lauf darf (281)', async () => {
+		const anzahl = BILD_GRENZEN.aufrufe.blatt * 3 + 1;
+		const dateien = Array.from({ length: anzahl }, (_, i) => `bild-${i + 1}.png`);
 		await vertrag(...dateien);
-		for (const d of dokumente) {
-			await mkdir(path.join(mappeDir, 'dokumente', d), { recursive: true });
-			await writeFile(path.join(mappeDir, 'dokumente', d, 'material.html'), '<section></section>');
-		}
 		const bilder = app();
-		const ergebnisse: AppAntwort[] = [];
-		for (const d of dokumente.slice(0, 1)) {
-			for (let i = 1; i <= je + 1; i += 1) {
-				ergebnisse.push(await erzeuge(bilder, { dokument: `${MAPPE}/${d}`, datei: `${d}-bild-${i}.png` }));
-			}
+		for (const datei of dateien) {
+			const a = await erzeuge(bilder, { datei });
+			assert.equal(a.isError, false, text(a));
 		}
-		assert.equal(ergebnisse.filter((e) => !e.isError).length, je);
-		assert.match(text(ergebnisse.at(-1) as AppAntwort), /Obergrenze von 8 Bildaufrufen für diesen Lauf/);
-		let erfolge = je;
-		for (const d of dokumente.slice(1)) {
-			for (let i = 1; i <= je; i += 1) {
-				const a = await erzeuge(bilder, { dokument: `${MAPPE}/${d}`, datei: `${d}-bild-${i}.png` });
-				erfolge += a.isError ? 0 : 1;
-				if (a.isError) {
-					assert.match(text(a), /für diese Sitzung/);
-				}
-			}
-		}
-		assert.equal(erfolge, MAX_AUFRUFE_SITZUNG);
-		assert.equal(anfragen.length, MAX_AUFRUFE_SITZUNG);
+		assert.equal(anfragen.length, anzahl);
 	});
 
 	it('bild-api-gesperrt gilt danach für die ganze Sitzung; ohne Schlüssel entsteht nichts', async () => {

@@ -199,7 +199,7 @@ Gilt, wenn die Sitzung `mcp__schoolbox-bilder__bild_erzeugen` und `…__bild_bea
 - **Rückfall:** Meldet Canva `quota_cooldown`, aufgebrauchte Credits oder ein anderes Ende des Kontingents: nicht warten, nicht nachfragen. Die übrigen Bilder dieses Materials entstehen mit der Bild-API, dazu ein Satz an die Lehrkraft.
 - **Gleich die Bild-API**, wenn die Lehrkraft ausdrücklich GPT, ChatGPT oder die Bild-API möchte.
 - **Mit der Bild-API** gilt Abschnitt 2b, auch für Prompt (Schriftsatz, `transparent` statt Freistellen) und Prüfung. Anders: Jeder Aufruf nennt `dokument` (`<mappe>/<dokument>`). Arbeitsordner ist die Mappe: Vertrag in `bilder.json` der Mappe, das Bild in `bilder/` der Mappe, im Material `../../bilder/<datei>`; die Herkunft schreibt der Server. Die Antwort zeigt die Prüfbilder. Referenzen aus `bilder/` und `referenzen/` der Mappe (Grundposen, die Werkzeugbeschreibung nennt sie) und aus `dokumente/<dokument>/bilder/`: Nach dem Wechsel ist ein Canva-Bild dieses Materials die Referenz für den Stil.
-- Meldet die Bild-API `bild-api-gesperrt` oder ihre Obergrenze: kein Bild mehr über sie. Zurück zu Canva, sobald es wieder Bilder gibt (in der Wartezeit Text und Layout bauen), sonst bleibt der Platzhalter.
+- Meldet die Bild-API `bild-api-gesperrt`: kein Bild mehr über sie. Zurück zu Canva, sobald es wieder Bilder gibt (in der Wartezeit Text und Layout bauen), sonst bleibt der Platzhalter.
 
 ## 3. Exaktes und Lesbares im Bild
 

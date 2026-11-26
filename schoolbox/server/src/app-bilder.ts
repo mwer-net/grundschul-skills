@@ -6,7 +6,7 @@
  * Der Arbeitsordner ist die Mappe: Die Bilder liegen gleich in `bilder/` der Mappe, wo das Material sie als
  * `../../bilder/<datei>` einbindet und die Schoolbox sie mit Herkunft (`bilder/bilder-herkunft.tsv`) zeigt; der
  * Vertrag steht in `bilder.json` der Mappe, Prüfbilder und Vorversionen unter `ansicht/bilder/`, Grundposen der
- * Figurenbibliothek unter `referenzen/`. Grenzen: die eines Blatts je Dokument und `MAX_AUFRUFE_SITZUNG` je Prozess.
+ * Figurenbibliothek unter `referenzen/`. Keine Obergrenze für die Zahl der Bilder (281): Das Konto gehört der Lehrkraft.
  *
  * Die Sitzung läuft im Auto-Modus, das Repo ist öffentlich: Das Dokument muss es unter `MATERIAL_DIR` geben, ohne Link
  * auf dem Weg dorthin; Referenzen kommen nur aus der Mappe (und darin nur aus den Quellen des Werkzeugs), nie von
@@ -22,7 +22,6 @@ import { kopieGrund, leseBibliothek, SchoolboxFehler, zerlegeZiel } from '@schoo
 import { BILD_API_GESPERRT } from './bild-api';
 import type { Zuschnitt } from './bild-datei';
 import { ANSICHT_BILDER, BILDER_LISTE, istDateiname, pruefBildPfade } from './bild-datei';
-import { BILD_GRENZEN } from './bild-grenzen';
 import type { BildWerkzeug } from './bild-werkzeug';
 import { BILD_HERKUNFT, erstelleBildWerkzeug, REFERENZ_ORDNER, VERSUCHE } from './bild-werkzeug';
 import type { BildApi, BildKonfig } from './bild-zugang';
@@ -31,8 +30,6 @@ import type { BildOrt, WerkzeugSchema } from './werkzeug-schemas';
 import { BILD_BEARBEITEN, BILD_ERZEUGEN, bildWerkzeugSchemas } from './werkzeug-schemas';
 
 export const APP_BILDER_SERVER = 'schoolbox-bilder';
-/** Je Sitzung (Prozess) über alle Dokumente; je Dokument gilt die Grenze eines Blatts (`BILD_GRENZEN.aufrufe.blatt`). */
-export const MAX_AUFRUFE_SITZUNG = 3 * BILD_GRENZEN.aufrufe.blatt;
 const MAX_FIGUREN_TEXT = 30;
 /** Prüfbilder in der Antwort, je Bild und zusammen; was darüber liegt, nennt nur der Pfad. */
 const MAX_BILD_BYTES = 3_500_000;
@@ -130,24 +127,12 @@ export const erstelleAppBilder = (o: AppBilderOptionen) => {
 	);
 	const werkzeuge = new Map<string, Promise<BildWerkzeug>>();
 	let gesperrt: string | null = null;
-	let laufend = 0;
 	const schluessel = konfig.openaiSchluessel;
 	const praefix = path.relative(konfig.wurzel, konfig.materialDir).split(path.sep).join('/');
 
 	const ohneGeheimnis = (text: string) => {
 		const ohne = schluessel ? text.split(schluessel).join('…') : text;
 		return ohne.replace(/sk-[A-Za-z0-9_*-]{6,}/g, 'sk-…');
-	};
-
-	const aufrufeBisher = async () => {
-		let summe = 0;
-		for (const w of werkzeuge.values()) {
-			summe += await w.then(
-				(x) => x.stand().aufrufe,
-				() => 0,
-			);
-		}
-		return summe;
 	};
 
 	/** Das Dokument unter `MATERIAL_DIR`, ohne Link auf dem Weg: nur dann ist `realpath` genau der erwartete Pfad. */
@@ -221,6 +206,7 @@ export const erstelleAppBilder = (o: AppBilderOptionen) => {
 					arbeit: mappeDir,
 					art: 'blatt',
 					konfig,
+					obergrenze: Number.POSITIVE_INFINITY,
 					api: o.api,
 					zuschnitt: o.zuschnitt,
 					jetzt: o.jetzt,
@@ -283,11 +269,6 @@ export const erstelleAppBilder = (o: AppBilderOptionen) => {
 		const figuren = await figurenLaden;
 		await pruefeAblage(mappeDir, dok, datei, figuren);
 		await pruefeFremd(mappeDir, dok, datei);
-		if ((await aufrufeBisher()) + laufend >= MAX_AUFRUFE_SITZUNG) {
-			throw new Abgelehnt(
-				`Die Obergrenze von ${MAX_AUFRUFE_SITZUNG} Bildaufrufen für diese Sitzung ist erreicht. Frage kein Bild mehr über die Bild-API an.`,
-			);
-		}
 		const vorsilbe = praefix && !praefix.startsWith('..') ? `${praefix}/${mappe}/` : null;
 		if (Array.isArray(rest.referenzen)) {
 			rest.referenzen = rest.referenzen.map((r: unknown) =>
@@ -295,13 +276,7 @@ export const erstelleAppBilder = (o: AppBilderOptionen) => {
 			);
 		}
 		const werkzeug = await werkzeugFuer(mappe, dok, mappeDir, figuren);
-		laufend += 1;
-		let antwort;
-		try {
-			antwort = await werkzeug.aufruf(name, rest);
-		} finally {
-			laufend -= 1;
-		}
+		const antwort = await werkzeug.aufruf(name, rest);
 		if (werkzeug.stand().gesperrt) {
 			gesperrt = gesperrtText('OpenAI erzeugt keine Bilder mehr (Guthaben, Ausgabenlimit oder Schlüssel).');
 		}
