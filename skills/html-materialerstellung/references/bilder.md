@@ -1,6 +1,6 @@
 # Bilder: Leitfigur, KI-Bilder und -Grafiken, Bilder ins Blatt holen
 
-Inhalt: 1. Vorhandene Grafiken (`assets/bilder/`) · 2. Bilder und Grafiken nach Bedarf per KI (Format nach Platz, Bildvertrag, Prompt, Ablauf mit Canva, Fehler und Versuche, 2a. Fehler im KI-Bild beheben, 2b. In der Schoolbox: Bild-API) · 3. Exaktes und Lesbares im Bild · 4. Figuren in der Szene, Ebenen für Text
+Inhalt: 1. Vorhandene Grafiken (`assets/bilder/`) · 2. Bilder und Grafiken nach Bedarf per KI (Format nach Platz, Bildvertrag, Prompt, Ablauf mit Canva, Fehler und Versuche, 2a. Fehler im KI-Bild beheben, 2b. In der Schoolbox: Bild-API, 2c. Claude-App: Canva, Bild-API als Rückfall) · 3. Exaktes und Lesbares im Bild · 4. Figuren in der Szene, Ebenen für Text
 
 Was ein Bild bekommt, entscheidet `grundschul-didaktik/references/kindgerecht-gestalten.md` (Leitfigur mit Funktion, Weglass-Test). Diese Datei regelt die Technik: Format, Bildvertrag, Prompt, Prüfung und Reparatur jedes KI-Bilds, wie Figuren in die Szene und Text als Ebene auf das Bild kommen.
 
@@ -22,7 +22,7 @@ Einbinden: `<img class="figur" src="bilder/willi-strich.png" alt="Willi">`. In d
 
 ## 2. Bilder und Grafiken nach Bedarf per KI
 
-Braucht ein Material ein Bild oder eine Grafik, die nicht in `assets/bilder/` liegt und keine Aufgabendarstellung ist (Abschnitt 3), erzeugt der Skill sie selbst und baut sie ins HTML ein: in der Claude-App mit der Canva-KI (Ablauf unten), in der Schoolbox mit der Bild-API (Abschnitt 2b). Format, Bildvertrag, Prompt, Prüfung und Reparatur gelten für beide.
+Braucht ein Material ein Bild oder eine Grafik, die nicht in `assets/bilder/` liegt und keine Aufgabendarstellung ist (Abschnitt 3), erzeugt der Skill sie selbst und baut sie ins HTML ein: in der Claude-App mit der Canva-KI (Ablauf unten), mit dem Bilder-Server der Schoolbox die Bild-API als Rückfall (Abschnitt 2c), in der Schoolbox mit der Bild-API (Abschnitt 2b). Format, Bildvertrag, Prompt, Prüfung und Reparatur gelten für beide.
 
 **Wofür:** Sachbilder (Tiere, Pflanzen, Gegenstände), Wortschatz-, Anlaut- und Bildkarten, Bildergeschichten und Schreibanlässe, Sachgrafiken ohne Beschriftung, Illustrationen für Lesetexte und Plakate, Szenenbilder für eine Rahmengeschichte (`kindgerecht-gestalten.md`, „Geschichten-Rahmen für eine Reihe“), Posen der Leitfigur.
 
@@ -150,7 +150,7 @@ Neu statt flicken: je Fehler eine Bearbeitung und danach höchstens zwei neue Bi
 
 Jeder Versuch kommt mit Befund in `pruefung`, mit Canva auch mit Media-ID.
 
-Mit Canva: Meldet sie `quota_cooldown` („credit usage is cooling down“), einige Minuten warten, nicht in einer Schleife neu anfragen; in der Wartezeit Text und Layout weiterbauen. Lehnt der Sicherheitsfilter ein Bild ab (`CLIENT_UNSAFE_INPUT`), das Motiv harmloser umformulieren. Sind Canva-Downloads in der Umgebung gesperrt: Die Lehrkraft öffnet „Open generated image“, lädt das Bild herunter und gibt es in den Chat oder den Arbeitsordner. Die Media-IDs liegen im Canva-Konto, in dem die Bilder erstellt wurden. In einem anderen Konto die Dateien aus `assets/bilder/` verwenden; als Referenz für neue Posen vorher hochladen (`create-upload-url`).
+Mit Canva: Meldet sie `quota_cooldown` („credit usage is cooling down“) und gibt es den Bilder-Server nicht (Abschnitt 2c), einige Minuten warten, nicht in einer Schleife neu anfragen; in der Wartezeit Text und Layout weiterbauen. Lehnt der Sicherheitsfilter ein Bild ab (`CLIENT_UNSAFE_INPUT`), das Motiv harmloser umformulieren. Sind Canva-Downloads in der Umgebung gesperrt: Die Lehrkraft öffnet „Open generated image“, lädt das Bild herunter und gibt es in den Chat oder den Arbeitsordner. Die Media-IDs liegen im Canva-Konto, in dem die Bilder erstellt wurden. In einem anderen Konto die Dateien aus `assets/bilder/` verwenden; als Referenz für neue Posen vorher hochladen (`create-upload-url`).
 
 ### 2a. Fehler im KI-Bild beheben
 
@@ -190,6 +190,16 @@ Baut die Schoolbox ein neues Blatt, eine Unterrichtseinheit oder ein Bild aus de
   - „Bild-API ausgelastet“: Das Werkzeug hat schon gewartet. Erst anderes weiterbauen, dann das Bild noch einmal; scheitert es wieder, bleibt der Platzhalter.
   - „Sicherheitsfilter“: das Motiv harmloser formulieren und noch einmal; lehnt er wieder ab, bleibt der Platzhalter.
   - Jeder andere Fehler: noch einmal nur, wenn die Ursache im Aufruf lag.
+
+### 2c. Claude-App: Canva zuerst, Bild-API als Rückfall
+
+Gilt, wenn die Sitzung `mcp__schoolbox-bilder__bild_erzeugen` und `…__bild_bearbeiten` hat (Claude-App auf dem Server der Schoolbox). Ohne sie bleibt es bei Canva.
+
+- **Zuerst Canva**, nach dem Ablauf oben.
+- **Rückfall:** Meldet Canva `quota_cooldown`, aufgebrauchte Credits oder ein anderes Ende des Kontingents: nicht warten, nicht nachfragen. Die übrigen Bilder dieses Materials entstehen mit der Bild-API, dazu ein Satz an die Lehrkraft.
+- **Gleich die Bild-API**, wenn die Lehrkraft ausdrücklich GPT, ChatGPT oder die Bild-API möchte.
+- **Mit der Bild-API** gilt Abschnitt 2b, auch für Prompt (Schriftsatz, `transparent` statt Freistellen) und Prüfung. Anders: Jeder Aufruf nennt `dokument` (`<mappe>/<dokument>`). Arbeitsordner ist die Mappe: Vertrag in `bilder.json` der Mappe, das Bild in `bilder/` der Mappe, im Material `../../bilder/<datei>`; die Herkunft schreibt der Server. Die Antwort zeigt die Prüfbilder. Referenzen aus `bilder/` und `referenzen/` der Mappe (Grundposen, die Werkzeugbeschreibung nennt sie) und aus `dokumente/<dokument>/bilder/`: Nach dem Wechsel ist ein Canva-Bild dieses Materials die Referenz für den Stil.
+- Meldet die Bild-API `bild-api-gesperrt` oder ihre Obergrenze: kein Bild mehr über sie. Zurück zu Canva, sobald es wieder Bilder gibt (in der Wartezeit Text und Layout bauen), sonst bleibt der Platzhalter.
 
 ## 3. Exaktes und Lesbares im Bild
 

@@ -120,6 +120,11 @@ export interface BildWerkzeugOptionen {
 	 * Schubladen) schreibt Claude die Liste selbst, die Parameter gehen trotzdem.
 	 */
 	vertragWerkzeuge?: boolean;
+	/**
+	 * 280: Weitere Ordner für Referenzen, relativ zum Arbeitsordner und darin, etwa `dokumente/<dok>/bilder` für die
+	 * Canva-Bilder eines Dokuments in der Claude-App.
+	 */
+	referenzQuellen?: string[];
 	/** Für Tests: statt der echten Bild-API. */
 	api?: (anfrage: BildAnfrage, bis: number) => Promise<BildErgebnis>;
 	/** Für Tests: statt `blatt.py viertel`. */
@@ -380,14 +385,17 @@ export const erstelleBildWerkzeug = async (o: BildWerkzeugOptionen) => {
 		referenzen.push(ziel);
 	}
 
-	/** Nur reguläre Dateien unter `REFERENZ_QUELLEN`, auch nach Auflösen von Links. */
+	const quellen = [...REFERENZ_QUELLEN, ...(o.referenzQuellen ?? []).map((q) => path.posix.normalize(q))];
+	if (quellen.some((q) => q.startsWith('.') || path.posix.isAbsolute(q))) {
+		throw new Error('Referenzquelle außerhalb des Arbeitsordners');
+	}
+
+	/** Nur reguläre Dateien direkt in einer der Quellen, auch nach Auflösen von Links. */
 	const ladeReferenz = async (rel: string): Promise<Buffer> => {
 		const norm = path.posix.normalize(rel.replaceAll('\\', '/'));
-		const quelle = REFERENZ_QUELLEN.find(
-			(q) => norm.startsWith(`${q}/`) && !norm.slice(q.length + 1).includes('/'),
-		);
+		const quelle = quellen.find((q) => norm.startsWith(`${q}/`) && !norm.slice(q.length + 1).includes('/'));
 		const ablehnen = new Abgelehnt(
-			`Referenz „${rel}“: nur Bilder aus ${REFERENZ_QUELLEN.map((q) => `${q}/`).join(', ')} im Arbeitsordner.`,
+			`Referenz „${rel}“: nur Bilder aus ${quellen.map((q) => `${q}/`).join(', ')} im Arbeitsordner.`,
 		);
 		if (rel.includes('\0') || path.posix.isAbsolute(norm) || !quelle) {
 			throw ablehnen;

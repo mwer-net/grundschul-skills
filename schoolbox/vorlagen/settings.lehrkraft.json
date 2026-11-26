@@ -1,5 +1,6 @@
 {
 	"disableAllHooks": true,
+	"enabledMcpjsonServers": ["schoolbox-bilder"],
 	"permissions": {
 		"disableBypassPermissionsMode": "disable",
 		"deny": [
@@ -18,10 +19,13 @@
 			"Bash(git config *)",
 			"Bash(schoolbox/bin/schoolbox passwort)",
 			"Bash(schoolbox/bin/schoolbox passwort *)",
+			"Bash(schoolbox/bin/schoolbox-bilder)",
+			"Bash(schoolbox/bin/schoolbox-bilder *)",
 			"Read(/.env)",
 			"Edit(/.env)",
 			"Edit(/.env.example)",
 			"Edit(/.gitignore)",
+			"Edit(/.mcp.json)",
 			"Edit(/.githooks/**)",
 			"Edit(/.claude/**)",
 			"Edit(/CLAUDE*.md)",
@@ -39,6 +43,8 @@
 			"Bash(python3 skills/html-materialerstellung/scripts/blatt.py *)",
 			"Bash(python3 .claude/skills/html-materialerstellung/scripts/blatt.py *)",
 			"Edit(/materialien/**)",
+			"mcp__schoolbox-bilder__bild_erzeugen",
+			"mcp__schoolbox-bilder__bild_bearbeiten",
 			"mcp__claude_ai_Canva__generate-image",
 			"mcp__claude_ai_Canva__get-generate-image-job",
 			"mcp__claude_ai_Canva__remove-background",

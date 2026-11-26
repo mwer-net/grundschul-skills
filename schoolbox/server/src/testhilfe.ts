@@ -134,7 +134,7 @@ process.stdin.on('end', () => {
 			let antwort = '';
 			v.on('connect', () => v.write(JSON.stringify({ werkzeug: 'pruefen' }) + '\n'));
 			v.on('data', (t) => { antwort += t; });
-			v.on('close', () => { fs.appendFileSync(path.join(__dirname, 'pruefen.jsonl'), JSON.stringify({ kuerzen, art: konfig.mcpServers.schoolbox.args[2], ...JSON.parse(antwort || '{}') }) + '\n'); fertig(); });
+			v.on('close', () => { fs.appendFileSync(path.join(__dirname, 'pruefen.jsonl'), JSON.stringify({ kuerzen, art: JSON.parse(fs.readFileSync(konfig.mcpServers.schoolbox.args[2], 'utf8')).some((w) => w.name === 'pruefen') ? 'recherche' : 'andere', ...JSON.parse(antwort || '{}') }) + '\n'); fertig(); });
 			v.on('error', () => fertig());
 		});
 		const gut = '# Recherche: Achsensymmetrie, Klasse 2\n\n## Bildungsplan\n- Kl. 1/2, 3.1.2.3: einfache, achsensymmetrische Figuren herstellen (zum Beispiel legen, falten, drucken, schneiden). Quelle: https://www.bildungsplaene-bw.de/,Lde/BP2016BW_ALLG_GS_M.V2_IK_1-2_02_03\n\n## Stufenfolge\n- Falten, dann Spiegel, dann Legen, mit einer Achse. Quelle: https://pikas.dzlm.de/\n\n## Fachliche Prüfpunkte\n- Wahr: Eine Figur ist symmetrisch, wenn sie irgendeine Achse hat. Falsch wäre: nicht symmetrisch bei waagerechter Achse (https://pikas.dzlm.de/)\n- Wahr: Gilt nur eine Achse, sagt die Aufgabe es. Falsch wäre: senkrecht nur in der Lösung (https://pikas.dzlm.de/)\n\nSTUFENMARKE\n';

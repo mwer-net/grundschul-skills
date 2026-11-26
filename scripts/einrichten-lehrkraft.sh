@@ -81,6 +81,8 @@ if [ "$modus" = pruefen ]; then
 	[ "$(git_wert remote.origin.pushurl)" = "$PUSH_GESPERRT" ] || melde "Die Push-Adresse ist nicht gesperrt."
 	[ "$(git_wert schoolbox.lehrkraftModus)" = true ] || melde "Die Commit-Sperre ist nicht eingeschaltet."
 	[ "$(git_wert core.hooksPath)" = .githooks ] || melde "core.hooksPath zeigt nicht auf .githooks."
+	# Startet den Bilder-Server der Claude-App; die Vorlage schaltet ihn mit enabledMcpjsonServers frei
+	grep -q '"schoolbox-bilder"' "$wurzel/.mcp.json" 2>/dev/null || melde ".mcp.json mit schoolbox-bilder fehlt."
 	if [ "$abweichungen" -gt 0 ]; then
 		echo "Beheben mit: scripts/einrichten-lehrkraft.sh"
 		exit 1

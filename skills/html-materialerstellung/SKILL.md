@@ -5,7 +5,7 @@ description: Technischer Ablauf, um Grundschulmaterial (Arbeitsblätter, Klassen
 
 # Material mit HTML erstellen
 
-Jedes Material entsteht als **eine HTML-Datei** mit dem Gestaltungssystem aus `assets/`. Dieselbe Datei ist Entwurf, Endfassung und Quelle für PDF und Lösungsblatt. Ein **KI-Bildmodell** liefert Bilder und Grafiken nach Bedarf, die ins HTML eingebaut werden (`references/bilder.md`): in der Claude-App Canva, in der Schoolbox die Bild-API. Layout und Text entstehen nie im Bildmodell.
+Jedes Material entsteht als **eine HTML-Datei** mit dem Gestaltungssystem aus `assets/`. Dieselbe Datei ist Entwurf, Endfassung und Quelle für PDF und Lösungsblatt. Ein **KI-Bildmodell** liefert Bilder und Grafiken nach Bedarf, die ins HTML eingebaut werden (`references/bilder.md`): in der Claude-App Canva (mit dem Bilder-Server der Schoolbox die Bild-API als Rückfall), in der Schoolbox die Bild-API. Layout und Text entstehen nie im Bildmodell.
 
 Warum: In HTML bestimmen wir Schrift (Fredoka, Andika, eingebettet), Abstände und exakte Abbildungen selbst; das Ergebnis sieht aus wie die Vorschau, ohne Nacharbeit.
 

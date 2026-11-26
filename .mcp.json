@@ -1,0 +1,9 @@
+{
+	"mcpServers": {
+		"schoolbox-bilder": {
+			"type": "stdio",
+			"command": "schoolbox/bin/schoolbox-bilder",
+			"args": []
+		}
+	}
+}

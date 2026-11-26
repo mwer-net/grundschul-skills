@@ -15,19 +15,20 @@ import type { Ansicht, Meldung, MeldungCode } from '@schoolbox/kern';
 import { ANSICHT_ORDNER, HINWEIS_OHNE, WURZEL } from '@schoolbox/kern';
 
 import type { BildWerkzeug, WerkzeugAntwort } from './bild-werkzeug';
+import type { WerkzeugArt } from './werkzeug-schemas';
+import { BILD_BEARBEITEN, BILD_ERZEUGEN, BILD_PRUEFUNG, BILD_VERTRAG, laufWerkzeuge } from './werkzeug-schemas';
+
+export type { WerkzeugArt } from './werkzeug-schemas';
+export { BILD_BEARBEITEN, BILD_ERZEUGEN, BILD_PRUEFUNG, BILD_VERTRAG } from './werkzeug-schemas';
 
 export const WERKZEUG_SERVER = 'schoolbox';
 export const WERKZEUG_BAUEN = `mcp__${WERKZEUG_SERVER}__bauen`;
 /** Im Recherche-Lauf (236) statt „bauen“: zählt die Zeichen von `recherche.md` und prüft sie wie der Server. */
 export const WERKZEUG_PRUEFEN = `mcp__${WERKZEUG_SERVER}__pruefen`;
 /** Die Bildwerkzeuge (237): erzeugen und bearbeiten über die Bild-API, im Server (`bild-werkzeug.ts`). */
-export const BILD_ERZEUGEN = 'bild_erzeugen';
-export const BILD_BEARBEITEN = 'bild_bearbeiten';
 export const WERKZEUG_BILD_ERZEUGEN = `mcp__${WERKZEUG_SERVER}__${BILD_ERZEUGEN}`;
 export const WERKZEUG_BILD_BEARBEITEN = `mcp__${WERKZEUG_SERVER}__${BILD_BEARBEITEN}`;
 /** Im Einheit-Lauf (252): Vertrag eines Bildes lesen, Prüfung und `offen` eintragen; `bilder.json` schreibt der Server. */
-export const BILD_VERTRAG = 'bild_vertrag';
-export const BILD_PRUEFUNG = 'bild_pruefung';
 export const WERKZEUG_BILD_VERTRAG = `mcp__${WERKZEUG_SERVER}__${BILD_VERTRAG}`;
 export const WERKZEUG_BILD_PRUEFUNG = `mcp__${WERKZEUG_SERVER}__${BILD_PRUEFUNG}`;
 const MCP_SKRIPT = path.join(WURZEL, 'schoolbox', 'server', 'werkzeug', 'mcp.mjs');
@@ -73,9 +74,6 @@ export const ansichtText = ({ bericht, bilder }: Ansicht, ordner = ANSICHT_ORDNE
 		.join('\n');
 };
 
-/** Welche Werkzeuge der MCP-Server anbietet, hängt an der Art des Laufs (237). */
-export type WerkzeugArt = 'blatt' | 'einheit' | 'recherche' | 'bilder';
-
 export interface WerkzeugOptionen {
 	/** Die Bildwerkzeuge des Laufs (`erstelleBildWerkzeug`); Pflicht bei `bilder`, bei `blatt`/`einheit` dazu. */
 	bilder?: BildWerkzeug | null;
@@ -84,16 +82,8 @@ export interface WerkzeugOptionen {
 const MAX_DOKUMENT = 200;
 
 /** Die Namen der Werkzeuge, wie `mcp.mjs` sie anbietet. */
-export const werkzeugNamen = (art: WerkzeugArt, mitBildern: boolean, mitVertrag = false): string[] => {
-	if (art === 'recherche') {
-		return ['pruefen'];
-	}
-	const bilder =
-		mitBildern || art === 'bilder'
-			? [BILD_ERZEUGEN, BILD_BEARBEITEN, ...(mitVertrag ? [BILD_VERTRAG, BILD_PRUEFUNG] : [])]
-			: [];
-	return art === 'bilder' ? bilder : ['bauen', ...bilder];
-};
+export const werkzeugNamen = (art: WerkzeugArt, mitBildern: boolean, mitVertrag = false): string[] =>
+	laufWerkzeuge(art, mitBildern, mitVertrag).map((w) => w.name);
 
 const istObjekt = (w: unknown): w is Record<string, unknown> =>
 	typeof w === 'object' && w !== null && !Array.isArray(w);
@@ -102,7 +92,8 @@ const istObjekt = (w: unknown): w is Record<string, unknown> =>
  * Öffnet den Socket in `dir` und schreibt die MCP-Konfiguration daneben. `dir` gehört der Schoolbox und hat Modus
  * 0700; mehr Schutz braucht der Socket nicht. Der Name ist kurz und zufällig: Ein Socket-Pfad fasst nur 108 Zeichen.
  * Bei `recherche` bietet der MCP-Server „pruefen“ statt „bauen“ an, `bauen` ist dann die Prüfung. Mit `o.bilder`
- * kommen `bild_erzeugen` und `bild_bearbeiten` dazu; bei `bilder` gibt es nur sie, `bauen` ist dann `null`.
+ * kommen `bild_erzeugen` und `bild_bearbeiten` dazu; bei `bilder` gibt es nur sie, `bauen` ist dann `null`. Die
+ * Liste der Werkzeuge (`werkzeug-schemas.ts`) liegt als Datei daneben, `mcp.mjs` liest sie beim Start (280).
  */
 export const starteWerkzeug = async (
 	dir: string,
@@ -118,10 +109,12 @@ export const starteWerkzeug = async (
 		throw new Error(`Werkzeug „${art}“ ohne bauen`);
 	}
 	const mitVertrag = bilder?.namen.includes(BILD_VERTRAG) === true;
-	const namen = werkzeugNamen(art, bilder !== null, mitVertrag);
+	const liste = laufWerkzeuge(art, bilder !== null, mitVertrag);
+	const namen = liste.map((w) => w.name);
 	const name = `w-${randomBytes(4).toString('hex')}`;
 	const socket = path.join(dir, `${name}.sock`);
 	const mcpDatei = path.join(dir, `${name}.json`);
+	const listenDatei = path.join(dir, `${name}-werkzeuge.json`);
 	/** Ein Bau zur Zeit: Zwei Aufrufe schrieben sonst in denselben Ordner. Bilder laufen nebenher (bis zu drei). */
 	let reihe: Promise<unknown> = Promise.resolve();
 	const baue = (dokument: string | undefined) => {
@@ -186,12 +179,12 @@ export const starteWerkzeug = async (
 		server.once('error', reject);
 		server.listen(socket, resolve);
 	});
-	const mitBildern = [...(bilder !== null && art !== 'bilder' ? ['bilder'] : []), ...(mitVertrag ? ['vertrag'] : [])];
+	await writeFile(listenDatei, JSON.stringify(liste));
 	await writeFile(
 		mcpDatei,
 		JSON.stringify({
 			mcpServers: {
-				[WERKZEUG_SERVER]: { command: process.execPath, args: [MCP_SKRIPT, socket, art, ...mitBildern] },
+				[WERKZEUG_SERVER]: { command: process.execPath, args: [MCP_SKRIPT, socket, listenDatei] },
 			},
 		}),
 	);
@@ -203,7 +196,7 @@ export const starteWerkzeug = async (
 			await new Promise<void>((resolve) => {
 				server.close(() => resolve());
 			});
-			await Promise.all([socket, mcpDatei].map((datei) => rm(datei, { force: true })));
+			await Promise.all([socket, mcpDatei, listenDatei].map((datei) => rm(datei, { force: true })));
 		},
 	};
 };

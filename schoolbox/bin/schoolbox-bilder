@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# MCP-Server „schoolbox-bilder“ für Sitzungen der Claude-App (280): bild_erzeugen und bild_bearbeiten über die
+# Bild-API, gestartet von Claude Code aus .mcp.json im Hauptordner. Nicht von Hand aufrufen.
+set -euo pipefail
+
+schoolbox_dir=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)
+# shellcheck source=node-tsx.sh
+. "$schoolbox_dir/bin/node-tsx.sh"
+starte_ts server/src/app-bilder-start.ts "$@"
